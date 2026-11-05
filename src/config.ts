@@ -51,8 +51,32 @@ export const config = {
     /** Attach to the developer's Chrome (remote debugging on) instead of launching a separate profile. */
     browserUrl: process.env.CHROME_BROWSER_URL,
     headless: process.env.CHROME_HEADLESS === 'true',
+    /** Remote-debugging port of the Chrome the Vigia launches (shared by the MCP and the recorder). */
+    debugPort: Number(process.env.CHROME_DEBUG_PORT ?? '9333'),
+    /** Its profile: logins made in it persist between runs. */
+    profileDir: resolve(process.env.CHROME_PROFILE_DIR ?? `${dataDir}/chrome-profile`),
+    executablePath: process.env.CHROME_PATH,
     /** Start the bridge together with the server. */
     autostart: process.env.CHROME_MCP_AUTOSTART !== 'false',
+  },
+
+  vault: {
+    prefer: (process.env.VIGIA_VAULT ?? 'auto') as 'auto' | 'keychain' | 'file',
+    indexFile: resolve(`${dataDir}/secrets.json`),
+    dataFile: resolve(`${dataDir}/secrets.enc`),
+    keyFile: resolve(`${dataDir}/vault.key`),
+  },
+
+  /** Speech-to-text for narrated demonstrations. */
+  stt: {
+    /** local (Whisper on this machine via transformers.js) · http (OpenAI-compatible /audio/transcriptions) · off */
+    backend: (process.env.VIGIA_STT ?? (process.env.VIGIA_STT_URL ? 'http' : 'local')) as 'local' | 'http' | 'off',
+    localModel: process.env.VIGIA_STT_LOCAL_MODEL ?? 'onnx-community/whisper-small',
+    url: process.env.VIGIA_STT_URL,
+    apiKey: process.env.VIGIA_STT_API_KEY,
+    model: process.env.VIGIA_STT_MODEL ?? 'whisper-1',
+    language: process.env.VIGIA_STT_LANGUAGE ?? 'pt',
+    modelsDir: resolve(process.env.VIGIA_MODELS_DIR ?? `${dataDir}/models`),
   },
 
   /** Credentials passed to CLI tools explicitly; never the whole environment. */

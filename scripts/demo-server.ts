@@ -21,6 +21,17 @@ Object.assign(process.env, {
   CHROME_MCP_AUTOSTART: process.env.CHROME_MCP_AUTOSTART ?? 'false',
 });
 
+// A local "portal" to try "Ensinar pelo navegador" (login arthur / s3nh@-Portal!).
+const { startFakePortal } = await import('./fake-portal.ts');
+const portal = await startFakePortal(Number(process.env.DEMO_PORTAL_PORT ?? 4310));
+process.env.VIGIA_DEMO_PORTAL = `${portal.url}/login`;
+if (process.env.DEMO_FAKE_STT) {
+  const { setTranscriber } = await import('../src/stt.ts');
+  const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
+  let n = 0;
+  setTranscriber({ name: 'roteirizada', transcribe: async () => lines[n++] ?? '' });
+}
+
 const { fauxProvider, fauxAssistantMessage, fauxToolCall, fauxText } = await import('@earendil-works/pi-ai');
 const { setProvider } = await import('@flue/runtime');
 const { start } = await import('@flue/runtime/node');
@@ -115,6 +126,10 @@ const respond = async (context: { messages: Msg[] }) => {
   const toolsSince = msgs.slice(lastUser + 1).filter((m) => m.role === 'toolResult').length;
   await sleep(600);
 
+  if (said.includes('<demonstracao')) return fromDemonstration(textOf(msgs[lastUser]), toolsSince);
+  if ((said.includes('aprovou') || said.includes('tool-approval-result')) && (said.includes('mostrou no navegador') || said.includes('versao-do-mfe'))) {
+    return fauxAssistantMessage(fauxText('Guardei o playbook **versao-do-mfe** e o Portal no cérebro; as credenciais ficam só no cofre. Quando um deploy de MFE terminar em dev, ou quando você pedir, eu rodo esse passo a passo.'));
+  }
   if (said.includes('tool-approval-result') || said.includes('aprovou') || said.includes('negou')) {
     return fauxAssistantMessage(fauxText(said.includes('negou')
       ? 'Entendido, não guardei nada. Quer ajustar o que aprendi?'
@@ -153,6 +168,7 @@ const respond = async (context: { messages: Msg[] }) => {
   if (said.includes('atualiz') || said.includes('sobe') || said.includes('versão') || said.includes('versao')) {
     const steps = ['abrir', 'achar', 'salvar', 'validar'];
     const notes = ['portal aberto', 'Novo Atendimento no menu', 'versão 0.1.0 salva', 'menu mostra 0.1.0'];
+    if (brain.playbook('versao-do-mfe') && (said.includes('mfe') || said.includes('micro'))) return runMfe(said, toolsSince);
     if (!brain.playbook('versao-no-portal')) {
       return call('ask_developer', { question: 'Ainda não sei atualizar versão no portal. Quer me ensinar agora?', options: ['Sim, vou te ensinar', 'Agora não'] });
     }
@@ -170,6 +186,67 @@ const respond = async (context: { messages: Msg[] }) => {
   }
   return call('ask_developer', { question: 'Ainda não sei fazer isso. Quer me ensinar? Eu acompanho e guardo como playbook.', options: ['Vou te ensinar', 'Agora não'] });
 };
+
+/** Scripted stand-in for what Haiku does with a demonstration: actions + speech → playbook. */
+function fromDemonstration(message: string, toolsSince: number) {
+  const lines = [...message.matchAll(/^\[(\d\d:\d\d)\] (AÇÃO|FALA) {2}(.*)$/gm)].map((m) => ({ kind: m[2], text: m[3] }));
+  const actions = lines.filter((l) => l.kind === 'AÇÃO').map((l) => l.text);
+  const speech = lines.filter((l) => l.kind === 'FALA').length;
+  const firstUrl = actions.map((a) => a.match(/^Abriu (\S+)/)?.[1]).find(Boolean) ?? process.env.VIGIA_DEMO_PORTAL!;
+  const secrets = [...new Set([...message.matchAll(/\{\{segredo:([^}]+)\}\}/g)].map((m) => m[1]))];
+  const user = secrets.find((x) => /usuario|user|login/.test(x)), pass = secrets.find((x) => /senha|pass/.test(x));
+  const link = actions.map((a) => a.match(/^Clicou no link "([^"]+)"/)?.[1]).find(Boolean) ?? 'novo-front';
+  const tab = actions.map((a) => a.match(/^Clicou na aba "([^"]+)"/)?.[1]).find(Boolean) ?? 'Configuração';
+  const field = actions.map((a) => a.match(/^Preencheu o campo "([^"]+)"[^{]*? com "([^"]*)"/)).find(Boolean);
+  const button = [...actions].reverse().map((a) => a.match(/^Clicou no botão "([^"]+)"/)?.[1]).find(Boolean) ?? 'Salvar';
+  const origin = new URL(firstUrl).origin;
+  if (toolsSince === 0) {
+    return call('show_ui', { component: { component: 'status', id: 'demo-sintese', title: 'Juntei o que você fez com o que explicou', state: 'success',
+      text: `${actions.length} ações e ${speech} trechos de fala. Login com credenciais do cofre; o MFE e a versão viram parâmetros.` } },
+      'Entendi o procedimento. Vou te mostrar como ficou antes de guardar.');
+  }
+  return call('brain_learn', {
+    reason: 'Arthur mostrou no navegador como atualizar a versão de um MFE no Portal interno',
+    items: [
+      { kind: 'entity', payload: { id: 'MicroFrontend', type: 'Classe', props: { requires: ['registradoEm'] } } },
+      { kind: 'entity', payload: { id: 'portal-interno-mfe', type: 'Portal', props: { url: origin, login: user ? 'usuário e senha (cofre)' : 'sessão do Chrome' } } },
+      { kind: 'entity', payload: { id: link, type: 'Repositorio', props: {} } },
+      { kind: 'edge', payload: { from: link, rel: 'eUm', to: 'MicroFrontend' } },
+      { kind: 'edge', payload: { from: link, rel: 'registradoEm', to: 'portal-interno-mfe' } },
+      { kind: 'playbook', payload: {
+        name: 'versao-do-mfe',
+        description: 'Atualizar a versão de um micro-frontend no Portal interno. Use quando pedirem para atualizar a versão de um MFE ou quando o deploy de um MFE terminar em dev.',
+        appliesTo: 'MicroFrontend',
+        trigger: 'deploy de MFE concluído em dev, ou pedido para atualizar a versão de um MFE',
+        autonomy: 'ask',
+        steps: [
+          { id: 'entrar', label: 'Entrar no portal', how: `navigate_page ${firstUrl}. Se pedir login: browser_act fill no campo "Usuário" com {{segredo:${user ?? 'portal/usuario'}}} e "Senha" com {{segredo:${pass ?? 'portal/senha'}}}, click em "Entrar". Pronto quando aparecer a lista de micro-frontends.` },
+          { id: 'abrir', label: 'Abrir o MFE {{mfe}}', how: `click no link com o nome {{mfe}} (na demonstração: "${link}").` },
+          { id: 'aba', label: `Ir na aba ${tab}`, how: `click na aba (role tab) "${tab}".` },
+          { id: 'versao', label: `Trocar ${field?.[1] ?? 'Versão'} para {{versao}} e salvar`, how: `browser_act fill no campo rotulado "${field?.[1] ?? 'Versão'}" com {{versao}} — a versão que foi para dev (na demonstração: "${field?.[2] ?? ''}"); click em "${button}".` },
+          { id: 'conferir', label: 'Conferir', how: 'take_snapshot: aparece "Configuração salva" e o campo mostra {{versao}}.' },
+        ],
+        instructions: 'Parâmetros: {{mfe}} (nome no portal) e {{versao}} (tag/versão do último deploy em dev). Credenciais só pelas referências do cofre. Se o portal pedir MFA, pare e chame ask_developer.',
+      } },
+    ],
+  }, `Ficaram 5 passos. O MFE e a versão viram parâmetros; usuário e senha entram pelo cofre (${secrets.length} referências). Vale para qualquer micro-frontend do portal.`);
+}
+
+/** Scripted run of the learned playbook (the real browser run is covered by npm run e2e:demo). */
+async function runMfe(said: string, toolsSince: number) {
+  const version = said.match(/\d+\.\d+\.\d+/)?.[0] ?? '2.5.0';
+  const mfe = said.match(/(?:do|da|o)\s+([a-z0-9-]+-(?:front|mfe)|[a-z0-9]+-[a-z0-9-]+)/)?.[1] ?? 'novo-front';
+  const steps = ['entrar', 'abrir', 'aba', 'versao', 'conferir'];
+  const notes = ['login com as credenciais do cofre', `${mfe} aberto`, 'aba Configuração', `${version} salva`, `portal mostra ${version}`];
+  if (toolsSince === 0) return call('playbook_start', { name: 'versao-do-mfe', target: mfe, params: { mfe, versao: version } }, `Vou rodar o playbook que você me mostrou para o ${mfe}.`);
+  const i = toolsSince - 1;
+  if (i < steps.length * 2) {
+    await sleep(800);
+    return call('playbook_step', { stepId: steps[Math.floor(i / 2)], status: i % 2 === 0 ? 'running' : 'done', note: i % 2 === 0 ? undefined : notes[Math.floor(i / 2)] });
+  }
+  return fauxAssistantMessage(fauxText(`Pronto: ${mfe} está com a versão ${version} no Portal interno.`));
+}
+
 faux.setResponses(Array.from({ length: 500 }, () => respond as never));
 setProvider(faux.provider);
 
@@ -178,3 +255,4 @@ if (conversations.list().length === 0) conversations.create('Boas-vindas');
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port, hostname: '127.0.0.1' });
 console.log(`[demo] Vigia (modelo roteirizado) em http://127.0.0.1:${port} — dados em ${dataDir}`);
+console.log(`[demo] portal de exemplo em ${portal.url}/login (usuário arthur, senha s3nh@-Portal!)`);

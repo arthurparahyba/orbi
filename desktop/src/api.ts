@@ -40,8 +40,16 @@ export interface BrainSnapshot {
   stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };
   gaps: Gap[]; types: OntologyType[]; entities: Entity[]; edges: Edge[];
 }
+export interface Target { role: string; name: string; label?: string; context?: string }
+export interface DemoAction { t: number; kind: string; url: string; title?: string; tab: number; target?: Target; value?: string; secret?: string; text: string }
+export interface NarrationSegment { t: number; durationMs: number; status: 'pending' | 'done' | 'error'; text: string; error?: string }
+export interface Recording {
+  id: string; conversationId: string; status: 'recording' | 'transcribing' | 'done' | 'discarded'; startedAt: string; finishedAt?: string;
+  startUrl?: string; actions: DemoAction[]; narration: NarrationSegment[]; secrets: string[]; narrated: boolean; transcriber?: string;
+}
+export interface SecretInfo { name: string; description: string; origin: string; createdAt: string; updatedAt: string }
 export interface Health {
-  model: string; codeModel: string; anthropicKey: boolean;
+  model: string; codeModel: string; anthropicKey: boolean; vault?: string; stt?: string; demoPortal?: string;
   chrome: { url: string; tools: number } | { error: string };
   brain: BrainSnapshot['stats'];
 }
@@ -69,5 +77,19 @@ export const api = {
   autonomy: () => request<{ categories: Record<Category, Autonomy> }>('/api/autonomy'),
   setAutonomy: (category: Category, level: Autonomy) =>
     request<{ categories: Record<Category, Autonomy> }>('/api/autonomy', { method: 'PATCH', body: JSON.stringify({ category, level }) }),
+  startRecording: (conversationId: string, url: string | undefined, narrated: boolean) =>
+    request<Recording>('/api/recordings', { method: 'POST', body: JSON.stringify({ conversationId, url, narrated }) }),
+  recording: (id: string) => request<Recording>(`/api/recordings/${id}`),
+  activeRecording: () => request<Recording | null>('/api/recordings/active'),
+  stopRecording: (id: string, discard = false) => request<Recording>(`/api/recordings/${id}/stop`, { method: 'POST', body: JSON.stringify({ discard }) }),
+  async sendAudio(id: string, startedAt: number, durationMs: number, wav: Blob) {
+    const res = await fetch(`${RUNTIME_URL}/api/recordings/${id}/audio?startedAt=${startedAt}&durationMs=${Math.round(durationMs)}`, {
+      method: 'POST', headers: { 'content-type': 'audio/wav' }, body: wav,
+    });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  },
+  vault: () => request<{ backend: 'keychain' | 'file'; secrets: SecretInfo[] }>('/api/vault'),
+  setSecret: (name: string, value: string) => request<SecretInfo>(`/api/vault/${name}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+  deleteSecret: (name: string) => request<{ deleted: boolean }>(`/api/vault/${name}`, { method: 'DELETE' }),
   exportBrain: () => request<{ written: number; dir: string }>('/api/brain/export', { method: 'POST' }),
 };

@@ -23,6 +23,8 @@ export interface BridgeOptions {
   args?: string[];
   /** chrome-devtools-mcp options. Ignored when `command` is given. */
   chrome?: { browserUrl?: string; headless?: boolean; isolated?: boolean; executablePath?: string };
+  /** Runs before every tool call, e.g. to launch the shared Chrome on first use. */
+  beforeToolCall?: () => Promise<void>;
 }
 
 export interface RunningBridge {
@@ -83,9 +85,10 @@ export async function startBridge(options: BridgeOptions): Promise<RunningBridge
   const makeServer = () => {
     const server = new Server({ name: 'vigia-chrome-devtools', version: '0.1.0' }, { capabilities: { tools: {} } });
     server.setRequestHandler(ListToolsRequestSchema, async () => upstream.listTools());
-    server.setRequestHandler(CallToolRequestSchema, async (request) =>
-      upstream.callTool({ name: request.params.name, arguments: request.params.arguments ?? {} }),
-    );
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      await options.beforeToolCall?.();
+      return upstream.callTool({ name: request.params.name, arguments: request.params.arguments ?? {} });
+    });
     return server;
   };
 

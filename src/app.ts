@@ -4,8 +4,11 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { config } from './config.ts';
 import { Vigia } from './agents/vigia.ts';
-import { brain, conversations, inbox, policy } from './runtime.ts';
+import { brain, conversations, inbox, policy, vault } from './runtime.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
+import { chromeDebugUrl, ensureChrome } from './browser/chrome.ts';
+import { recorder, demonstrationMessage } from './browser/recorder.ts';
+import { transcriber } from './stt.ts';
 import type { AutonomyLevel, Category } from './policy/autonomy.ts';
 import type { Autonomy } from './brain/store.ts';
 
@@ -82,6 +85,57 @@ app.post('/api/inbox/:id/answer', async (c) => {
   return c.json(receipt, 202);
 });
 
+// ── demonstrations: the developer teaches by doing (and narrating) ────────
+app.post('/api/recordings', async (c) => {
+  const body = await c.req.json<{ conversationId: string; url?: string; narrated?: boolean }>();
+  if (!body.conversationId) return c.json({ error: 'conversationId obrigatório' }, 400);
+  try {
+    const rec = await recorder.start(body.conversationId, { url: body.url || undefined, narrated: body.narrated });
+    const conv = conversations.list().find((x) => x.id === body.conversationId);
+    if (conv?.title === 'Nova conversa') conversations.touch(conv.id, 'Demonstração no navegador');
+    return c.json(rec, 201);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : String(error) }, 409);
+  }
+});
+app.get('/api/recordings/active', (c) => c.json(recorder.active() ?? null));
+app.get('/api/recordings/:id', (c) => {
+  const rec = recorder.get(c.req.param('id'));
+  return rec ? c.json(rec) : c.json({ error: 'gravação não encontrada' }, 404);
+});
+app.post('/api/recordings/:id/audio', async (c) => {
+  const startedAt = Number(c.req.query('startedAt'));
+  const durationMs = Number(c.req.query('durationMs') ?? '0');
+  const wav = Buffer.from(await c.req.arrayBuffer());
+  if (!startedAt || wav.length < 44) return c.json({ error: 'envie audio/wav com ?startedAt=<epoch ms>' }, 400);
+  if (wav.length > 8 * 1024 * 1024) return c.json({ error: 'segmento grande demais' }, 413);
+  try {
+    return c.json(recorder.addAudio(c.req.param('id'), startedAt, durationMs, wav), 202);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : String(error) }, 404);
+  }
+});
+app.post('/api/recordings/:id/stop', async (c) => {
+  const { discard = false } = await c.req.json<{ discard?: boolean }>().catch(() => ({ discard: false }));
+  const rec = recorder.get(c.req.param('id'));
+  if (!rec) return c.json({ error: 'gravação não encontrada' }, 404);
+  // Transcription may still be running: answer now, hand the timeline to the agent when it is ready.
+  void recorder.stop(rec.id, discard).then(async (done) => {
+    if (discard || done.actions.length === 0 && !done.narration.some((n) => n.text)) return;
+    await dispatch(Vigia, { id: done.conversationId, message: { kind: 'user', body: demonstrationMessage(done) } });
+  }).catch((error) => console.error('[vigia] finalizar demonstração falhou:', error));
+  return c.json({ ...rec, status: discard ? 'discarded' : 'transcribing' }, 202);
+});
+
+// ── vault: credentials, never in the brain ─────────────────────────────────
+app.get('/api/vault', async (c) => c.json({ backend: await vault.backend(), secrets: vault.list() }));
+app.put('/api/vault/:name{.+}', async (c) => {
+  const { value, description } = await c.req.json<{ value: string; description?: string }>();
+  if (!value) return c.json({ error: 'value obrigatório' }, 400);
+  return c.json(await vault.set(c.req.param('name'), value, { description }));
+});
+app.delete('/api/vault/:name{.+}', async (c) => c.json({ deleted: await vault.delete(c.req.param('name')) }));
+
 // ── brain: the Cérebro screen ──────────────────────────────────────────────
 app.get('/api/brain', (c) => c.json({ stats: brain.stats(), gaps: brain.gaps(), ...brain.graph() }));
 app.get('/api/brain/entities/:id', (c) => {
@@ -109,6 +163,16 @@ app.patch('/api/autonomy', async (c) => {
 let bridge: RunningBridge | undefined;
 let bridgeError: string | undefined;
 
+let vaultBackend = 'desconhecido';
+void vault.backend().then((b) => { vaultBackend = b; }, () => {});
+const sttName = () => {
+  try {
+    return transcriber()?.name ?? 'desligada';
+  } catch (error) {
+    return `erro: ${(error as Error).message}`;
+  }
+};
+
 app.get('/api/health', (c) =>
   c.json({
     model: config.model,
@@ -116,6 +180,9 @@ app.get('/api/health', (c) =>
     anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
     chrome: bridge ? { url: bridge.url, tools: bridge.toolNames.length } : { error: bridgeError ?? 'desligado' },
     brain: brain.stats(),
+    vault: vaultBackend,
+    demoPortal: process.env.VIGIA_DEMO_PORTAL,
+    stt: sttName(),
   }),
 );
 
@@ -123,7 +190,9 @@ if (config.chrome.autostart) {
   startBridge({
     port: config.chrome.port,
     token: config.chrome.token,
-    chrome: { browserUrl: config.chrome.browserUrl, headless: config.chrome.headless },
+    // The bridge attaches to the shared Chrome, launched lazily on the first tool call.
+    chrome: { browserUrl: chromeDebugUrl() },
+    beforeToolCall: async () => { await ensureChrome(); },
   })
     .then((b) => {
       bridge = b;

@@ -379,15 +379,17 @@ export class BrainStore {
     };
   }
 
-  startRun(playbookName: string, conversationId: string): PlaybookRun {
+  startRun(playbookName: string, conversationId: string, params: Record<string, string> = {}): PlaybookRun {
     const pb = this.playbook(playbookName);
     if (!pb) throw new Error(`playbook não encontrado: ${playbookName}`);
+    // Parameters learned as {{name}} are filled in the run's labels (never secrets: those stay references).
+    const fill = (text: string) => text.replace(/\{\{\s*([a-zA-Z_][\w-]*)\s*\}\}/g, (all, key: string) => params[key] ?? all);
     const run: PlaybookRun = {
       id: ulid(),
       playbook: pb.name,
       conversationId,
       status: 'running',
-      steps: pb.steps.map((s) => ({ ...s, status: 'pending' as StepStatus })),
+      steps: pb.steps.map((s) => ({ ...s, label: fill(s.label), how: fill(s.how), status: 'pending' as StepStatus })),
       startedAt: now(),
       finishedAt: null,
     };

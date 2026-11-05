@@ -14,7 +14,8 @@ import {
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { config } from '../config.ts';
-import { brain, inbox, policy } from '../runtime.ts';
+import { brain, inbox, policy, vault } from '../runtime.ts';
+import { redact } from '../vault.ts';
 import { UiComponent, UiPart } from '../ui.ts';
 import { runCommand } from '../tools/exec.ts';
 import { prepareFix, pushFix, getFix } from '../tools/claude-code.ts';
@@ -228,11 +229,19 @@ export function useVigia(conversationId: string) {
   gated({
     name: 'browser_act',
     description:
-      'Act on a web page through Chrome DevTools MCP: click, fill, fill_form, press_key, hover, select_page, handle_dialog, upload_file, evaluate_script, close_page. Get element `uid`s from take_snapshot first and pass `pageId`.',
+      'Act on a web page through Chrome DevTools MCP: click, fill, fill_form, press_key, hover, select_page, handle_dialog, upload_file, evaluate_script, close_page. Get element `uid`s from take_snapshot first and pass `pageId`. ' +
+      'Credentials: write the reference exactly as the playbook has it, e.g. value "{{segredo:portal.local/senha}}" — it is replaced from the vault inside this tool; you never see or type the real value.',
     input: v.object({ tool: v.string(), args: v.record(v.string(), v.unknown()), purpose: v.string() }),
     category: (a) => browserCategory(a.tool),
     summary: (a) => `${a.purpose} (navegador: ${a.tool})`,
-    execute: (a) => callBrowserTool(a.tool, a.args),
+    execute: async (a) => {
+      const { value: args, used } = await vault.resolve(a.args);
+      try {
+        return redact(await callBrowserTool(a.tool, args), used);
+      } catch (error) {
+        throw new Error(redact(error instanceof Error ? error.message : String(error), used));
+      }
+    },
   });
 
   useTool({
@@ -313,15 +322,15 @@ export function useVigia(conversationId: string) {
 
   useTool({
     name: 'playbook_start',
-    description: 'Start running a learned playbook. Shows its steps to the developer as a live checklist. Then report each step with playbook_step.',
-    input: v.object({ name: v.string(), target: v.optional(v.string()) }),
+    description: 'Start running a learned playbook. Shows its steps to the developer as a live checklist. Then report each step with playbook_step. Pass the values of its {{parameters}} (e.g. {"mfe": "novo-front", "versao": "2.5.0"}); credentials ({{segredo:…}}) are not parameters.',
+    input: v.object({ name: v.string(), target: v.optional(v.string()), params: v.optional(v.record(v.string(), v.string())) }),
     async run({ data }) {
       const pb = brain.playbook(data.name);
       if (!pb) return { output: { error: `playbook não existe: ${data.name}`, available: brain.playbooks().map((p) => p.name) } };
-      const run = brain.startRun(pb.name, conversationId);
+      const run = brain.startRun(pb.name, conversationId, data.params);
       setActiveRun({ runId: run.id, playbook: pb.name, autonomy: pb.autonomy });
       showRun(run.id);
-      return { output: { runId: run.id, autonomy: pb.autonomy, steps: pb.steps.map((s) => ({ id: s.id, label: s.label, how: s.how })) } };
+      return { output: { runId: run.id, autonomy: pb.autonomy, steps: run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how })) } };
     },
   });
 

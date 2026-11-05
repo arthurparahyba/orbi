@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useFlueAgent, type FlueConversationMessage, type FlueConversationPart } from '@flue/react';
 import { agentUrl, api, type ConversationInfo, type InboxItem } from '../api';
 import { usePoll } from '../hooks';
-import { PlusIcon, SendIcon, ToolIcon, AlertIcon, BulbIcon, ClockIcon } from '../components/Icons';
+import { PlusIcon, SendIcon, ToolIcon, AlertIcon, BulbIcon, ClockIcon, RecordIcon } from '../components/Icons';
 import { UiComponentView, type UiComponent } from '../components/UiComponents';
 import { Markdown } from '../components/Markdown';
+import { DemonstrationCard, RecordingPanel, StartDemonstration } from '../components/Demonstration';
+import type { Narrator } from '../audio';
+import type { Recording } from '../api';
 
 const TOOL_LABEL: Record<string, string> = {
   run_command: 'Comando', run_read_only_command: 'Comando (leitura)', run_python: 'Python', brain_query: 'Consulta ao cérebro',
@@ -64,6 +67,7 @@ export function ConversationView({ openInbox }: { openInbox: InboxItem[] }) {
 }
 
 const SUGGESTIONS = [
+  'Ensinar pelo navegador',
   'Vou te ensinar como subir a versão de um front no portal.',
   'Atualiza a versão do novo-front no portal para 2.4.0',
   'O que você já sabe sobre o repositório pagamentos-api?',
@@ -72,15 +76,32 @@ const SUGGESTIONS = [
 function Chat({ id, title, onTitled }: { id: string; title: string; onTitled(): void }) {
   const agent = useFlueAgent({ url: agentUrl(id) });
   const [draft, setDraft] = useState('');
+  const [demo, setDemo] = useState<{ mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator } | undefined>();
+  const health = usePoll(api.health, 30_000);
+
+  // Back to a conversation with a recording still running (e.g. after a reload).
+  useEffect(() => {
+    api.activeRecording().then((r) => { if (r && r.conversationId === id) setDemo({ mode: 'live', rec: r }); }, () => {});
+  }, [id]);
   const endRef = useRef<HTMLDivElement>(null);
   const busy = agent.status === 'submitted' || agent.status === 'streaming';
   const visible = agent.messages.filter((m) => m.display !== 'hidden');
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [agent.messages]);
 
+  // A conversation can start out-of-band (a demonstration dispatched by the runtime, a scheduled
+  // follow-up): while it is still absent, keep checking so its first messages show up live.
+  const { refresh, status, messages } = agent;
+  useEffect(() => {
+    if (status !== 'idle' || messages.length > 0) return;
+    const timer = setInterval(refresh, 2000);
+    return () => clearInterval(timer);
+  }, [status, messages.length, refresh]);
+
   const send = async (text: string) => {
     const t = text.trim();
     if (!t) return;
+    if (t === 'Ensinar pelo navegador') { setDemo({ mode: 'start' }); return; }
     setDraft('');
     if (title === 'Nova conversa' || !visible.some((m) => m.role === 'user')) {
       void api.renameConversation(id, t.length > 60 ? `${t.slice(0, 57)}…` : t).then(onTitled, () => {});
@@ -92,6 +113,9 @@ function Chat({ id, title, onTitled }: { id: string; title: string; onTitled(): 
     <section className="chat" aria-label="Conversa com o Vigia">
       <header className="chat-head">
         <h1>{title || 'Conversa'}</h1>
+        <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Vigia aprende">
+          <RecordIcon size={13} /> Ensinar pelo navegador
+        </button>
         <span className={`pill pill-${busy ? 'running' : agent.status === 'error' ? 'failed' : 'idle'}`}>
           {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : agent.status === 'connecting' ? 'Conectando…' : 'Pronto'}
         </span>
@@ -108,6 +132,21 @@ function Chat({ id, title, onTitled }: { id: string; title: string; onTitled(): 
         {agent.error && <div className="banner small" role="alert">{agent.error.message}</div>}
         <div ref={endRef} />
       </div>
+ {demo?.mode === 'start' && (
+        <div className="demo-dock">
+          <StartDemonstration
+            conversationId={id}
+            defaultUrl={health.data?.demoPortal}
+            onCancel={() => setDemo(undefined)}
+            onStarted={(rec, narrator) => setDemo({ mode: 'live', rec, narrator })}
+          />
+        </div>
+      )}
+      {demo?.mode === 'live' && (
+        <div className="demo-dock">
+          <RecordingPanel initial={demo.rec} narrator={demo.narrator} onClosed={() => setDemo(undefined)} />
+        </div>
+      )}
       <form className="composer" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
         <label htmlFor="composer" className="sr-only">Mensagem para o Vigia</label>
         <textarea
@@ -136,6 +175,7 @@ function Message({ m }: { m: FlueConversationMessage }) {
   }
   if (m.role === 'user') {
     const text = m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('');
+    if (text.startsWith('<demonstracao')) return <DemonstrationCard text={text} />;
     return <div className="msg user"><div className="bubble">{text}</div></div>;
   }
   return (
