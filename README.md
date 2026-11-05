@@ -35,6 +35,46 @@ curl -N localhost:5173/agents/vigia/$ID      # stream de eventos (texto + compon
 
 Produção local: `npm run build && npm start` (porta 3000, só loopback).
 
+## App desktop
+
+`desktop/` é o app: **Tauri 2** (janela nativa, ~3 MB) + **React 19** com
+`@flue/react`. Três telas:
+
+- **Conversa** — chat com o Vigia. Texto, componentes (`stepper` ao vivo,
+  cartões de aprovação e de pergunta, tabelas, diffs) e as ações executadas
+  agrupadas. Pendências de todas as conversas ficam na coluna da direita.
+- **Cérebro** — grafo do conhecimento (clique num nó para ver propriedades,
+  relações atuais e histórico), lacunas, playbooks com autonomia por playbook,
+  execuções e os tipos da ontologia. Exporta tudo em Markdown.
+- **Autonomia** — observar · perguntar · automático por tipo de ação, e o
+  estado das capacidades (modelo, chave, Chrome DevTools MCP).
+
+Ao abrir, o app procura o runtime em `127.0.0.1:3000`; se não achar, inicia
+`node dist/server.mjs` da pasta do runtime (ou de `VIGIA_RUNTIME_DIR`) e o
+encerra junto com a janela. A chave vem do `.env` do runtime, porque apps
+abertos pelo Dock/Finder não herdam o ambiente do terminal.
+
+```bash
+# uma vez
+npm install && npm run build        # runtime
+cd desktop && npm install
+
+# desenvolvimento: UI com hot reload no navegador (http://localhost:5174)
+npm run demo                        # na raiz: runtime com modelo roteirizado e cérebro de exemplo, sem API key
+npm --prefix desktop run dev
+
+# janela nativa
+npm --prefix desktop run tauri dev
+npm --prefix desktop run tauri build   # macOS: .app e .dmg em desktop/src-tauri/target/release/bundle/
+```
+
+Pré-requisitos do Tauri: Rust (`rustup`), e no macOS as Xcode Command Line
+Tools (`xcode-select --install`); no Linux, `libwebkit2gtk-4.1-dev`.
+
+`npm run demo` roda o fluxo completo sem gastar API: peça “Vou te ensinar como
+subir a versão de um front no portal”, aprove o cartão, e depois “Atualiza a
+versão do novo-front no portal” para ver o playbook executar passo a passo.
+
 ## API local
 
 | Rota | O quê |
@@ -80,6 +120,11 @@ src/
   mcp/bridge.ts           stdio → HTTP para o chrome-devtools-mcp
   tools/exec.ts           execução sem shell, com allowlist
   tools/claude-code.ts    correção em worktree via Claude Agent SDK
+scripts/demo-server.ts    runtime com modelo roteirizado (sem API key)
+desktop/
+  src/views/              Conversa, Cérebro, Autonomia
+  src/components/         catálogo de componentes do canal `ui`
+  src-tauri/              janela nativa + início/parada do runtime
 ```
 
 Nota: `@earendil-works/pi-ai` e `pi-agent-core` estão fixados em 1.1.0 em

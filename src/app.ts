@@ -1,10 +1,10 @@
 import { dispatch } from '@flue/runtime';
 import { createAgentRouter } from '@flue/runtime/routing';
 import { Hono } from 'hono';
-import { ulid } from 'ulidx';
+import { cors } from 'hono/cors';
 import { config } from './config.ts';
 import { Vigia } from './agents/vigia.ts';
-import { brain, inbox, policy } from './runtime.ts';
+import { brain, conversations, inbox, policy } from './runtime.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
 import type { AutonomyLevel, Category } from './policy/autonomy.ts';
 import type { Autonomy } from './brain/store.ts';
@@ -18,7 +18,21 @@ import type { Autonomy } from './brain/store.ts';
  */
 const app = new Hono();
 
+// The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
+// dev servers are the only origins allowed to call the runtime from a browser.
+const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?)$/;
+app.use(
+  '*',
+  cors({
+    origin: (origin) => (LOCAL_ORIGIN.test(origin) ? origin : null),
+    allowHeaders: ['content-type', 'authorization', 'idempotency-key', 'stream-offset', 'stream-cursor'],
+    exposeHeaders: ['stream-next-offset', 'stream-cursor', 'stream-up-to-date', 'stream-closed', 'location', 'etag'],
+    credentials: true,
+  }),
+);
+
 app.use('*', async (c, next) => {
+  if (c.req.method === 'OPTIONS') return next();
   const token = process.env.VIGIA_API_TOKEN;
   if (token && c.req.header('authorization') !== `Bearer ${token}`) return c.json({ error: 'unauthorized' }, 401);
   await next();
@@ -27,8 +41,17 @@ app.use('*', async (c, next) => {
 app.route('/agents/vigia', createAgentRouter(Vigia));
 
 // ── conversations ──────────────────────────────────────────────────────────
-/** New conversation id. The app opens /agents/vigia/<id> with it. */
-app.post('/api/conversations', (c) => c.json({ id: `chat:${ulid().toLowerCase()}` }, 201));
+/** Sidebar list. The app opens /agents/vigia/<id> for each one. */
+app.get('/api/conversations', (c) => c.json(conversations.list()));
+app.post('/api/conversations', async (c) => {
+  const body = await c.req.json<{ title?: string }>().catch(() => ({}) as { title?: string });
+  return c.json(conversations.create(body.title), 201);
+});
+app.patch('/api/conversations/:id', async (c) => {
+  const { title } = await c.req.json<{ title?: string }>();
+  const item = conversations.touch(c.req.param('id'), title);
+  return item ? c.json(item) : c.json({ error: 'não encontrada' }, 404);
+});
 
 // ── inbox: what waits for the developer ────────────────────────────────────
 app.get('/api/inbox', (c) => c.json(inbox.list({ status: (c.req.query('status') as never) ?? 'open' })));
@@ -128,3 +151,17 @@ const followupTimer = setInterval(async () => {
 followupTimer.unref();
 
 export default app;
+
+// Started by the desktop shell: exit when the window process is gone, even if it
+// was killed without a chance to stop us (SIGKILL, crash, force-quit).
+const parentPid = Number(process.env.VIGIA_PARENT_PID);
+if (parentPid) {
+  setInterval(() => {
+    try {
+      process.kill(parentPid, 0);
+    } catch {
+      console.log('[vigia] app desktop encerrado; parando o runtime');
+      process.exit(0);
+    }
+  }, 2_000).unref();
+}

@@ -10,6 +10,13 @@ function list(value: string | undefined, fallback: string[]): string[] {
   return items.length ? items : fallback;
 }
 
+// Desktop launches (Tauri, Finder/Dock) don't inherit the shell's env: read ./.env when present.
+try {
+  process.loadEnvFile(resolve('.env'));
+} catch {
+  /* no .env — rely on the environment */
+}
+
 const dataDir = resolve(process.env.VIGIA_DATA_DIR ?? './data');
 
 export const config = {

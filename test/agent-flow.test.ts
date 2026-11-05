@@ -38,6 +38,12 @@ after(async () => {
 
 const conversation = 'chat:teste-fluxo';
 
+/** Components of the last `ui` data part of a reply (the part carries the full list). */
+function components(reply: { data: Record<string, unknown[]> }): any[] {
+  const parts = (reply.data.ui ?? []) as Array<{ components: unknown[] }>;
+  return parts.at(-1)?.components ?? [];
+}
+
 const playbook = {
   name: 'versao-no-portal',
   description: 'Atualizar a versão de um front-end no Portal interno depois do deploy em dev.',
@@ -72,7 +78,7 @@ test('aprender: brain_learn fica pendente até o desenvolvedor aprovar', async (
   const reply = await vigia.read(await vigia.dispatch('Vou te ensinar a atualizar a versão do front no portal.'));
 
   assert.equal(brain.playbook('versao-no-portal'), undefined, 'nada é gravado antes da aprovação');
-  const card = (reply.data.ui ?? []).find((p: any) => p.component === 'approval') as any;
+  const card = components(reply).find((p: any) => p.component === 'approval') as any;
   assert.ok(card, 'a conversa recebeu um card de aprovação');
   const item = inbox.list({ status: 'open' }).find((i) => i.kind === 'learning');
   assert.ok(item, 'o aprendizado entrou na caixa "Pedem sua atenção"');
@@ -114,9 +120,10 @@ test('executar: o playbook aprendido aparece como skill e vira um passo a passo'
   const run = brain.runs()[0];
   assert.equal(run.playbook, 'versao-no-portal');
   assert.equal(run.status, 'done');
-  const steppers = (reply.data.ui ?? []).filter((p: any) => p.component === 'stepper') as any[];
-  // reply.data carries the final message's parts; intermediate updates went out live on the stream.
-  const last = steppers.at(-1);
+  const steppers = components(reply).filter((p: any) => p.component === 'stepper') as any[];
+  // One stepper (same id) updated in place as each step finished.
+  assert.equal(steppers.length, 1);
+  const last = steppers[0];
   assert.equal(last.status, 'done', 'o passo a passo chegou ao fim');
   assert.deepEqual(last.steps.map((s: any) => s.status), ['done', 'done']);
   assert.equal(brain.playbook('versao-no-portal')?.successes, 1);

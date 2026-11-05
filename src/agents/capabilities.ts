@@ -7,6 +7,7 @@ import {
   useDataWriter,
   useDelivery,
   usePersistentState,
+  useResponseStart,
   useSkill,
   useTool,
 } from '@flue/runtime';
@@ -14,7 +15,7 @@ import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { config } from '../config.ts';
 import { brain, inbox, policy } from '../runtime.ts';
-import { UiComponent } from '../ui.ts';
+import { UiComponent, UiPart } from '../ui.ts';
 import { runCommand } from '../tools/exec.ts';
 import { prepareFix, pushFix, getFix } from '../tools/claude-code.ts';
 import { callBrowserTool } from '../mcp/chrome-devtools.ts';
@@ -34,6 +35,9 @@ import {
  * questions) and a clock (follow-ups) — plus the autonomy gate around every
  * action that changes something.
  */
+
+/** Components shown in the current response of each conversation (see UiPart). */
+const uiByConversation = new Map<string, Map<string, UiComponent>>();
 
 type ActiveRun = { runId: string; playbook: string; autonomy: AutonomyLevel } | null;
 type Pending = { tool: string; args: unknown; category: Category; requestedAt: string };
@@ -134,7 +138,16 @@ export const browserRead = defineTool({
 export function useVigia(conversationId: string) {
   const [activeRun, setActiveRun] = usePersistentState<ActiveRun>('activeRun', null);
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
-  const writeUi = useDataWriter('ui', { schema: UiComponent });
+  const writePart = useDataWriter('ui', { schema: UiPart });
+  useResponseStart(() => {
+    uiByConversation.set(conversationId, new Map());
+  });
+  const writeUi = (component: UiComponent) => {
+    let shown = uiByConversation.get(conversationId);
+    if (!shown) uiByConversation.set(conversationId, (shown = new Map()));
+    shown.set(component.id, component);
+    writePart({ components: [...shown.values()] });
+  };
   const delivery = useDelivery();
   const executors = new Map<string, Executor>();
 

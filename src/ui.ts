@@ -59,3 +59,11 @@ export const UiComponent = v.variant('component', [
 ]);
 
 export type UiComponent = v.InferOutput<typeof UiComponent>;
+
+/**
+ * What travels on the wire. A Flue data part is unique per response (a later
+ * write replaces it), so the part carries every component of the response,
+ * in order; the app renders the list and a component's `id` keeps its place.
+ */
+export const UiPart = v.object({ components: v.array(UiComponent) });
+export type UiPart = v.InferOutput<typeof UiPart>;

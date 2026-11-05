@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "A janela principal só fala com o runtime local por HTTP; nenhuma permissão nativa extra.",
+  "windows": ["*"],
+  "permissions": ["core:default"]
+}
