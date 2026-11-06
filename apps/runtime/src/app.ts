@@ -3,7 +3,9 @@ import { createAgentRouter } from '@flue/runtime/routing';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { config } from './config.ts';
+import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { binaryStatus } from './tools/exec.ts';
 import { Orbi } from './agents/orbi.ts';
 import { brain, conversations, inbox, policy, vault } from './runtime.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
@@ -174,6 +176,14 @@ const sttName = () => {
   }
 };
 
+// The workspace is where commands run; create it so a fresh setup doesn't fail with ENOENT.
+for (const dir of [config.workspace, config.scratchDir]) mkdirSync(dir, { recursive: true });
+{
+  const missing = Object.entries(binaryStatus(config.allowedBinaries)).filter(([, at]) => !at).map(([b]) => b);
+  console.log(`[orbi] pasta de trabalho: ${config.workspace}`);
+  if (missing.length) console.log(`[orbi] comandos não encontrados no PATH: ${missing.join(', ')}`);
+}
+
 app.get('/api/health', (c) =>
   c.json({
     model: config.model,
@@ -185,6 +195,8 @@ app.get('/api/health', (c) =>
     brain: brain.stats(),
     vault: vaultBackend,
     demoPortal: process.env.ORBI_DEMO_PORTAL,
+    workspace: config.workspace,
+    binaries: binaryStatus(config.allowedBinaries),
     stt: sttName(),
   }),
 );

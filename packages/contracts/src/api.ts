@@ -35,6 +35,8 @@ export interface Recording {
 export interface SecretInfo { name: string; description: string; origin: string; createdAt: string; updatedAt: string }
 export interface Health {
   model: string; codeModel: string; anthropicKey: boolean; envFile?: string; dataDir?: string; vault?: string; stt?: string; demoPortal?: string;
+  /** Folder commands run in, and where each allowed CLI was found (null = not installed). */
+  workspace?: string; binaries?: Record<string, string | null>;
   chrome: { url: string; tools: number } | { error: string };
   brain: BrainSnapshot['stats'];
 }

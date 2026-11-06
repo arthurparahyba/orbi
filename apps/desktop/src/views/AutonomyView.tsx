@@ -12,6 +12,12 @@ const CATEGORIES: Array<{ key: Category; title: string; hint: string; locked?: A
   { key: 'codigo-producao', title: 'Claude Code: corrigir código de produção', hint: 'Sempre global; um playbook não sobrepõe.' },
   { key: 'aprender', title: 'Gravar aprendizado no cérebro', hint: 'O Orbi sempre mostra o que vai aprender e pede seu ok.', locked: ['auto'] },
 ];
+const INSTALL: Record<string, string> = {
+  gh: 'Instale com brew install gh e rode gh auth login',
+  aws: 'Instale com brew install awscli',
+  git: 'Instale com xcode-select --install',
+  python3: 'Instale com xcode-select --install',
+};
 const LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };
 
 export function AutonomyView({ health }: { health?: Health }) {
@@ -52,6 +58,13 @@ export function AutonomyView({ health }: { health?: Health }) {
         <div className="auto-row"><div><strong>Claude Code</strong><p className="muted small">Correções em worktree isolada</p></div><code>{health?.codeModel ?? '—'}</code></div>
         <div className="auto-row"><div><strong>Transcrição da narração</strong><p className="muted small">Áudio das demonstrações</p></div><code>{health?.stt ?? '—'}</code></div>
         <div className="auto-row"><div><strong>Chave da API Anthropic</strong>{!health?.anthropicKey && health?.envFile && <p className="muted small">Coloque <code>ANTHROPIC_API_KEY=…</code> em <code>{health.envFile}</code> e reabra o app.</p>}</div><span className={`pill ${health?.anthropicKey ? 'pill-done' : 'pill-failed'}`}>{health?.anthropicKey ? 'Configurada' : 'Ausente'}</span></div>
+        <div className="auto-row"><div><strong>Pasta de trabalho</strong><p className="muted small">Onde os comandos rodam e os repositórios são clonados (ORBI_WORKSPACE)</p></div><code>{health?.workspace ?? '—'}</code></div>
+        {Object.entries(health?.binaries ?? {}).map(([bin, at]) => (
+          <div key={bin} className="auto-row">
+            <div><strong>{bin}</strong><p className="muted small">{at ?? INSTALL[bin] ?? 'não encontrado no PATH'}</p></div>
+            <span className={`pill ${at ? 'pill-done' : 'pill-failed'}`}>{at ? 'Encontrado' : 'Não instalado'}</span>
+          </div>
+        ))}
         <div className="auto-row">
           <div><strong>Chrome DevTools MCP</strong><p className="muted small">{health && 'tools' in health.chrome ? health.chrome.url : health && 'error' in health.chrome ? health.chrome.error : ''}</p></div>
           <span className={`pill ${health && 'tools' in health.chrome ? 'pill-done' : 'pill-failed'}`}>{health && 'tools' in health.chrome ? `${health.chrome.tools} ferramentas` : 'Indisponível'}</span>

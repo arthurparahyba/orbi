@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
 /**
@@ -17,7 +18,10 @@ try {
   /* no .env — rely on the environment */
 }
 
-const dataDir = resolve(process.env.ORBI_DATA_DIR ?? './data');
+/** Paths from .env may start with ~ (shells expand it; Node doesn't). */
+const path = (p: string) => resolve(p.replace(/^~(?=$|[\\/])/, homedir()));
+
+const dataDir = path(process.env.ORBI_DATA_DIR ?? './data');
 
 export const config = {
   /** Model for every Flue agent and subagent (Pi catalog specifier). */
@@ -29,16 +33,16 @@ export const config = {
 
   dataDir,
   /** The brain: one SQLite file (ontology, graph, playbooks). */
-  brainFile: resolve(process.env.ORBI_BRAIN_FILE ?? `${dataDir}/brain.db`),
+  brainFile: path(process.env.ORBI_BRAIN_FILE ?? `${dataDir}/brain.db`),
   /** Read-only Markdown export of the brain, for Obsidian. */
-  brainExportDir: resolve(process.env.ORBI_BRAIN_EXPORT_DIR ?? `${dataDir}/brain-md`),
+  brainExportDir: path(process.env.ORBI_BRAIN_EXPORT_DIR ?? `${dataDir}/brain-md`),
   policyFile: resolve(`${dataDir}/autonomy.json`),
   inboxFile: resolve(`${dataDir}/inbox.json`),
 
   /** Folder where repositories are cloned; commands run inside it or a repo below it. */
-  workspace: resolve(process.env.ORBI_WORKSPACE ?? './workspace'),
+  workspace: path(process.env.ORBI_WORKSPACE ?? './workspace'),
   /** Scratch folder for Python investigation scripts and fix worktrees. */
-  scratchDir: resolve(process.env.ORBI_SCRATCH_DIR ?? `${dataDir}/scratch`),
+  scratchDir: path(process.env.ORBI_SCRATCH_DIR ?? `${dataDir}/scratch`),
 
   /** CLIs the agent may run. No shell: each call is binary + arguments. */
   allowedBinaries: list(process.env.ORBI_ALLOWED_BINARIES, ['git', 'gh', 'aws', 'python3']),
@@ -54,7 +58,7 @@ export const config = {
     /** Remote-debugging port of the Chrome the Orbi launches (shared by the MCP and the recorder). */
     debugPort: Number(process.env.CHROME_DEBUG_PORT ?? '9333'),
     /** Its profile: logins made in it persist between runs. */
-    profileDir: resolve(process.env.CHROME_PROFILE_DIR ?? `${dataDir}/chrome-profile`),
+    profileDir: path(process.env.CHROME_PROFILE_DIR ?? `${dataDir}/chrome-profile`),
     executablePath: process.env.CHROME_PATH,
     /** Start the bridge together with the server. */
     autostart: process.env.CHROME_MCP_AUTOSTART !== 'false',
@@ -76,7 +80,7 @@ export const config = {
     apiKey: process.env.ORBI_STT_API_KEY,
     model: process.env.ORBI_STT_MODEL ?? 'whisper-1',
     language: process.env.ORBI_STT_LANGUAGE ?? 'pt',
-    modelsDir: resolve(process.env.ORBI_MODELS_DIR ?? `${dataDir}/models`),
+    modelsDir: path(process.env.ORBI_MODELS_DIR ?? `${dataDir}/models`),
   },
 
   /** Credentials passed to CLI tools explicitly; never the whole environment. */

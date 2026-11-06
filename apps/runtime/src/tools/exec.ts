@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { existsSync, statSync } from 'node:fs';
+import { delimiter, join } from 'node:path';
 
 /**
  * The only way Orbi runs programs. No shell is involved: arguments go straight
@@ -29,6 +31,36 @@ export interface RunResult {
 const SAFE_ENV_KEYS = ['PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'USER', 'SHELL', 'TERM'];
 
 export class CommandNotAllowedError extends Error {}
+/** The binary isn't installed, or isn't on the PATH the runtime got. */
+export class CommandNotFoundError extends Error {}
+
+const INSTALL_HINT: Record<string, string> = {
+  gh: 'instale com `brew install gh` e rode `gh auth login`',
+  aws: 'instale com `brew install awscli` e configure com `aws configure` ou `aws sso login`',
+  git: 'no macOS vem com `xcode-select --install`',
+  python3: 'no macOS vem com `xcode-select --install` (ou `brew install python`)',
+};
+
+/** Where `binary` would be found on `pathVar`, or null. Mirrors what spawn() does. */
+export function findBinary(binary: string, pathVar = process.env.PATH ?? ''): string | null {
+  const exts = process.platform === 'win32' ? (process.env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';') : [''];
+  for (const dir of pathVar.split(delimiter)) {
+    if (!dir) continue;
+    for (const ext of exts) {
+      const candidate = join(dir, binary + ext);
+      try {
+        if (statSync(candidate).isFile()) return candidate;
+      } catch {
+        /* not here */
+      }
+    }
+  }
+  return null;
+}
+
+export function binaryStatus(binaries: readonly string[] = DEFAULT_BINARIES): Record<string, string | null> {
+  return Object.fromEntries(binaries.map((b) => [b, findBinary(b)]));
+}
 
 export function assertAllowed(binary: string, args: readonly string[], allowed: readonly string[] = DEFAULT_BINARIES): void {
   if (!allowed.includes(binary) || binary.includes('/')) {
@@ -66,6 +98,15 @@ export function runCommand(binary: string, args: readonly string[], options: Run
   // gh and aws must never open an interactive prompt.
   env.GH_PROMPT_DISABLED = '1';
   env.AWS_PAGER = '';
+
+  // spawn() reports a missing binary AND a missing cwd as the same ENOENT; tell them apart.
+  if (cwd && !existsSync(cwd)) {
+    return Promise.reject(new Error(`a pasta onde o comando rodaria não existe: ${cwd} (confira ORBI_WORKSPACE no .env)`));
+  }
+  if (!findBinary(binary, env.PATH)) {
+    const hint = INSTALL_HINT[binary] ? `; ${INSTALL_HINT[binary]}` : '';
+    return Promise.reject(new CommandNotFoundError(`\`${binary}\` não está instalado ou não está no PATH do Orbi${hint}`));
+  }
 
   return new Promise((resolvePromise, reject) => {
     const child = spawn(binary, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });

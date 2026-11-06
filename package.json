@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "node scripts/start.mjs",
-    "dev": "npm run build -w @orbi/runtime && npm run tauri -w @orbi/desktop -- dev",
+    "dev": "node scripts/dev.mjs",
     "demo": "npm run demo -w @orbi/runtime",
     "demo:ui": "npm run dev -w @orbi/desktop",
     "test": "npm test -w @orbi/runtime && npm run check:types -w @orbi/runtime && npm run typecheck -w @orbi/desktop",
