@@ -5,6 +5,7 @@ import type { OrbiServices } from '../../services.ts';
 import { demonstrationMessage } from '../../browser/recorder.ts';
 import { HttpError, body, notFound } from '../errors.ts';
 import type { Agent } from './types.ts';
+import { log } from '../../log.ts';
 
 const MAX_SEGMENT = 8 * 1024 * 1024;
 
@@ -46,7 +47,7 @@ export function recordingRoutes({ recorder, conversations, events }: OrbiService
           if (discard || (done.actions.length === 0 && !done.narration.some((n) => n.text))) return;
           await tellAgent(events, agent, { id: done.conversationId, message: { kind: 'user', body: demonstrationMessage(done) } });
         })
-        .catch((error) => console.error('[orbi] finalizar demonstração falhou:', error));
+        .catch((error) => log.error('finalizar demonstração falhou', { recording: rec.id, conversation: rec.conversationId, error }));
       return c.json({ ...rec, status: discard ? 'discarded' : 'transcribing' }, 202);
     });
 }

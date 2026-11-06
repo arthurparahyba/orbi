@@ -11,8 +11,9 @@
  *   vault          credenciais (nomes)
  *   recording      gravação no navegador (id = gravação)
  *   dispatched     o runtime mandou uma mensagem a uma conversa (id = conversa)
+ *   usage          uso do modelo e das ferramentas (id = conversa)
  */
-export const TOPICS = ['inbox', 'conversations', 'brain', 'runs', 'autonomy', 'vault', 'recording', 'dispatched'] as const;
+export const TOPICS = ['inbox', 'conversations', 'brain', 'runs', 'autonomy', 'vault', 'recording', 'dispatched', 'usage'] as const;
 export type Topic = (typeof TOPICS)[number];
 
 export interface ChangeEvent {

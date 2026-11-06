@@ -1,6 +1,7 @@
 import type { Context, Hono } from 'hono';
 import * as v from 'valibot';
 import type { ApiError } from '@orbi/contracts';
+import { log } from '../log.ts';
 
 /** An error the API answers with on purpose: status + stable code + message for people. */
 export class HttpError extends Error {
@@ -40,7 +41,7 @@ const toBody = (e: HttpError): ApiError => ({ error: { code: e.code, message: e.
 export function installErrorHandling(app: Hono): void {
   app.onError((error, c) => {
     if (error instanceof HttpError) return c.json(toBody(error), error.status);
-    console.error('[orbi] erro na rota', c.req.method, c.req.path, error);
+    log.error('erro na rota', { method: c.req.method, path: c.req.path, error });
     return c.json(toBody(new HttpError(500, 'internal', error instanceof Error ? error.message : String(error))), 500);
   });
   app.notFound((c) => c.json(toBody(new HttpError(404, 'not_found', `rota não existe: ${c.req.method} ${c.req.path}`)), 404));

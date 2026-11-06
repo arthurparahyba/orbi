@@ -31,6 +31,11 @@ export const SetAutonomy = v.object({
 });
 
 export const InboxStatusQuery = v.optional(v.picklist(['open', 'approved', 'denied', 'answered', '']));
+/** GET /api/usage?days= : 1 to 365 days back (default 30). */
+export const UsageDaysQuery = v.optional(
+  v.pipe(v.string(), v.regex(/^\d{1,3}$/), v.transform(Number), v.number(), v.minValue(1), v.maxValue(365)),
+  '30',
+);
 
 /** Every error the API returns has this shape. */
 export interface ApiError {

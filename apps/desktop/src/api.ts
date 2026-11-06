@@ -1,5 +1,5 @@
 import type {
-  ApiError, Autonomy, BrainSnapshot, Category, ConversationInfo, Entity, Edge, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, Entity, Edge, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -66,6 +66,7 @@ export const api = {
     });
     if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   },
+  usage: (days = 30) => request<UsageReport>(`/api/usage?days=${days}`),
   vault: () => request<{ backend: 'keychain' | 'file'; secrets: SecretInfo[] }>('/api/vault'),
   setSecret: (name: string, value: string) => request<SecretInfo>(`/api/vault/${name}`, { method: 'PUT', body: JSON.stringify({ value }) }),
   deleteSecret: (name: string) => request<{ deleted: boolean }>(`/api/vault/${name}`, { method: 'DELETE' }),

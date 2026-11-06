@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import type { OrbiConfig } from './config.ts';
+import { log } from './log.ts';
 
 type SttConfig = OrbiConfig['stt'];
 
@@ -65,7 +66,7 @@ function localWhisper(stt: SttConfig): Transcriber {
         throw new Error('transcrição local precisa do pacote @huggingface/transformers (npm install)');
       });
       t.env.cacheDir = stt.modelsDir;
-      console.log(`[orbi] carregando ${stt.localModel} para transcrição (primeira vez baixa o modelo)…`);
+      log.info('carregando modelo de transcrição (a primeira vez baixa o modelo)', { model: stt.localModel });
       return (await t.pipeline('automatic-speech-recognition', stt.localModel, { dtype: 'q8' })) as unknown as Asr;
     })().catch((error) => {
       asr = undefined;

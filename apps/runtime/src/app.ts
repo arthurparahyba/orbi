@@ -3,6 +3,7 @@ import { createOrbi, startBackground } from './compose.ts';
 import { provideServices } from './services.ts';
 import { createHttpApp } from './http/app.ts';
 import { Orbi } from './agents/orbi.ts';
+import { createLogger, logOptionsFromEnv, setLogger } from './log.ts';
 
 /**
  * Entry point Flue serves (`dist/server.mjs` imports it): read the
@@ -10,6 +11,7 @@ import { Orbi } from './agents/orbi.ts';
  * hand the HTTP app to the server. This is the only module with side effects.
  */
 loadDotEnv();
+setLogger(createLogger(logOptionsFromEnv())); // ORBI_LOG_* may come from the .env
 const orbi = await createOrbi(loadConfig());
 provideServices(orbi);
 const background = startBackground(orbi, Orbi);

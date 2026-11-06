@@ -13,6 +13,7 @@ import { brainRoutes } from './routes/brain.ts';
 import { autonomyRoutes } from './routes/autonomy.ts';
 import { healthRoutes } from './routes/health.ts';
 import { eventRoutes } from './routes/events.ts';
+import { usageRoutes } from './routes/usage.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.
@@ -57,5 +58,6 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/autonomy', autonomyRoutes(s));
   app.route('/api/health', healthRoutes(s, background));
   app.route('/api/events', eventRoutes(s));
+  app.route('/api/usage', usageRoutes(s));
   return app;
 }

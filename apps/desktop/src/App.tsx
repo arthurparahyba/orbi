@@ -5,7 +5,7 @@ import { BrainIcon, ChatIcon, DialIcon, OrbiIcon } from './components/Icons';
 import { InboxContext, type InboxActions } from './components/UiComponents';
 import { ConversationView } from './views/conversation/ConversationView';
 import { BrainView } from './views/brain/BrainView';
-import { AutonomyView } from './views/AutonomyView';
+import { AutonomyView } from './views/autonomy/AutonomyView';
 
 type Screen = 'conversa' | 'cerebro' | 'autonomia';
 

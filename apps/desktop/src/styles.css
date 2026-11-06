@@ -314,3 +314,10 @@ td { border-bottom: 1px solid var(--border); padding: 7px 10px; font-variant-num
 .secret-ref { font-family: var(--mono); font-size: 12px; border: 1px solid var(--border-2); border-radius: 5px; padding: 0 5px; }
 .learn-facts ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; }
 .approval.is-approved .learn-preview, .approval.is-denied .learn-preview { opacity: 0.8; }
+
+/* Uso do modelo (Autonomia) */
+.usage-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-right: 16px; }
+.usage-stats { flex-wrap: wrap; padding: 4px 16px 14px; }
+.usage-stats .stat strong { font-size: 17px; }
+table.usage td.num, table.usage th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); font-size: 11px; }

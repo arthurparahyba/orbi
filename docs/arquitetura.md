@@ -36,6 +36,9 @@ src/
                             cofre, cérebro, autonomia, health, eventos)
   events.ts                 o que mudou (createEvents), para o app acompanhar
   tell.ts                   manda mensagem a uma conversa de fora dela e avisa
+  log.ts                    logs estruturados (json ou pretty), sempre com atributos
+  telemetry.ts              observa o Flue: cada turno e ferramenta vira uso e log
+  usage.ts                  uso por conversa e por dia (tokens, custo, tempo)
   agents/orbi.ts            o agente (Flue 'use agent')
   agents/capabilities.ts    monta as capacidades do agente (useOrbi)
   agents/gate.ts            portão de autonomia: roda, só relata ou pede aprovação
@@ -157,6 +160,28 @@ O contrato é código TypeScript sem etapa de build: o Vite do app e o do runtim
 o compilam junto. No runtime ele propositalmente não aparece em `dependencies`
 (o Flue deixaria qualquer dependência declarada de fora do bundle).
 
+## Observabilidade
+
+**Logs.** Todo log sai por `log.ts`, uma linha por evento com atributos em vez
+de texto montado: `turno do modelo conversation=chat:… model=… ms=812
+tokensIn=3593 costUsd=0.0042`. No terminal o formato é legível; no app
+(`logs/runtime.log`) é JSON, uma linha por evento, fácil de filtrar com `jq`:
+
+```bash
+jq -c 'select(.conversation == "chat:01…")' ~/Library/Application\ Support/br.com.zup.orbi/logs/runtime.log
+```
+
+`ORBI_LOG_FORMAT` (`json` | `pretty`) e `ORBI_LOG_LEVEL` (`debug` mostra também
+cada ferramenta que deu certo) mudam isso.
+
+**Uso.** `telemetry.ts` assina os eventos de runtime do Flue (`observe`). Cada
+turno do modelo e cada chamada de ferramenta soma, por conversa e por dia, na
+tabela `usage`: tokens, custo estimado (pela tabela de preços do modelo), tempo
+de espera e falhas. A conversa é a instância do agente (`chat:…`), então o
+trabalho de subagentes conta na conversa que os chamou. A tela Autonomia mostra
+hoje, o período (7, 30 ou 90 dias) e cada conversa, e atualiza sozinha pelo
+evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
+
 ## API local
 
 | Rota | O quê |
@@ -176,6 +201,7 @@ o compilam junto. No runtime ele propositalmente não aparece em `dependencies`
 | `GET /api/vault` · `PUT/DELETE /api/vault/:name` | Cofre (só nomes e descrições, nunca valores) |
 | `GET /api/health` | Modelo, chave, ponte do Chrome, cérebro, onde fica o `.env` |
 | `GET /api/events` | Feed de mudanças (server-sent events) |
+| `GET /api/usage?days=30` | Uso do modelo e das ferramentas: hoje, período e por conversa |
 
 O servidor só escuta em loopback. Com `ORBI_API_TOKEN` definido, toda rota exige
 `Authorization: Bearer <token>`.

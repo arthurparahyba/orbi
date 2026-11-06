@@ -45,4 +45,18 @@ CREATE TABLE conversations (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
   },
+  {
+    name: 'uso do modelo e das ferramentas por conversa e por dia',
+    sql: `
+CREATE TABLE usage (
+  conversation_id TEXT NOT NULL, day TEXT NOT NULL, model TEXT NOT NULL DEFAULT '',
+  turns INTEGER NOT NULL DEFAULT 0, failed_turns INTEGER NOT NULL DEFAULT 0,
+  tokens_in INTEGER NOT NULL DEFAULT 0, tokens_out INTEGER NOT NULL DEFAULT 0,
+  cache_read INTEGER NOT NULL DEFAULT 0, cache_write INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0, model_ms INTEGER NOT NULL DEFAULT 0,
+  tool_calls INTEGER NOT NULL DEFAULT 0, failed_tools INTEGER NOT NULL DEFAULT 0, tool_ms INTEGER NOT NULL DEFAULT 0,
+  last_at TEXT NOT NULL,
+  PRIMARY KEY (conversation_id, day));
+CREATE INDEX usage_day ON usage(day);`,
+  },
 ];

@@ -12,6 +12,7 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   inbox_items: { topic: 'inbox', id: 'id' },
   conversations: { topic: 'conversations', id: 'id' },
   settings: { topic: 'autonomy' },
+  usage: { topic: 'usage', id: 'conversation_id' },
 };
 
 /**

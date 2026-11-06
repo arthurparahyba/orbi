@@ -16,6 +16,9 @@ import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts
 import { watchTables } from './db/changes.ts';
 import { createEvents } from './events.ts';
 import { tellAgent } from './tell.ts';
+import { UsageStore } from './usage.ts';
+import { watchAgents } from './telemetry.ts';
+import { log } from './log.ts';
 import type { InboxItem } from './inbox.ts';
 import type { ConversationInfo } from './conversations.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
@@ -60,6 +63,7 @@ export async function createOrbi(
     config: finalConfig,
     llm,
     events,
+    usage: overrides.usage ?? new UsageStore(db),
     brain: overrides.brain ?? new BrainStore(db),
     inbox,
     policy,
@@ -104,11 +108,16 @@ export function startBackground(s: OrbiServices, agent: Parameters<typeof dispat
   let bridgeError: string | undefined;
   const timers: NodeJS.Timeout[] = [];
 
-  console.log(`[orbi] modelo: ${config.model}${s.llm.adapter ? ` (adaptador ${s.llm.adapter.name})` : ''}`);
-  for (const p of s.llm.plugins) console.log(`[orbi] plugin ${p.name} (${p.kind}) ${p.error ? `com erro: ${p.error}` : 'ok'} — ${p.dir}`);
-  console.log(`[orbi] pasta de trabalho: ${config.workspace}`);
+  log.info('runtime iniciado', { model: config.model, adapter: s.llm.adapter?.name, workspace: config.workspace, db: config.dbFile });
+  for (const p of s.llm.plugins) {
+    if (p.error) log.warn('plugin com erro', { plugin: p.name, kind: p.kind, dir: p.dir, error: p.error });
+    else log.info('plugin carregado', { plugin: p.name, kind: p.kind, dir: p.dir });
+  }
   const missing = Object.entries(binaryStatus(config.allowedBinaries)).filter(([, at]) => !at).map(([b]) => b);
-  if (missing.length) console.log(`[orbi] comandos não encontrados no PATH: ${missing.join(', ')}`);
+  if (missing.length) log.warn('comandos não encontrados no PATH', { missing });
+
+  // Every model and tool call: counted per conversation and logged.
+  const unwatch = watchAgents({ usage: s.usage, log });
 
   if (config.chrome.autostart) {
     startBridge({
@@ -122,11 +131,11 @@ export function startBackground(s: OrbiServices, agent: Parameters<typeof dispat
     })
       .then((b) => {
         bridge = b;
-        console.log(`[orbi] Chrome DevTools MCP em ${b.url} (${b.toolNames.length} tools)`);
+        log.info('Chrome DevTools MCP conectado', { url: b.url, tools: b.toolNames.length });
       })
       .catch((error) => {
         bridgeError = error instanceof Error ? error.message : String(error);
-        console.error('[orbi] bridge do Chrome não subiu:', bridgeError);
+        log.error('bridge do Chrome não subiu', { error: bridgeError });
       });
   }
 
@@ -140,7 +149,7 @@ export function startBackground(s: OrbiServices, agent: Parameters<typeof dispat
             message: { kind: 'signal', type: 'followup', body: `Retorno agendado: ${f.note}`, attributes: { followupId: f.id } },
           });
         } catch (error) {
-          console.error('[orbi] follow-up falhou:', error);
+          log.error('retorno agendado falhou', { conversation: f.conversationId, followup: f.id, error });
         }
       }
     }, config.followupIntervalMs),
@@ -155,7 +164,7 @@ export function startBackground(s: OrbiServices, agent: Parameters<typeof dispat
         try {
           process.kill(parent, 0);
         } catch {
-          console.log('[orbi] app desktop encerrado; parando o runtime');
+          log.info('app desktop encerrado; parando o runtime', { parent });
           process.exit(0);
         }
       }, 2_000),
@@ -168,6 +177,7 @@ export function startBackground(s: OrbiServices, agent: Parameters<typeof dispat
     bridge: () => bridge,
     bridgeError: () => bridgeError ?? (config.chrome.autostart ? undefined : 'desligado'),
     async stop() {
+      unwatch();
       for (const t of timers) clearInterval(t);
       await bridge?.close();
       s.chrome.stop();
