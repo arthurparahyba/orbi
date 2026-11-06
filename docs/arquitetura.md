@@ -32,7 +32,11 @@ src/
   services.ts               onde agentes e ferramentas pegam as peças (services())
   http/app.ts               rotas HTTP (createHttpApp)
   agents/orbi.ts            o agente (Flue 'use agent')
-  agents/capabilities.ts    tools genéricas + gate de autonomia + canal de UI
+  agents/capabilities.ts    monta as capacidades do agente (useOrbi)
+  agents/gate.ts            portão de autonomia: roda, só relata ou pede aprovação
+  agents/ui-channel.ts      canal `ui` da conversa (componentes atualizados no lugar)
+  agents/tools/             uma capacidade por arquivo: terminal, browser, code,
+                            brain, playbooks, voice, clock
   subagents/investigador.ts investigação só-leitura em paralelo
   skills/aprender-procedimento.ts   a única skill de fábrica: como aprender
   brain/store.ts            cérebro (ontologia, grafo temporal, playbooks)

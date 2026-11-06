@@ -1,5 +1,7 @@
 import { defineSubagent, useTool } from '@flue/runtime';
-import { brainQuery, browserRead, runPython, runReadOnlyCommand } from '../agents/capabilities.ts';
+import { runPython, runReadOnlyCommand } from '../agents/tools/terminal.ts';
+import { brainQuery } from '../agents/tools/brain.ts';
+import { browserRead } from '../agents/tools/browser.ts';
 
 /**
  * Reads logs, diffs and pages so the root agent doesn't have to: raw output stays
