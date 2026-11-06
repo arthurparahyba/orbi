@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { api, type InboxItem } from './api';
-import { usePoll } from './hooks';
+import { useLive, usePoll } from './hooks';
 import { BrainIcon, ChatIcon, DialIcon, OrbiIcon } from './components/Icons';
 import { InboxContext, type InboxActions } from './components/UiComponents';
-import { ConversationView } from './views/ConversationView';
-import { BrainView } from './views/BrainView';
+import { ConversationView } from './views/conversation/ConversationView';
+import { BrainView } from './views/brain/BrainView';
 import { AutonomyView } from './views/AutonomyView';
 
 type Screen = 'conversa' | 'cerebro' | 'autonomia';
@@ -12,7 +12,7 @@ type Screen = 'conversa' | 'cerebro' | 'autonomia';
 export function App() {
   const [screen, setScreen] = useState<Screen>('conversa');
   const health = usePoll(api.health, 10_000);
-  const inbox = usePoll(() => api.inbox('all'), 2_500);
+  const inbox = useLive(() => api.inbox('all'), ['inbox']);
 
   const decide = useCallback(async (id: string, d: 'approve' | 'deny') => { await api.decide(id, d); await inbox.reload(); }, [inbox.reload]);
   const answer = useCallback(async (id: string, t: string) => { await api.answer(id, t); await inbox.reload(); }, [inbox.reload]);

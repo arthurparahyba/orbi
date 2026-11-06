@@ -33,7 +33,9 @@ src/
   http/app.ts               monta a API (createHttpApp): CORS, token, rotas
   http/errors.ts            HttpError, validação de corpo/query, formato de erro
   http/routes/*.ts          uma rota por recurso (conversas, pendências, gravações,
-                            cofre, cérebro, autonomia, health)
+                            cofre, cérebro, autonomia, health, eventos)
+  events.ts                 o que mudou (createEvents), para o app acompanhar
+  tell.ts                   manda mensagem a uma conversa de fora dela e avisa
   agents/orbi.ts            o agente (Flue 'use agent')
   agents/capabilities.ts    monta as capacidades do agente (useOrbi)
   agents/gate.ts            portão de autonomia: roda, só relata ou pede aprovação
@@ -45,7 +47,8 @@ src/
   brain/store.ts            cérebro: fachada que aplica as regras e grava pelos repositórios
   brain/domain/             regras puras, sem banco: ontologia, lacunas, playbooks, aprendizado
   brain/repo/               SQL do cérebro, um repositório por assunto
-  db/                       banco único (orbi.db) e migrações versionadas
+  db/                       banco único (orbi.db), migrações versionadas e
+                            changes.ts (cada escrita vira evento)
   inbox.ts conversations.ts pendências e conversas, no mesmo banco
   policy/autonomy.ts        observar · perguntar · automático, por categoria e por playbook
   mcp/bridge.ts             stdio → HTTP para o chrome-devtools-mcp
@@ -65,10 +68,15 @@ scripts/
 
 ```
 src/
-  views/                    Conversa, Cérebro (grafo, playbooks, execuções, ontologia), Autonomia
-  components/               catálogo de componentes do canal ui, painel de demonstração, Markdown
+  views/conversation/       lista de conversas, Chat (mensagens, compositor), pendências
+  views/brain/              Cérebro: grafo (e seu layout), detalhe, playbooks, execuções, ontologia
+  views/AutonomyView.tsx    níveis de autonomia, modelo, plugins, cofre
+  components/               catálogo do canal ui, demonstração, painel de gravação, Markdown
   api.ts                    cliente da API local (tipos vêm do contrato)
+  live.ts                   o feed de mudanças do runtime (uma conexão para o app todo)
+  hooks.ts                  useLive (dados que seguem o runtime), useLoad, usePoll (só o health)
   audio.ts                  microfone → WAV 16 kHz cortado nas pausas
+test/                       Vitest: feed de eventos, layout do grafo, agrupamento das mensagens
 src-tauri/
   src/main.rs               janela + início/parada do runtime, PATH do shell, pasta de dados
   tauri.conf.json           identidade do app (br.com.zup.orbi), janela, CSP
@@ -96,6 +104,27 @@ Tudo o que cruza a fronteira runtime ↔ app:
 - `api.ts`: os formatos da API HTTP como o app os lê.
 - `requests.ts`: o esquema (valibot) de cada corpo que o app envia e o formato
   único de erro `ApiError`.
+- `events.ts`: os tópicos do feed de mudanças.
+
+## Eventos: o app acompanha sem consultar de tempos em tempos
+
+`GET /api/events` é um stream (server-sent events) que diz **o que** mudou,
+nunca o dado em si: `{"topic":"inbox","id":"…"}`. A tela que mostra aquele
+tópico busca de novo pela rota de sempre. A cada conexão o runtime manda
+`hello`, e todas as telas recarregam, então nada fica velho depois de o runtime
+reiniciar.
+
+De onde vêm os eventos:
+
+- **banco**: `db/changes.ts` cria um gatilho SQLite por tabela que chama de
+  volta o `events.emit`. Qualquer escrita, de qualquer código, vira evento, e
+  as lojas (cérebro, pendências, conversas, autonomia) nem sabem disso;
+- **cofre** e **gravação**: avisam por um `onChange` que a composição liga;
+- **conversa**: `tellAgent` (aprovação, demonstração, retorno agendado) avisa
+  `dispatched`, e o app busca a conversa se ela ainda estava vazia.
+
+Mudanças do mesmo instante viram um evento só. A única consulta periódica que
+sobrou é o `health`, que é justamente para saber se o runtime está de pé.
 
 ## API HTTP
 
@@ -146,6 +175,7 @@ o compilam junto. No runtime ele propositalmente não aparece em `dependencies`
 | `POST /api/recordings` · `GET /api/recordings/:id` · `POST …/audio` · `POST …/stop` | Demonstração no navegador |
 | `GET /api/vault` · `PUT/DELETE /api/vault/:name` | Cofre (só nomes e descrições, nunca valores) |
 | `GET /api/health` | Modelo, chave, ponte do Chrome, cérebro, onde fica o `.env` |
+| `GET /api/events` | Feed de mudanças (server-sent events) |
 
 O servidor só escuta em loopback. Com `ORBI_API_TOKEN` definido, toda rota exige
 `Authorization: Bearer <token>`.

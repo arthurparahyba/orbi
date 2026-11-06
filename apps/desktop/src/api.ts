@@ -9,7 +9,7 @@ export type * from '@orbi/contracts';
  * the same origin; inside the packaged Tauri app the page is tauri://localhost,
  * so requests go to the runtime's loopback address.
  */
-const inTauri = location.protocol === 'tauri:' || location.hostname === 'tauri.localhost';
+const inTauri = typeof location !== 'undefined' && (location.protocol === 'tauri:' || location.hostname === 'tauri.localhost');
 export const RUNTIME_URL: string = import.meta.env.VITE_RUNTIME_URL ?? (inTauri ? 'http://127.0.0.1:3000' : '');
 
 export const agentUrl = (conversationId: string) => `${RUNTIME_URL}/agents/orbi/${encodeURIComponent(conversationId)}`;

@@ -1,5 +1,5 @@
 import { mkdirSync } from 'node:fs';
-import { dispatch } from '@flue/runtime';
+import type { dispatch } from '@flue/runtime';
 import { validateConfig, type OrbiConfig } from './config.ts';
 import { BrainStore } from './brain/store.ts';
 import { Inbox } from './inbox.ts';
@@ -13,6 +13,9 @@ import { createRecorder } from './browser/recorder.ts';
 import { createCodeFixer } from './tools/claude-code.ts';
 import { configureLlm } from './llm/index.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
+import { watchTables } from './db/changes.ts';
+import { createEvents } from './events.ts';
+import { tellAgent } from './tell.ts';
 import type { InboxItem } from './inbox.ts';
 import type { ConversationInfo } from './conversations.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
@@ -38,6 +41,7 @@ export async function createOrbi(
   const llm = overrides.llm ?? (await configureLlm(env, config.cwd));
   const finalConfig: OrbiConfig = { ...config, model: llm.model };
 
+  const events = overrides.events ?? createEvents();
   const vault = overrides.vault ?? new Vault(config.vault.indexFile, config.vault.dataFile, config.vault.keyFile, config.vault.prefer);
   const stt = overrides.stt ?? createStt(config.stt);
   const chrome = overrides.chrome ?? createChrome(config.chrome);
@@ -45,6 +49,8 @@ export async function createOrbi(
   // One database for the brain and the app state, brought up to date by its migrations.
   adoptLegacyBrain(config.dbFile, config.legacyBrainFile);
   const db = openDatabase(config.dbFile);
+  watchTables(db, events);
+  vault.onChange = () => events.emit('vault');
   const inbox = overrides.inbox ?? new Inbox(db);
   const conversations = overrides.conversations ?? new Conversations(db);
   const policy = overrides.policy ?? new PolicyStore(db);
@@ -53,6 +59,7 @@ export async function createOrbi(
   return {
     config: finalConfig,
     llm,
+    events,
     brain: overrides.brain ?? new BrainStore(db),
     inbox,
     policy,
@@ -61,7 +68,7 @@ export async function createOrbi(
     stt,
     chrome,
     browser: overrides.browser ?? createBrowserMcp({ port: config.chrome.port, token: config.chrome.token }),
-    recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt }),
+    recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt, onChange: (id) => events.emit('recording', id) }),
     codeFixer:
       overrides.codeFixer !== undefined
         ? overrides.codeFixer
@@ -128,7 +135,7 @@ export function startBackground(s: OrbiServices, agent: Parameters<typeof dispat
     setInterval(async () => {
       for (const f of s.brain.claimDueFollowups()) {
         try {
-          await dispatch(agent, {
+          await tellAgent(s.events, agent, {
             id: f.conversationId,
             message: { kind: 'signal', type: 'followup', body: `Retorno agendado: ${f.note}`, attributes: { followupId: f.id } },
           });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api, type Autonomy, type Category, type Health, type SecretInfo } from '../api';
-import { usePoll } from '../hooks';
-import { Segmented } from './BrainView';
+import { useLive } from '../hooks';
+import { Segmented } from '../components/Segmented';
 
 const CATEGORIES: Array<{ key: Category; title: string; hint: string; locked?: Autonomy[] }> = [
   { key: 'comandos-leitura', title: 'Comandos de leitura', hint: 'git log, gh run view, aws logs… nada muda no mundo.' },
@@ -21,7 +21,7 @@ const INSTALL: Record<string, string> = {
 const LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };
 
 export function AutonomyView({ health }: { health?: Health }) {
-  const policy = usePoll(api.autonomy, 15_000);
+  const policy = useLive(api.autonomy, ['autonomy']);
   return (
     <div className="autonomia">
       <header className="brain-head">
@@ -84,7 +84,7 @@ export function AutonomyView({ health }: { health?: Health }) {
 }
 
 function Vault() {
-  const vault = usePoll(api.vault, 5_000);
+  const vault = useLive(api.vault, ['vault']);
   const [editing, setEditing] = useState<string>();
   const [value, setValue] = useState('');
   const save = async (name: string) => { await api.setSecret(name, value); setEditing(undefined); setValue(''); await vault.reload(); };

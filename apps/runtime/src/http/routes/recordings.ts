@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { dispatch } from '@flue/runtime';
+import { tellAgent } from '../../tell.ts';
 import { StartRecording, StopRecording } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { demonstrationMessage } from '../../browser/recorder.ts';
@@ -9,7 +9,7 @@ import type { Agent } from './types.ts';
 const MAX_SEGMENT = 8 * 1024 * 1024;
 
 /** Demonstrations: the developer teaches by doing (and narrating) in the browser. */
-export function recordingRoutes({ recorder, conversations }: OrbiServices, agent: Agent) {
+export function recordingRoutes({ recorder, conversations, events }: OrbiServices, agent: Agent) {
   const recording = (id: string) => {
     const rec = recorder.get(id);
     if (!rec) throw notFound('gravação');
@@ -44,7 +44,7 @@ export function recordingRoutes({ recorder, conversations }: OrbiServices, agent
         .stop(rec.id, discard)
         .then(async (done) => {
           if (discard || (done.actions.length === 0 && !done.narration.some((n) => n.text))) return;
-          await dispatch(agent, { id: done.conversationId, message: { kind: 'user', body: demonstrationMessage(done) } });
+          await tellAgent(events, agent, { id: done.conversationId, message: { kind: 'user', body: demonstrationMessage(done) } });
         })
         .catch((error) => console.error('[orbi] finalizar demonstração falhou:', error));
       return c.json({ ...rec, status: discard ? 'discarded' : 'transcribing' }, 202);

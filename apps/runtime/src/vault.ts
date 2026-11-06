@@ -42,6 +42,8 @@ type KeyringModule = { Entry: new (service: string, account: string) => KeyringE
 export class Vault {
   private backendChoice: VaultBackend | undefined;
   private keyring: KeyringModule | undefined;
+  /** Called after a secret is saved or deleted (compose.ts turns it into an event). */
+  onChange: () => void = () => {};
 
   constructor(
     private readonly indexFile: string,
@@ -91,6 +93,7 @@ export class Vault {
       updatedAt: now,
     };
     this.writeIndex(index);
+    this.onChange();
     return index[name];
   }
 
@@ -111,6 +114,7 @@ export class Vault {
     }
     delete index[name];
     this.writeIndex(index);
+    this.onChange();
     return true;
   }
 

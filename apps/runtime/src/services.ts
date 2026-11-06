@@ -10,6 +10,7 @@ import type { BrowserMcp } from './mcp/chrome-devtools.ts';
 import type { Recorder } from './browser/recorder.ts';
 import type { CodeFixer } from './tools/claude-code.ts';
 import type { ActiveLlm } from './llm/index.ts';
+import type { Events } from './events.ts';
 
 /**
  * Everything Orbi's code uses, created once by `createOrbi` (compose.ts).
@@ -34,6 +35,8 @@ export interface OrbiServices {
   /** Claude Code fixes; null when the fixer is off (non-Anthropic LLM). */
   codeFixer: CodeFixer | null;
   llm: ActiveLlm;
+  /** What changed, for the app (GET /api/events). */
+  events: Events;
 }
 
 let current: OrbiServices | undefined;

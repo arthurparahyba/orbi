@@ -10,6 +10,8 @@ export interface RecorderDeps {
   chrome: Pick<SharedChrome, 'ensure'>;
   vault: Pick<Vault, 'set'>;
   stt: Pick<SttSlot, 'get'>;
+  /** Called whenever a recording changes (new action, narration, status). */
+  onChange?: (recordingId: string) => void;
 }
 
 /**
@@ -124,7 +126,7 @@ class RecordingSession {
       const title = await page.title().catch(() => '');
       const tab = this.pages.get(page)?.tab;
       const nav = [...this.rec.actions].reverse().find((a) => a.tab === tab && a.kind === 'navigate' && a.url === page.url());
-      if (nav && title) { nav.title = title; nav.text = describeAction(nav); }
+      if (nav && title) { nav.title = title; nav.text = describeAction(nav); this.changed(); }
     });
     info.ready = (async () => {
       if (page.isClosed()) return;
@@ -180,6 +182,11 @@ class RecordingSession {
     // A submit right after clicking its button adds nothing.
     if (action.kind === 'submit' && last && (last.kind === 'click' || last.kind === 'key') && action.t - last.t < 1500) return;
     list.push({ ...action, text: describeAction(action) });
+    this.changed();
+  }
+
+  private changed() {
+    this.deps.onChange?.(this.rec.id);
   }
 
   addAudio(startedAtEpoch: number, durationMs: number, wav: Buffer) {
@@ -187,11 +194,12 @@ class RecordingSession {
     const seg: NarrationSegment = { t: Math.max(0, startedAtEpoch - this.started), durationMs, status: 'pending', text: '' };
     this.rec.narration.push(seg);
     this.rec.narration.sort((a, b) => a.t - b.t);
+    this.changed();
     if (!t) { seg.status = 'error'; seg.error = 'transcrição desligada (ORBI_STT=off)'; return seg; }
     const job = t.transcribe(wav).then(
       (text) => { seg.text = text; seg.status = 'done'; },
       (error: unknown) => { seg.status = 'error'; seg.error = error instanceof Error ? error.message : String(error); },
-    );
+    ).finally(() => this.changed());
     this.transcriptions.push(job);
     return seg;
   }
@@ -200,6 +208,7 @@ class RecordingSession {
     if (this.rec.status !== 'recording') return this.rec;
     this.rec.status = discard ? 'discarded' : 'transcribing';
     this.rec.finishedAt = new Date().toISOString();
+    this.changed();
     for (const [page, info] of this.pages) {
       if (page.isClosed()) continue;
       await page.evaluate(() => { (window as unknown as Record<string, unknown>).__orbiRecOff = true; }).catch(() => {});
@@ -210,6 +219,7 @@ class RecordingSession {
     if (!discard) {
       await Promise.race([Promise.allSettled(this.transcriptions), new Promise((r) => setTimeout(r, 180_000))]);
       this.rec.status = 'done';
+      this.changed();
     }
     return this.rec;
   }

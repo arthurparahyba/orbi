@@ -12,6 +12,7 @@ import { vaultRoutes } from './routes/vault.ts';
 import { brainRoutes } from './routes/brain.ts';
 import { autonomyRoutes } from './routes/autonomy.ts';
 import { healthRoutes } from './routes/health.ts';
+import { eventRoutes } from './routes/events.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.
@@ -24,6 +25,7 @@ const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\
  *
  *   /agents/orbi/:id   Flue conversation: POST a message, GET the event stream
  *   /api/...            one router per resource (routes/)
+ *   /api/events         what changed, as server-sent events (the app refetches)
  */
 export function createHttpApp(s: OrbiServices, background: Background, agent: Agent): Hono {
   const app = new Hono();
@@ -54,5 +56,6 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/brain', brainRoutes(s));
   app.route('/api/autonomy', autonomyRoutes(s));
   app.route('/api/health', healthRoutes(s, background));
+  app.route('/api/events', eventRoutes(s));
   return app;
 }
