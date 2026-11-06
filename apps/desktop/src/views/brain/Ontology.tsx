@@ -5,6 +5,9 @@ import { colorOf } from './look';
 export function Ontology({ snapshot }: { snapshot: BrainSnapshot }) {
   const counts = new Map<string, number>();
   for (const e of snapshot.entities) counts.set(e.type, (counts.get(e.type) ?? 0) + 1);
+  if (snapshot.types.length === 0) {
+    return <p className="muted pad">Nenhum tipo ainda. O Orbi propõe cada tipo na primeira vez que precisar dele, junto com o que aprendeu.</p>;
+  }
   return (
     <div className="onto-grid">
       {snapshot.types.map((t) => (

@@ -100,7 +100,8 @@ test('cofre: grava, lista sem valor e apaga', async () => {
 test('cérebro e autonomia: leitura, 404 e validação', async () => {
   const { call } = await setup();
   const brain = await call('GET', '/api/brain');
-  assert.ok(brain.json.types.length > 0 && 'stats' in brain.json);
+  assert.deepEqual(brain.json.types, [], 'o cérebro começa vazio');
+  assert.ok('stats' in brain.json);
   assert.equal((await call('GET', '/api/brain/entities/nada')).status, 404);
   assert.equal((await call('PATCH', '/api/brain/playbooks/nada', { autonomy: 'auto' })).status, 404);
   isApiError((await call('PATCH', '/api/brain/playbooks/nada', { autonomy: 'sempre' })).json, 'invalid_body');

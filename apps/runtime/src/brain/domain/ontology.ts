@@ -2,8 +2,11 @@ import type { Edge, Entity, Gap, OntologyType } from './types.ts';
 
 /** Ontology rules: which entities and relations are valid, and what is missing. No storage here. */
 
-/** Base ontology the brain starts with. Everything else is learned. */
-export const SEED_TYPES: OntologyType[] = [
+/**
+ * An example ontology for the demo and the tests. The real brain starts empty:
+ * Orbi proposes each type the first time it needs one, with what it learned.
+ */
+export const EXAMPLE_TYPES: OntologyType[] = [
   { name: 'Classe', description: 'Categoria de coisas (ex.: FrontEnd, ServicoJava). Playbooks se prendem a classes.', relations: {}, requires: [] },
   { name: 'Repositorio', description: 'Repositório de código.', relations: { eUm: 'Classe', publicaEm: 'Ambiente', registradoEm: 'Portal', temWorkflow: 'Workflow', teve: 'Incidente', dono: 'Pessoa' }, requires: [] },
   { name: 'Workflow', description: 'Pipeline de CI/CD (ex.: GitHub Actions).', relations: { publicaEm: 'Ambiente', gera: '*' }, requires: [] },

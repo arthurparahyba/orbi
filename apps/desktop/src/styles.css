@@ -321,3 +321,8 @@ td { border-bottom: 1px solid var(--border); padding: 7px 10px; font-variant-num
 .usage-stats .stat strong { font-size: 17px; }
 table.usage td.num, table.usage th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); font-size: 11px; }
+
+/* Cérebro vazio */
+.empty-brain { max-width: 560px; margin: 48px auto; text-align: center; padding: 0 24px; }
+.empty-brain h2 { font-size: 17px; margin-bottom: 8px; }
+.empty-brain p { line-height: 1.55; }

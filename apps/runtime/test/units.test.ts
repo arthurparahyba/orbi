@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain/store.ts';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { BrainStore, EXAMPLE_TYPES } from '../src/brain/store.ts';
+import { openDatabase } from '../src/db/database.ts';
+import { MIGRATIONS } from '../src/db/migrations.ts';
+import { inLearningOrder } from '../src/agents/tools/brain.ts';
 import { runCommand, CommandNotAllowedError } from '../src/terminal/exec.ts';
 import {
   DEFAULT_POLICY,
@@ -52,8 +59,47 @@ test('autonomia: playbook em auto libera escrita, mas nunca código de produçã
   assert.equal(decide(parsePolicy({ categories: { aprender: 'auto' } }), 'aprender'), 'ask', 'aprender sempre espera');
 });
 
-test('cérebro: ontologia valida entidades e ligações', () => {
+/** A brain with the example ontology (the real one starts empty). */
+function exampleBrain() {
   const b = new BrainStore(':memory:');
+  for (const t of EXAMPLE_TYPES) b.upsertType(t);
+  return b;
+}
+
+test('cérebro: começa vazio, sem tipos nem conhecimento', () => {
+  const b = new BrainStore(':memory:');
+  assert.deepEqual(b.types(), []);
+  assert.deepEqual(b.stats().entities, 0);
+  assert.throws(() => b.upsertEntity({ id: 'x', type: 'Repositorio', props: {}, body: '' }), /tipo desconhecido/);
+});
+
+test('cérebro: num lote de aprendizado, os tipos vêm antes de quem os usa', () => {
+  const items = [
+    { kind: 'playbook' as const }, { kind: 'edge' as const }, { kind: 'entity' as const }, { kind: 'type' as const },
+  ];
+  assert.deepEqual(inLearningOrder(items).map((i) => i.kind), ['type', 'entity', 'edge', 'playbook']);
+});
+
+test('migração: tira os tipos de fábrica que ninguém usou e mantém os usados ou editados', () => {
+  // A brain from before: created with the factory types, one of them in use, one edited.
+  const dir = mkdtempSync(join(tmpdir(), 'orbi-mig-'));
+  const file = join(dir, 'orbi.db');
+  const old = new DatabaseSync(file);
+  old.exec(MIGRATIONS.slice(0, 3).map((m) => m.sql).join('\n'));
+  old.exec('PRAGMA user_version = 3');
+  const ins = old.prepare('INSERT INTO types (name, description, relations, requires) VALUES (?, ?, ?, ?)');
+  for (const t of EXAMPLE_TYPES) ins.run(t.name, t.description, JSON.stringify(t.relations), '[]');
+  old.prepare("UPDATE types SET description = 'Repositório do GitHub da empresa' WHERE name = 'Repositorio'").run();
+  old.prepare("INSERT INTO entities (id, type, updated_at) VALUES ('marina', 'Pessoa', '2026-11-01')").run();
+  old.close();
+
+  const b = new BrainStore(openDatabase(file));
+  assert.deepEqual(b.types().map((t) => t.name).sort(), ['Pessoa', 'Repositorio']);
+  assert.equal(b.get('marina')?.type, 'Pessoa');
+});
+
+test('cérebro: ontologia valida entidades e ligações', () => {
+  const b = exampleBrain();
   b.upsertEntity({ id: 'api-pagamentos', type: 'Repositorio', props: {}, body: '' });
   b.upsertEntity({ id: 'dev', type: 'Ambiente', props: {}, body: '' });
   assert.throws(() => b.upsertEntity({ id: 'x', type: 'Inexistente', props: {}, body: '' }), /tipo desconhecido/);
@@ -65,7 +111,7 @@ test('cérebro: ontologia valida entidades e ligações', () => {
 });
 
 test('cérebro: fatos com validade expiram sozinhos', () => {
-  const b = new BrainStore(':memory:');
+  const b = exampleBrain();
   for (const [id, type] of [['marina', 'Pessoa'], ['rafael', 'Pessoa'], ['chg0041', 'Mudanca']]) {
     b.upsertEntity({ id, type, props: {}, body: '' });
   }

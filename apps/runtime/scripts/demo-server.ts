@@ -33,6 +33,7 @@ const { serve } = await import('@hono/node-server');
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { default: app } = await import('../src/app.ts');
 const { brain, conversations, stt } = (await import('../src/services.ts')).services();
+const { EXAMPLE_TYPES } = await import('../src/brain/domain/ontology.ts');
 if (process.env.DEMO_FAKE_STT) {
   const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
   let n = 0;
@@ -42,6 +43,8 @@ if (process.env.DEMO_FAKE_STT) {
 // ── seed: what the prototype showed Orbi knowing ──────────────────────────
 function seed() {
   if (brain.stats().entities > 0) return;
+  // The real brain starts empty; the demo starts with an example ontology and graph.
+  for (const type of EXAMPLE_TYPES) brain.upsertType(type);
   const e = (id: string, type: string, props: Record<string, unknown> = {}, body = '') => brain.upsertEntity({ id, type, props, body });
   e('ServicoJava', 'Classe', { detectadaPor: 'pom.xml' });
   e('FrontEnd', 'Classe', { detectadaPor: 'package.json + Vite', requires: ['registradoEm'] });

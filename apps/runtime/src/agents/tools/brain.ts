@@ -47,18 +47,25 @@ const learnItem = v.variant('kind', [
   }),
 ]);
 
+/** Types first, then what uses them: an entity can be of a type proposed in the same batch. */
+const ORDER = { type: 0, entity: 1, edge: 2, playbook: 3 } as const;
+export const inLearningOrder = <T extends { kind: keyof typeof ORDER }>(items: readonly T[]): T[] =>
+  [...items].sort((a, b) => ORDER[a.kind] - ORDER[b.kind]);
+
 export function useBrain(ctx: AgentContext) {
   const { brain } = services();
   useTool(brainQuery);
   ctx.gated({
     name: 'brain_learn',
     description:
-      'Save what you learned: new ontology types, entities, relations (with optional validity dates) and playbooks (procedures with steps). The batch is validated against the ontology and shown to the developer to approve.',
+      'Save what you learned: new ontology types, entities, relations (with optional validity dates) and playbooks (procedures with steps). ' +
+      'The brain starts empty: when an entity needs a type that does not exist yet, include that `type` in the same batch. ' +
+      'The batch is validated against the ontology and shown to the developer to approve.',
     input: v.object({ reason: v.string(), items: v.array(learnItem) }),
     category: () => 'aprender',
     summary: (a) => `Aprender: ${a.reason}`,
     execute: async (a) => {
-      const applied = a.items.map((item) => brain.apply(brain.propose(item.kind, item.payload as Record<string, unknown>, a.reason, ctx.conversationId).id));
+      const applied = inLearningOrder(a.items).map((item) => brain.apply(brain.propose(item.kind, item.payload as Record<string, unknown>, a.reason, ctx.conversationId).id));
       return `Guardado no cérebro: ${applied.join('; ')}`;
     },
   });

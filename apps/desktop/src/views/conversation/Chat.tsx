@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useFlueAgent } from '@flue/react';
 import { agentUrl, api, type Recording } from '../../api';
 import { useChanges, usePoll } from '../../hooks';
-import { RecordIcon, SendIcon } from '../../components/Icons';
+import { CheckIcon, CopyIcon, RecordIcon, SendIcon } from '../../components/Icons';
 import { StartDemonstration } from '../../components/Demonstration';
 import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
 import { Message } from './Message';
+import { conversationMarkdown } from './transcript';
 
 const SUGGESTIONS = [
   'Ensinar pelo navegador',
@@ -52,6 +53,7 @@ export function Chat({ id, title, onTitled }: { id: string; title: string; onTit
     <section className="chat" aria-label="Conversa com o Orbi">
       <header className="chat-head">
         <h1>{title || 'Conversa'}</h1>
+        <CopyButton disabled={visible.length === 0} text={() => conversationMarkdown({ id, title }, agent.messages)} />
         <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
           <RecordIcon size={13} /> Ensinar pelo navegador
         </button>
@@ -118,5 +120,25 @@ function Composer({ onSend }: { onSend(text: string): Promise<void> }) {
       />
       <button type="submit" className="btn primary icon-only" disabled={!draft.trim()} aria-label="Enviar"><SendIcon size={16} /></button>
     </form>
+  );
+}
+
+/** Copies the whole conversation as Markdown; confirms for a moment. */
+function CopyButton({ text, disabled }: { text(): string; disabled: boolean }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text());
+      setState('copied');
+    } catch {
+      setState('failed');
+    }
+    setTimeout(() => setState('idle'), 1800);
+  };
+  return (
+    <button type="button" className="btn small" onClick={copy} disabled={disabled} title="Copia a conversa inteira em Markdown: mensagens, ferramentas, cartões e erros">
+      {state === 'copied' ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+      <span aria-live="polite">{state === 'copied' ? 'Copiada' : state === 'failed' ? 'Não deu para copiar' : 'Copiar conversa'}</span>
+    </button>
   );
 }

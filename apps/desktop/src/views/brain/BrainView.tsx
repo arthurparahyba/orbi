@@ -24,6 +24,7 @@ export function BrainView() {
           <p className="muted">O que o Orbi aprendeu: tipos da ontologia, coisas do seu ambiente, como elas se relacionam e os procedimentos (playbooks).</p>
         </div>
         <div className="stats" aria-label="Resumo do cérebro">
+          <Stat n={s?.types} label="tipos" />
           <Stat n={s?.entities} label="entidades" />
           <Stat n={s?.edges} label="relações" />
           <Stat n={s?.playbooks} label="playbooks" />
@@ -42,6 +43,8 @@ export function BrainView() {
       {exported && <p className="muted small pad-x">Exportado: {exported}</p>}
       {!brain.data ? (
         <p className="muted pad">{brain.error ? `Erro: ${brain.error}` : 'Carregando…'}</p>
+      ) : tab === 'grafo' && brain.data.entities.length === 0 ? (
+        <EmptyBrain />
       ) : tab === 'grafo' ? (
         <div className="graph-layout">
           <div className="graph-col">
@@ -62,6 +65,20 @@ export function BrainView() {
       ) : (
         <Ontology snapshot={brain.data} />
       )}
+    </div>
+  );
+}
+
+/** The brain starts empty and grows with the work. */
+function EmptyBrain() {
+  return (
+    <div className="empty-brain">
+      <h2>O cérebro ainda está vazio</h2>
+      <p className="muted">
+        O Orbi não vem sabendo nada do seu ambiente. Ele aprende enquanto trabalha com você: peça algo na conversa ou
+        use “Ensinar pelo navegador”. Cada coisa aprendida (um tipo novo, um repositório, um procedimento) chega para
+        você aprovar antes de ficar guardada aqui.
+      </p>
     </div>
   );
 }

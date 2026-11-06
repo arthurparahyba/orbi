@@ -159,6 +159,19 @@ O contrato é código TypeScript sem etapa de build: o Vite do app e o do runtim
 o compilam junto. No runtime ele propositalmente não aparece em `dependencies`
 (o Flue deixaria qualquer dependência declarada de fora do bundle).
 
+## O cérebro começa vazio
+
+O Orbi não vem com nada: nem conhecimento, nem tipos. Na primeira vez que um
+aprendizado precisa de um tipo (`Repositorio`, `Portal`…), o Orbi propõe o tipo
+no mesmo lote, e você aprova tudo junto no mesmo cartão. Dentro do lote os tipos
+são gravados antes das entidades que os usam. Assim a ontologia fica só com o
+que existe no seu trabalho, com os nomes que surgiram com você.
+
+O `npm run demo` continua com uma ontologia e um grafo de exemplo
+(`EXAMPLE_TYPES`), para mostrar a ideia. Um cérebro criado antes desta versão
+perde, na migração 4, os tipos de fábrica que nunca foram usados nem editados;
+o que você já ensinou fica.
+
 ## Prompts
 
 O que o modelo lê fica em `src/prompts/*.md`, fora do código: dá para revisar e

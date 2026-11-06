@@ -59,4 +59,10 @@ CREATE TABLE usage (
   PRIMARY KEY (conversation_id, day));
 CREATE INDEX usage_day ON usage(day);`,
   },
+  {
+    name: 'cérebro começa vazio: remove os tipos de fábrica que nunca foram usados',
+    sql: `
+DELETE FROM types WHERE ((name = 'Classe' AND description = 'Categoria de coisas (ex.: FrontEnd, ServicoJava). Playbooks se prendem a classes.') OR (name = 'Repositorio' AND description = 'Repositório de código.') OR (name = 'Workflow' AND description = 'Pipeline de CI/CD (ex.: GitHub Actions).') OR (name = 'Ambiente' AND description = 'Onde o software roda (dev, homologação…).') OR (name = 'Ferramenta' AND description = 'CLI, MCP ou sistema que o Orbi sabe usar.') OR (name = 'Portal' AND description = 'Sistema web operado pelo navegador.') OR (name = 'Playbook' AND description = 'Procedimento aprendido que o Orbi executa.') OR (name = 'Incidente' AND description = 'Algo que deu errado e como foi resolvido.') OR (name = 'Mudanca' AND description = 'Mudança registrada (ex.: GMUD no ServiceNow).') OR (name = 'Historia' AND description = 'Item do board entregue por uma release.') OR (name = 'Pessoa' AND description = 'Quem decide ou aprova algo.'))
+  AND NOT EXISTS (SELECT 1 FROM entities e WHERE e.type = types.name);`,
+  },
 ];

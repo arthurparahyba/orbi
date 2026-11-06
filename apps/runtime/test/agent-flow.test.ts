@@ -68,6 +68,10 @@ test('aprender: brain_learn fica pendente até o desenvolvedor aprovar', async (
           { kind: 'entity', payload: { id: 'novo-front', type: 'Repositorio' } },
           { kind: 'edge', payload: { from: 'novo-front', rel: 'eUm', to: 'FrontEnd' } },
           { kind: 'playbook', payload: playbook },
+          // The brain starts empty: the types come in the same batch (even after the entities that use them).
+          { kind: 'type', payload: { name: 'Classe', description: 'Categoria de coisas' } },
+          { kind: 'type', payload: { name: 'Portal', description: 'Sistema web operado pelo navegador' } },
+          { kind: 'type', payload: { name: 'Repositorio', description: 'Repositório de código', relations: { eUm: 'Classe' } } },
         ],
       }),
       { stopReason: 'toolUse' },

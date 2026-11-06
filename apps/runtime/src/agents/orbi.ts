@@ -23,7 +23,7 @@ export function Orbi({ id }: { id: string }) {
   const stats = brain.stats();
   return [
     instructions,
-    `Cérebro agora: ${stats.entities} entidades, ${stats.edges} ligações, ${stats.playbooks} playbooks, ${stats.openProposals} aprendizados aguardando aprovação.`,
+    `Cérebro agora: ${stats.types} tipos, ${stats.entities} entidades, ${stats.edges} ligações, ${stats.playbooks} playbooks, ${stats.openProposals} aprendizados aguardando aprovação.`,
     activeRun ? `Playbook em execução: ${activeRun.playbook} (run ${activeRun.runId}, autonomia ${activeRun.autonomy}).` : 'Nenhum playbook em execução.',
     `Workspace com os clones: ${config.workspace}. Conversa: ${id}.`,
   ].join('\n');

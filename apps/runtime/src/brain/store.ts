@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
 import { openDatabase, transaction } from '../db/database.ts';
-import { SEED_TYPES, edgeProblems, entityProblems, findGaps, rankByTerms } from './domain/ontology.ts';
+import { edgeProblems, entityProblems, findGaps, rankByTerms } from './domain/ontology.ts';
 import { advanceRun, newRun, playbookProblems } from './domain/playbooks.ts';
 import { changeFromProposal, proposalProblems } from './domain/learning.ts';
 import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun, Proposal, ProposalKind, StepStatus } from './domain/types.ts';
@@ -14,7 +14,7 @@ import { exportMarkdown } from './export.ts';
 import { now } from './repo/rows.ts';
 
 export * from './domain/types.ts';
-export { SEED_TYPES } from './domain/ontology.ts';
+export { EXAMPLE_TYPES } from './domain/ontology.ts';
 
 /**
  * The brain, as the rest of Orbi uses it: one object that applies the rules in
@@ -36,7 +36,6 @@ export class BrainStore {
     this.playbookRepo = new PlaybookRepo(this.db);
     this.proposalRepo = new ProposalRepo(this.db);
     this.followups = new FollowupRepo(this.db);
-    if (this.ontology.count() === 0) for (const type of SEED_TYPES) this.ontology.upsert(type);
   }
 
   // ── ontology ────────────────────────────────────────────────────────────

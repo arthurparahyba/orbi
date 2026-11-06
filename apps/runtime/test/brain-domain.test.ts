@@ -8,14 +8,14 @@ import { mkdtempSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { SEED_TYPES, edgeProblems, entityProblems, findGaps } from '../src/brain/domain/ontology.ts';
+import { EXAMPLE_TYPES, edgeProblems, entityProblems, findGaps } from '../src/brain/domain/ontology.ts';
 import { advanceRun, fillParams, newRun, playbookProblems } from '../src/brain/domain/playbooks.ts';
 import { changeFromProposal, proposalProblems } from '../src/brain/domain/learning.ts';
 import type { Edge, Entity, Playbook } from '../src/brain/domain/types.ts';
 import { openDatabase, schemaVersion } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
 
-const typeOf = (name: string) => SEED_TYPES.find((t) => t.name === name);
+const typeOf = (name: string) => EXAMPLE_TYPES.find((t) => t.name === name);
 const entity = (id: string, type: string, props: Record<string, unknown> = {}): Entity => ({ id, type, props, body: '', updatedAt: '' });
 
 test('ontologia: entidade e ligação válidas ou explicadas', () => {
