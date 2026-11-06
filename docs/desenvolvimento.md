@@ -7,7 +7,8 @@ Tudo se roda da raiz. Os workspaces do npm instalam os três pacotes num
 npm install
 npm run demo        # runtime roteirizado: sem API key, cérebro e portal de exemplo
 npm run demo:ui     # app no navegador com hot reload (http://localhost:5174)
-npm run dev         # janela nativa + runtime real (precisa de apps/runtime/.env)
+npm start           # runtime real + app no navegador, num comando (precisa de apps/runtime/.env)
+npm run dev         # o mesmo numa janela nativa (precisa do Rust)
 ```
 
 Para rodar um comando de um pacote só: `npm run <script> -w @orbi/runtime` (ou

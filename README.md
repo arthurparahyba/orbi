@@ -43,15 +43,18 @@ npm run demo:ui      # em outro terminal: o app no navegador, http://localhost:5
 Com a sua chave:
 
 ```bash
-cp apps/runtime/.env.example apps/runtime/.env   # ANTHROPIC_API_KEY, GH_TOKEN…
-npm run dev          # compila o runtime e abre a janela nativa com ele rodando junto
+cp apps/runtime/.env.example apps/runtime/.env   # preencha ANTHROPIC_API_KEY (e GH_TOKEN…)
+npm start            # compila e sobe runtime + app, e abre http://localhost:5174. Ctrl+C encerra tudo
 ```
+
+`npm run dev` faz o mesmo numa janela nativa (precisa do Rust).
 
 ## Comandos
 
 | Comando | O que faz |
 | --- | --- |
 | `npm install` | Instala tudo (workspaces) |
+| `npm start` | Sobe o Orbi completo (runtime + app no navegador) com o modelo real |
 | `npm run dev` | Janela nativa + runtime, para desenvolver |
 | `npm run demo` / `npm run demo:ui` | Runtime roteirizado com cérebro e portal de exemplo + app no navegador |
 | `npm test` | Testes do runtime (fluxo completo com modelo falso) e checagem de tipos dos três pacotes |

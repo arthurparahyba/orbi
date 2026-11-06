@@ -11,6 +11,7 @@
     "node": ">=22.13"
   },
   "scripts": {
+    "start": "node scripts/start.mjs",
     "dev": "npm run build -w @orbi/runtime && npm run tauri -w @orbi/desktop -- dev",
     "demo": "npm run demo -w @orbi/runtime",
     "demo:ui": "npm run dev -w @orbi/desktop",
