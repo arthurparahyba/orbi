@@ -1,0 +1,49 @@
+# Empacotamento
+
+```bash
+npm install
+npm run build                     # tudo o que a plataforma suporta
+npm run build -- --bundles dmg    # só o .dmg (argumentos extras vão para o tauri build)
+```
+
+Gere na plataforma de destino: as dependências nativas (Keychain, onnxruntime)
+são instaladas para a máquina que roda o build. No Mac com Apple Silicon sai um
+app arm64.
+
+## O que o `scripts/build-app.mjs` faz
+
+1. Compila o runtime (`apps/runtime/dist`). O contrato entra no bundle.
+2. Instala só as dependências de produção do runtime, nas versões exatas do
+   `package-lock.json` da raiz, em `apps/desktop/src-tauri/resources/runtime`.
+3. Poda binários de outras plataformas: o Claude Code nativo de outros sistemas
+   e o onnxruntime (Whisper local) de outros sistemas e arquiteturas.
+4. Copia o Node que está rodando o build para `binaries/orbi-node-<plataforma>`.
+   O app leva o próprio Node e não depende do da máquina. Use Node ≥ 22.13.
+5. Roda `tauri build` com `tauri.bundle.conf.json`, que acrescenta o runtime
+   (Resources/runtime) e o `orbi-node` (ao lado do executável).
+
+Saída em `apps/desktop/src-tauri/target/release/bundle/` (`macos/Orbi.app`,
+`dmg/Orbi_0.1.0_aarch64.dmg`).
+
+## Tamanho
+
+O runtime embutido ocupa uns 750 MB descompactado (o pacote compactado fica
+perto de 300 MB). A maior parte é:
+
+- Claude Code nativo (~320 MB), usado para corrigir código;
+- onnxruntime (~200 MB), usado pela transcrição local;
+- o próprio Node (~100 MB).
+
+Se a transcrição for sempre por um serviço (`ORBI_STT_URL`), dá para tirar o
+`@huggingface/transformers` das dependências e economizar uns 250 MB.
+
+## Assinatura no macOS
+
+Um app gerado na sua própria máquina abre normalmente. Para distribuir para
+outras pessoas sem o aviso do Gatekeeper, é preciso assinar e notarizar com um
+Developer ID da Apple: o Tauri faz isso se as variáveis `APPLE_SIGNING_IDENTITY`,
+`APPLE_ID`, `APPLE_PASSWORD` e `APPLE_TEAM_ID` estiverem definidas no build.
+Sem isso, quem recebe o app abre pelo clique direito → Abrir na primeira vez.
+
+O app pede permissão de microfone na primeira gravação narrada
+(`Info.plist` e `Entitlements.plist` em `apps/desktop/src-tauri/`).

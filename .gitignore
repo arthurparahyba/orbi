@@ -1,11 +1,14 @@
 node_modules/
 dist/
 .env
-data/
-data/
-workspace/
-.env
-desktop/node_modules/
-desktop/dist/
-desktop/src-tauri/target/
-desktop/src-tauri/gen/
+.DS_Store
+
+# runtime: dados locais (cérebro, cofre, conversas) e área de trabalho
+apps/runtime/data/
+apps/runtime/workspace/
+
+# desktop: build nativo e o que o `npm run build` monta antes do tauri build
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/resources/
+apps/desktop/src-tauri/binaries/

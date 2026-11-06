@@ -1,0 +1,13 @@
+{
+  "name": "@orbi/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "O contrato entre o runtime e o app: componentes do canal ui e os tipos da API HTTP.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "valibot": "^1.5.0"
+  }
+}

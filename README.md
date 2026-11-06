@@ -1,197 +1,81 @@
-# Vigia — runtime
+# Orbi
 
-Copiloto de esteira: um agente que **aprende** os procedimentos repetitivos do
-desenvolvedor (subir para dev, acompanhar a esteira, abrir PR, release, GMUD,
-atualizar versão em portal) e passa a executá-los sozinho, pedindo aprovação
-quando a regra de autonomia manda.
-
-- Framework: [Flue](https://flueframework.com) 2.3 sobre o harness Pi
-- Modelo: `anthropic/claude-haiku-5-5` (API da Anthropic)
-- Correção de código: Claude Code via Claude Agent SDK (`claude-haiku-5-5`)
-- Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
-- Cérebro: um arquivo SQLite (`data/brain.db`), sem servidor
+Copiloto local que **aprende** os procedimentos repetitivos depois do commit
+(acompanhar a esteira, abrir PR, subir para dev e homologação, GMUD, atualizar
+a versão de um MFE no portal) e passa a executá-los, pedindo aprovação quando a
+regra de autonomia manda.
 
 O código não sabe nada de CI, GMUD ou portal. Ele dá ao agente **mãos**
-(terminal, navegador, Claude Code), **memória** (o cérebro), **voz**
-(componentes de interface e perguntas) e **relógio** (retornos agendados).
-O resto o Vigia aprende com você e guarda como playbook.
-
-## Rodar
-
-```bash
-cp .env.example .env      # preencha ANTHROPIC_API_KEY, VIGIA_WORKSPACE, GH_TOKEN…
-npm install
-npm run dev               # http://127.0.0.1:5173 (sobe a ponte do Chrome junto)
-```
-
-Conversar (o app desktop faz isso por baixo):
-
-```bash
-ID=$(curl -s -XPOST localhost:5173/api/conversations | jq -r .id)
-curl -XPOST localhost:5173/agents/vigia/$ID -H 'content-type: application/json' \
-  -d '{"kind":"user","body":"Vou te ensinar a subir o portal-clientes-front para dev."}'
-curl -N localhost:5173/agents/vigia/$ID      # stream de eventos (texto + componentes)
-```
-
-Produção local: `npm run build && npm start` (porta 3000, só loopback).
-
-## App desktop
-
-`desktop/` é o app: **Tauri 2** (janela nativa, ~3 MB) + **React 19** com
-`@flue/react`. Três telas:
-
-- **Conversa** — chat com o Vigia. Texto, componentes (`stepper` ao vivo,
-  cartões de aprovação e de pergunta, tabelas, diffs) e as ações executadas
-  agrupadas. Pendências de todas as conversas ficam na coluna da direita.
-- **Cérebro** — grafo do conhecimento (clique num nó para ver propriedades,
-  relações atuais e histórico), lacunas, playbooks com autonomia por playbook,
-  execuções e os tipos da ontologia. Exporta tudo em Markdown.
-- **Autonomia** — observar · perguntar · automático por tipo de ação, e o
-  estado das capacidades (modelo, chave, Chrome DevTools MCP).
-
-Ao abrir, o app procura o runtime em `127.0.0.1:3000`; se não achar, inicia
-`node dist/server.mjs` da pasta do runtime (ou de `VIGIA_RUNTIME_DIR`) e o
-encerra junto com a janela. A chave vem do `.env` do runtime, porque apps
-abertos pelo Dock/Finder não herdam o ambiente do terminal.
-
-```bash
-# uma vez
-npm install && npm run build        # runtime
-cd desktop && npm install
-
-# desenvolvimento: UI com hot reload no navegador (http://localhost:5174)
-npm run demo                        # na raiz: runtime com modelo roteirizado e cérebro de exemplo, sem API key
-npm --prefix desktop run dev
-
-# janela nativa
-npm --prefix desktop run tauri dev
-npm --prefix desktop run tauri build   # macOS: .app e .dmg em desktop/src-tauri/target/release/bundle/
-```
-
-Pré-requisitos do Tauri: Rust (`rustup`), e no macOS as Xcode Command Line
-Tools (`xcode-select --install`); no Linux, `libwebkit2gtk-4.1-dev`.
-
-`npm run demo` roda o fluxo completo sem gastar API: peça “Vou te ensinar como
-subir a versão de um front no portal”, aprove o cartão, e depois “Atualiza a
-versão do novo-front no portal” para ver o playbook executar passo a passo.
-
-## API local
-
-| Rota | O quê |
-| --- | --- |
-| `POST /agents/vigia/:id` · `GET /agents/vigia/:id` | Conversa Flue: enviar mensagem, ler stream |
-| `POST /api/conversations` | Novo id de conversa |
-| `GET /api/inbox` | Aprovações, perguntas e aprendizados pendentes |
-| `POST /api/inbox/:id/decision` `{decision}` | Aprovar/negar (vira sinal na conversa) |
-| `POST /api/inbox/:id/answer` `{text}` | Responder pergunta |
-| `GET /api/brain` | Ontologia, entidades, ligações, lacunas |
-| `GET /api/brain/entities/:id` · `GET /api/brain/search?q=` | Navegar o grafo |
-| `GET /api/brain/playbooks` · `PATCH /api/brain/playbooks/:name` | Playbooks e autonomia de cada um |
-| `GET /api/brain/runs` | Execuções de playbook (passo a passo) |
-| `POST /api/brain/export` | Exporta o cérebro em Markdown (Obsidian) |
-| `GET/PATCH /api/autonomy` | Níveis globais por categoria |
-| `GET /api/health` | Modelo, chave, ponte do Chrome, cérebro |
-
-## Ensinar pelo navegador
-
-O jeito mais rápido de ensinar um procedimento web (portal, ServiceNow…): na
-Conversa, clique em **Ensinar pelo navegador**, faça o procedimento no Chrome
-que abrir e, se quiser, explique em voz alta. Ao clicar em **Terminar e
-aprender**, o Vigia junta as duas trilhas e propõe o playbook para você aprovar.
-
-```
-App (microfone) ──WAV 16 kHz por pausa──▶ runtime ──▶ Whisper ─┐
-                                                               ├─▶ linha do tempo ─▶ agente ─▶ playbook (aprovação)
-Chrome do Vigia ──CDP: navegação, cliques, campos──▶ gravador ─┘
-                                  └─ senha/usuário ─▶ cofre (nunca no cérebro)
-```
-
-- **Cliques** (`src/browser/recorder.ts`, `page-recorder.ts`): um script em cada
-  página registra navegação, cliques, campos, seleções e Enter pelo *papel e
-  rótulo* do elemento (“o campo Versão na aba Configuração”), não por seletor CSS.
-  O Chrome é o mesmo que o agente usa via chrome-devtools-mcp (perfil próprio em
-  `data/chrome-profile`, aberto sob demanda).
-- **Fala** (`src/stt.ts`): o app corta o áudio nas pausas e manda trechos WAV com
-  horário; o runtime transcreve com Whisper **local** (transformers.js; o modelo
-  é baixado uma vez para `data/models`, o áudio não sai da máquina) ou com um
-  endpoint compatível com a API da OpenAI (`VIGIA_STT_URL`).
-- **Síntese**: a linha do tempo (AÇÃO/FALA no mesmo relógio) vai ao agente, que
-  segue a seção “Aprender por demonstração” da skill: intenção e gatilho vêm da
-  fala, a mecânica vem dos cliques, valores variáveis viram `{{parâmetros}}`.
-- **Credenciais** (`src/vault.ts`): campos de senha/token/código e o usuário de
-  um formulário de login vão **direto para o cofre** — Keychain do macOS
-  (Credential Manager no Windows, Secret Service no Linux) ou, sem cofre do
-  sistema, um arquivo AES-256-GCM. A gravação, a mensagem ao agente, o cérebro e
-  o playbook só têm a referência `{{segredo:host/campo}}`; o `browser_act`
-  substitui o valor na hora de preencher e apaga-o de qualquer saída. Gerencie
-  na tela Autonomia → Cofre.
-
-```bash
-npm run e2e:demo    # grava uma demonstração num portal local, confere o cofre e reexecuta pelo MCP
-```
-
-O cartão de aprovação mostra o que vai ser guardado já legível: o playbook em
-passos numerados, o gatilho, a que classe se aplica, os parâmetros e as
-credenciais (só os nomes no cofre), além dos fatos que entram no grafo.
-
-Transcrição: sem configurar nada, usa Whisper local (`whisper-small`, ~250 MB
-no primeiro uso). Para um modelo maior ou um serviço da empresa:
-
-```bash
-VIGIA_STT_LOCAL_MODEL=onnx-community/whisper-large-v3-turbo   # local, mais preciso, mais pesado
-# ou qualquer endpoint compatível com /v1/audio/transcriptions
-VIGIA_STT_URL=https://api.openai.com/v1/audio/transcriptions VIGIA_STT_API_KEY=… VIGIA_STT_MODEL=whisper-1
-```
-
-No macOS o app pede permissão de microfone na primeira gravação
-(`desktop/src-tauri/Info.plist`).
-
-`scripts/ui-narration/` tem o teste da trilha de áudio pela interface: Chromium
-com microfone falso tocando uma narração sintetizada (`espeak-ng`), um endpoint
-de transcrição simulado que valida cada WAV, e o roteiro completo (gravar →
-aprovar → executar).
-
-No `npm run demo`, o botão já vem com um portal de exemplo
-(`http://127.0.0.1:4310/login`, usuário `arthur`, senha `s3nh@-Portal!`).
-
-## Componentes de interface
-
-O agente nunca manda HTML. Ele escreve no canal `ui` um destes componentes
-(`src/ui.ts`) e o app desenha: `stepper`, `status`, `approval`, `question`,
-`table`, `link`, `code`, `learning`. Mesmo `id` = atualização no lugar.
-
-## Testes
-
-```bash
-npm test             # unidade + fluxo completo do agente com o provedor faux do Pi (sem API key)
-npm run e2e:chrome   # ponte + chrome-devtools-mcp + Chrome headless num "portal" local
-npm run e2e:demo     # demonstração gravada → cofre → reexecução com {{segredo:…}}
-npm run check:types
-```
+(terminal, navegador, Claude Code), **memória** (o cérebro), **voz** (componentes
+de interface e perguntas) e **relógio** (retornos agendados). O resto o Orbi
+aprende com você, por conversa ou por demonstração no navegador, e guarda como
+playbook.
 
 ## Estrutura
 
 ```
-src/
-  app.ts                  rotas HTTP, ponte do Chrome, laço de retornos
-  agents/vigia.ts         o agente (Flue 'use agent')
-  agents/capabilities.ts  tools genéricas + gate de autonomia + canal de UI
-  subagents/investigador.ts
-  skills/aprender-procedimento.ts   a única skill de fábrica: como aprender
-  brain/store.ts          cérebro em SQLite (ontologia, grafo temporal, playbooks)
-  policy/autonomy.ts      observar · perguntar · automático
-  mcp/bridge.ts           stdio → HTTP para o chrome-devtools-mcp
-  tools/exec.ts           execução sem shell, com allowlist
-  tools/claude-code.ts    correção em worktree via Claude Agent SDK
-  browser/                Chrome compartilhado + gravador de demonstrações
-  vault.ts                cofre de credenciais (Keychain / arquivo criptografado)
-  stt.ts                  transcrição da narração (Whisper local ou HTTP)
-scripts/demo-server.ts    runtime com modelo roteirizado (sem API key)
-desktop/
-  src/views/              Conversa, Cérebro, Autonomia
-  src/components/         catálogo de componentes do canal `ui`
-  src-tauri/              janela nativa + início/parada do runtime
+orbi/
+├── apps/
+│   ├── runtime/          o agente: Flue + Claude Haiku 5.5, cérebro (SQLite), Chrome DevTools MCP,
+│   │                     gravador de demonstrações, cofre, transcrição. Servidor local em 127.0.0.1:3000
+│   └── desktop/          o app: React (Conversa, Cérebro, Autonomia) + Tauri (janela nativa que
+│                         inicia e encerra o runtime)
+├── packages/
+│   └── contracts/        o contrato entre os dois: componentes do canal `ui` e tipos da API HTTP
+├── scripts/
+│   └── build-app.mjs     gera o executável com o runtime e o Node dentro
+├── docs/                 arquitetura, ensinar pelo navegador, desenvolvimento, empacotamento
+└── package.json          workspaces npm: um `npm install` para tudo
 ```
 
-Nota: `@earendil-works/pi-ai` e `pi-agent-core` estão fixados em 1.1.0 em
-`overrides` — o Flue 2.3.0 quebra com o Pi 1.2+.
+## Começar
+
+Pré-requisitos: **Node ≥ 22.13**. Para a janela nativa e o executável, também o
+**Rust** (`curl https://sh.rustup.rs -sSf | sh`) e, no macOS, as Xcode Command
+Line Tools (`xcode-select --install`).
+
+```bash
+npm install          # instala runtime, desktop e contrato de uma vez
+npm run demo         # runtime de demonstração (sem API key) em 127.0.0.1:3000
+npm run demo:ui      # em outro terminal: o app no navegador, http://localhost:5174
+```
+
+Com a sua chave:
+
+```bash
+cp apps/runtime/.env.example apps/runtime/.env   # ANTHROPIC_API_KEY, GH_TOKEN…
+npm run dev          # compila o runtime e abre a janela nativa com ele rodando junto
+```
+
+## Comandos
+
+| Comando | O que faz |
+| --- | --- |
+| `npm install` | Instala tudo (workspaces) |
+| `npm run dev` | Janela nativa + runtime, para desenvolver |
+| `npm run demo` / `npm run demo:ui` | Runtime roteirizado com cérebro e portal de exemplo + app no navegador |
+| `npm test` | Testes do runtime (fluxo completo com modelo falso) e checagem de tipos dos três pacotes |
+| `npm run e2e` | Chrome DevTools MCP de verdade + demonstração gravada → cofre → reexecução |
+| `npm run build` | Gera o executável: `Orbi.app` e `.dmg` no macOS |
+
+## O app instalado
+
+`npm run build` gera `apps/desktop/src-tauri/target/release/bundle/` com o
+`Orbi.app` (e o `.dmg`). O app leva o runtime e o próprio Node dentro: quem o
+usa só abre o Orbi. Os dados ficam fora do app:
+
+```
+~/Library/Application Support/br.com.zup.orbi/
+├── .env            ANTHROPIC_API_KEY e demais configurações (criado na primeira execução)
+├── data/           cérebro, conversas, perfil do Chrome do Orbi, índice do cofre
+└── logs/runtime.log
+```
+
+As senhas ficam no Keychain do macOS, nunca nesses arquivos.
+
+## Documentação
+
+- [Arquitetura](docs/arquitetura.md): como o runtime, o app e o contrato se encaixam; API local
+- [Ensinar pelo navegador](docs/ensinar-pelo-navegador.md): gravação de cliques + narração, cofre
+- [Desenvolvimento](docs/desenvolvimento.md): testes, demo, como adicionar um componente de interface
+- [Empacotamento](docs/empacotamento.md): o que o `npm run build` faz, tamanho, assinatura no macOS

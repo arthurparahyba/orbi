@@ -1,46 +1,25 @@
 {
-  "name": "vigia-runtime",
+  "name": "orbi",
+  "private": true,
   "version": "0.1.0",
-  "description": "Vigia — copiloto de esteira (runtime em Flue/Pi com Claude Haiku 5.5)",
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "start": "node dist/server.mjs",
-    "check:types": "tsc --noEmit",
-    "test": "node --import tsx --test test/*.test.ts",
-    "bridge:chrome": "tsx src/mcp/bridge-cli.ts",
-    "e2e:chrome": "tsx scripts/e2e-chrome-mcp.ts",
-    "demo": "tsx scripts/demo-server.ts",
-    "desktop": "npm --prefix desktop run tauri dev",
-    "e2e:demo": "tsx scripts/e2e-demonstration.ts"
+  "description": "Orbi: copiloto local que aprende os procedimentos pós-commit. Runtime (apps/runtime) + app desktop (apps/desktop) + contrato compartilhado (packages/contracts).",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.13"
   },
-  "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.318",
-    "@flue/cli": "^2.3.0",
-    "@flue/runtime": "^2.3.0",
-    "@huggingface/transformers": "^4.3.2",
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "@napi-rs/keyring": "^2.1.2",
-    "chrome-devtools-mcp": "^1.12.0",
-    "croner": "^11.0.0",
-    "hono": "^4.13.16",
-    "js-yaml": "^5.5.0",
-    "puppeteer-core": "^24.43.1",
-    "ulidx": "^2.4.1",
-    "valibot": "^1.5.0"
+  "scripts": {
+    "dev": "npm run build -w @orbi/runtime && npm run tauri -w @orbi/desktop -- dev",
+    "demo": "npm run demo -w @orbi/runtime",
+    "demo:ui": "npm run dev -w @orbi/desktop",
+    "test": "npm test -w @orbi/runtime && npm run check:types -w @orbi/runtime && npm run typecheck -w @orbi/desktop",
+    "e2e": "npm run e2e:chrome -w @orbi/runtime && npm run e2e:demo -w @orbi/runtime",
+    "build": "node scripts/build-app.mjs"
   },
   "overrides": {
     "@earendil-works/pi-ai": "1.1.0",
     "@earendil-works/pi-agent-core": "1.1.0"
-  },
-  "devDependencies": {
-    "@flue/vite": "^2.3.0",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.20.5",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.6"
-  },
-  "private": true,
-  "type": "module"
+  }
 }
