@@ -25,20 +25,19 @@ Object.assign(process.env, {
 const { startFakePortal } = await import('./fake-portal.ts');
 const portal = await startFakePortal(Number(process.env.DEMO_PORTAL_PORT ?? 4310));
 process.env.ORBI_DEMO_PORTAL = `${portal.url}/login`;
-if (process.env.DEMO_FAKE_STT) {
-  const { setTranscriber } = await import('../src/stt.ts');
-  const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
-  let n = 0;
-  setTranscriber({ name: 'roteirizada', transcribe: async () => lines[n++] ?? '' });
-}
 
 const { fauxProvider, fauxAssistantMessage, fauxToolCall, fauxText } = await import('@earendil-works/pi-ai');
 const { setProvider } = await import('@flue/runtime');
 const { start } = await import('@flue/runtime/node');
 const { serve } = await import('@hono/node-server');
 const { Orbi } = await import('../src/agents/orbi.ts');
-const { brain, conversations } = await import('../src/runtime.ts');
 const { default: app } = await import('../src/app.ts');
+const { brain, conversations, stt } = (await import('../src/services.ts')).services();
+if (process.env.DEMO_FAKE_STT) {
+  const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
+  let n = 0;
+  stt.set({ name: 'roteirizada', transcribe: async () => lines[n++] ?? '' });
+}
 
 // ── seed: what the prototype showed Orbi knowing ──────────────────────────
 function seed() {
@@ -109,7 +108,7 @@ const textOf = (m: Msg) =>
   typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.map((c: any) => c.text ?? '').join(' ') : '';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const call = (name: string, args: Record<string, unknown>, text?: string) =>
-  fauxAssistantMessage(text ? [fauxText(text), fauxToolCall(name, args)] : fauxToolCall(name, args), { stopReason: 'toolUse' });
+  fauxAssistantMessage(text ? [fauxText(text), fauxToolCall(name, args as never)] : fauxToolCall(name, args as never), { stopReason: 'toolUse' });
 
 const faux = fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }], tokensPerSecond: 400 });
 const respond = async (context: { messages: Msg[] }) => {

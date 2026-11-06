@@ -40,8 +40,8 @@ ADAPTERS.roteiro = () => ({
 const { init } = await import('@flue/runtime');
 const { start } = await import('@flue/runtime/node');
 const { Orbi } = await import('../src/agents/orbi.ts');
-const { config } = await import('../src/config.ts');
 const { default: app } = await import('../src/app.ts'); // registers the adapter (configureLlm)
+const { config } = (await import('../src/services.ts')).services();
 
 let flue: { [Symbol.asyncDispose](): Promise<void> };
 before(async () => {

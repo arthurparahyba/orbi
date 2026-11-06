@@ -13,13 +13,10 @@ import {
 } from '@flue/runtime';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
-import { config } from '../config.ts';
-import { brain, inbox, policy, vault } from '../runtime.ts';
+import { services } from '../services.ts';
 import { redact } from '../vault.ts';
 import { UiComponent, UiPart } from '@orbi/contracts';
 import { runCommand } from '../tools/exec.ts';
-import { prepareFix, pushFix, getFix } from '../tools/claude-code.ts';
-import { callBrowserTool } from '../mcp/chrome-devtools.ts';
 import {
   browserCategory,
   codeFixCategory,
@@ -47,6 +44,7 @@ type Executor = (args: any, approvalId: string) => Promise<string>;
 // ── helpers shared by root agent and subagents ─────────────────────────────
 
 function insideWorkspace(cwd?: string): string {
+  const { config } = services();
   const dir = cwd ? (isAbsolute(cwd) ? cwd : resolve(config.workspace, cwd)) : config.workspace;
   const rel = relative(config.workspace, dir);
   if (rel.startsWith('..') || isAbsolute(rel)) throw new Error(`cwd fora do workspace: ${cwd}`);
@@ -54,6 +52,7 @@ function insideWorkspace(cwd?: string): string {
 }
 
 async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number }, signal?: AbortSignal) {
+  const { config } = services();
   const result = await runCommand(args.binary, args.args, {
     cwd: insideWorkspace(args.cwd),
     timeoutMs: Math.min(args.timeoutSeconds ?? 120, 1800) * 1000,
@@ -65,7 +64,7 @@ async function execCommand(args: { binary: string; args: string[]; cwd?: string;
 }
 
 const commandInput = v.object({
-  binary: v.pipe(v.string(), v.description(`One of: ${config.allowedBinaries.join(', ')}`)),
+  binary: v.pipe(v.string(), v.description('An allowed CLI: git, gh, aws or python3 unless the developer configured others')),
   args: v.array(v.string()),
   cwd: v.optional(v.pipe(v.string(), v.description('Folder relative to the workspace, e.g. the repo name'))),
   timeoutSeconds: v.optional(v.number()),
@@ -92,10 +91,11 @@ export const runPython = defineTool({
   input: v.object({ code: v.string(), purpose: v.string() }),
   timeoutMs: 90_000,
   async run({ data, signal }) {
-    mkdirSync(config.scratchDir, { recursive: true });
-    const file = join(config.scratchDir, `script-${ulid()}.py`);
+    const { scratchDir } = services().config;
+    mkdirSync(scratchDir, { recursive: true });
+    const file = join(scratchDir, `script-${ulid()}.py`);
     writeFileSync(file, data.code);
-    const result = await runCommand('python3', ['-I', file], { cwd: config.scratchDir, timeoutMs: 60_000, signal, allowed: ['python3'] });
+    const result = await runCommand('python3', ['-I', file], { cwd: scratchDir, timeoutMs: 60_000, signal, allowed: ['python3'] });
     return { output: JSON.stringify(result) };
   },
 });
@@ -111,6 +111,7 @@ export const brainQuery = defineTool({
     depth: v.optional(v.number()),
   }),
   async run({ data }) {
+    const { brain } = services();
     if (data.id) {
       const entity = brain.get(data.id);
       if (!entity) return { output: { notFound: data.id, similar: brain.search(data.id, 5).map((e) => e.id) } };
@@ -130,13 +131,14 @@ export const browserRead = defineTool({
   timeoutMs: 120_000,
   async run({ data }) {
     if (browserCategory(data.tool) !== 'navegador-leitura') return { output: { refused: 'Ação de escrita no navegador.' } };
-    return { output: await callBrowserTool(data.tool, data.args ?? {}) };
+    return { output: await services().browser.call(data.tool, data.args ?? {}) };
   },
 });
 
 // ── the root agent's capability hook ───────────────────────────────────────
 
 export function useOrbi(conversationId: string) {
+  const { brain, inbox, policy, vault, config, browser, codeFixer } = services();
   const [activeRun, setActiveRun] = usePersistentState<ActiveRun>('activeRun', null);
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
   const writePart = useDataWriter('ui', { schema: UiPart });
@@ -237,7 +239,7 @@ export function useOrbi(conversationId: string) {
     execute: async (a) => {
       const { value: args, used } = await vault.resolve(a.args);
       try {
-        return redact(await callBrowserTool(a.tool, args), used);
+        return redact(await browser.call(a.tool, args), used);
       } catch (error) {
         throw new Error(redact(error instanceof Error ? error.message : String(error), used));
       }
@@ -245,7 +247,7 @@ export function useOrbi(conversationId: string) {
   });
 
   // Code fixes run on Claude Code (Anthropic API); off when another LLM is configured.
-  if (config.codeFixer) {
+  if (codeFixer) {
     useTool({
       name: 'claude_code_prepare_fix',
       description:
@@ -254,7 +256,7 @@ export function useOrbi(conversationId: string) {
       timeoutMs: 1_200_000,
       async run({ data, signal }) {
         writeUi({ component: 'status', id: `fix-${data.repo}`, title: 'Claude Code investigando', state: 'running', text: `${data.repo} · ${data.branch}` });
-        const fix = await prepareFix(data, signal);
+        const fix = await codeFixer.prepare(data, signal);
         writeUi({ component: 'code', id: `fix-diff-${fix.id}`, title: `Correção proposta (${fix.files.length} arquivos)`, language: 'diff', text: fix.diff.slice(0, 20_000) });
         return { output: { fixId: fix.id, files: fix.files, summary: fix.summary, costUsd: fix.costUsd, diff: fix.diff.slice(0, 8_000) } };
       },
@@ -264,9 +266,9 @@ export function useOrbi(conversationId: string) {
       name: 'claude_code_push_fix',
       description: 'Commit and push a fix prepared by claude_code_prepare_fix. Test-only fixes and production-code fixes follow different autonomy rules.',
       input: v.object({ fixId: v.string(), commitMessage: v.string() }),
-      category: (a) => codeFixCategory(getFix(a.fixId)?.files ?? ['?']),
+      category: (a) => codeFixCategory(codeFixer.get(a.fixId)?.files ?? ['?']),
       summary: (a) => `Subir correção ${a.fixId}: ${a.commitMessage}`,
-      execute: (a) => pushFix(a.fixId, a.commitMessage),
+      execute: (a) => codeFixer.push(a.fixId, a.commitMessage),
     });
   }
 

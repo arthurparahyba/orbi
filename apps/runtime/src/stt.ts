@@ -1,5 +1,7 @@
 import { mkdirSync } from 'node:fs';
-import { config } from './config.ts';
+import type { OrbiConfig } from './config.ts';
+
+type SttConfig = OrbiConfig['stt'];
 
 /**
  * Speech-to-text for narrated demonstrations. Audio arrives as short WAV
@@ -53,30 +55,30 @@ export function wavToFloat32(wav: Buffer): { samples: Float32Array; sampleRate: 
   return { samples: out, sampleRate: 16_000 };
 }
 
-function localWhisper(): Transcriber {
+function localWhisper(stt: SttConfig): Transcriber {
   type Asr = (audio: Float32Array, options: Record<string, unknown>) => Promise<{ text: string } | Array<{ text: string }>>;
   let asr: Promise<Asr> | undefined;
   const load = () =>
     (asr ??= (async () => {
-      mkdirSync(config.stt.modelsDir, { recursive: true });
+      mkdirSync(stt.modelsDir, { recursive: true });
       const t = await import('@huggingface/transformers').catch(() => {
         throw new Error('transcrição local precisa do pacote @huggingface/transformers (npm install)');
       });
-      t.env.cacheDir = config.stt.modelsDir;
-      console.log(`[orbi] carregando ${config.stt.localModel} para transcrição (primeira vez baixa o modelo)…`);
-      return (await t.pipeline('automatic-speech-recognition', config.stt.localModel, { dtype: 'q8' })) as unknown as Asr;
+      t.env.cacheDir = stt.modelsDir;
+      console.log(`[orbi] carregando ${stt.localModel} para transcrição (primeira vez baixa o modelo)…`);
+      return (await t.pipeline('automatic-speech-recognition', stt.localModel, { dtype: 'q8' })) as unknown as Asr;
     })().catch((error) => {
       asr = undefined;
       throw error;
     }));
   return {
-    name: `local:${config.stt.localModel}`,
+    name: `local:${stt.localModel}`,
     async transcribe(wav) {
       const { samples } = wavToFloat32(wav);
       const run = await load();
       const languageName: Record<string, string> = { pt: 'portuguese', en: 'english', es: 'spanish' };
       const result = await run(samples, {
-        language: languageName[config.stt.language] ?? config.stt.language,
+        language: languageName[stt.language] ?? stt.language,
         task: 'transcribe',
         chunk_length_s: 30,
       });
@@ -85,19 +87,19 @@ function localWhisper(): Transcriber {
   };
 }
 
-function httpWhisper(): Transcriber {
-  if (!config.stt.url) throw new Error('ORBI_STT_URL não definido');
+function httpWhisper(stt: SttConfig): Transcriber {
+  if (!stt.url) throw new Error('ORBI_STT_URL não definido');
   return {
-    name: `http:${config.stt.model}`,
+    name: `http:${stt.model}`,
     async transcribe(wav) {
       const form = new FormData();
       form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'narracao.wav');
-      form.append('model', config.stt.model);
-      form.append('language', config.stt.language);
+      form.append('model', stt.model);
+      form.append('language', stt.language);
       form.append('response_format', 'json');
-      const res = await fetch(config.stt.url!, {
+      const res = await fetch(stt.url!, {
         method: 'POST',
-        headers: config.stt.apiKey ? { authorization: `Bearer ${config.stt.apiKey}` } : {},
+        headers: stt.apiKey ? { authorization: `Bearer ${stt.apiKey}` } : {},
         body: form,
         signal: AbortSignal.timeout(120_000),
       });
@@ -107,15 +109,31 @@ function httpWhisper(): Transcriber {
   };
 }
 
-let current: Transcriber | null | undefined;
-
-export function transcriber(): Transcriber | null {
-  if (current !== undefined) return current;
-  current = config.stt.backend === 'off' ? null : config.stt.backend === 'http' ? httpWhisper() : localWhisper();
-  return current;
+/**
+ * The transcriber in use. Created lazily from the config (loading Whisper is
+ * slow); tests and the demo swap in their own with `set`.
+ */
+export interface SttSlot {
+  get(): Transcriber | null;
+  set(t: Transcriber | null): void;
+  /** Name for /api/health, without loading anything heavy. */
+  name(): string;
 }
 
-/** Tests and the demo plug in their own transcriber. */
-export function setTranscriber(t: Transcriber | null) {
-  current = t;
+export function createStt(stt: SttConfig): SttSlot {
+  let current: Transcriber | null | undefined;
+  const build = () => (stt.backend === 'off' ? null : stt.backend === 'http' ? httpWhisper(stt) : localWhisper(stt));
+  return {
+    get: () => (current === undefined ? (current = build()) : current),
+    set: (t) => {
+      current = t;
+    },
+    name() {
+      try {
+        return this.get()?.name ?? 'desligada';
+      } catch (error) {
+        return `erro: ${(error as Error).message}`;
+      }
+    },
+  };
 }

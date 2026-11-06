@@ -22,8 +22,8 @@ const { fauxProvider, fauxAssistantMessage, fauxToolCall, fauxText } = await imp
 const { setProvider, init } = await import('@flue/runtime');
 const { start } = await import('@flue/runtime/node');
 const { Orbi } = await import('../src/agents/orbi.ts');
-const { brain, inbox } = await import('../src/runtime.ts');
 const { default: app } = await import('../src/app.ts');
+const { brain, inbox } = (await import('../src/services.ts')).services();
 
 const faux = fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }] });
 setProvider(faux.provider);

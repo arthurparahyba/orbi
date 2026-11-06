@@ -26,7 +26,11 @@
 
 ```
 src/
-  app.ts                    rotas HTTP, ponte do Chrome, laço de retornos
+  app.ts                    entrada: lê a configuração, compõe, sobe o que roda em segundo plano
+  config.ts                 configuração pura (loadConfig) e validada na partida (validateConfig)
+  compose.ts                raiz de composição: createOrbi(config) cria e liga todas as peças
+  services.ts               onde agentes e ferramentas pegam as peças (services())
+  http/app.ts               rotas HTTP (createHttpApp)
   agents/orbi.ts            o agente (Flue 'use agent')
   agents/capabilities.ts    tools genéricas + gate de autonomia + canal de UI
   subagents/investigador.ts investigação só-leitura em paralelo
@@ -82,6 +86,15 @@ Tudo o que cruza a fronteira runtime ↔ app:
 
 `apps/runtime/src/contract-check.ts` compara os tipos internos do runtime com o
 contrato. Se um lado mudar sem o outro, `npm test` falha apontando o par.
+
+## Composição
+
+Nenhum módulo cria nada ao ser importado. `app.ts` é a única entrada com
+efeitos: lê o `.env`, chama `createOrbi(loadConfig())` e entrega as peças ao
+servidor. Como o Flue chama os agentes só com `{ id }`, agentes e ferramentas
+pegam as peças com `services()`. Testes e scripts montam o próprio conjunto com
+`createOrbi(config, substitutas)`: por exemplo, um transcritor falso ou um cofre
+em arquivo.
 
 O contrato é código TypeScript sem etapa de build: o Vite do app e o do runtime
 o compilam junto. No runtime ele propositalmente não aparece em `dependencies`

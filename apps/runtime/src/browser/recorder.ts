@@ -1,10 +1,16 @@
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import { ulid } from 'ulidx';
-import { ensureChrome } from './chrome.ts';
+import type { SharedChrome } from './chrome.ts';
 import { pageRecorderScript } from './page-recorder.ts';
-import { vault } from '../runtime.ts';
-import { secretName, secretRef } from '../vault.ts';
-import { transcriber } from '../stt.ts';
+import { secretName, secretRef, type Vault } from '../vault.ts';
+import type { SttSlot } from '../stt.ts';
+
+/** What a recording needs from the rest of Orbi. */
+export interface RecorderDeps {
+  chrome: Pick<SharedChrome, 'ensure'>;
+  vault: Pick<Vault, 'set'>;
+  stt: Pick<SttSlot, 'get'>;
+}
 
 /**
  * A demonstration: the developer clicks "Ensinar pelo navegador", uses the
@@ -77,15 +83,15 @@ class RecordingSession {
   private started = Date.now();
   private transcriptions: Promise<void>[] = [];
 
-  constructor(conversationId: string, startUrl: string | undefined, narrated: boolean) {
+  constructor(private readonly deps: RecorderDeps, conversationId: string, startUrl: string | undefined, narrated: boolean) {
     this.rec = {
       id: `rec_${ulid().toLowerCase()}`, conversationId, status: 'recording', startedAt: new Date(this.started).toISOString(),
-      startUrl, actions: [], narration: [], secrets: [], narrated, transcriber: narrated ? transcriber()?.name : undefined,
+      startUrl, actions: [], narration: [], secrets: [], narrated, transcriber: narrated ? deps.stt.get()?.name : undefined,
     };
   }
 
   async start() {
-    const browserURL = await ensureChrome();
+    const browserURL = await this.deps.chrome.ensure();
     this.browser = await puppeteer.connect({ browserURL, defaultViewport: null });
     this.browser.on('targetcreated', async (target) => {
       if (target.type() !== 'page' || this.rec.status !== 'recording') return;
@@ -154,7 +160,7 @@ class RecordingSession {
       const host = new URL(e.url).hostname;
       const field = e.target?.label || e.target?.nameAttr || e.target?.id || (e.credential === 'user' ? 'usuario' : 'senha');
       const name = secretName(host, field);
-      await vault.set(name, e.value, {
+      await this.deps.vault.set(name, e.value, {
         description: `${e.credential === 'user' ? 'Usuário' : 'Credencial'} de ${host}`,
         origin: `${e.url} · campo ${quote(field)}`,
       });
@@ -177,7 +183,7 @@ class RecordingSession {
   }
 
   addAudio(startedAtEpoch: number, durationMs: number, wav: Buffer) {
-    const t = transcriber();
+    const t = this.deps.stt.get();
     const seg: NarrationSegment = { t: Math.max(0, startedAtEpoch - this.started), durationMs, status: 'pending', text: '' };
     this.rec.narration.push(seg);
     this.rec.narration.sort((a, b) => a.t - b.t);
@@ -234,32 +240,36 @@ export function demonstrationMessage(rec: Recording): string {
 }
 
 // ── registry ────────────────────────────────────────────────────────────────
-const sessions = new Map<string, RecordingSession>();
+export type Recorder = ReturnType<typeof createRecorder>;
 
-export const recorder = {
-  async start(conversationId: string, opts: { url?: string; narrated?: boolean } = {}): Promise<Recording> {
-    const active = [...sessions.values()].find((s) => s.rec.status === 'recording');
-    if (active) throw new Error(`já existe uma gravação em andamento (${active.rec.id})`);
-    const s = new RecordingSession(conversationId, opts.url, opts.narrated ?? true);
-    sessions.set(s.rec.id, s);
-    try {
-      await s.start();
-    } catch (error) {
-      sessions.delete(s.rec.id);
-      throw error;
-    }
-    return s.rec;
-  },
-  get: (id: string) => sessions.get(id)?.rec,
-  active: () => [...sessions.values()].find((s) => s.rec.status === 'recording')?.rec,
-  addAudio(id: string, startedAt: number, durationMs: number, wav: Buffer) {
-    const s = sessions.get(id);
-    if (!s) throw new Error('gravação não encontrada');
-    return s.addAudio(startedAt, durationMs, wav);
-  },
-  async stop(id: string, discard = false) {
-    const s = sessions.get(id);
-    if (!s) throw new Error('gravação não encontrada');
-    return s.stop(discard);
-  },
-};
+/** The recordings of this process (one at a time). */
+export function createRecorder(deps: RecorderDeps) {
+  const sessions = new Map<string, RecordingSession>();
+  return {
+    async start(conversationId: string, opts: { url?: string; narrated?: boolean } = {}): Promise<Recording> {
+      const active = [...sessions.values()].find((s) => s.rec.status === 'recording');
+      if (active) throw new Error(`já existe uma gravação em andamento (${active.rec.id})`);
+      const s = new RecordingSession(deps, conversationId, opts.url, opts.narrated ?? true);
+      sessions.set(s.rec.id, s);
+      try {
+        await s.start();
+      } catch (error) {
+        sessions.delete(s.rec.id);
+        throw error;
+      }
+      return s.rec;
+    },
+    get: (id: string) => sessions.get(id)?.rec,
+    active: () => [...sessions.values()].find((s) => s.rec.status === 'recording')?.rec,
+    addAudio(id: string, startedAt: number, durationMs: number, wav: Buffer) {
+      const s = sessions.get(id);
+      if (!s) throw new Error('gravação não encontrada');
+      return s.addAudio(startedAt, durationMs, wav);
+    },
+    async stop(id: string, discard = false) {
+      const s = sessions.get(id);
+      if (!s) throw new Error('gravação não encontrada');
+      return s.stop(discard);
+    },
+  };
+}

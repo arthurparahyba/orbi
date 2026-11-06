@@ -1,7 +1,9 @@
-import { config } from '../config.ts';
+import { loadConfig, loadDotEnv } from '../config.ts';
 import { startBridge } from './bridge.ts';
 
 // Run the Chrome DevTools bridge on its own: `npm run bridge:chrome`.
+loadDotEnv();
+const config = loadConfig();
 const bridge = await startBridge({
   port: config.chrome.port,
   token: config.chrome.token,

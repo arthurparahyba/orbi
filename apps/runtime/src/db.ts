@@ -1,7 +1,7 @@
 import { sqlite } from '@flue/runtime/node';
+import { loadConfig, loadDotEnv } from './config.ts';
 
-// Conversations, attachments, and accepted submissions are stored here so
-// they survive a restart. Swap in another adapter (Postgres, libSQL, ...)
-// when one host's SQLite file is no longer enough:
-// https://flueframework.com/docs/guide/database/
-export default sqlite(process.env.ORBI_FLUE_DB ?? './data/flue.db');
+// Flue's own store (conversations and their streams). Flue loads this file by
+// convention, possibly before app.ts, so it reads the configuration itself.
+loadDotEnv();
+export default sqlite(loadConfig().flueDb);

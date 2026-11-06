@@ -29,14 +29,18 @@ Object.assign(process.env, {
 });
 
 const { startFakePortal, FAKE_PORTAL_CREDENTIALS } = await import('./fake-portal.ts');
-const { recorder, demonstrationMessage } = await import('../src/browser/recorder.ts');
-const { ensureChrome, chromeDebugUrl, stopChrome } = await import('../src/browser/chrome.ts');
-const { setTranscriber } = await import('../src/stt.ts');
-const { vault } = await import('../src/runtime.ts');
+const { demonstrationMessage } = await import('../src/browser/recorder.ts');
 const { redact } = await import('../src/vault.ts');
 const { startBridge } = await import('../src/mcp/bridge.ts');
-const { callBrowserTool } = await import('../src/mcp/chrome-devtools.ts');
-const { config } = await import('../src/config.ts');
+const { loadConfig } = await import('../src/config.ts');
+const { createOrbi } = await import('../src/compose.ts');
+// The same parts the server uses, built by the composition root.
+const orbi = await createOrbi(loadConfig({ ...process.env, CHROME_MCP_AUTOSTART: 'false' }));
+const { recorder, vault, config } = orbi;
+const ensureChrome = () => orbi.chrome.ensure();
+const chromeDebugUrl = () => orbi.chrome.debugUrl();
+const stopChrome = () => orbi.chrome.stop();
+const callBrowserTool = (tool: string, args: Record<string, unknown>) => orbi.browser.call(tool, args);
 const puppeteer = (await import('puppeteer-core')).default;
 
 const step = (s: string) => console.log(`\n▸ ${s}`);
@@ -50,7 +54,7 @@ const phrases = [
   'Faz isso sempre que terminar o deploy de um MFE em dev.',
 ];
 let said = 0;
-setTranscriber({ name: 'fake', transcribe: async () => phrases[said++] ?? '' });
+orbi.stt.set({ name: 'fake', transcribe: async () => phrases[said++] ?? '' });
 const silentWav = (seconds = 1) => {
   const samples = 16_000 * seconds, data = Buffer.alloc(samples * 2), h = Buffer.alloc(44);
   h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVE', 8); h.write('fmt ', 12);

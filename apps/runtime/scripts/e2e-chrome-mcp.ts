@@ -9,8 +9,12 @@
 import { createServer } from 'node:http';
 import { createMcpConnection } from '@flue/runtime';
 import { startBridge } from '../src/mcp/bridge.ts';
-import { config } from '../src/config.ts';
-import { callBrowserTool } from '../src/mcp/chrome-devtools.ts';
+import { loadConfig } from '../src/config.ts';
+
+const config = loadConfig();
+const browserMcp = createBrowserMcp({ port: config.chrome.port, token: config.chrome.token });
+const callBrowserTool = (tool: string, args: Record<string, unknown>) => browserMcp.call(tool, args);
+import { createBrowserMcp } from '../src/mcp/chrome-devtools.ts';
 import { BROWSER_READ_TOOLS } from '../src/policy/autonomy.ts';
 
 const PORTAL_HTML = `<!doctype html><html lang="pt-BR"><head><title>Portal interno — menus</title></head><body>

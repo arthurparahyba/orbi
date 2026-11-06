@@ -1,8 +1,6 @@
 'use agent';
 import { useMcpConnection, useModel, useSkill, useSubagent } from '@flue/runtime';
-import { config } from '../config.ts';
-import { brain } from '../runtime.ts';
-import { chromeDevtoolsRead } from '../mcp/chrome-devtools.ts';
+import { services } from '../services.ts';
 import { useOrbi } from './capabilities.ts';
 import { investigador } from '../subagents/investigador.ts';
 import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
@@ -13,8 +11,9 @@ import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
  * capabilities; what Orbi knows how to do comes from the brain.
  */
 export function Orbi({ id }: { id: string }) {
+  const { config, brain, browser } = services();
   useModel(config.model, { thinkingLevel: 'low' });
-  useMcpConnection(chromeDevtoolsRead);
+  useMcpConnection(browser.connection);
   useSubagent({ ...investigador, model: config.model });
   useSkill(aprenderProcedimento);
   const { activeRun } = useOrbi(id);
