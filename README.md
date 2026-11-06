@@ -130,6 +130,27 @@ Chrome do Vigia ──CDP: navegação, cliques, campos──▶ gravador ─┘
 npm run e2e:demo    # grava uma demonstração num portal local, confere o cofre e reexecuta pelo MCP
 ```
 
+O cartão de aprovação mostra o que vai ser guardado já legível: o playbook em
+passos numerados, o gatilho, a que classe se aplica, os parâmetros e as
+credenciais (só os nomes no cofre), além dos fatos que entram no grafo.
+
+Transcrição: sem configurar nada, usa Whisper local (`whisper-small`, ~250 MB
+no primeiro uso). Para um modelo maior ou um serviço da empresa:
+
+```bash
+VIGIA_STT_LOCAL_MODEL=onnx-community/whisper-large-v3-turbo   # local, mais preciso, mais pesado
+# ou qualquer endpoint compatível com /v1/audio/transcriptions
+VIGIA_STT_URL=https://api.openai.com/v1/audio/transcriptions VIGIA_STT_API_KEY=… VIGIA_STT_MODEL=whisper-1
+```
+
+No macOS o app pede permissão de microfone na primeira gravação
+(`desktop/src-tauri/Info.plist`).
+
+`scripts/ui-narration/` tem o teste da trilha de áudio pela interface: Chromium
+com microfone falso tocando uma narração sintetizada (`espeak-ng`), um endpoint
+de transcrição simulado que valida cada WAV, e o roteiro completo (gravar →
+aprovar → executar).
+
 No `npm run demo`, o botão já vem com um portal de exemplo
 (`http://127.0.0.1:4310/login`, usuário `arthur`, senha `s3nh@-Portal!`).
 

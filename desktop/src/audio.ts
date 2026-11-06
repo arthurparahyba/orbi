@@ -46,7 +46,13 @@ export class Narrator {
       this.events.onLevel?.(this.muted ? 0 : Math.min(1, rms * 8));
       if (this.muted) return;
       const out = new Float32Array(Math.floor(input.length / ratio));
-      for (let i = 0; i < out.length; i++) out[i] = input[Math.floor(i * ratio)];
+      // Box-filter while decimating: averaging each window keeps high frequencies from folding into speech.
+      for (let i = 0; i < out.length; i++) {
+        const a = Math.floor(i * ratio), b = Math.max(a + 1, Math.floor((i + 1) * ratio));
+        let acc = 0;
+        for (let j = a; j < b; j++) acc += input[j];
+        out[i] = acc / (b - a);
+      }
       if (this.samples === 0) this.segmentStart = Date.now() - (input.length / this.ctx!.sampleRate) * 1000;
       this.chunks.push(out);
       this.samples += out.length;

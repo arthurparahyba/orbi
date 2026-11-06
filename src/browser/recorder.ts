@@ -223,7 +223,7 @@ export function timeline(rec: Recording): string {
 export function demonstrationMessage(rec: Recording): string {
   const duration = rec.finishedAt ? Date.parse(rec.finishedAt) - Date.parse(rec.startedAt) : 0;
   return [
-    `<demonstracao id="${rec.id}" duracao="${mmss(duration)}" acoes="${rec.actions.length}" falas="${rec.narration.filter((n) => n.status === 'done').length}">`,
+    `<demonstracao id="${rec.id}" duracao="${mmss(duration)}" acoes="${rec.actions.length}" falas="${rec.narration.filter((n) => n.status === 'done' && n.text).length}">`,
     timeline(rec) || '(nenhuma ação registrada)',
     '</demonstracao>',
     '',

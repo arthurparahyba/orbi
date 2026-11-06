@@ -80,8 +80,9 @@ function Approval({ c }: { c: Extract<UiComponent, { component: 'approval' }> })
         <span className="ui-kicker">{CATEGORY_LABEL[c.category] ?? c.category}</span>
       </header>
       <p className="ui-title">{c.title}</p>
+      {c.category === 'aprender' && <LearningPreview detail={c.detail} />}
       <button type="button" className="link-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {open ? 'Esconder detalhes' : 'Ver detalhes'}
+        {open ? 'Esconder detalhes' : c.category === 'aprender' ? 'Ver dados brutos' : 'Ver detalhes'}
       </button>
       {open && <pre className="code small">{c.detail}</pre>}
       {status === 'open' ? (
@@ -93,6 +94,65 @@ function Approval({ c }: { c: Extract<UiComponent, { component: 'approval' }> })
         <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>
       )}
     </section>
+  );
+}
+
+interface LearnItem { kind: string; payload: Record<string, any> }
+const placeholders = (text: string) => [...new Set([...text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map((m) => m[1]))];
+
+/** What the Vigia is about to store, readable: the playbook as numbered steps, its trigger, parameters and the facts. */
+function LearningPreview({ detail }: { detail: string }) {
+  let items: LearnItem[] = [];
+  try { items = (JSON.parse(detail).items ?? []) as LearnItem[]; } catch { return null; }
+  const playbooks = items.filter((i) => i.kind === 'playbook').map((i) => i.payload);
+  const facts = items.filter((i) => i.kind !== 'playbook');
+  return (
+    <div className="learn-preview">
+      {playbooks.map((pb) => {
+        const all = placeholders(JSON.stringify(pb));
+        const params = all.filter((x) => !x.startsWith('segredo:'));
+        const secrets = all.filter((x) => x.startsWith('segredo:')).map((x) => x.slice(8));
+        return (
+          <div key={pb.name} className="learn-pb">
+            <div className="learn-pb-head">
+              <span className="ui-kicker">Playbook</span> <strong>{pb.name}</strong>
+              {pb.autonomy && <span className="pill tiny">{pb.autonomy === 'auto' ? 'automático' : pb.autonomy === 'observe' ? 'só observar' : 'pede aprovação'}</span>}
+            </div>
+            {pb.description && <p className="small">{pb.description}</p>}
+            <dl className="learn-meta">
+              {pb.trigger && <div><dt>Quando</dt><dd>{pb.trigger}</dd></div>}
+              {pb.appliesTo && <div><dt>Vale para</dt><dd>todo {pb.appliesTo}</dd></div>}
+              {params.length > 0 && <div><dt>Parâmetros</dt><dd>{params.map((x) => <code key={x}>{x}</code>)}</dd></div>}
+              {secrets.length > 0 && <div><dt>Credenciais</dt><dd>{secrets.map((x) => <span key={x} className="secret-ref">🔒 {x}</span>)} <span className="muted">no cofre do sistema</span></dd></div>}
+            </dl>
+            <ol className="steps static">
+              {(pb.steps ?? []).map((st: { id: string; label: string; how?: string }, i: number) => (
+                <li key={st.id ?? i} className="step">
+                  <span className="step-dot">{i + 1}</span>
+                  <span className="step-body"><span className="step-label">{st.label}</span>{st.how && <span className="step-note">{st.how}</span>}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        );
+      })}
+      {facts.length > 0 && (
+        <div className="learn-facts">
+          <span className="ui-kicker">Fatos para o cérebro</span>
+          <ul>
+            {facts.map((f, i) => (
+              <li key={i}>
+                {f.kind === 'edge'
+                  ? <><code>{f.payload.from}</code> <span className="muted">{f.payload.rel}</span> <code>{f.payload.to}</code></>
+                  : f.kind === 'entity'
+                    ? <><span className="pill tiny">{f.payload.type}</span> <code>{f.payload.id}</code></>
+                    : <><span className="pill tiny">{f.kind}</span> {JSON.stringify(f.payload).slice(0, 120)}</>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
