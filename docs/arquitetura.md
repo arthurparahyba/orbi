@@ -30,7 +30,10 @@ src/
   config.ts                 configuração pura (loadConfig) e validada na partida (validateConfig)
   compose.ts                raiz de composição: createOrbi(config) cria e liga todas as peças
   services.ts               onde agentes e ferramentas pegam as peças (services())
-  http/app.ts               rotas HTTP (createHttpApp)
+  http/app.ts               monta a API (createHttpApp): CORS, token, rotas
+  http/errors.ts            HttpError, validação de corpo/query, formato de erro
+  http/routes/*.ts          uma rota por recurso (conversas, pendências, gravações,
+                            cofre, cérebro, autonomia, health)
   agents/orbi.ts            o agente (Flue 'use agent')
   agents/capabilities.ts    monta as capacidades do agente (useOrbi)
   agents/gate.ts            portão de autonomia: roda, só relata ou pede aprovação
@@ -91,6 +94,23 @@ Tudo o que cruza a fronteira runtime ↔ app:
   (`stepper`, `status`, `approval`, `question`, `table`, `link`, `code`, `learning`).
   O runtime valida com ele; o app desenha a partir dos mesmos tipos.
 - `api.ts`: os formatos da API HTTP como o app os lê.
+- `requests.ts`: o esquema (valibot) de cada corpo que o app envia e o formato
+  único de erro `ApiError`.
+
+## API HTTP
+
+Cada recurso tem seu arquivo em `http/routes`. A rota valida o corpo com o
+esquema de `requests.ts` (`body(c, Esquema)`) e, se algo der errado, lança um
+`HttpError`. Um único tratador transforma isso na resposta:
+
+```json
+{ "error": { "code": "invalid_body", "message": "…", "details": [{ "path": "level", "message": "…" }] } }
+```
+
+Códigos usados: `invalid_body`, `invalid_query` (400), `unauthorized` (401),
+`not_found` (404), `conflict` (409, por exemplo uma pendência já decidida),
+`too_large` (413) e `internal` (500, com o erro no log). O app lê `error.message`
+e mostra direto ao usuário. `test/http.test.ts` cobre as rotas.
 
 `apps/runtime/src/contract-check.ts` compara os tipos internos do runtime com o
 contrato. Se um lado mudar sem o outro, `npm test` falha apontando o par.

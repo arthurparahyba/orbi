@@ -1,5 +1,5 @@
 import type {
-  Autonomy, BrainSnapshot, Category, ConversationInfo, Entity, Edge, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, BrainSnapshot, Category, ConversationInfo, Entity, Edge, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -19,11 +19,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
   });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    // The runtime answers every error as ApiError ({ error: { code, message } }).
+    const text = await res.text();
+    let message = text;
+    try {
+      message = (JSON.parse(text) as ApiError).error.message ?? text;
+    } catch {
+      /* not JSON: keep the text */
+    }
+    throw Object.assign(new Error(message), { status: res.status });
+  }
   return res.json() as Promise<T>;
 }
 
-// ── types mirrored from the runtime ────────────────────────────────────────
 export const api = {
   health: () => request<Health>('/api/health'),
   conversations: () => request<ConversationInfo[]>('/api/conversations'),
