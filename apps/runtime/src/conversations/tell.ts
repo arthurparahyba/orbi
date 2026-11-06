@@ -1,5 +1,5 @@
 import { dispatch } from '@flue/runtime';
-import type { Events } from './events.ts';
+import type { Events } from '../events.ts';
 
 type Agent = Parameters<typeof dispatch>[0];
 type Message = Parameters<typeof dispatch>[1];

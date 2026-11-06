@@ -1,17 +1,17 @@
 import type { OrbiConfig } from './config.ts';
 import type { BrainStore } from './brain/store.ts';
-import type { Inbox } from './inbox.ts';
-import type { PolicyStore } from './policy/autonomy.ts';
-import type { Conversations } from './conversations.ts';
-import type { Vault } from './vault.ts';
-import type { SttSlot } from './stt.ts';
+import type { Inbox } from './conversations/inbox.ts';
+import type { PolicyStore } from './autonomy/policy.ts';
+import type { Conversations } from './conversations/conversations.ts';
+import type { Vault } from './vault/vault.ts';
+import type { SttSlot } from './voice/stt.ts';
 import type { SharedChrome } from './browser/chrome.ts';
-import type { BrowserMcp } from './mcp/chrome-devtools.ts';
+import type { BrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import type { Recorder } from './browser/recorder.ts';
-import type { CodeFixer } from './tools/claude-code.ts';
+import type { CodeFixer } from './code/claude-code.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { Events } from './events.ts';
-import type { UsageStore } from './usage.ts';
+import type { UsageStore } from './observability/usage.ts';
 
 /**
  * Everything Orbi's code uses, created once by `createOrbi` (compose.ts).

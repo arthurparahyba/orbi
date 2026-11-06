@@ -2,7 +2,7 @@ import { useAgentStart, useDelivery, usePersistentState, useTool } from '@flue/r
 import type * as v from 'valibot';
 import type { UiComponent } from '@orbi/contracts';
 import { services } from '../services.ts';
-import { decide, type Category } from '../policy/autonomy.ts';
+import { decide, type Category } from '../autonomy/policy.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
 
 type Pending = { tool: string; args: unknown; category: Category; requestedAt: string };

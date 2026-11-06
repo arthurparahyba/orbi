@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { ulid } from 'ulidx';
-import { runCommand } from './exec.ts';
+import { runCommand } from '../terminal/exec.ts';
 
 /**
  * Code fixes go through Claude Code (the Claude Agent SDK), always in two steps:

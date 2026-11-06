@@ -1,7 +1,7 @@
 import type { Context, Hono } from 'hono';
 import * as v from 'valibot';
 import type { ApiError } from '@orbi/contracts';
-import { log } from '../log.ts';
+import { log } from '../observability/log.ts';
 
 /** An error the API answers with on purpose: status + stable code + message for people. */
 export class HttpError extends Error {

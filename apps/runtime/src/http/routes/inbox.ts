@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { tellAgent } from '../../tell.ts';
+import { tellAgent } from '../../conversations/tell.ts';
 import { Answer, Decision, InboxStatusQuery } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound, query } from '../errors.ts';

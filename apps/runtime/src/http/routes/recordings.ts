@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { tellAgent } from '../../tell.ts';
+import { tellAgent } from '../../conversations/tell.ts';
 import { StartRecording, StopRecording } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { demonstrationMessage } from '../../browser/recorder.ts';
 import { HttpError, body, notFound } from '../errors.ts';
 import type { Agent } from './types.ts';
-import { log } from '../../log.ts';
+import { log } from '../../observability/log.ts';
 
 const MAX_SEGMENT = 8 * 1024 * 1024;
 

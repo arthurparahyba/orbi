@@ -2,27 +2,27 @@ import { mkdirSync } from 'node:fs';
 import type { dispatch } from '@flue/runtime';
 import { validateConfig, type OrbiConfig } from './config.ts';
 import { BrainStore } from './brain/store.ts';
-import { Inbox } from './inbox.ts';
-import { PolicyStore } from './policy/autonomy.ts';
-import { Conversations } from './conversations.ts';
-import { Vault } from './vault.ts';
-import { createStt } from './stt.ts';
+import { Inbox } from './conversations/inbox.ts';
+import { PolicyStore } from './autonomy/policy.ts';
+import { Conversations } from './conversations/conversations.ts';
+import { Vault } from './vault/vault.ts';
+import { createStt } from './voice/stt.ts';
 import { createChrome } from './browser/chrome.ts';
-import { createBrowserMcp } from './mcp/chrome-devtools.ts';
+import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
-import { createCodeFixer } from './tools/claude-code.ts';
+import { createCodeFixer } from './code/claude-code.ts';
 import { configureLlm } from './llm/index.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
 import { createEvents } from './events.ts';
-import { tellAgent } from './tell.ts';
-import { UsageStore } from './usage.ts';
-import { watchAgents } from './telemetry.ts';
-import { log } from './log.ts';
-import type { InboxItem } from './inbox.ts';
-import type { ConversationInfo } from './conversations.ts';
-import { startBridge, type RunningBridge } from './mcp/bridge.ts';
-import { binaryStatus } from './tools/exec.ts';
+import { tellAgent } from './conversations/tell.ts';
+import { UsageStore } from './observability/usage.ts';
+import { watchAgents } from './observability/telemetry.ts';
+import { log } from './observability/log.ts';
+import type { InboxItem } from './conversations/inbox.ts';
+import type { ConversationInfo } from './conversations/conversations.ts';
+import { startBridge, type RunningBridge } from './browser/mcp/bridge.ts';
+import { binaryStatus } from './terminal/exec.ts';
 import type { OrbiServices } from './services.ts';
 
 /**
@@ -97,90 +97,93 @@ export interface Background {
   stop(): Promise<void>;
 }
 
+type Agent = Parameters<typeof dispatch>[0];
+
 /**
- * Starts the long-running parts: the Chrome DevTools bridge, the follow-up
- * clock and, under the desktop app, the watch on the parent process.
+ * Starts the long-running parts: telemetry, the Chrome DevTools bridge, the
+ * follow-up clock and, under the desktop app, the watch on the parent process.
  * `agent` is passed in (not imported) so this file has no cycle with the agent.
  */
-export function startBackground(s: OrbiServices, agent: Parameters<typeof dispatch>[0]): Background {
-  const { config } = s;
-  let bridge: RunningBridge | undefined;
-  let bridgeError: string | undefined;
-  const timers: NodeJS.Timeout[] = [];
+export function startBackground(s: OrbiServices, agent: Agent): Background {
+  logStartup(s);
+  // Every model and tool call: counted per conversation and logged.
+  const unwatch = watchAgents({ usage: s.usage, log });
+  const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
+  const timers = [startFollowups(s, agent), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
+  for (const t of timers) t.unref();
+  process.once('exit', () => s.chrome.stop());
 
-  log.info('runtime iniciado', { model: config.model, adapter: s.llm.adapter?.name, workspace: config.workspace, db: config.dbFile });
-  for (const p of s.llm.plugins) {
+  return {
+    bridge: () => chrome?.bridge,
+    bridgeError: () => (chrome ? chrome.error : 'desligado'),
+    async stop() {
+      unwatch();
+      for (const t of timers) clearInterval(t);
+      await chrome?.bridge?.close();
+      s.chrome.stop();
+    },
+  };
+}
+
+function logStartup({ config, llm }: OrbiServices) {
+  log.info('runtime iniciado', { model: config.model, adapter: llm.adapter?.name, workspace: config.workspace, db: config.dbFile });
+  for (const p of llm.plugins) {
     if (p.error) log.warn('plugin com erro', { plugin: p.name, kind: p.kind, dir: p.dir, error: p.error });
     else log.info('plugin carregado', { plugin: p.name, kind: p.kind, dir: p.dir });
   }
   const missing = Object.entries(binaryStatus(config.allowedBinaries)).filter(([, at]) => !at).map(([b]) => b);
   if (missing.length) log.warn('comandos não encontrados no PATH', { missing });
+}
 
-  // Every model and tool call: counted per conversation and logged.
-  const unwatch = watchAgents({ usage: s.usage, log });
-
-  if (config.chrome.autostart) {
-    startBridge({
-      port: config.chrome.port,
-      token: config.chrome.token,
-      // The bridge attaches to the shared Chrome, launched lazily on the first tool call.
-      chrome: { browserUrl: s.chrome.debugUrl() },
-      beforeToolCall: async () => {
-        await s.chrome.ensure();
-      },
-    })
-      .then((b) => {
-        bridge = b;
-        log.info('Chrome DevTools MCP conectado', { url: b.url, tools: b.toolNames.length });
-      })
-      .catch((error) => {
-        bridgeError = error instanceof Error ? error.message : String(error);
-        log.error('bridge do Chrome não subiu', { error: bridgeError });
-      });
-  }
-
-  // Follow-ups: Orbi wakes itself up.
-  timers.push(
-    setInterval(async () => {
-      for (const f of s.brain.claimDueFollowups()) {
-        try {
-          await tellAgent(s.events, agent, {
-            id: f.conversationId,
-            message: { kind: 'signal', type: 'followup', body: `Retorno agendado: ${f.note}`, attributes: { followupId: f.id } },
-          });
-        } catch (error) {
-          log.error('retorno agendado falhou', { conversation: f.conversationId, followup: f.id, error });
-        }
-      }
-    }, config.followupIntervalMs),
-  );
-
-  // Started by the desktop shell: exit when the window process is gone, even if it
-  // was killed without a chance to stop us (SIGKILL, crash, force-quit).
-  if (config.parentPid) {
-    const parent = config.parentPid;
-    timers.push(
-      setInterval(() => {
-        try {
-          process.kill(parent, 0);
-        } catch {
-          log.info('app desktop encerrado; parando o runtime', { parent });
-          process.exit(0);
-        }
-      }, 2_000),
-    );
-  }
-  for (const t of timers) t.unref();
-  process.once('exit', () => s.chrome.stop());
-
-  return {
-    bridge: () => bridge,
-    bridgeError: () => bridgeError ?? (config.chrome.autostart ? undefined : 'desligado'),
-    async stop() {
-      unwatch();
-      for (const t of timers) clearInterval(t);
-      await bridge?.close();
-      s.chrome.stop();
+/** The bridge attaches to the shared Chrome, launched lazily on the first tool call. */
+function startChromeBridge(s: OrbiServices): { bridge?: RunningBridge; error?: string } {
+  const state: { bridge?: RunningBridge; error?: string } = {};
+  startBridge({
+    port: s.config.chrome.port,
+    token: s.config.chrome.token,
+    chrome: { browserUrl: s.chrome.debugUrl() },
+    beforeToolCall: async () => {
+      await s.chrome.ensure();
     },
-  };
+  })
+    .then((b) => {
+      state.bridge = b;
+      log.info('Chrome DevTools MCP conectado', { url: b.url, tools: b.toolNames.length });
+    })
+    .catch((error) => {
+      state.error = error instanceof Error ? error.message : String(error);
+      log.error('bridge do Chrome não subiu', { error: state.error });
+    });
+  return state;
+}
+
+/** Follow-ups: Orbi wakes itself up when a scheduled check-in is due. */
+function startFollowups(s: OrbiServices, agent: Agent): NodeJS.Timeout {
+  return setInterval(async () => {
+    for (const f of s.brain.claimDueFollowups()) {
+      try {
+        await tellAgent(s.events, agent, {
+          id: f.conversationId,
+          message: { kind: 'signal', type: 'followup', body: `Retorno agendado: ${f.note}`, attributes: { followupId: f.id } },
+        });
+      } catch (error) {
+        log.error('retorno agendado falhou', { conversation: f.conversationId, followup: f.id, error });
+      }
+    }
+  }, s.config.followupIntervalMs);
+}
+
+/**
+ * Started by the desktop shell: exit when the window process is gone, even if it
+ * was killed without a chance to stop us (SIGKILL, crash, force-quit).
+ */
+function watchParent(parent: number): NodeJS.Timeout {
+  return setInterval(() => {
+    try {
+      process.kill(parent, 0);
+    } catch {
+      log.info('app desktop encerrado; parando o runtime', { parent });
+      process.exit(0);
+    }
+  }, 2_000);
 }

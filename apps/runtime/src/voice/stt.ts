@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
-import type { OrbiConfig } from './config.ts';
-import { log } from './log.ts';
+import type { OrbiConfig } from '../config.ts';
+import { log } from '../observability/log.ts';
 
 type SttConfig = OrbiConfig['stt'];
 

@@ -24,44 +24,43 @@
 - Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
 - Banco: um arquivo SQLite (`data/orbi.db`) com o cérebro e o estado do app, sem servidor; migrações versionadas
 
+Uma pasta por capacidade. Na raiz de `src/` ficam só a entrada e o que liga as peças.
+
 ```
 src/
   app.ts                    entrada: lê a configuração, compõe, sobe o que roda em segundo plano
   config.ts                 configuração pura (loadConfig) e validada na partida (validateConfig)
   compose.ts                raiz de composição: createOrbi(config) cria e liga todas as peças
   services.ts               onde agentes e ferramentas pegam as peças (services())
-  http/app.ts               monta a API (createHttpApp): CORS, token, rotas
-  http/errors.ts            HttpError, validação de corpo/query, formato de erro
-  http/routes/*.ts          uma rota por recurso (conversas, pendências, gravações,
-                            cofre, cérebro, autonomia, health, eventos)
   events.ts                 o que mudou (createEvents), para o app acompanhar
-  tell.ts                   manda mensagem a uma conversa de fora dela e avisa
-  log.ts                    logs estruturados (json ou pretty), sempre com atributos
-  telemetry.ts              observa o Flue: cada turno e ferramenta vira uso e log
-  usage.ts                  uso por conversa e por dia (tokens, custo, tempo)
-  agents/orbi.ts            o agente (Flue 'use agent')
-  agents/capabilities.ts    monta as capacidades do agente (useOrbi)
-  agents/gate.ts            portão de autonomia: roda, só relata ou pede aprovação
-  agents/ui-channel.ts      canal `ui` da conversa (componentes atualizados no lugar)
-  agents/tools/             uma capacidade por arquivo: terminal, browser, code,
+  contract-check.ts         garante em tempo de compilação que o runtime cumpre o contrato
+
+  agents/                   o agente Orbi (Flue 'use agent')
+    orbi.ts                 instruções fixas em prompts/orbi.md + estado atual
+    capabilities.ts         monta as capacidades do agente (useOrbi)
+    gate.ts                 portão de autonomia: roda, só relata ou pede aprovação
+    ui-channel.ts           canal `ui` da conversa (componentes atualizados no lugar)
+    tools/                  uma ferramenta por capacidade: terminal, browser, code,
                             brain, playbooks, voice, clock
   subagents/investigador.ts investigação só-leitura em paralelo
-  skills/aprender-procedimento.ts   a única skill de fábrica: como aprender
-  brain/store.ts            cérebro: fachada que aplica as regras e grava pelos repositórios
-  brain/domain/             regras puras, sem banco: ontologia, lacunas, playbooks, aprendizado
-  brain/repo/               SQL do cérebro, um repositório por assunto
-  db/                       banco único (orbi.db), migrações versionadas e
-                            changes.ts (cada escrita vira evento)
-  inbox.ts conversations.ts pendências e conversas, no mesmo banco
-  policy/autonomy.ts        observar · perguntar · automático, por categoria e por playbook
-  mcp/bridge.ts             stdio → HTTP para o chrome-devtools-mcp
-  tools/exec.ts             execução sem shell, com allowlist
-  tools/claude-code.ts      correção em worktree via Claude Agent SDK
-  browser/                  Chrome compartilhado + gravador de demonstrações
-  vault.ts                  cofre de credenciais (Keychain / arquivo criptografado)
-  stt.ts                    transcrição da narração (Whisper local ou HTTP)
-  llm/                      porta LlmAdapter, ponte para o Pi e adaptadores (openai-compatible)
-  contract-check.ts         garante em tempo de compilação que o runtime cumpre o contrato
+  skills/                   a única skill de fábrica: como aprender
+  prompts/*.md              os textos que o modelo lê (Orbi, investigador, skill)
+
+  brain/                    cérebro: store.ts (fachada), domain/ (regras puras), repo/ (SQL)
+  conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
+  autonomy/policy.ts        observar · perguntar · automático, por categoria e por playbook
+  terminal/exec.ts          execução sem shell, com allowlist
+  code/claude-code.ts       correção em worktree via Claude Agent SDK
+  browser/                  Chrome compartilhado, gravador de demonstrações e
+    mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
+  voice/stt.ts              transcrição da narração (Whisper local ou HTTP)
+  vault/vault.ts            cofre de credenciais (Keychain / arquivo criptografado)
+  llm/                      porta LlmAdapter, ponte para o Pi, adaptadores e plugins
+  observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
+                            usage.ts (uso por conversa e por dia)
+
+  http/                     a API: app.ts monta, errors.ts, routes/ (uma por recurso)
+  db/                       banco único (orbi.db), migrações e changes.ts (escrita → evento)
 scripts/
   demo-server.ts            runtime com modelo roteirizado, cérebro e portal de exemplo
   e2e-*.ts                  testes de ponta a ponta com Chrome
@@ -159,6 +158,15 @@ em arquivo.
 O contrato é código TypeScript sem etapa de build: o Vite do app e o do runtime
 o compilam junto. No runtime ele propositalmente não aparece em `dependencies`
 (o Flue deixaria qualquer dependência declarada de fora do bundle).
+
+## Prompts
+
+O que o modelo lê fica em `src/prompts/*.md`, fora do código: dá para revisar e
+ajustar o texto sem mexer em TypeScript. O código importa o arquivo como texto
+(`import instrucoes from '../prompts/orbi.md?raw'`); no build o Vite embute o
+texto, e nos testes e scripts o `scripts/raw-hooks.mjs` faz o mesmo no Node.
+Só o que muda a cada conversa (estado do cérebro, playbook em execução) é
+montado em `agents/orbi.ts`.
 
 ## Observabilidade
 

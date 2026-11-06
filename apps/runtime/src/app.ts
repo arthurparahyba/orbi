@@ -3,7 +3,7 @@ import { createOrbi, startBackground } from './compose.ts';
 import { provideServices } from './services.ts';
 import { createHttpApp } from './http/app.ts';
 import { Orbi } from './agents/orbi.ts';
-import { createLogger, logOptionsFromEnv, setLogger } from './log.ts';
+import { createLogger, logOptionsFromEnv, setLogger } from './observability/log.ts';
 
 /**
  * Entry point Flue serves (`dist/server.mjs` imports it): read the

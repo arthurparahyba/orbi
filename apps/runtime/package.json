@@ -7,12 +7,12 @@
     "build": "vite build",
     "start": "node dist/server.mjs",
     "check:types": "tsc --noEmit",
-    "test": "node --import tsx --test test/*.test.ts",
-    "bridge:chrome": "tsx src/mcp/bridge-cli.ts",
-    "e2e:chrome": "tsx scripts/e2e-chrome-mcp.ts",
-    "demo": "tsx scripts/demo-server.ts",
-    "e2e:demo": "tsx scripts/e2e-demonstration.ts",
-    "plugin:test": "tsx scripts/plugin-test.ts"
+    "test": "node --import tsx --import ./scripts/register-raw.mjs --test test/*.test.ts",
+    "bridge:chrome": "tsx --import ./scripts/register-raw.mjs src/browser/mcp/bridge-cli.ts",
+    "e2e:chrome": "tsx --import ./scripts/register-raw.mjs scripts/e2e-chrome-mcp.ts",
+    "demo": "tsx --import ./scripts/register-raw.mjs scripts/demo-server.ts",
+    "e2e:demo": "tsx --import ./scripts/register-raw.mjs scripts/e2e-demonstration.ts",
+    "plugin:test": "tsx --import ./scripts/register-raw.mjs scripts/plugin-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.318",

@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Vault, redact, secretName } from '../src/vault.ts';
-import { wavToFloat32 } from '../src/stt.ts';
+import { Vault, redact, secretName } from '../src/vault/vault.ts';
+import { wavToFloat32 } from '../src/voice/stt.ts';
 import { BrainStore } from '../src/brain/store.ts';
 
 const dir = () => mkdtempSync(join(tmpdir(), 'orbi-test-'));

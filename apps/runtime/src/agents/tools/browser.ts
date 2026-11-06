@@ -1,8 +1,8 @@
 import { defineTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { services } from '../../services.ts';
-import { redact } from '../../vault.ts';
-import { browserCategory } from '../../policy/autonomy.ts';
+import { redact } from '../../vault/vault.ts';
+import { browserCategory } from '../../autonomy/policy.ts';
 import type { AgentContext } from '../context.ts';
 
 /**

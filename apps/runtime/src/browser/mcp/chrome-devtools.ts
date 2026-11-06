@@ -1,7 +1,7 @@
 import { defineMcpConnection } from '@flue/runtime';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { BROWSER_READ_TOOLS } from '../policy/autonomy.ts';
+import { BROWSER_READ_TOOLS } from '../../autonomy/policy.ts';
 
 export interface BrowserMcp {
   /**

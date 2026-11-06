@@ -1,11 +1,11 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { defineTool, useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { services } from '../../services.ts';
-import { runCommand } from '../../tools/exec.ts';
-import { commandCategory } from '../../policy/autonomy.ts';
+import { runCommand } from '../../terminal/exec.ts';
+import { commandCategory } from '../../autonomy/policy.ts';
 import type { AgentContext } from '../context.ts';
 
 /** Terminal: git, gh, aws and python3, without a shell, inside the workspace. */
@@ -54,16 +54,30 @@ export const runReadOnlyCommand = defineTool({
 
 export const runPython = defineTool({
   name: 'run_python',
-  description: 'Run a short Python 3 script for investigation (parse logs, compare files, compute). Runs in a scratch folder, without credentials, 60 s limit.',
+  description:
+    'Run a short Python 3 script for investigation (parse logs, compare files, compute). Runs in its own empty folder, ' +
+    'with no environment variables or home folder of the user (no credentials), 60 s limit. Pass data inside the code.',
   input: v.object({ code: v.string(), purpose: v.string() }),
   timeoutMs: 90_000,
   async run({ data, signal }) {
-    const { scratchDir } = services().config;
-    mkdirSync(scratchDir, { recursive: true });
-    const file = join(scratchDir, `script-${ulid()}.py`);
-    writeFileSync(file, data.code);
-    const result = await runCommand('python3', ['-I', file], { cwd: scratchDir, timeoutMs: 60_000, signal, allowed: ['python3'] });
-    return { output: JSON.stringify(result) };
+    // One empty folder per run, which is also HOME and TMPDIR: the script sees nothing of
+    // the user's session (~/.aws, ~/.config/gh, tokens in the environment) and leaves nothing behind.
+    const dir = join(services().config.scratchDir, `py-${ulid()}`);
+    mkdirSync(dir, { recursive: true });
+    try {
+      writeFileSync(join(dir, 'script.py'), data.code);
+      const result = await runCommand('python3', ['-I', 'script.py'], {
+        cwd: dir,
+        timeoutMs: 60_000,
+        signal,
+        allowed: ['python3'],
+        inherit: 'minimal',
+        env: { HOME: dir, TMPDIR: dir, PYTHONDONTWRITEBYTECODE: '1', PYTHONIOENCODING: 'utf-8' },
+      });
+      return { output: JSON.stringify(result) };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   },
 });
 

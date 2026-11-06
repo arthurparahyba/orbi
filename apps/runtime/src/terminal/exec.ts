@@ -17,6 +17,12 @@ export interface RunOptions {
   signal?: AbortSignal;
   /** Max characters kept from stdout and from stderr. */
   maxOutput?: number;
+  /**
+   * 'safe' (default) passes PATH, HOME, locale and a few more from the runtime;
+   * 'minimal' passes only PATH and locale, so nothing of the user's session
+   * (HOME and its credential files, tokens) is visible: callers set the rest.
+   */
+  inherit?: 'safe' | 'minimal';
 }
 
 export interface RunResult {
@@ -29,6 +35,7 @@ export interface RunResult {
 }
 
 const SAFE_ENV_KEYS = ['PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'USER', 'SHELL', 'TERM'];
+const MINIMAL_ENV_KEYS = ['PATH', 'LANG', 'LC_ALL'];
 
 export class CommandNotAllowedError extends Error {}
 /** The binary isn't installed, or isn't on the PATH the runtime got. */
@@ -88,7 +95,7 @@ export function runCommand(binary: string, args: readonly string[], options: Run
   const { cwd, timeoutMs = 120_000, signal, maxOutput = 20_000 } = options;
 
   const env: Record<string, string> = {};
-  for (const key of SAFE_ENV_KEYS) {
+  for (const key of options.inherit === 'minimal' ? MINIMAL_ENV_KEYS : SAFE_ENV_KEYS) {
     const value = process.env[key];
     if (value) env[key] = value;
   }

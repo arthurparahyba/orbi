@@ -9,10 +9,10 @@
 import type * as C from '@orbi/contracts';
 import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun } from './brain/store.ts';
 import type { DemoAction, NarrationSegment, Recording, Target } from './browser/recorder.ts';
-import type { ConversationInfo } from './conversations.ts';
-import type { InboxItem } from './inbox.ts';
-import type { AutonomyLevel, Category } from './policy/autonomy.ts';
-import type { SecretInfo } from './vault.ts';
+import type { ConversationInfo } from './conversations/conversations.ts';
+import type { InboxItem } from './conversations/inbox.ts';
+import type { AutonomyLevel, Category } from './autonomy/policy.ts';
+import type { SecretInfo } from './vault/vault.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;

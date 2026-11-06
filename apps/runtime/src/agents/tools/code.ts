@@ -1,7 +1,7 @@
 import { useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { services } from '../../services.ts';
-import { codeFixCategory } from '../../policy/autonomy.ts';
+import { codeFixCategory } from '../../autonomy/policy.ts';
 import type { AgentContext } from '../context.ts';
 
 /**

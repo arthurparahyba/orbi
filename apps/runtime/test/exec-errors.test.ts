@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CommandNotFoundError, findBinary, runCommand } from '../src/tools/exec.ts';
+import { CommandNotFoundError, findBinary, runCommand } from '../src/terminal/exec.ts';
 
 test('pasta inexistente: erro diz que é a pasta, não o programa', async () => {
   await assert.rejects(

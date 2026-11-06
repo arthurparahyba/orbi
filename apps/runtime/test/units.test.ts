@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BrainStore } from '../src/brain/store.ts';
-import { runCommand, CommandNotAllowedError } from '../src/tools/exec.ts';
+import { runCommand, CommandNotAllowedError } from '../src/terminal/exec.ts';
 import {
   DEFAULT_POLICY,
   browserCategory,
@@ -9,7 +9,7 @@ import {
   commandCategory,
   decide,
   parsePolicy,
-} from '../src/policy/autonomy.ts';
+} from '../src/autonomy/policy.ts';
 
 test('exec: só roda binários permitidos, sem shell', async () => {
   assert.throws(() => runCommand('bash', ['-c', 'echo oi']), CommandNotAllowedError);

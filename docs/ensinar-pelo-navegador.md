@@ -17,14 +17,14 @@ Chrome do Orbi ──CDP: navegação, cliques, campos──▶ gravador ─┘
   rótulo* do elemento (“o campo Versão na aba Configuração”), não por seletor CSS.
   O Chrome é o mesmo que o agente usa via chrome-devtools-mcp (perfil próprio em
   `data/chrome-profile`, aberto sob demanda).
-- **Fala** (`apps/runtime/src/stt.ts`): o app corta o áudio nas pausas e manda trechos WAV com
+- **Fala** (`apps/runtime/src/voice/stt.ts`): o app corta o áudio nas pausas e manda trechos WAV com
   horário; o runtime transcreve com Whisper **local** (transformers.js; o modelo
   é baixado uma vez para `data/models`, o áudio não sai da máquina) ou com um
   endpoint compatível com a API da OpenAI (`ORBI_STT_URL`).
 - **Síntese**: a linha do tempo (AÇÃO/FALA no mesmo relógio) vai ao agente, que
   segue a seção “Aprender por demonstração” da skill: intenção e gatilho vêm da
   fala, a mecânica vem dos cliques, valores variáveis viram `{{parâmetros}}`.
-- **Credenciais** (`apps/runtime/src/vault.ts`): campos de senha/token/código e o usuário de
+- **Credenciais** (`apps/runtime/src/vault/vault.ts`): campos de senha/token/código e o usuário de
   um formulário de login vão **direto para o cofre** — Keychain do macOS
   (Credential Manager no Windows, Secret Service no Linux) ou, sem cofre do
   sistema, um arquivo AES-256-GCM. A gravação, a mensagem ao agente, o cérebro e

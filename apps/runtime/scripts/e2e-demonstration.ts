@@ -30,8 +30,8 @@ Object.assign(process.env, {
 
 const { startFakePortal, FAKE_PORTAL_CREDENTIALS } = await import('./fake-portal.ts');
 const { demonstrationMessage } = await import('../src/browser/recorder.ts');
-const { redact } = await import('../src/vault.ts');
-const { startBridge } = await import('../src/mcp/bridge.ts');
+const { redact } = await import('../src/vault/vault.ts');
+const { startBridge } = await import('../src/browser/mcp/bridge.ts');
 const { loadConfig } = await import('../src/config.ts');
 const { createOrbi } = await import('../src/compose.ts');
 // The same parts the server uses, built by the composition root.
