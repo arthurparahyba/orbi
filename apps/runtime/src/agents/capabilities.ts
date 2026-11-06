@@ -244,28 +244,31 @@ export function useOrbi(conversationId: string) {
     },
   });
 
-  useTool({
-    name: 'claude_code_prepare_fix',
-    description:
-      'Ask Claude Code to fix a bug in a repository clone, in a throwaway worktree of `branch`. Give a complete diagnosis (error, logs, suspected cause). Nothing is committed: returns fixId, changed files and diff for claude_code_push_fix.',
-    input: v.object({ repo: v.pipe(v.string(), v.description('owner/repo')), branch: v.string(), diagnosis: v.string() }),
-    timeoutMs: 1_200_000,
-    async run({ data, signal }) {
-      writeUi({ component: 'status', id: `fix-${data.repo}`, title: 'Claude Code investigando', state: 'running', text: `${data.repo} · ${data.branch}` });
-      const fix = await prepareFix(data, signal);
-      writeUi({ component: 'code', id: `fix-diff-${fix.id}`, title: `Correção proposta (${fix.files.length} arquivos)`, language: 'diff', text: fix.diff.slice(0, 20_000) });
-      return { output: { fixId: fix.id, files: fix.files, summary: fix.summary, costUsd: fix.costUsd, diff: fix.diff.slice(0, 8_000) } };
-    },
-  });
+  // Code fixes run on Claude Code (Anthropic API); off when another LLM is configured.
+  if (config.codeFixer) {
+    useTool({
+      name: 'claude_code_prepare_fix',
+      description:
+        'Ask Claude Code to fix a bug in a repository clone, in a throwaway worktree of `branch`. Give a complete diagnosis (error, logs, suspected cause). Nothing is committed: returns fixId, changed files and diff for claude_code_push_fix.',
+      input: v.object({ repo: v.pipe(v.string(), v.description('owner/repo')), branch: v.string(), diagnosis: v.string() }),
+      timeoutMs: 1_200_000,
+      async run({ data, signal }) {
+        writeUi({ component: 'status', id: `fix-${data.repo}`, title: 'Claude Code investigando', state: 'running', text: `${data.repo} · ${data.branch}` });
+        const fix = await prepareFix(data, signal);
+        writeUi({ component: 'code', id: `fix-diff-${fix.id}`, title: `Correção proposta (${fix.files.length} arquivos)`, language: 'diff', text: fix.diff.slice(0, 20_000) });
+        return { output: { fixId: fix.id, files: fix.files, summary: fix.summary, costUsd: fix.costUsd, diff: fix.diff.slice(0, 8_000) } };
+      },
+    });
 
-  gated({
-    name: 'claude_code_push_fix',
-    description: 'Commit and push a fix prepared by claude_code_prepare_fix. Test-only fixes and production-code fixes follow different autonomy rules.',
-    input: v.object({ fixId: v.string(), commitMessage: v.string() }),
-    category: (a) => codeFixCategory(getFix(a.fixId)?.files ?? ['?']),
-    summary: (a) => `Subir correção ${a.fixId}: ${a.commitMessage}`,
-    execute: (a) => pushFix(a.fixId, a.commitMessage),
-  });
+    gated({
+      name: 'claude_code_push_fix',
+      description: 'Commit and push a fix prepared by claude_code_prepare_fix. Test-only fixes and production-code fixes follow different autonomy rules.',
+      input: v.object({ fixId: v.string(), commitMessage: v.string() }),
+      category: (a) => codeFixCategory(getFix(a.fixId)?.files ?? ['?']),
+      summary: (a) => `Subir correção ${a.fixId}: ${a.commitMessage}`,
+      execute: (a) => pushFix(a.fixId, a.commitMessage),
+    });
+  }
 
   // ── memory ───────────────────────────────────────────────────────────────
   useTool(brainQuery);

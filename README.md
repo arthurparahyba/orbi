@@ -82,3 +82,4 @@ As senhas ficam no Keychain do macOS, nunca nesses arquivos.
 - [Ensinar pelo navegador](docs/ensinar-pelo-navegador.md): gravação de cliques + narração, cofre
 - [Desenvolvimento](docs/desenvolvimento.md): testes, demo, como adicionar um componente de interface
 - [Empacotamento](docs/empacotamento.md): o que o `npm run build` faz, tamanho, assinatura no macOS
+- [Adaptadores de LLM](docs/llm-adaptadores.md): usar outro provedor, gateway corporativo ou SDK interno no lugar da Anthropic

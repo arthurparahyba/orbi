@@ -6,6 +6,7 @@ import { config } from './config.ts';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { binaryStatus } from './tools/exec.ts';
+import { configureLlm } from './llm/index.ts';
 import { Orbi } from './agents/orbi.ts';
 import { brain, conversations, inbox, policy, vault } from './runtime.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
@@ -22,6 +23,11 @@ import type { Autonomy } from './brain/store.ts';
  *   /agents/orbi/:id   Flue conversation: POST a message, GET the event stream
  *   /api/...            brain, inbox (approvals + questions), autonomy, health
  */
+// The model first: with ORBI_LLM set to an adapter, it must be registered before any conversation.
+const llm = await configureLlm();
+config.model = llm.model;
+console.log(`[orbi] modelo: ${llm.model}${llm.adapter ? ` (adaptador ${llm.adapter.name})` : ''}`);
+
 const app = new Hono();
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
@@ -188,6 +194,9 @@ app.get('/api/health', (c) =>
   c.json({
     model: config.model,
     codeModel: config.codeModel,
+    llm: llm.adapter ? llm.adapter.name : 'anthropic',
+    llmReady: llm.adapter ? true : Boolean(process.env.ANTHROPIC_API_KEY),
+    codeFixer: config.codeFixer,
     anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
     envFile: resolve('.env'),
     dataDir: config.dataDir,

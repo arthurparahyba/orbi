@@ -25,9 +25,12 @@ if (!existsSync(join(root, 'node_modules'))) {
 
 // The model needs a key; without it the app opens but can't answer.
 const envFile = join(root, 'apps/runtime/.env');
+const envText = existsSync(envFile) ? readFileSync(envFile, 'utf8') : '';
+const llm = process.env.ORBI_LLM ?? /^\s*ORBI_LLM\s*=\s*(\S+)/m.exec(envText)?.[1] ?? 'anthropic';
 const hasKey =
+  llm !== 'anthropic' ||
   Boolean(process.env.ANTHROPIC_API_KEY) ||
-  (existsSync(envFile) && /^\s*ANTHROPIC_API_KEY\s*=\s*\S+/m.test(readFileSync(envFile, 'utf8')));
+  /^\s*ANTHROPIC_API_KEY\s*=\s*\S+/m.test(envText);
 if (!hasKey) {
   say('ANTHROPIC_API_KEY não encontrada. Sem ela o Orbi não responde.');
   say(`  cp apps/runtime/.env.example apps/runtime/.env   e preencha a chave em ${envFile}`);

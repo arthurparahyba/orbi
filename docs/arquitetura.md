@@ -19,7 +19,7 @@
 ## Runtime (`apps/runtime`)
 
 - Framework: [Flue](https://flueframework.com) 2.3 sobre o harness Pi
-- Modelo: `anthropic/claude-haiku-5-5`
+- Modelo: `anthropic/claude-haiku-5-5` por padrão; qualquer outro por um adaptador (`src/llm`, ver [llm-adaptadores.md](llm-adaptadores.md))
 - Correção de código: Claude Code via Claude Agent SDK, em worktree isolada
 - Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
 - Cérebro: um arquivo SQLite (`data/brain.db`), sem servidor
@@ -39,6 +39,7 @@ src/
   browser/                  Chrome compartilhado + gravador de demonstrações
   vault.ts                  cofre de credenciais (Keychain / arquivo criptografado)
   stt.ts                    transcrição da narração (Whisper local ou HTTP)
+  llm/                      porta LlmAdapter, ponte para o Pi e adaptadores (openai-compatible)
   contract-check.ts         garante em tempo de compilação que o runtime cumpre o contrato
 scripts/
   demo-server.ts            runtime com modelo roteirizado, cérebro e portal de exemplo

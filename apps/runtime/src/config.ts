@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
+import { llmChoice } from './llm/index.ts';
 
 /**
  * Runtime configuration, read once from the environment.
@@ -25,7 +26,15 @@ const dataDir = path(process.env.ORBI_DATA_DIR ?? './data');
 
 export const config = {
   /** Model for every Flue agent and subagent (Pi catalog specifier). */
-  model: process.env.ORBI_MODEL ?? 'anthropic/claude-haiku-5-5',
+  /** Which LLM: 'anthropic' (default) or an adapter (ORBI_LLM; see src/llm). */
+  llm: llmChoice().kind,
+  /** Model spec for every agent; with an adapter, `orbi-llm/<ORBI_LLM_MODEL>` (set again once the adapter loads). */
+  model: llmChoice().model,
+  /**
+   * Claude Code fixes need the Anthropic API (or an Anthropic-compatible gateway via
+   * ANTHROPIC_BASE_URL). On by default only with ORBI_LLM=anthropic; ORBI_CODE_FIXER=claude-code|off overrides.
+   */
+  codeFixer: (process.env.ORBI_CODE_FIXER ?? (llmChoice().anthropic ? 'claude-code' : 'off')) === 'claude-code',
   /** Model for the Claude Code fixer (Claude Agent SDK model id). */
   codeModel: process.env.ORBI_CODE_MODEL ?? 'claude-haiku-5-5',
   /** Hard spend cap for one Claude Code fix, in USD. */
