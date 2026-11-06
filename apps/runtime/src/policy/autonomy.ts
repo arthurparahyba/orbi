@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import type { DatabaseSync } from 'node:sqlite';
 
 /**
  * Autonomy levels, the same three the Rotinas screen shows:
@@ -119,10 +118,12 @@ export function browserCategory(tool: string): Category {
   return (BROWSER_READ_TOOLS as readonly string[]).includes(tool) ? 'navegador-leitura' : 'navegador-escrita';
 }
 
+/** The developer's autonomy settings, kept in the `settings` table. */
 export class PolicyStore {
   private policy: AutonomyPolicy;
-  constructor(private readonly file: string) {
-    this.policy = existsSync(file) ? parsePolicy(JSON.parse(readFileSync(file, 'utf8'))) : DEFAULT_POLICY;
+  constructor(private readonly db: DatabaseSync) {
+    const row = db.prepare("SELECT value FROM settings WHERE key = 'autonomy'").get() as { value: string } | undefined;
+    this.policy = row ? parsePolicy(JSON.parse(row.value)) : DEFAULT_POLICY;
   }
   get(): AutonomyPolicy {
     return this.policy;
@@ -130,9 +131,12 @@ export class PolicyStore {
   set(category: Category, level: AutonomyLevel): AutonomyPolicy {
     if (!(category in DEFAULT_POLICY.categories)) throw new Error(`categoria inválida: ${category}`);
     if (!LEVELS.includes(level)) throw new Error(`nível inválido: ${level}`);
-    this.policy = { categories: { ...this.policy.categories, [category]: level } };
-    mkdirSync(dirname(this.file), { recursive: true });
-    writeFileSync(this.file, `${JSON.stringify(this.policy, null, 2)}\n`);
+    this.replace({ categories: { ...this.policy.categories, [category]: level } });
     return this.policy;
+  }
+  /** Replaces the whole policy (validated); used to import the old autonomy.json. */
+  replace(policy: unknown): void {
+    this.policy = parsePolicy(policy);
+    this.db.prepare("INSERT INTO settings (key, value) VALUES ('autonomy', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify(this.policy));
   }
 }

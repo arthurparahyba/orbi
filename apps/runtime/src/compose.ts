@@ -12,6 +12,9 @@ import { createBrowserMcp } from './mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
 import { createCodeFixer } from './tools/claude-code.ts';
 import { configureLlm } from './llm/index.ts';
+import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
+import type { InboxItem } from './inbox.ts';
+import type { ConversationInfo } from './conversations.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
 import { binaryStatus } from './tools/exec.ts';
 import type { OrbiServices } from './services.ts';
@@ -39,13 +42,21 @@ export async function createOrbi(
   const stt = overrides.stt ?? createStt(config.stt);
   const chrome = overrides.chrome ?? createChrome(config.chrome);
 
+  // One database for the brain and the app state, brought up to date by its migrations.
+  adoptLegacyBrain(config.dbFile, config.legacyBrainFile);
+  const db = openDatabase(config.dbFile);
+  const inbox = overrides.inbox ?? new Inbox(db);
+  const conversations = overrides.conversations ?? new Conversations(db);
+  const policy = overrides.policy ?? new PolicyStore(db);
+  importLegacyState(config, { inbox, conversations, policy });
+
   return {
     config: finalConfig,
     llm,
-    brain: overrides.brain ?? new BrainStore(config.brainFile),
-    inbox: overrides.inbox ?? new Inbox(config.inboxFile),
-    policy: overrides.policy ?? new PolicyStore(config.policyFile),
-    conversations: overrides.conversations ?? new Conversations(config.conversationsFile),
+    brain: overrides.brain ?? new BrainStore(db),
+    inbox,
+    policy,
+    conversations,
     vault,
     stt,
     chrome,
@@ -58,6 +69,14 @@ export async function createOrbi(
           ? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, model: config.codeModel, budgetUsd: config.codeFixBudgetUsd })
           : null,
   };
+}
+
+/** State kept in JSON files before the single database: imported once. */
+function importLegacyState(config: OrbiConfig, to: { inbox: Inbox; conversations: Conversations; policy: PolicyStore }) {
+  for (const item of takeLegacyJson<InboxItem[]>(config.legacy.inboxFile) ?? []) to.inbox.insert(item);
+  for (const conv of takeLegacyJson<ConversationInfo[]>(config.legacy.conversationsFile) ?? []) to.conversations.insert(conv);
+  const policy = takeLegacyJson<unknown>(config.legacy.policyFile);
+  if (policy) to.policy.replace(policy);
 }
 
 /** What runs in the background once the server is up. `stop()` ends all of it. */

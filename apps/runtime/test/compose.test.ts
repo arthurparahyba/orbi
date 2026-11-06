@@ -29,7 +29,7 @@ test('loadConfig é pura: lê só o ambiente passado, resolve ~ e caminhos relat
   const c = loadConfig({ ORBI_WORKSPACE: '~/projetos', ORBI_DATA_DIR: 'dados', ORBI_ALLOWED_BINARIES: 'git, gh' }, '/base');
   assert.equal(c.workspace, join(homedir(), 'projetos'));
   assert.equal(c.dataDir, '/base/dados');
-  assert.equal(c.brainFile, '/base/dados/brain.db');
+  assert.equal(c.dbFile, '/base/dados/orbi.db');
   assert.deepEqual(c.allowedBinaries, ['git', 'gh']);
   assert.equal(c.llm, 'anthropic');
   assert.equal(c.codeFixer, true);

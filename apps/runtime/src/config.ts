@@ -48,13 +48,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     dataDir,
     /** Flue's own store (conversations, streams). */
     flueDb: path(env.ORBI_FLUE_DB ?? `${dataDir}/flue.db`),
-    /** The brain: one SQLite file (ontology, graph, playbooks). */
-    brainFile: path(env.ORBI_BRAIN_FILE ?? `${dataDir}/brain.db`),
+    /** Orbi's database: the brain (ontology, graph, playbooks) and the app state (inbox, conversations, settings). */
+    dbFile: path(env.ORBI_DB ?? `${dataDir}/orbi.db`),
+    /** Where the brain lived before the single database; moved to dbFile on first start. */
+    legacyBrainFile: path(env.ORBI_BRAIN_FILE ?? `${dataDir}/brain.db`),
     /** Read-only Markdown export of the brain, for Obsidian. */
     brainExportDir: path(env.ORBI_BRAIN_EXPORT_DIR ?? `${dataDir}/brain-md`),
-    policyFile: resolve(dataDir, 'autonomy.json'),
-    inboxFile: resolve(dataDir, 'inbox.json'),
-    conversationsFile: resolve(dataDir, 'conversations.json'),
+    /** JSON files of versions before the single database; imported once, then renamed *.importado. */
+    legacy: {
+      policyFile: resolve(dataDir, 'autonomy.json'),
+      inboxFile: resolve(dataDir, 'inbox.json'),
+      conversationsFile: resolve(dataDir, 'conversations.json'),
+    },
 
     /** Folder where repositories are cloned; commands run inside it or a repo below it. */
     workspace: path(env.ORBI_WORKSPACE ?? './workspace'),

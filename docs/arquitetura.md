@@ -22,7 +22,7 @@
 - Modelo: `anthropic/claude-haiku-5-5` por padrão; qualquer outro por um adaptador (`src/llm`, ver [llm-adaptadores.md](llm-adaptadores.md))
 - Correção de código: Claude Code via Claude Agent SDK, em worktree isolada
 - Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
-- Cérebro: um arquivo SQLite (`data/brain.db`), sem servidor
+- Banco: um arquivo SQLite (`data/orbi.db`) com o cérebro e o estado do app, sem servidor; migrações versionadas
 
 ```
 src/
@@ -39,7 +39,11 @@ src/
                             brain, playbooks, voice, clock
   subagents/investigador.ts investigação só-leitura em paralelo
   skills/aprender-procedimento.ts   a única skill de fábrica: como aprender
-  brain/store.ts            cérebro (ontologia, grafo temporal, playbooks)
+  brain/store.ts            cérebro: fachada que aplica as regras e grava pelos repositórios
+  brain/domain/             regras puras, sem banco: ontologia, lacunas, playbooks, aprendizado
+  brain/repo/               SQL do cérebro, um repositório por assunto
+  db/                       banco único (orbi.db) e migrações versionadas
+  inbox.ts conversations.ts pendências e conversas, no mesmo banco
   policy/autonomy.ts        observar · perguntar · automático, por categoria e por playbook
   mcp/bridge.ts             stdio → HTTP para o chrome-devtools-mcp
   tools/exec.ts             execução sem shell, com allowlist
