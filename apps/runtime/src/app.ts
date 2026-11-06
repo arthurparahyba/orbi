@@ -6,7 +6,7 @@ import { config } from './config.ts';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { binaryStatus } from './tools/exec.ts';
-import { configureLlm } from './llm/index.ts';
+import { configureLlm, describePlugins } from './llm/index.ts';
 import { Orbi } from './agents/orbi.ts';
 import { brain, conversations, inbox, policy, vault } from './runtime.ts';
 import { startBridge, type RunningBridge } from './mcp/bridge.ts';
@@ -27,6 +27,7 @@ import type { Autonomy } from './brain/store.ts';
 const llm = await configureLlm();
 config.model = llm.model;
 console.log(`[orbi] modelo: ${llm.model}${llm.adapter ? ` (adaptador ${llm.adapter.name})` : ''}`);
+for (const p of llm.plugins) console.log(`[orbi] plugin ${p.name} (${p.kind}) ${p.error ? `com erro: ${p.error}` : 'ok'} — ${p.dir}`);
 
 const app = new Hono();
 
@@ -197,6 +198,7 @@ app.get('/api/health', (c) =>
     llm: llm.adapter ? llm.adapter.name : 'anthropic',
     llmReady: llm.adapter ? true : Boolean(process.env.ANTHROPIC_API_KEY),
     codeFixer: config.codeFixer,
+    plugins: describePlugins(llm.plugins),
     anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
     envFile: resolve('.env'),
     dataDir: config.dataDir,

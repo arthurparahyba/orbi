@@ -36,7 +36,9 @@ export interface SecretInfo { name: string; description: string; origin: string;
 export interface Health {
   model: string; codeModel: string; anthropicKey: boolean;
   /** 'anthropic' or the adapter's name; llmReady = has what it needs to answer. */
-  llm?: string; llmReady?: boolean; codeFixer?: boolean; envFile?: string; dataDir?: string; vault?: string; stt?: string; demoPortal?: string;
+  llm?: string; llmReady?: boolean; codeFixer?: boolean;
+  /** Plugins found at start; `error` says why one can't be used. */
+  plugins?: Array<{ name: string; kind: string; dir: string; description?: string; error?: string }>; envFile?: string; dataDir?: string; vault?: string; stt?: string; demoPortal?: string;
   /** Folder commands run in, and where each allowed CLI was found (null = not installed). */
   workspace?: string; binaries?: Record<string, string | null>;
   chrome: { url: string; tools: number } | { error: string };

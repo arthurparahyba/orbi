@@ -16,7 +16,7 @@
 // Run it on the platform you are building for: native modules (keyring, onnxruntime)
 // are installed for the host.
 import { execFileSync } from 'node:child_process';
-import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs';
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -72,7 +72,12 @@ for (const f of ['package.json', '.env.example']) copyFileSync(join(runtimeDir, 
 
 // `npm ci` needs the workspace layout the lockfile describes: copy just the manifests.
 for (const f of ['package.json', 'package-lock.json']) cpSync(join(root, f), join(scratch, f));
-for (const ws of ['apps/runtime', 'apps/desktop', 'packages/contracts']) {
+// Every workspace the root package.json declares ("apps/*", "packages/*").
+const workspaces = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).workspaces.flatMap((pattern) => {
+  const base = pattern.replace(/\/\*$/, '');
+  return pattern.endsWith('/*') ? readdirSync(join(root, base)).map((d) => `${base}/${d}`) : [pattern];
+});
+for (const ws of workspaces.filter((w) => existsSync(join(root, w, 'package.json')))) {
   mkdirSync(join(scratch, ws), { recursive: true });
   copyFileSync(join(root, ws, 'package.json'), join(scratch, ws, 'package.json'));
 }

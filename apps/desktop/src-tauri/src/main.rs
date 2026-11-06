@@ -78,6 +78,9 @@ fn login_shell_path() -> Option<String> {
 fn prepare_home(home: &Path, runtime: &Path) {
     let _ = fs::create_dir_all(home.join("data"));
     let _ = fs::create_dir_all(home.join("logs"));
+    // Plugins (e.g. the company's LLM connection) live here, outside the app bundle,
+    // so updating Orbi never removes them.
+    let _ = fs::create_dir_all(home.join("plugins"));
     let env = home.join(".env");
     if !env.exists() {
         let _ = fs::copy(runtime.join(".env.example"), &env);
@@ -109,7 +112,8 @@ fn start_runtime(app: &App) -> Option<Child> {
             cmd.current_dir(home)
                 .env("ORBI_DATA_DIR", home.join("data"))
                 .env("ORBI_FLUE_DB", home.join("data/flue.db"))
-                .env("ORBI_WORKSPACE", home.join("workspace"));
+                .env("ORBI_WORKSPACE", home.join("workspace"))
+                .env("ORBI_PLUGINS_DIR", home.join("plugins"));
             if let Some(path) = login_shell_path() {
                 cmd.env("PATH", path);
             }

@@ -17,71 +17,20 @@ Em `apps/runtime/.env` (no app instalado: `~/Library/Application Support/br.com.
 | --- | --- | --- |
 | `anthropic` (padrão) | API da Anthropic | `ANTHROPIC_API_KEY`, `ORBI_MODEL` |
 | `openai-compatible` | Qualquer endpoint `/chat/completions`: OpenAI, Azure OpenAI, vLLM, Ollama, LiteLLM e a maioria dos gateways | `ORBI_LLM_BASE_URL`, `ORBI_LLM_MODEL`, `ORBI_LLM_API_KEY`, `ORBI_LLM_HEADERS` (JSON) |
-| `module:<arquivo>` | Seu adaptador, carregado na inicialização, sem recompilar | `ORBI_LLM_MODEL` e qualquer `ORBI_LLM_*` que ele leia |
-| `<nome>` | Seu adaptador compilado junto (registrado em `ADAPTERS`) | as que ele usar |
+| `<nome de um plugin>` | O LLM da sua empresa, por uma API ou SDK próprios: veja [plugins.md](plugins.md) | as `ORBI_LLM_*` que o plugin usar |
+| `module:<arquivo>` | Um adaptador num arquivo solto (forma antiga; prefira plugin) | as que ele usar |
 
 Opcionais do `openai-compatible`: `ORBI_LLM_CONTEXT_WINDOW` (padrão 128000),
 `ORBI_LLM_MAX_TOKENS` (8192), `ORBI_LLM_TIMEOUT_MS` (120000).
 
-A tela **Autonomia** mostra o provedor ativo, e o log do runtime imprime
-`[orbi] modelo: …` ao iniciar.
+A tela **Autonomia** mostra o provedor ativo e os plugins encontrados. O log do
+runtime imprime `[orbi] modelo: …` ao iniciar.
 
-## Escrever um adaptador
+## Conectar o LLM da sua empresa
 
-Copie `apps/runtime/adaptadores/modelo.mjs`. Um adaptador é uma função que
-recebe as configurações e devolve:
-
-```ts
-{
-  name: 'meu-gateway',
-  models: [{ id: 'modelo-x', contextWindow: 128000, maxTokens: 8192 }],
-  chat(request, signal) → Promise<ChatResult> | AsyncIterable<ChatEvent>
-}
-```
-
-O `request` traz:
-
-- `system`: as instruções do Orbi (texto único);
-- `messages`: o histórico, com três papéis:
-    - `user` (texto);
-    - `assistant` (texto e, se houver, `toolCalls`);
-    - `tool` (resultado de uma ferramenta, com `toolCallId`);
-- `tools`: as ferramentas que o modelo pode chamar, com parâmetros em JSON Schema;
-- `model`, `maxTokens` e `temperature`.
-
-A resposta mais simples é `{ text, toolCalls }`. Para o texto aparecer aos
-poucos no app, devolva um gerador com eventos `text`, `tool_call` e `done`
-(veja `types.ts`).
-
-Regras que o Orbi espera:
-
-- **Chamadas de ferramenta são obrigatórias.** O Orbi age por ferramentas: um
-  modelo sem suporte a function calling não consegue executar playbooks. Se o
-  seu ambiente não tem function calling nativo, o adaptador pode pedir ao modelo
-  um JSON com a chamada e convertê-lo em `toolCalls`.
-- **Cada chamada precisa de um `id`** que volta depois no resultado (`toolCallId`).
-  Gere um se a sua API não tiver.
-- **Falhas viram exceções.** A mensagem chega ao app com o nome do adaptador na
-  frente (`[meu-gateway] …`).
-- **Repasse o `signal`** para o cancelamento funcionar.
-- **Mensagens `user` podem conter avisos do runtime** (por exemplo
-  `<signal type="resources">…`). Repasse como estão.
-
-## Registrar compilado junto
-
-Para um adaptador TypeScript que vai junto no build, crie
-`apps/runtime/src/llm/adapters/meu-gateway.ts` exportando uma
-`LlmAdapterFactory` e acrescente uma linha em `ADAPTERS`
-(`apps/runtime/src/llm/index.ts`):
-
-```ts
-export const ADAPTERS = {
-  'openai-compatible': openAICompatible,
-  'meu-gateway': meuGateway,
-};
-```
-
-Depois use `ORBI_LLM=meu-gateway`.
+Escreva um plugin: `npm run plugin:new -- <nome>`, implemente o `chat()` e
+teste com `npm run plugin:test -- <nome>`. O passo a passo está em
+[plugins.md](plugins.md).
 
 ## O que muda fora da Anthropic
 

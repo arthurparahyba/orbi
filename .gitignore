@@ -12,3 +12,7 @@ apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/resources/
 apps/desktop/src-tauri/binaries/
+
+# plugins ficam fora do git do Orbi (o da empresa tem repositório próprio)
+plugins/*
+!plugins/README.md

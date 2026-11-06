@@ -21,7 +21,9 @@ orbi/
 │   └── desktop/          o app: React (Conversa, Cérebro, Autonomia) + Tauri (janela nativa que
 │                         inicia e encerra o runtime)
 ├── packages/
-│   └── contracts/        o contrato entre os dois: componentes do canal `ui` e tipos da API HTTP
+│   ├── contracts/        o contrato entre os dois: componentes do canal `ui` e tipos da API HTTP
+│   └── plugin-sdk/       o contrato dos plugins (ex.: conexão com o LLM da empresa) e o modelo
+├── plugins/              seus plugins (fora do git do Orbi)
 ├── scripts/
 │   └── build-app.mjs     gera o executável com o runtime e o Node dentro
 ├── docs/                 arquitetura, ensinar pelo navegador, desenvolvimento, empacotamento
@@ -60,6 +62,8 @@ npm start            # compila e sobe runtime + app, e abre http://localhost:517
 | `npm test` | Testes do runtime (fluxo completo com modelo falso) e checagem de tipos dos três pacotes |
 | `npm run e2e` | Chrome DevTools MCP de verdade + demonstração gravada → cofre → reexecução |
 | `npm run build` | Gera o executável: `Orbi.app` e `.dmg` no macOS |
+| `npm run plugin:new -- <nome>` | Cria um plugin (ex.: a conexão com o LLM da empresa) em `plugins/` |
+| `npm run plugin:test -- <nome>` | Testa o plugin contra o LLM real |
 
 ## O app instalado
 
@@ -82,4 +86,5 @@ As senhas ficam no Keychain do macOS, nunca nesses arquivos.
 - [Ensinar pelo navegador](docs/ensinar-pelo-navegador.md): gravação de cliques + narração, cofre
 - [Desenvolvimento](docs/desenvolvimento.md): testes, demo, como adicionar um componente de interface
 - [Empacotamento](docs/empacotamento.md): o que o `npm run build` faz, tamanho, assinatura no macOS
-- [Adaptadores de LLM](docs/llm-adaptadores.md): usar outro provedor, gateway corporativo ou SDK interno no lugar da Anthropic
+- [Adaptadores de LLM](docs/llm-adaptadores.md): usar outro provedor no lugar da Anthropic
+- [Plugins](docs/plugins.md): conectar o LLM da sua empresa sem mexer no código do Orbi

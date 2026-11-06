@@ -58,6 +58,12 @@ export function AutonomyView({ health }: { health?: Health }) {
         <div className="auto-row"><div><strong>Claude Code</strong><p className="muted small">{health?.codeFixer === false ? 'Desligado: precisa da API da Anthropic (ORBI_CODE_FIXER=claude-code para forçar)' : 'Correções em worktree isolada'}</p></div>{health?.codeFixer === false ? <span className="pill pill-failed">Desligado</span> : <code>{health?.codeModel ?? '—'}</code>}</div>
         <div className="auto-row"><div><strong>Transcrição da narração</strong><p className="muted small">Áudio das demonstrações</p></div><code>{health?.stt ?? '—'}</code></div>
         <div className="auto-row"><div><strong>Provedor de LLM</strong><p className="muted small">{health?.llm && health.llm !== 'anthropic' ? 'Adaptador configurado em ORBI_LLM' : 'Anthropic (padrão). Para outro provedor, veja docs/llm-adaptadores.md'}</p></div><code>{health?.llm ?? '—'}</code></div>
+        {(health?.plugins ?? []).map((p) => (
+          <div key={p.dir} className="auto-row">
+            <div><strong>Plugin {p.name}</strong><p className="muted small">{p.error ?? p.description ?? p.kind} · {p.dir}</p></div>
+            <span className={`pill ${p.error ? 'pill-failed' : p.name === health?.llm ? 'pill-done' : ''}`}>{p.error ? 'Com erro' : p.name === health?.llm ? 'Ativo' : 'Disponível'}</span>
+          </div>
+        ))}
         {(!health?.llm || health.llm === 'anthropic') && (
           <div className="auto-row"><div><strong>Chave da API Anthropic</strong>{!health?.anthropicKey && health?.envFile && <p className="muted small">Coloque <code>ANTHROPIC_API_KEY=…</code> em <code>{health.envFile}</code> e reabra o app.</p>}</div><span className={`pill ${health?.anthropicKey ? 'pill-done' : 'pill-failed'}`}>{health?.anthropicKey ? 'Configurada' : 'Ausente'}</span></div>
         )}

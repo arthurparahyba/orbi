@@ -1,0 +1,10 @@
+{
+  "name": "@orbi/plugin-sdk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "O contrato que um plugin do Orbi implementa (hoje: conexão com LLM). Só tipos: nada daqui precisa existir quando o plugin roda.",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

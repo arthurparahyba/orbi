@@ -11,7 +11,8 @@
     "bridge:chrome": "tsx src/mcp/bridge-cli.ts",
     "e2e:chrome": "tsx scripts/e2e-chrome-mcp.ts",
     "demo": "tsx scripts/demo-server.ts",
-    "e2e:demo": "tsx scripts/e2e-demonstration.ts"
+    "e2e:demo": "tsx scripts/e2e-demonstration.ts",
+    "plugin:test": "tsx scripts/plugin-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.318",
