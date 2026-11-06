@@ -3,7 +3,7 @@
 // since Whisper models can't be downloaded in this sandbox.
 import { createServer } from 'node:http';
 import { readFileSync, appendFileSync } from 'node:fs';
-const lines = readFileSync('' + (process.env.LINES ?? '/tmp/audio/lines.txt') + '', 'utf8').split('\n');
+const lines = readFileSync(process.env.LINES ?? '/tmp/audio/lines.txt', 'utf8').split('\n');
 let n = 0;
 createServer((req, res) => {
   const chunks = [];
