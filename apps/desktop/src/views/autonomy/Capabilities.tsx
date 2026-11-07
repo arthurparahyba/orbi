@@ -14,7 +14,7 @@ export function Capabilities({ health }: { health?: Health }) {
       <div className="auto-row"><div><strong>Modelo</strong><p className="muted small">Conversa e decisões</p></div><code>{health?.model ?? '—'}</code></div>
       <div className="auto-row"><div><strong>Claude Code</strong><p className="muted small">{health?.codeFixer === false ? 'Desligado: precisa da API da Anthropic (ORBI_CODE_FIXER=claude-code para forçar)' : 'Correções em worktree isolada'}</p></div>{health?.codeFixer === false ? <span className="pill pill-failed">Desligado</span> : <code>{health?.codeModel ?? '—'}</code>}</div>
       <div className="auto-row"><div><strong>Transcrição da narração</strong><p className="muted small">Áudio das demonstrações</p></div><code>{health?.stt ?? '—'}</code></div>
-      <div className="auto-row"><div><strong>Provedor de LLM</strong><p className="muted small">{health?.llm && health.llm !== 'anthropic' ? 'Adaptador configurado em ORBI_LLM' : 'Anthropic (padrão). Para outro provedor, veja docs/llm-adaptadores.md'}</p></div><code>{health?.llm ?? '—'}</code></div>
+      <div className="auto-row"><div><strong>Provedor de LLM</strong><p className="muted small">{health?.llm && health.llm !== 'anthropic' ? 'Adaptador configurado em ORBI_LLM' : 'Anthropic (padrão). Para outro provedor, veja docs/funcionalidades/12-modelo-e-plugins.md'}</p></div><code>{health?.llm ?? '—'}</code></div>
       {(health?.plugins ?? []).map((p) => (
         <div key={p.dir} className="auto-row">
           <div><strong>Plugin {p.name}</strong><p className="muted small">{p.error ?? p.description ?? p.kind} · {p.dir}</p></div>

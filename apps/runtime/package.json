@@ -4,7 +4,7 @@
   "description": "Orbi — copiloto de esteira (runtime em Flue/Pi com Claude Haiku 5.5)",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/write-entry.mjs",
     "start": "node dist/server.mjs",
     "check:types": "tsc --noEmit",
     "test": "node --import tsx --import ./scripts/register-raw.mjs --test test/*.test.ts",

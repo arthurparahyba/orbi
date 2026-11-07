@@ -11,4 +11,4 @@ porta 5173) ou `npm run build -w @orbi/runtime && npm start -w @orbi/runtime`.
 Configuração: copie `.env.example` para `.env`.
 
 Veja [docs/arquitetura.md](../../docs/arquitetura.md) e
-[docs/ensinar-pelo-navegador.md](../../docs/ensinar-pelo-navegador.md).
+[docs/funcionalidades/](../../docs/funcionalidades/README.md).

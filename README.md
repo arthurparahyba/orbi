@@ -26,7 +26,7 @@ orbi/
 ├── plugins/              seus plugins (fora do git do Orbi)
 ├── scripts/
 │   └── build-app.mjs     gera o executável com o runtime e o Node dentro
-├── docs/                 arquitetura, ensinar pelo navegador, desenvolvimento, empacotamento
+├── docs/                 funcionalidades/, arquitetura, desenvolvimento, empacotamento, plugins
 └── package.json          workspaces npm: um `npm install` para tudo
 ```
 
@@ -82,9 +82,11 @@ As senhas ficam no Keychain do macOS, nunca nesses arquivos.
 
 ## Documentação
 
-- [Arquitetura](docs/arquitetura.md): como o runtime, o app e o contrato se encaixam; API local
-- [Ensinar pelo navegador](docs/ensinar-pelo-navegador.md): gravação de cliques + narração, cofre
+- [Funcionalidades](docs/funcionalidades/README.md): um documento por funcionalidade (conversa,
+  pendências, autonomia, cérebro, procedimentos, ensinar pelo navegador, navegador, busca, cofre,
+  terminal e código, retornos agendados, modelo e plugins, uso e logs, app desktop): onde aparece,
+  como funciona, diagramas, peças, tecnologias, configuração, limites e testes
+- [Arquitetura](docs/arquitetura.md): visão geral, camadas, composição, contrato, API local
 - [Desenvolvimento](docs/desenvolvimento.md): testes, demo, como adicionar um componente de interface
 - [Empacotamento](docs/empacotamento.md): o que o `npm run build` faz, tamanho, assinatura no macOS
-- [Adaptadores de LLM](docs/llm-adaptadores.md): usar outro provedor no lugar da Anthropic
 - [Plugins](docs/plugins.md): conectar o LLM da sua empresa sem mexer no código do Orbi

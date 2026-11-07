@@ -1,5 +1,9 @@
 # Arquitetura
 
+Visão geral do sistema. Cada funcionalidade tem o seu documento, com onde
+aparece, diagramas e detalhes: veja [funcionalidades/](funcionalidades/README.md).
+
+
 ```
 ┌──────────────── Orbi.app ────────────────────────────────────────────────┐
 │  apps/desktop (Tauri)                                                     │
@@ -19,7 +23,7 @@
 ## Runtime (`apps/runtime`)
 
 - Framework: [Flue](https://flueframework.com) 2.3 sobre o harness Pi
-- Modelo: `anthropic/claude-haiku-5-5` por padrão; qualquer outro por um adaptador (`src/llm`, ver [llm-adaptadores.md](llm-adaptadores.md))
+- Modelo: `anthropic/claude-haiku-5-5` por padrão; qualquer outro por um adaptador (`src/llm`, ver [modelo e plugins](funcionalidades/12-modelo-e-plugins.md))
 - Correção de código: Claude Code via Claude Agent SDK, em worktree isolada
 - Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
 - Banco: um arquivo SQLite (`data/orbi.db`) com o cérebro e o estado do app, sem servidor; migrações versionadas
