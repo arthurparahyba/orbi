@@ -14,6 +14,10 @@ rodaram e o procedimento em andamento.
 - **Botão +** cria uma conversa nova. O título vira o primeiro pedido.
 - **Copiar conversa**, no topo, copia tudo em Markdown (mensagens, ferramentas
   com entrada e resultado, cartões, falhas) para colar num chamado ou mandar a alguém.
+- **Microfone** ao lado de Enviar: dita a mensagem. A fala é cortada nas pausas,
+  cada trecho é transcrito pelo runtime (`POST /api/transcribe`, a mesma
+  transcrição das demonstrações, documento 6) e entra na caixa. Nada é enviado
+  sozinho: você confere e envia. O áudio não fica guardado.
 - **Apagar** (lixeira no topo da conversa) pede confirmação no próprio lugar e
   apaga a conversa: ela some da lista na hora, as pendências dela saem do painel,
   os retornos agendados são cancelados e, se um agente pediu, ele vê o pedido

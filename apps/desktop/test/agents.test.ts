@@ -44,3 +44,13 @@ describe('cofre: nome da credencial', () => {
     expect(secretNameProblem('github/senha', [])).toBeUndefined();
   });
 });
+
+import { appendDictation } from '../src/components/dictation';
+describe('ditado', () => {
+  it('junta o texto ditado ao que já está na caixa', () => {
+    expect(appendDictation('', '  olá ')).toBe('olá');
+    expect(appendDictation('Atualiza', 'a versão')).toBe('Atualiza a versão');
+    expect(appendDictation('Atualiza ', 'a versão')).toBe('Atualiza a versão');
+    expect(appendDictation('Atualiza', '   ')).toBe('Atualiza');
+  });
+});

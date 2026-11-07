@@ -50,7 +50,7 @@ export function Playbooks() {
           </header>
           {open === p.name && mode?.name === p.name && mode.kind === 'edit' ? (
             <div className="pb-body">
-              <PlaybookEditor playbook={p} onDone={() => setMode(undefined)} />
+              <PlaybookEditor playbook={p} onDone={(saved) => { setMode(undefined); if (saved) void pbs.reload(); }} />
             </div>
           ) : open === p.name && (
             <div className="pb-body">
@@ -62,7 +62,7 @@ export function Playbooks() {
                 <ConfirmDelete
                   what={`o procedimento ${p.name}`}
                   consequences={deleteConsequences(p, pbs.data ?? [])}
-                  onConfirm={async () => { await api.deletePlaybook(p.name); setMode(undefined); setOpen(undefined); }}
+                  onConfirm={async () => { await api.deletePlaybook(p.name); setMode(undefined); setOpen(undefined); await pbs.reload(); }}
                   onCancel={() => setMode(undefined)}
                 />
               )}

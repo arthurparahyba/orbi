@@ -56,7 +56,7 @@ export function BrainView() {
             <Graph snapshot={brain.data} selected={selected} onSelect={setSelected} query={query} />
             {brain.data.gaps.length > 0 && <Gaps snapshot={brain.data} onSelect={setSelected} />}
           </div>
-          <EntityDetail id={selected} snapshot={brain.data} onSelect={setSelected} onDeleted={() => setSelected(undefined)} />
+          <EntityDetail id={selected} snapshot={brain.data} onSelect={setSelected} onDeleted={() => { setSelected(undefined); void brain.reload(); }} />
         </div>
       ) : tab === 'playbooks' ? (
         <Playbooks />

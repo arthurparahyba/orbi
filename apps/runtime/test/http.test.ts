@@ -71,6 +71,27 @@ test('conversas: apagar some da lista e leva as pendências e o pedido do agente
   assert.equal((await call('DELETE', `/api/conversations/${b.id}`)).status, 404);
 });
 
+test('ditado: o áudio vira texto e volta; nada vai para a conversa', async () => {
+  const { orbi } = await setup();
+  const app = createHttpApp(orbi, background, Orbi);
+  const wav = Buffer.alloc(44 + 3200);
+  wav.write('RIFF', 0); wav.write('WAVE', 8);
+  const post = (body: Buffer) => app.request('/api/transcribe', { method: 'POST', headers: { 'content-type': 'audio/wav' }, body: new Uint8Array(body) });
+
+  orbi.stt.set({ name: 'fake', transcribe: async (audio) => `ouvi ${audio.length} bytes` });
+  assert.deepEqual(await (await post(wav)).json(), { text: `ouvi ${wav.length} bytes` });
+  assert.equal((await post(Buffer.alloc(10))).status, 400);
+
+  orbi.stt.set({ name: 'fake', transcribe: async () => { throw new Error('modelo não carregou'); } });
+  const failed = await post(wav);
+  assert.equal(failed.status, 500);
+  assert.match(((await failed.json()) as any).error.message, /modelo não carregou/);
+
+  orbi.stt.set(null);
+  assert.equal((await post(wav)).status, 409, 'transcrição desligada');
+  assert.deepEqual(orbi.conversations.list(), []);
+});
+
 test('pendências: filtro, validação e itens já decididos', async () => {
   const { orbi, call } = await setup();
   const approval = orbi.inbox.add({ kind: 'approval', conversationId: 'chat:1', title: 'Subir para dev', detail: '', approvalId: 'tc1' });

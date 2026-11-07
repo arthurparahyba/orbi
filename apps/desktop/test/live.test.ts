@@ -49,6 +49,25 @@ describe('createLive', () => {
   });
 });
 
+describe('createLive sem o feed', () => {
+  it('enquanto não chega hello (ou depois de erro), manda hello de tempos em tempos', () => {
+    const src = fakeSource();
+    let tick: () => void = () => {};
+    const live = createLive(src.open, { everyMs: 5000, setInterval: ((fn: () => void) => { tick = fn; return 1; }) as never, clearInterval: (() => {}) as never });
+    const seen: Change[] = [];
+    live.subscribe((c) => seen.push(c));
+    tick();
+    expect(seen).toEqual([{ topic: 'hello' }]);
+    src.fire('hello');
+    tick();
+    expect(seen).toHaveLength(2); // the real hello only: the feed is up
+    src.fire('error');
+    tick();
+    expect(seen).toHaveLength(3);
+    live.close();
+  });
+});
+
 describe('concerns', () => {
   it('hello interessa a todos', () => {
     expect(concerns({ topic: 'hello' }, ['brain'])).toBe(true);

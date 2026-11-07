@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useFlueAgent } from '@flue/react';
 import { agentUrl, api, type Recording } from '../../api';
 import { useChanges, usePoll } from '../../hooks';
-import { CheckIcon, CopyIcon, RecordIcon, SendIcon, TrashIcon } from '../../components/Icons';
+import { CheckIcon, CopyIcon, RecordIcon, TrashIcon } from '../../components/Icons';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { OriginBanner } from './OriginBanner';
+import { Composer } from './Composer';
 import type { ConversationOrigin } from '../../api';
 import { StartDemonstration } from '../../components/Demonstration';
 import { RecordingPanel } from '../../components/RecordingPanel';
@@ -126,31 +127,6 @@ function DemoDock({ id, demo, onChange }: { id: string; demo: Demo; onChange(d: 
         <RecordingPanel initial={demo.rec} narrator={demo.narrator} onClosed={() => onChange(undefined)} />
       )}
     </div>
-  );
-}
-
-/** The message box: Enter sends, Shift+Enter breaks the line. */
-function Composer({ onSend }: { onSend(text: string): Promise<void> }) {
-  const [draft, setDraft] = useState('');
-  const submit = () => {
-    if (!draft.trim()) return;
-    const text = draft;
-    setDraft('');
-    void onSend(text);
-  };
-  return (
-    <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      <label htmlFor="composer" className="sr-only">Mensagem para o Orbi</label>
-      <textarea
-        id="composer"
-        rows={2}
-        value={draft}
-        placeholder="Peça algo ou ensine um procedimento…"
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
-      />
-      <button type="submit" className="btn primary icon-only" disabled={!draft.trim()} aria-label="Enviar"><SendIcon size={16} /></button>
-    </form>
   );
 }
 

@@ -5,6 +5,10 @@ import { TOPICS, type ChangeEvent, type Topic } from '@orbi/contracts';
  * One connection for the whole app; screens subscribe to the topics they show
  * and refetch when one changes. `hello` (every (re)connection) reaches every
  * subscriber, so nothing missed while offline stays stale.
+ *
+ * If the feed is not up (no `hello` yet, or it errored), a fallback sends a
+ * `hello` every few seconds, so screens keep refreshing until it is: some
+ * webviews drop or never open the stream, and the app must not go stale.
  */
 export type Change = ChangeEvent | { topic: 'hello' };
 export type Listener = (change: Change) => void;
@@ -20,16 +24,24 @@ export interface Live {
   close(): void;
 }
 
-export function createLive(open: () => EventSourceLike): Live {
+export function createLive(
+  open: () => EventSourceLike,
+  fallback: { everyMs: number; setInterval: typeof setInterval; clearInterval: typeof clearInterval } = { everyMs: 5_000, setInterval, clearInterval },
+): Live {
   const listeners = new Set<Listener>();
   let source: EventSourceLike | undefined;
+  let up = false;
+  let timer: ReturnType<typeof setInterval> | undefined;
 
   const send = (change: Change) => {
     for (const listener of listeners) listener(change);
   };
   const connect = () => {
     source = open();
-    source.addEventListener('hello', () => send({ topic: 'hello' }));
+    up = false;
+    timer ??= fallback.setInterval(() => { if (!up) send({ topic: 'hello' }); }, fallback.everyMs);
+    source.addEventListener('hello', () => { up = true; send({ topic: 'hello' }); });
+    source.addEventListener('error', () => { up = false; });
     source.addEventListener('change', (e) => {
       try {
         const change = JSON.parse(e.data) as ChangeEvent;
@@ -49,6 +61,8 @@ export function createLive(open: () => EventSourceLike): Live {
     close() {
       source?.close();
       source = undefined;
+      if (timer !== undefined) fallback.clearInterval(timer);
+      timer = undefined;
     },
   };
 }

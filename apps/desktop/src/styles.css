@@ -133,8 +133,13 @@ input:focus, textarea:focus { border-color: var(--blue); }
 .typing i:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 50% { opacity: 0.25; } }
 .composer { display: flex; gap: 10px; align-items: flex-end; padding: 12px 24px 18px; border-top: 1px solid var(--border); }
-.composer textarea { flex: 1; resize: none; max-width: 772px; margin-left: auto; }
-.composer .btn { margin-right: auto; }
+.composer-box { flex: 1; max-width: 772px; margin-left: auto; display: flex; flex-direction: column; gap: 4px; }
+.composer textarea { width: 100%; resize: none; }
+.composer-note { margin: 0; }
+.composer .btn[type=submit] { margin-right: auto; }
+.mic-btn { position: relative; overflow: hidden; }
+.mic-btn.on { background: rgba(255, 138, 138, 0.16); border-color: var(--red); color: #ffc9c9; }
+.mic-level { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--red); transform-origin: left; }
 
 /* ── ui component catalog ──────────────────────────────── */
 .ui-stack { display: flex; flex-direction: column; gap: 8px; }

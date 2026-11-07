@@ -142,3 +142,11 @@ assinatura: [../empacotamento.md](../empacotamento.md).
 - `apps/desktop/test/live.test.ts`: o cliente do feed.
 - O pacote `.deb` foi instalado e aberto numa máquina sem Node; o `.app` do macOS
   é gerado no próprio Mac.
+
+### Quando o feed de mudanças não chega
+
+O app atualiza as telas pelo feed `GET /api/events` (SSE). Se ele não abrir ou cair
+(alguns webviews derrubam a conexão), `live.ts` manda um `hello` a cada 5 s até o
+feed voltar, e as telas recarregam sozinhas. Ações feitas no próprio app (apagar
+entidade ou procedimento, editar, apagar conversa) também recarregam a tela na hora,
+sem esperar o feed.
