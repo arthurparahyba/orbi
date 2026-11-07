@@ -60,7 +60,8 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
         </ul>
       </aside>
       {current ? (
-        <Chat key={current} id={current} title={list.data?.find((c) => c.id === current)?.title ?? ''} origin={list.data?.find((c) => c.id === current)?.origin} onTitled={list.reload} />
+        <Chat key={current} id={current} title={list.data?.find((c) => c.id === current)?.title ?? ''} origin={list.data?.find((c) => c.id === current)?.origin} onTitled={list.reload}
+          onDeleted={() => { setCurrent(list.data?.find((c) => c.id !== current)?.id); void list.reload(); }} />
       ) : (
         <div className="empty-chat">
           <p>Comece uma conversa para ensinar um procedimento ao Orbi ou pedir que ele execute algo que já sabe.</p>

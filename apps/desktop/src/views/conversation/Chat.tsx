@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useFlueAgent } from '@flue/react';
 import { agentUrl, api, type Recording } from '../../api';
 import { useChanges, usePoll } from '../../hooks';
-import { CheckIcon, CopyIcon, RecordIcon, SendIcon } from '../../components/Icons';
+import { CheckIcon, CopyIcon, RecordIcon, SendIcon, TrashIcon } from '../../components/Icons';
+import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { OriginBanner } from './OriginBanner';
 import type { ConversationOrigin } from '../../api';
 import { StartDemonstration } from '../../components/Demonstration';
@@ -22,7 +23,8 @@ const SUGGESTIONS = [
 type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator };
 
 /** One conversation with Orbi: messages, the browser-teaching dock and the composer. */
-export function Chat({ id, title, origin, onTitled }: { id: string; title: string; origin?: ConversationOrigin; onTitled(): void }) {
+export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; title: string; origin?: ConversationOrigin; onTitled(): void; onDeleted(): void }) {
+  const [deleting, setDeleting] = useState(false);
   const agent = useFlueAgent({ url: agentUrl(id) });
   const [demo, setDemo] = useState<Demo | undefined>();
   const endRef = useRef<HTMLDivElement>(null);
@@ -60,10 +62,26 @@ export function Chat({ id, title, origin, onTitled }: { id: string; title: strin
         <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
           <RecordIcon size={13} /> Ensinar pelo navegador
         </button>
+        <button type="button" className="icon-btn" onClick={() => setDeleting(true)} title="Apagar conversa" aria-label="Apagar conversa"><TrashIcon size={15} /></button>
         <span className={`pill pill-${busy ? 'running' : agent.status === 'error' ? 'failed' : 'idle'}`}>
           {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : agent.status === 'connecting' ? 'Conectando…' : 'Pronto'}
         </span>
       </header>
+      {deleting && (
+        <div className="chat-confirm">
+          <ConfirmDelete
+            what="esta conversa"
+            consequences={[
+              'As mensagens somem agora; o histórico interno é apagado na próxima vez que o Orbi iniciar.',
+              'Pendências desta conversa saem do painel.',
+              'O que o Orbi aprendeu e as execuções continuam no Cérebro.',
+              ...(origin ? [`${origin.agent} vê o pedido como encerrado.`] : []),
+            ]}
+            onConfirm={async () => { await api.deleteConversation(id); onDeleted(); }}
+            onCancel={() => setDeleting(false)}
+          />
+        </div>
+      )}
       {origin && <OriginBanner origin={origin} />}
       <ChatContext.Provider value={{ send: (t) => void send(t) }}>
       <div className="messages" aria-live="polite">

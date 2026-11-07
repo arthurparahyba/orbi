@@ -14,6 +14,10 @@ rodaram e o procedimento em andamento.
 - **Botão +** cria uma conversa nova. O título vira o primeiro pedido.
 - **Copiar conversa**, no topo, copia tudo em Markdown (mensagens, ferramentas
   com entrada e resultado, cartões, falhas) para colar num chamado ou mandar a alguém.
+- **Apagar** (lixeira no topo da conversa) pede confirmação no próprio lugar e
+  apaga a conversa: ela some da lista na hora, as pendências dela saem do painel,
+  os retornos agendados são cancelados e, se um agente pediu, ele vê o pedido
+  como encerrado. O que o Orbi aprendeu e as execuções ficam no Cérebro.
 - Conversas também começam sem você digitar: ao terminar uma demonstração no
   navegador (documento 6) e quando um retorno agendado acorda o Orbi (documento 11).
 
@@ -118,6 +122,7 @@ e as mensagens aparecem.
 | --- | --- |
 | Mensagens, chamadas de ferramenta, estado persistente do agente | `data/flue.db` (Flue) |
 | Lista de conversas e títulos | tabela `conversations` em `data/orbi.db` |
+| Conversas apagadas, até o histórico sair do Flue | tabela `deleted_conversations` em `data/orbi.db` |
 
 ## Configuração
 
@@ -130,6 +135,13 @@ e as mensagens aparecem.
 
 - O Orbi não manda imagens ao modelo; uma imagem vira o texto `[imagem]`.
 - Uma conversa muito longa é compactada pelo Flue; o resumo substitui o início.
+- O Flue não tem como apagar uma conversa. Ao apagar, ela some do app na hora, e o
+  histórico interno (mensagens, chamadas) sai de `data/flue.db` na próxima vez que o
+  runtime iniciar, antes de o Flue abrir o arquivo (`conversations/purge.ts`, chamado
+  em `src/db.ts`). Isso depende das tabelas do Flue 2.3: se mudarem numa atualização,
+  a limpeza pula o que não reconhece e tenta de novo.
+- Não dá para apagar uma mensagem só, porque o histórico do Flue é contínuo; apague a
+  conversa e comece outra.
 
 ## Testes
 

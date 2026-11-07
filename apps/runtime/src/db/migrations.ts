@@ -125,4 +125,8 @@ CREATE TABLE agent_suggestions (
   status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE INDEX agent_suggestions_status ON agent_suggestions(status, updated_at);`,
   },
+  {
+    name: 'conversas apagadas: some da lista na hora; o histórico do Flue sai na próxima partida',
+    sql: `CREATE TABLE deleted_conversations (id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL, purged_at TEXT);`,
+  },
 ];

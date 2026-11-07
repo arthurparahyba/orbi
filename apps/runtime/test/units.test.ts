@@ -8,6 +8,7 @@ import { BrainStore, EXAMPLE_TYPES } from '../src/brain/store.ts';
 import { openDatabase } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
 import { inLearningOrder } from '../src/agents/tools/brain.ts';
+import { purgeDeletedTranscripts } from '../src/conversations/purge.ts';
 import { runCommand, CommandNotAllowedError } from '../src/terminal/exec.ts';
 import {
   DEFAULT_POLICY,
@@ -80,6 +81,26 @@ test('cérebro: num lote de aprendizado, os tipos vêm antes de quem os usa', ()
   assert.deepEqual(inLearningOrder(items).map((i) => i.kind), ['type', 'entity', 'edge', 'playbook']);
 });
 
+test('cérebro: lote checado antes de pedir aprovação e gravado tudo ou nada', () => {
+  const b = new BrainStore(':memory:');
+  const host = { kind: 'entity' as const, payload: { id: 'github-pessoal', type: 'Conta' } };
+  const problems = b.learnProblems([host]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /entity github-pessoal: .*tipo desconhecido/);
+
+  const batch = inLearningOrder([host, { kind: 'type' as const, payload: { name: 'Conta', description: 'Conta num serviço' } }]);
+  assert.deepEqual(b.learnProblems(batch), [], 'com o tipo no mesmo lote está certo');
+  assert.deepEqual(b.types(), [], 'a verificação não guarda nada');
+  assert.equal(b.proposals('open').length + b.proposals('applied').length, 0);
+
+  // One bad item: nothing of the batch lands.
+  assert.throws(() => b.learn([...batch, { kind: 'edge', payload: { from: 'github-pessoal', rel: 'naoExiste', to: 'x' } }], 'r', 'chat:1'));
+  assert.deepEqual(b.types(), []);
+  assert.equal(b.get('github-pessoal'), undefined);
+  b.learn(batch, 'r', 'chat:1');
+  assert.equal(b.get('github-pessoal')?.type, 'Conta');
+});
+
 test('migração: tira os tipos de fábrica que ninguém usou e mantém os usados ou editados', () => {
   // A brain from before: created with the factory types, one of them in use, one edited.
   const dir = mkdtempSync(join(tmpdir(), 'orbi-mig-'));
@@ -141,4 +162,34 @@ test('catálogo de skills: só os mais usados, em ordem estável', async () => {
   assert.deepEqual(skillCatalog(pbs, 3).map((p) => p.name), ['c', 'a', 'b']);
   assert.deepEqual(skillCatalog(pbs, 0), []);
   assert.equal(pbs[0].name, 'b', 'não reordena a lista original');
+});
+
+test('conversa apagada: o histórico sai do arquivo do Flue na partida seguinte, só o dela', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'orbi-purge-'));
+  const orbiFile = join(dir, 'orbi.db');
+  const flueFile = join(dir, 'flue.db');
+  const orbi = openDatabase(orbiFile);
+  orbi.prepare('INSERT INTO deleted_conversations (id, deleted_at) VALUES (?, ?)').run('chat:apagada', new Date().toISOString());
+  orbi.close();
+  const flue = new DatabaseSync(flueFile);
+  flue.exec(`CREATE TABLE flue_conversation_streams (path TEXT PRIMARY KEY);
+    CREATE TABLE flue_conversation_stream_batches (path TEXT, seq INTEGER, data TEXT);
+    CREATE TABLE flue_agent_submissions (submission_id TEXT, session_key TEXT, payload TEXT);
+    CREATE TABLE flue_submission_chunks (submission_id TEXT, data TEXT);`);
+  for (const id of ['chat:apagada', 'chat:fica']) {
+    flue.prepare('INSERT INTO flue_conversation_streams VALUES (?)').run(`agents/orbi/${id}`);
+    flue.prepare('INSERT INTO flue_conversation_stream_batches VALUES (?, 1, ?)').run(`agents/orbi/${id}`, 'minha senha é hunter2');
+    flue.prepare('INSERT INTO flue_agent_submissions VALUES (?, ?, ?)').run(`s-${id}`, `agent-session:["orbi","${id}","default","default"]`, 'x');
+    flue.prepare('INSERT INTO flue_submission_chunks VALUES (?, ?)').run(`s-${id}`, 'x');
+  }
+  flue.close();
+
+  assert.deepEqual(purgeDeletedTranscripts(orbiFile, flueFile), ['chat:apagada']);
+  const after = new DatabaseSync(flueFile);
+  for (const t of ['flue_conversation_streams', 'flue_conversation_stream_batches', 'flue_agent_submissions', 'flue_submission_chunks']) {
+    assert.equal((after.prepare(`SELECT count(*) AS n FROM ${t}`).get() as { n: number }).n, 1, `${t}: só a outra conversa fica`);
+  }
+  assert.equal(JSON.stringify(after.prepare('SELECT * FROM flue_conversation_stream_batches').all()).includes('chat:apagada'), false);
+  after.close();
+  assert.deepEqual(purgeDeletedTranscripts(orbiFile, flueFile), [], 'cada uma é apagada uma vez');
 });

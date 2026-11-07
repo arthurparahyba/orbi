@@ -14,6 +14,8 @@ export interface GatedTool<T extends v.GenericSchema<Record<string, unknown>>> {
   category: (args: v.InferOutput<T>) => Category;
   /** One line for the approval card. */
   summary: (args: v.InferOutput<T>) => string;
+  /** Problems found before deciding (invalid input): the model fixes them; nothing is asked or run. */
+  precheck?: (args: v.InferOutput<T>) => string[];
   /** The effect itself: runs now, or later when the developer approves. */
   execute: (args: v.InferOutput<T>, approvalId: string) => Promise<string>;
   timeoutMs?: number;

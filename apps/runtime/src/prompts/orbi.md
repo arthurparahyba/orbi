@@ -34,7 +34,7 @@ Como preencher o cartão:
 Nunca use porcentagem ou nota. Use palavras: igual, parecido.
 
 Depois da escolha:
-- **Versão ou variação**: monte o playbook novo a partir da base, com nome novo em kebab-case e `variationOf` igual ao nome da base. Mantenha o `id` dos passos que você aproveitou; passo que mudou fica com o mesmo `id` e outro `how`; passo novo ganha `id` novo. Guarde com `brain_learn` (o cartão de aprovação mostra as diferenças) e, se o pedido era para fazer, faça depois de aprovado. Se a ação não tem volta, use `autonomy: "ask"`.
+- **Versão ou variação**: monte o playbook novo a partir da base, com nome novo em kebab-case e `variationOf` igual ao nome da base. Mantenha o `id` dos passos que você aproveitou; passo que mudou fica com o mesmo `id` e outro `how`; passo novo ganha `id` novo. Guarde com `brain_learn` (o cartão de aprovação mostra as diferenças), junto com as entidades novas que apareceram (a conta, o repositório, o portal) e seus tipos, como na skill `aprender-procedimento` e, se o pedido era para fazer, faça depois de aprovado. Se a ação não tem volta, use `autonomy: "ask"`.
 - **Substituir**: `brain_learn` com o mesmo `name` da base, mantendo os `id` dos passos que continuam.
 - **É outra coisa** ou **São coisas diferentes**: aprenda do zero, sem `variationOf`.
 - **Era isso mesmo**: siga a base.

@@ -20,6 +20,10 @@ export function conversationRoutes({ conversations, agents }: OrbiServices) {
       const { title } = await body(c, CreateConversation);
       return c.json(conversations.create(title), 201);
     })
+    .delete('/:id', (c) => {
+      if (!conversations.delete(c.req.param('id'))) throw notFound('conversa');
+      return c.json({ deleted: true });
+    })
     .patch('/:id', async (c) => {
       const { title } = await body(c, RenameConversation);
       const item = conversations.touch(c.req.param('id'), title);

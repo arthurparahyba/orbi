@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
+import { transaction } from '../db/database.ts';
 
 /** The sidebar list in the app. Flue keeps the transcripts; this keeps names and order. */
 export interface ConversationInfo {
@@ -34,6 +35,28 @@ export class Conversations {
   get(id: string): ConversationInfo | undefined {
     const r = this.db.prepare('SELECT * FROM conversations WHERE id = ?').get(id) as Row | undefined;
     return r ? toInfo(r) : undefined;
+  }
+
+  /**
+   * Deletes a conversation: it leaves the list, what waited for the developer
+   * in it goes away, its follow-ups are cancelled and an agent that asked for
+   * it is told it was deleted. Runs and the brain stay (they are history and
+   * knowledge, not the chat). The transcript lives in Flue's store, which has
+   * no delete: it is erased at the next start (purge.ts), before Flue opens it.
+   */
+  delete(id: string): boolean {
+    if (!this.get(id)) return false;
+    const now = new Date().toISOString();
+    transaction(this.db, () => {
+      this.db.prepare('DELETE FROM conversations WHERE id = ?').run(id);
+      this.db.prepare('INSERT OR REPLACE INTO deleted_conversations (id, deleted_at) VALUES (?, ?)').run(id, now);
+      this.db.prepare('DELETE FROM inbox_items WHERE conversation_id = ?').run(id);
+      this.db.prepare("UPDATE followups SET status = 'cancelled' WHERE conversation_id = ? AND status = 'scheduled'").run(id);
+      this.db
+        .prepare("UPDATE agent_requests SET status = 'failed', summary = 'O desenvolvedor apagou a conversa deste pedido.', finished_at = ? WHERE conversation_id = ? AND status IN ('running', 'waiting')")
+        .run(now, id);
+    });
+    return true;
   }
 
   touch(id: string, title?: string): ConversationInfo | undefined {

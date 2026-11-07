@@ -114,21 +114,25 @@ sequenceDiagram
   participant Store as BrainStore
 
   Modelo->>Learn: lote: tipos, entidades, ligações, procedimento
+  Learn->>Store: verificação do lote inteiro (sem gravar)
+  Note over Learn: com problema, volta ao modelo na hora, sem cartão
   Learn->>Portao: sempre "perguntar"
   Portao-->>App: cartão com a prévia legível
   Voce->>App: Aprovar
   App->>Portao: sinal de aprovação
   Portao->>Learn: executa o lote guardado
-  loop na ordem tipos, entidades, ligações, procedimentos
-    Learn->>Store: propose (valida contra a ontologia)
-    Learn->>Store: apply (grava numa transação)
-  end
+  Learn->>Store: learn: o lote numa transação só (tudo ou nada)
   Store-->>App: evento "brain" e a tela Cérebro atualiza
 ```
 
-- **Validação**: entidade de tipo que não existe, ligação que o tipo não aceita,
-  procedimento sem passos ou variação de uma base inexistente são recusados com a
-  explicação, e o modelo corrige.
+- **Validação antes do cartão**: o lote é testado inteiro numa transação desfeita
+  (`learnProblems`). Entidade de tipo que não existe, ligação que o tipo não aceita,
+  procedimento sem passos ou variação de uma base inexistente voltam ao modelo na
+  hora, com a explicação, e nada é pedido ao desenvolvedor. Se falta um tipo, a
+  resposta diz para incluí-lo no lote, não para tirar a entidade. Antes, o lote só
+  falhava depois de aprovado, e o modelo reenviava só o procedimento: o
+  conhecimento e a ontologia ficavam vazios.
+- **Tudo ou nada**: aprovado, o lote é gravado numa transação só (`learn`).
 - **Ordem**: dentro do lote, os tipos são gravados antes das entidades que os
   usam. Por isso o Orbi pode propor um tipo novo e uma entidade dele de uma vez.
 - **Como o Orbi consulta**: `brain_query` por id (a entidade, as ligações e a

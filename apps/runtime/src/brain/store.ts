@@ -229,6 +229,34 @@ export class BrainStore {
     return change.label;
   }
 
+  /**
+   * Learns a whole batch at once (all of it lands, or none), in the order
+   * given: types first, so an entity can use a type from the same batch.
+   */
+  learn(items: Array<{ kind: ProposalKind; payload: Record<string, unknown> }>, reason: string, conversationId: string): string[] {
+    return transaction(this.db, () => items.map((item) => this.apply(this.propose(item.kind, item.payload, reason, conversationId).id)));
+  }
+
+  /** What would go wrong learning this batch, without keeping anything (checked before asking the developer). */
+  learnProblems(items: Array<{ kind: ProposalKind; payload: Record<string, unknown> }>): string[] {
+    const problems: string[] = [];
+    transaction(
+      this.db,
+      () => {
+        for (const item of items) {
+          try {
+            transaction(this.db, () => this.apply(this.propose(item.kind, item.payload, 'verificação', '').id));
+          } catch (error) {
+            const label = String(item.payload.name ?? item.payload.id ?? `${item.payload.from} → ${item.payload.to}`);
+            problems.push(`${item.kind} ${label}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      },
+      { rollback: true },
+    );
+    return problems;
+  }
+
   reject(proposalId: string): void {
     this.proposalRepo.setStatus(proposalId, 'rejected');
   }

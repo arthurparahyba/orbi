@@ -55,6 +55,22 @@ test('conversas: criar, renomear, validar', async () => {
   isApiError(missing.json, 'not_found');
 });
 
+test('conversas: apagar some da lista e leva as pendências e o pedido do agente junto', async () => {
+  const { orbi, call } = await setup();
+  const a = (await call('POST', '/api/conversations', { title: 'fica' })).json;
+  const b = (await call('POST', '/api/conversations', { title: 'apaga' })).json;
+  orbi.inbox.add({ kind: 'question', conversationId: b.id, title: 'pergunta', detail: '' });
+  orbi.inbox.add({ kind: 'question', conversationId: a.id, title: 'outra', detail: '' });
+  const client = orbi.agents.clients.create('Claude Code').client;
+  const req = orbi.agents.requests.add({ clientId: client.id, conversationId: b.id, task: 't', procedure: null, context: {} });
+
+  assert.deepEqual((await call('DELETE', `/api/conversations/${b.id}`)).json, { deleted: true });
+  assert.deepEqual((await call('GET', '/api/conversations')).json.map((c: any) => c.title), ['fica']);
+  assert.deepEqual(orbi.inbox.list().map((i) => i.title), ['outra']);
+  assert.equal(orbi.agents.requests.get(req.id)?.status, 'failed', 'o agente fica sabendo que a conversa foi apagada');
+  assert.equal((await call('DELETE', `/api/conversations/${b.id}`)).status, 404);
+});
+
 test('pendências: filtro, validação e itens já decididos', async () => {
   const { orbi, call } = await setup();
   const approval = orbi.inbox.add({ kind: 'approval', conversationId: 'chat:1', title: 'Subir para dev', detail: '', approvalId: 'tc1' });

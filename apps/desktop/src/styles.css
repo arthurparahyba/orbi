@@ -17,6 +17,8 @@
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+/* The window never scrolls (nor bounces on macOS): each screen scrolls its own panes. */
+html, body { overflow: hidden; overscroll-behavior: none; }
 body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
 button, input, textarea { font: inherit; color: inherit; }
 code, pre, .mono { font-family: var(--mono); }
@@ -85,7 +87,7 @@ input:focus, textarea:focus { border-color: var(--blue); }
 .segmented button.on { background: var(--surface-2); color: var(--amber); font-weight: 600; }
 
 /* ── conversa ──────────────────────────────────────────── */
-.conversa { display: grid; grid-template-columns: 250px 1fr 280px; height: 100%; min-height: 0; }
+.conversa { display: grid; grid-template-columns: 250px 1fr 280px; flex: 1 1 0; min-height: 0; }
 .convs, .inbox { background: var(--surface); border-right: 1px solid var(--border); overflow: auto; }
 .inbox { border-right: 0; border-left: 1px solid var(--border); padding: 14px; }
 .convs-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 8px; }
@@ -188,7 +190,7 @@ th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; b
 td { border-bottom: 1px solid var(--border); padding: 7px 10px; font-variant-numeric: tabular-nums; }
 
 /* ── cérebro ───────────────────────────────────────────── */
-.cerebro, .autonomia { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: auto; }
+.cerebro, .autonomia { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow: auto; }
 .brain-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding: 20px 24px 12px; }
 .brain-head p { margin: 4px 0 0; max-width: 620px; }
 .stats { display: flex; gap: 10px; }
@@ -404,7 +406,7 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .gap8 { gap: 8px; }
 
 /* ── agentes ───────────────────────────────────────────── */
-.agentes { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: auto; }
+.agentes { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow: auto; }
 .tab-badge { margin-left: 6px; height: 16px; min-width: 16px; font-size: 10px; }
 .agents-empty { margin: 32px 24px; max-width: 560px; }
 .agents-empty p { margin: 0 0 8px; }
@@ -447,3 +449,4 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .secret-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .secret-form > .row, .secret-form > p { grid-column: 1 / -1; margin: 0; }
 .agents-table td:last-child { white-space: nowrap; }
+.chat-confirm { padding: 10px 24px; border-bottom: 1px solid var(--border); }

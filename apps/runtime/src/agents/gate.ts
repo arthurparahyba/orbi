@@ -29,6 +29,10 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
       input: def.input,
       timeoutMs: def.timeoutMs ?? 600_000,
       async run({ data, toolCallId }) {
+        const problems = def.precheck?.(data) ?? [];
+        if (problems.length) {
+          return { output: { status: 'invalid', problems, hint: 'Nada foi feito nem pedido ao desenvolvedor. Corrija e chame de novo com tudo.' } };
+        }
         const category = def.category(data);
         const level = decide(policy.get(), category, activeRun());
         if (level === 'auto') return { output: { status: 'executed', category, result: await def.execute(data, toolCallId) } };

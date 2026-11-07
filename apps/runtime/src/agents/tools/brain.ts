@@ -60,13 +60,18 @@ export function useBrain(ctx: AgentContext) {
     name: 'brain_learn',
     description:
       'Save what you learned: new ontology types, entities, relations (with optional validity dates) and playbooks (procedures with steps). ' +
-      'The brain starts empty: when an entity needs a type that does not exist yet, include that `type` in the same batch. ' +
-      'The batch is validated against the ontology and shown to the developer to approve.',
+      'The brain starts empty: when an entity needs a type that does not exist yet, include that `type` in the same batch — never drop the entity because its type is missing. ' +
+      'Save the things the procedure touches (account, repository, portal, environment) as entities, not only the playbook. ' +
+      'The batch is checked first (problems come back at once, nothing is asked); then shown to the developer to approve, and saved all or nothing.',
     input: v.object({ reason: v.string(), items: v.array(learnItem) }),
     category: () => 'aprender',
     summary: (a) => `Aprender: ${a.reason}`,
+    precheck: (a) => {
+      const problems = brain.learnProblems(inLearningOrder(a.items) as never);
+      return problems.length ? [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'] : [];
+    },
     execute: async (a) => {
-      const applied = inLearningOrder(a.items).map((item) => brain.apply(brain.propose(item.kind, item.payload as Record<string, unknown>, a.reason, ctx.conversationId).id));
+      const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
       return `Guardado no cérebro: ${applied.join('; ')}`;
     },
   });

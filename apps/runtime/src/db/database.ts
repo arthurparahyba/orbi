@@ -37,16 +37,30 @@ export function migrate(db: DatabaseSync): number {
   return version;
 }
 
-/** Runs `fn` in a transaction: all of it lands, or none. */
-export function transaction<T>(db: DatabaseSync, fn: () => T): T {
-  db.exec('BEGIN');
+/** How deep each connection is in transactions, so they nest (as savepoints). */
+const depth = new WeakMap<DatabaseSync, number>();
+
+/**
+ * Runs `fn` in a transaction: all of it lands, or none. Nested calls become
+ * savepoints, so a store method that uses one can run inside a larger batch.
+ * With `rollback`, nothing lands even when `fn` succeeds (a dry run).
+ */
+export function transaction<T>(db: DatabaseSync, fn: () => T, options: { rollback?: boolean } = {}): T {
+  const level = depth.get(db) ?? 0;
+  const name = `orbi_${level}`;
+  db.exec(level === 0 ? 'BEGIN' : `SAVEPOINT ${name}`);
+  depth.set(db, level + 1);
+  const undo = () => db.exec(level === 0 ? 'ROLLBACK' : `ROLLBACK TO ${name}; RELEASE ${name}`);
   try {
     const result = fn();
-    db.exec('COMMIT');
+    if (options.rollback) undo();
+    else db.exec(level === 0 ? 'COMMIT' : `RELEASE ${name}`);
     return result;
   } catch (error) {
-    db.exec('ROLLBACK');
+    undo();
     throw error;
+  } finally {
+    depth.set(db, level);
   }
 }
 
