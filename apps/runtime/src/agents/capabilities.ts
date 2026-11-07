@@ -7,6 +7,7 @@ import { useCode } from './tools/code.ts';
 import { useBrain } from './tools/brain.ts';
 import { useActiveRun, usePlaybooks } from './tools/playbooks.ts';
 import { useVoice } from './tools/voice.ts';
+import { useSimilar } from './tools/similar.ts';
 import { useClock } from './tools/clock.ts';
 
 /**
@@ -28,6 +29,7 @@ export function useOrbi(conversationId: string) {
   useCode(ctx);
   // memory
   useBrain(ctx);
+  useSimilar(ctx);
   usePlaybooks(ctx);
   // voice and clock
   useVoice(ctx);

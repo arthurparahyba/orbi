@@ -326,3 +326,49 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .empty-brain { max-width: 560px; margin: 48px auto; text-align: center; padding: 0 24px; }
 .empty-brain h2 { font-size: 17px; margin-bottom: 8px; }
 .empty-brain p { line-height: 1.55; }
+
+/* Já sei algo parecido */
+.known-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; font-size: 13px; color: var(--muted); }
+.known-line svg { color: var(--green); }
+.known-line code { color: var(--text); }
+.known-line .link-btn { margin: 0; }
+.ui-card.similar { border-color: rgba(108, 168, 255, 0.45); display: flex; flex-direction: column; gap: 12px; }
+.ui-card.similar.is-answered { border-color: var(--border); }
+
+.similar .ui-card-head { margin-bottom: 0; }
+.pill.info { background: rgba(108, 168, 255, 0.14); color: #9cc4ff; }
+.similar-base { display: flex; gap: 12px; align-items: center; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+.similar-base > div:first-child { flex: 1; min-width: 0; }
+.similar-record { text-align: right; }
+.similar-record strong.ok, .known-line strong.ok { color: var(--green); }
+.similar-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.similar-cols h4 { margin: 0 0 6px; font-weight: 500; }
+.similar-cols ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.similar-cols li::before { display: inline-block; width: 16px; font-weight: 600; }
+.similar-cols li.reuse::before { content: '✓'; color: var(--green); }
+.similar-cols li.change::before { content: '→'; color: var(--amber); }
+.similar-suggestion { margin: 0; color: var(--muted); }
+.similar-suggestion strong { color: var(--text); }
+.similar-hints { margin: 0; padding-left: 16px; }
+@media (max-width: 640px) { .similar-cols { grid-template-columns: 1fr; } }
+
+/* Prévia com diferenças */
+.learn-base { margin: 2px 0 6px; }
+.diff-legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0; }
+.diff-key::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; background: var(--border-2); }
+.diff-key.is-changed::before { background: var(--amber); }
+.diff-key.is-new::before { background: var(--blue); }
+.diff-key.is-removed::before { background: transparent; border: 1px dashed var(--muted); }
+.steps.diff .step { grid-template-columns: 22px 1fr auto; padding: 6px 8px; border-radius: 8px; border-left: 3px solid var(--border-2); margin-bottom: 4px; }
+.steps.diff .step::before { display: none; }
+.steps.diff .step.is-changed { border-left-color: var(--amber); background: rgba(242, 177, 60, 0.06); }
+.steps.diff .step.is-new { border-left-color: var(--blue); background: rgba(108, 168, 255, 0.06); }
+.steps.diff .step.is-removed { border-left: 1px dashed var(--border-2); color: var(--muted); }
+.diff-tag { font-size: 11.5px; color: var(--muted); }
+.step.is-changed .diff-tag { color: var(--amber); }
+.step.is-new .diff-tag { color: #9cc4ff; }
+
+/* Variações no cérebro */
+.pb.is-variation { margin-left: 28px; }
+.pb-links { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 0 14px 8px; }
+.pb-chip { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-2); background: transparent; color: var(--blue); cursor: pointer; }

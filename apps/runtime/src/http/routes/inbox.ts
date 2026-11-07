@@ -40,7 +40,7 @@ export function inboxRoutes({ inbox, events }: OrbiServices, agent: Agent) {
       const { text } = await body(c, Answer);
       const item = open(c.req.param('id'));
       if (item.kind !== 'question') throw new HttpError(409, 'conflict', 'este item não é uma pergunta');
-      inbox.resolve(item.id, 'answered');
+      inbox.resolve(item.id, 'answered', text);
       const receipt = await tellAgent(events, agent, { id: item.conversationId, message: { kind: 'user', body: text } });
       return c.json(receipt, 202);
     });

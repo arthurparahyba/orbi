@@ -1,6 +1,10 @@
 import { createContext, useContext, useState } from 'react';
 import type { InboxItem, UiComponent } from '@orbi/contracts';
 import { AlertIcon, BulbIcon, CheckIcon, ClockIcon, LinkIcon, XIcon } from './Icons';
+import { KnownLine, SimilarCard } from './SimilarCards';
+import { CHANGE_LABEL, stepDiff, type Step } from './stepDiff';
+import { api } from '../api';
+import { useLive } from '../hooks';
 
 /**
  * Draws the component catalog the agent sends on the `ui` channel. The shapes
@@ -95,6 +99,8 @@ const placeholders = (text: string) => [...new Set([...text.matchAll(/\{\{\s*([^
 
 /** What the Orbi is about to store, readable: the playbook as numbered steps, its trigger, parameters and the facts. */
 function LearningPreview({ detail }: { detail: string }) {
+  // A variation (or a replacement) is shown against the playbook it comes from.
+  const known = useLive(api.playbooks, ['brain']);
   let items: LearnItem[] = [];
   try { items = (JSON.parse(detail).items ?? []) as LearnItem[]; } catch { return null; }
   const playbooks = items.filter((i) => i.kind === 'playbook').map((i) => i.payload);
@@ -105,12 +111,19 @@ function LearningPreview({ detail }: { detail: string }) {
         const all = placeholders(JSON.stringify(pb));
         const params = all.filter((x) => !x.startsWith('segredo:'));
         const secrets = all.filter((x) => x.startsWith('segredo:')).map((x) => x.slice(8));
+        const baseName: string | undefined = pb.variationOf ?? known.data?.find((k) => k.name === pb.name)?.name;
+        const base = baseName ? known.data?.find((k) => k.name === baseName) : undefined;
         return (
           <div key={pb.name} className="learn-pb">
             <div className="learn-pb-head">
               <span className="ui-kicker">Playbook</span> <strong>{pb.name}</strong>
               {pb.autonomy && <span className="pill tiny">{pb.autonomy === 'auto' ? 'automático' : pb.autonomy === 'observe' ? 'só observar' : 'pede aprovação'}</span>}
             </div>
+            {base && (
+              <p className="small muted learn-base">
+                {pb.variationOf ? <>Variação de <code>{base.name}</code>; a base não muda.</> : <>Substitui o <code>{base.name}</code> que eu sabia.</>}
+              </p>
+            )}
             {pb.description && <p className="small">{pb.description}</p>}
             <dl className="learn-meta">
               {pb.trigger && <div><dt>Quando</dt><dd>{pb.trigger}</dd></div>}
@@ -118,14 +131,16 @@ function LearningPreview({ detail }: { detail: string }) {
               {params.length > 0 && <div><dt>Parâmetros</dt><dd>{params.map((x) => <code key={x}>{x}</code>)}</dd></div>}
               {secrets.length > 0 && <div><dt>Credenciais</dt><dd>{secrets.map((x) => <span key={x} className="secret-ref">🔒 {x}</span>)} <span className="muted">no cofre do sistema</span></dd></div>}
             </dl>
-            <ol className="steps static">
-              {(pb.steps ?? []).map((st: { id: string; label: string; how?: string }, i: number) => (
-                <li key={st.id ?? i} className="step">
-                  <span className="step-dot">{i + 1}</span>
-                  <span className="step-body"><span className="step-label">{st.label}</span>{st.how && <span className="step-note">{st.how}</span>}</span>
-                </li>
-              ))}
-            </ol>
+            {base ? <DiffSteps base={base.steps} next={pb.steps ?? []} /> : (
+              <ol className="steps static">
+                {(pb.steps ?? []).map((st: Step, i: number) => (
+                  <li key={st.id ?? i} className="step">
+                    <span className="step-dot">{i + 1}</span>
+                    <span className="step-body"><span className="step-label">{st.label}</span>{st.how && <span className="step-note">{st.how}</span>}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         );
       })}
@@ -146,6 +161,31 @@ function LearningPreview({ detail }: { detail: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Steps marked against the base: igual, muda (with what it was), novo, sai. */
+function DiffSteps({ base, next }: { base: Step[]; next: Step[] }) {
+  let n = 0;
+  return (
+    <>
+      <p className="diff-legend small muted">
+        {(['same', 'changed', 'new', 'removed'] as const).map((k) => <span key={k} className={`diff-key is-${k}`}>{CHANGE_LABEL[k]}</span>)}
+      </p>
+      <ol className="steps static diff">
+        {stepDiff(base, next).map(({ step, change, before }, i) => (
+          <li key={`${step.id}-${i}`} className={`step is-${change}`}>
+            <span className="step-dot">{change === 'removed' ? '–' : ++n}</span>
+            <span className="step-body">
+              <span className="step-label">{change === 'removed' ? <s>{step.label}</s> : step.label}</span>
+              {change === 'changed' && before && <span className="step-note">antes: {before.label}{before.how && before.how !== step.how ? ` · ${before.how}` : ''}</span>}
+              {change !== 'removed' && step.how && <span className="step-note">{step.how}</span>}
+            </span>
+            <span className="diff-tag">{CHANGE_LABEL[change]}</span>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 
@@ -228,6 +268,8 @@ export function UiComponentView({ c }: { c: UiComponent }) {
     case 'status': return <Status c={c} />;
     case 'table': return <Table c={c} />;
     case 'learning': return <Learning c={c} />;
+    case 'known': return <KnownLine c={c} />;
+    case 'similar': return <SimilarCard c={c} />;
     case 'link':
       return <a className="ui-card link-card" href={c.url} target="_blank" rel="noreferrer"><LinkIcon size={14} /> {c.title}</a>;
     case 'code':

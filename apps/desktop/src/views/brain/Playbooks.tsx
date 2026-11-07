@@ -4,6 +4,18 @@ import { useLive } from '../../hooks';
 import { Segmented } from '../../components/Segmented';
 import { fmt } from './look';
 
+/** Each variation right after the playbook it came from. */
+export function withVariations(list: Playbook[]): Playbook[] {
+  const names = new Set(list.map((p) => p.name));
+  const out: Playbook[] = [];
+  const add = (p: Playbook) => {
+    out.push(p);
+    for (const v of list) if (v.variationOf === p.name) add(v);
+  };
+  for (const p of list) if (!p.variationOf || !names.has(p.variationOf)) add(p);
+  return out;
+}
+
 const AUTONOMY_LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };
 
 /** Learned procedures, each with its own autonomy. */
@@ -14,15 +26,16 @@ export function Playbooks() {
   if (pbs.data.length === 0) return <p className="muted pad">Nenhum procedimento aprendido ainda. Ensine um na tela Conversa.</p>;
   return (
     <div className="pb-list">
-      {pbs.data.map((p: Playbook) => (
-        <article key={p.name} className="pb">
+      {withVariations(pbs.data).map((p: Playbook) => (
+        <article key={p.name} className={`pb ${p.variationOf ? 'is-variation' : ''}`}>
           <header>
             <button type="button" className="pb-title" onClick={() => setOpen(open === p.name ? undefined : p.name)} aria-expanded={open === p.name}>
               <strong>{p.name}</strong>
               <span className="muted">{p.description}</span>
             </button>
+            <PlaybookLinks p={p} all={pbs.data ?? []} onOpen={setOpen} />
             <div className="pb-meta">
-              <span className="muted small">{p.uses} usos · {p.uses ? Math.round((p.successes / p.uses) * 100) : 0}% sucesso</span>
+              <span className="muted small">{p.uses ? `${p.successes} de ${p.uses} deram certo` : 'ainda não usado'}</span>
               <Segmented
                 label={`Autonomia de ${p.name}`}
                 value={p.autonomy}
@@ -42,6 +55,23 @@ export function Playbooks() {
           )}
         </article>
       ))}
+    </div>
+  );
+}
+
+/** "variação de X" on a variation; "Variações: …" on a base. */
+function PlaybookLinks({ p, all, onOpen }: { p: Playbook; all: Playbook[]; onOpen(name: string): void }) {
+  const variations = all.filter((o) => o.variationOf === p.name);
+  if (!p.variationOf && variations.length === 0) return null;
+  return (
+    <div className="pb-links small">
+      {p.variationOf && <span className="pill info">variação de {p.variationOf}</span>}
+      {variations.length > 0 && (
+        <>
+          <span className="muted">Variações:</span>
+          {variations.map((v) => <button key={v.name} type="button" className="pb-chip" onClick={() => onOpen(v.name)}>{v.name}</button>)}
+        </>
+      )}
     </div>
   );
 }

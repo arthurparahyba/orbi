@@ -133,6 +133,76 @@ test('executar: o playbook aprendido aparece como skill e vira um passo a passo'
   assert.equal(brain.playbook('versao-no-portal')?.successes, 1);
 });
 
+test('já sei algo parecido: igual não interrompe; parecido mostra o cartão e vira variação', async () => {
+  // The same thing: one line ("Já sei fazer isso") and the turn goes on.
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('playbook_similar', { text: 'atualizar versão do front no portal' }), { stopReason: 'toolUse' }),
+    (context) => {
+      assert.match(JSON.stringify(context), /versao-no-portal/, 'a busca achou o playbook pelo objetivo');
+      return fauxAssistantMessage(fauxToolCall('similar_found', { verdict: 'same', playbook: 'versao-no-portal' }), { stopReason: 'toolUse' });
+    },
+    fauxAssistantMessage(fauxText('Seguindo o versao-no-portal.')),
+  ]);
+  const same = init(Orbi, { id: 'chat:teste-igual' });
+  const sameReply = await same.read(await same.dispatch('Atualiza a versão do front no portal'));
+  const known = components(sameReply).find((p: any) => p.component === 'known') as any;
+  assert.equal(known.playbook.name, 'versao-no-portal');
+  assert.equal(known.playbook.successes, 1, 'o histórico vem do cérebro, não do modelo');
+  assert.match(sameReply.text, /Seguindo/);
+
+  // Similar: the card, a question in the inbox, and the turn ends.
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('similar_found', {
+      verdict: 'similar',
+      playbook: 'versao-no-portal',
+      known: 'Sei atualizar a versão no portal interno; no portal de parceiros você ainda não me mostrou.',
+      relation: 'mesmo objetivo, outro lugar',
+      reuse: ['Abrir o portal'],
+      changes: ['Outro portal e outra aba'],
+      suggestion: 'Guardar como variação: os dois portais continuam valendo.',
+      options: [{ label: 'Guardar como variação' }, { label: 'Substituir o que eu sabia' }, { label: 'São coisas diferentes' }],
+    }), { stopReason: 'toolUse' }),
+  ]);
+  const conv = init(Orbi, { id: 'chat:teste-parecido' });
+  const reply = await conv.read(await conv.dispatch('Atualiza a versão do front no portal de parceiros'));
+  const card = components(reply).find((p: any) => p.component === 'similar') as any;
+  assert.ok(card, 'cartão "Já sei algo parecido"');
+  assert.equal(card.playbook.uses, 1);
+  assert.deepEqual(card.options.map((o: any) => o.label), ['Guardar como variação', 'Substituir o que eu sabia', 'São coisas diferentes']);
+  const question = inbox.get(card.inboxId)!;
+  assert.equal(question.kind, 'question');
+  assert.equal(question.status, 'open');
+
+  // The developer chooses; Orbi stores a variation, which waits for approval as any learning.
+  faux.setResponses([
+    (context) => {
+      assert.match(JSON.stringify(context), /Guardar como variação/, 'a escolha chegou ao agente');
+      return fauxAssistantMessage(fauxToolCall('brain_learn', {
+        reason: 'variação para o portal de parceiros',
+        items: [{ kind: 'playbook', payload: {
+          ...playbook,
+          name: 'versao-no-portal-parceiros',
+          variationOf: 'versao-no-portal',
+          steps: [playbook.steps[0], { id: 'salvar', label: 'Trocar o release e salvar', how: 'aba Publicação, campo Release' }],
+        } }],
+      }), { stopReason: 'toolUse' });
+    },
+  ]);
+  const answered = await app.request(`/api/inbox/${card.inboxId}/answer`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: 'Guardar como variação' }),
+  });
+  assert.equal(answered.status, 202);
+  await conv.read(await answered.json());
+  const learning = inbox.list({ status: 'open' }).find((i) => i.kind === 'learning' && i.conversationId === 'chat:teste-parecido')!;
+  faux.setResponses([fauxAssistantMessage(fauxText('Guardei a variação.'))]);
+  const approved = await app.request(`/api/inbox/${learning.id}/decision`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve' }),
+  });
+  await conv.read(await approved.json());
+  assert.equal(brain.playbook('versao-no-portal-parceiros')?.variationOf, 'versao-no-portal');
+  assert.equal(brain.playbook('versao-no-portal')?.steps[1].label, 'Trocar a versão e salvar', 'a base não muda');
+});
+
 test('agendar retorno: o Orbi encerra o turno e é acordado depois', async () => {
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('schedule_followup', { minutes: 5, note: 'conferir o run 123 do ci.yml' }), { stopReason: 'toolUse' }),

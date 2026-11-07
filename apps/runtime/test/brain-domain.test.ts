@@ -92,3 +92,38 @@ test('primeira partida depois da atualização: brain.db antigo e JSON entram no
   assert.equal(orbi.policy.get().categories['comandos-escrita'], 'auto');
   assert.ok(existsSync(join(data, 'inbox.json.importado')) && !existsSync(join(data, 'inbox.json')), 'importado uma vez só');
 });
+
+import { similarPlaybooks, words } from '../src/brain/domain/similarity.ts';
+import { BrainStore } from '../src/brain/store.ts';
+
+const pb = (name: string, description: string, trigger = '', steps: string[] = []) => ({
+  name, description, trigger, appliesTo: null, autonomy: 'ask' as const, instructions: '', learnedFrom: null, variationOf: null,
+  uses: 0, successes: 0, updatedAt: '', steps: steps.map((label, i) => ({ id: String(i), label, how: '' })),
+});
+
+test('parecidos: palavras sem acento, plural nem palavrinhas', () => {
+  assert.deepEqual(words('Deleta os repositórios da organização, por favor'), ['deleta', 'repositorio', 'organizacao']);
+});
+
+test('parecidos: acha pelo objetivo e põe o nome e o gatilho na frente dos passos', () => {
+  const all = [
+    pb('criar-repositorio', 'Cria um repositório na organização', 'pedirem um repositório novo', ['Conferir a organização']),
+    pb('atualizar-versao-mfe', 'Troca a versão do MFE no portal', 'deploy do MFE'),
+    pb('subir-para-dev', 'Sobe o serviço para dev', '', ['Conferir repositório verde']),
+  ];
+  const found = similarPlaybooks('deletar o repositório teste-orbi', all);
+  assert.equal(found[0].playbook.name, 'criar-repositorio', 'mesmo assunto: candidato, o modelo decide que é parecido');
+  assert.deepEqual(found[0].shared, ['repositorio']);
+  assert.ok(found.findIndex((c) => c.playbook.name === 'subir-para-dev') > 0, 'só nos passos pesa menos');
+  assert.deepEqual(similarPlaybooks('pagar boleto', all), []);
+});
+
+test('variação: precisa de uma base que existe e fica ligada a ela', () => {
+  const b = new BrainStore(':memory:');
+  const base = pb('criar-repositorio', 'Cria', '', ['Conferir']);
+  b.savePlaybook(base);
+  assert.throws(() => b.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'nao-existe' }), /base não existe/);
+  assert.throws(() => b.savePlaybook({ ...base, variationOf: 'criar-repositorio' }), /base não existe/, 'não pode ser variação de si mesmo');
+  b.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'criar-repositorio' });
+  assert.equal(b.playbook('deletar-repositorio')?.variationOf, 'criar-repositorio');
+});

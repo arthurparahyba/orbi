@@ -11,6 +11,7 @@ const toPlaybook = (r: Row): Playbook => ({
   steps: parse(r.steps, []),
   instructions: String(r.instructions),
   learnedFrom: nullable(r.learned_from),
+  variationOf: nullable(r.variation_of),
   uses: Number(r.uses),
   successes: Number(r.successes),
   updatedAt: String(r.updated_at),
@@ -33,13 +34,14 @@ export class PlaybookRepo {
   save(pb: Omit<Playbook, 'uses' | 'successes' | 'updatedAt'>): void {
     this.db
       .prepare(
-        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, uses, successes, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, uses, successes, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description, applies_to = excluded.applies_to,
            trigger = excluded.trigger, autonomy = excluded.autonomy, steps = excluded.steps,
-           instructions = excluded.instructions, learned_from = excluded.learned_from, updated_at = excluded.updated_at`,
+           instructions = excluded.instructions, learned_from = excluded.learned_from,
+           variation_of = excluded.variation_of, updated_at = excluded.updated_at`,
       )
-      .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, now());
+      .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, now());
   }
 
   setAutonomy(name: string, autonomy: Autonomy): void {

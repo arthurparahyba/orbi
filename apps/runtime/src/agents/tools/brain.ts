@@ -43,6 +43,7 @@ const learnItem = v.variant('kind', [
       autonomy: v.optional(v.picklist(['observe', 'ask', 'auto'])),
       steps: v.array(v.object({ id: v.string(), label: v.string(), how: v.string() })),
       instructions: v.string(),
+      variationOf: v.optional(v.pipe(v.string(), v.description('Name of the playbook this one was made from (a variation); keep the ids of reused steps'))),
     }),
   }),
 ]);

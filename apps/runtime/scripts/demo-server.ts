@@ -84,6 +84,26 @@ function seed() {
   r('chg0041', 'aprovadaPor', 'marina', { validTo: '2026-12-31T23:59:59Z' });
   r('chg0041', 'aprovadaPor', 'rafael', { validFrom: '2027-01-01T00:00:00Z' });
   brain.savePlaybook({
+    name: 'criar-repositorio',
+    description: 'Cria um repositório na organização com o template do time.',
+    appliesTo: null,
+    trigger: 'pedirem um repositório novo',
+    autonomy: 'ask',
+    steps: [
+      { id: 'conferir', label: 'Conferir que o nome está livre na organização', how: 'gh repo view acme/{{repo}} deve falhar' },
+      { id: 'criar', label: 'Criar o repositório', how: 'gh repo create acme/{{repo}} --template acme/base --private' },
+      { id: 'proteger', label: 'Proteger a branch main', how: 'gh api repos/acme/{{repo}}/branches/main/protection' },
+      { id: 'avisar', label: 'Avisar com o link', how: 'show_ui link para o repositório' },
+    ],
+    instructions: 'Use o gh autenticado como o desenvolvedor.',
+    learnedFrom: null,
+    variationOf: null,
+  });
+  for (let i = 0; i < 4; i++) {
+    const run = brain.startRun('criar-repositorio', 'chat:seed');
+    for (const step of ['conferir', 'criar', 'proteger', 'avisar']) brain.updateRunStep(run.id, step, 'done');
+  }
+  brain.savePlaybook({
     name: 'teste-valor-fixo',
     description: 'Corrigir teste unitário que compara com valor literal quando só a configuração mudou.',
     appliesTo: 'ServicoJava',
@@ -97,6 +117,7 @@ function seed() {
     ],
     instructions: 'Só arquivos de teste podem mudar. Se a correção tocar código de produção, pare e pergunte.',
     learnedFrom: null,
+    variationOf: null,
   });
   for (let i = 0; i < 2; i++) {
     const run = brain.startRun('teste-valor-fixo', 'chat:seed');
@@ -129,6 +150,8 @@ const respond = async (context: { messages: Msg[] }) => {
   await sleep(600);
 
   if (said.includes('<demonstracao')) return fromDemonstration(textOf(msgs[lastUser]), toolsSince);
+  const similar = similarScenario(said, toolsSince);
+  if (similar) return similar;
   if ((said.includes('aprovou') || said.includes('tool-approval-result')) && (said.includes('mostrou no navegador') || said.includes('versao-do-mfe'))) {
     return fauxAssistantMessage(fauxText('Guardei o playbook **versao-do-mfe** e o Portal no cérebro; as credenciais ficam só no cofre. Quando um deploy de MFE terminar em dev, ou quando você pedir, eu rodo esse passo a passo.'));
   }
@@ -258,3 +281,50 @@ const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port, hostname: '127.0.0.1' });
 console.log(`[demo] Orbi (modelo roteirizado) em http://127.0.0.1:${port} — dados em ${dataDir}`);
 console.log(`[demo] portal de exemplo em ${portal.url}/login (usuário arthur, senha s3nh@-Portal!)`);
+
+/** "Já sei algo parecido?": deleting a repo looks like creating one, which Orbi knows. */
+function similarScenario(said: string, toolsSince: number) {
+  if (said.includes('criar versão a partir deste')) {
+    const base = brain.playbook('criar-repositorio')!;
+    return call('brain_learn', {
+      reason: 'versão de criar-repositorio para apagar',
+      items: [{ kind: 'playbook', payload: {
+        name: 'deletar-repositorio',
+        variationOf: 'criar-repositorio',
+        description: 'Apaga um repositório da organização depois de conferir PRs abertos.',
+        trigger: 'pedirem para apagar um repositório',
+        autonomy: 'ask',
+        steps: [
+          { id: 'conferir', label: 'Conferir que o repositório existe e é da organização', how: 'gh repo view acme/{{repo}}' },
+          { id: 'prs', label: 'Listar PRs abertos; se houver, mostrar e perguntar', how: 'gh pr list -R acme/{{repo}}' },
+          { id: 'criar', label: 'Apagar o repositório', how: 'gh repo delete acme/{{repo}} --yes' },
+          base.steps[3],
+        ],
+        instructions: base.instructions,
+      } }],
+    }, 'Montei a versão nova a partir do criar-repositorio. Confira as diferenças:');
+  }
+  if (said.includes('aprender do zero')) return call('ask_developer', { question: 'Combinado. Como você apaga um repositório hoje?', options: [] });
+  if (said.includes('era isso mesmo')) return fauxAssistantMessage(fauxText('Certo, sigo o criar-repositorio.'));
+  if (said.includes('tool-approval-result') && said.includes('deletar-repositorio')) {
+    return fauxAssistantMessage(fauxText('Guardei o **deletar-repositorio** como variação do criar-repositorio. Quando você confirmar, apago o teste-orbi.'));
+  }
+  const deleting = /delet|apag|remov/.test(said) && said.includes('reposit');
+  const creating = /\bcri(a|ar)\b/.test(said) && said.includes('reposit');
+  if (!deleting && !creating) return undefined;
+  if (toolsSince === 0) return call('playbook_similar', { text: deleting ? 'deletar repositório no GitHub' : 'criar repositório no GitHub' });
+  if (creating) {
+    if (toolsSince === 1) return call('similar_found', { verdict: 'same', playbook: 'criar-repositorio' });
+    return fauxAssistantMessage(fauxText('Sigo o criar-repositorio: qual nome você quer?'));
+  }
+  return call('similar_found', {
+    verdict: 'similar',
+    playbook: 'criar-repositorio',
+    known: 'Antes de agir: sei **criar** repositório, mas **deletar** você ainda não me ensinou. Não vou usar o de criar para isso.',
+    relation: 'parecido, não igual',
+    reuse: ['Usar o gh com a sua conta', 'Conferir que o repositório é da organização', 'Avisar no fim com o link'],
+    changes: ['gh repo create vira gh repo delete', 'Não tem volta: sempre peço sua aprovação', 'Conferir se há PRs abertos antes (a confirmar)'],
+    suggestion: 'uma versão nova, deletar-repositorio, partindo do de criar. Separada, porque deletar não tem volta e precisa de outra autonomia.',
+    options: [{ label: 'Criar versão a partir deste' }, { label: 'É outra coisa: aprender do zero' }, { label: 'Era isso mesmo' }],
+  });
+}

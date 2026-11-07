@@ -45,6 +45,8 @@ export interface Playbook {
   steps: PlaybookStep[];
   instructions: string;
   learnedFrom: string | null;
+  /** The playbook this one was made from ("variação de"); the base is not changed by it. */
+  variationOf: string | null;
   uses: number;
   successes: number;
   updatedAt: string;

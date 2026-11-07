@@ -76,6 +76,7 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
           steps: p.steps as PlaybookStep[],
           instructions: String(p.instructions ?? ''),
           learnedFrom: conversationId || null,
+          variationOf: p.variationOf ? String(p.variationOf) : null,
         },
       };
   }

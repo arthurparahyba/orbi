@@ -7,6 +7,8 @@ export interface ConversationInfo { id: string; title: string; createdAt: string
 export interface InboxItem {
   id: string; kind: 'approval' | 'question' | 'learning'; conversationId: string; title: string; detail: string;
   approvalId?: string; routine?: string; createdAt: string; status: 'open' | 'approved' | 'denied' | 'answered';
+  /** What the developer answered, for answered questions. */
+  answer?: string;
 }
 export interface OntologyType { name: string; description: string; relations: Record<string, string>; requires: string[] }
 export interface Entity { id: string; type: string; props: Record<string, unknown>; body: string; updatedAt: string }
@@ -15,7 +17,9 @@ export interface Gap { entity: string; type: string; missing: string }
 export type Autonomy = 'observe' | 'ask' | 'auto';
 export interface Playbook {
   name: string; description: string; appliesTo: string | null; trigger: string; autonomy: Autonomy;
-  steps: Array<{ id: string; label: string; how: string }>; instructions: string; uses: number; successes: number; updatedAt: string;
+  steps: Array<{ id: string; label: string; how: string }>; instructions: string;
+  /** The playbook this one was made from ("variação de"). */
+  variationOf: string | null; uses: number; successes: number; updatedAt: string;
 }
 export interface PlaybookRun {
   id: string; playbook: string; conversationId: string; status: 'running' | 'done' | 'failed' | 'waiting';

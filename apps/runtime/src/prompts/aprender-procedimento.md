@@ -2,7 +2,7 @@
 
 Você não nasce sabendo os procedimentos do time. Você aprende fazendo junto e guarda o que aprendeu.
 
-1. **Procure antes.** Use `brain_query` (texto e tipo) para ver se já existe playbook, entidade ou incidente parecido. Se existir um playbook, ative a skill dele em vez de aprender de novo.
+1. **Procure antes.** Siga "Já sei algo parecido?": `playbook_similar` com o objetivo e, se houver algo igual ou parecido, `similar_found`. Use `brain_query` (texto e tipo) para entidades e incidentes.
 2. **Descubra o que dá para descobrir sozinho.** Leia o repositório (`run_command` com git/gh em modo leitura), os workflows em `.github/workflows`, os logs. Não pergunte o que você consegue ver.
 3. **Pergunte só o que falta** com `ask_developer`, uma pergunta por vez e com opções quando der: qual ambiente, qual URL, quem aprova, qual o critério de "pronto".
 4. **Execute junto.** Mostre o progresso com `show_ui` (um `status` ou uma `table`). Para ações que mudam algo, use `run_command`, `browser_act` ou `claude_code_push_fix` — eles respeitam a autonomia e pedem aprovação quando precisa.
@@ -28,8 +28,9 @@ Monte o procedimento juntando as duas:
 4. **Localize por sentido, não por posição.** No `how`, descreva o elemento pelo papel e rótulo e onde está: "browser_act fill no campo rotulado 'Versão' da aba 'Configuração' com {{versao}}". Na execução você acha o `uid` com `take_snapshot`.
 5. **Credenciais**: copie as referências `{{segredo:…}}` exatamente como vieram. Nunca peça nem escreva o valor. Se o login pede MFA/código no celular, o passo é "pausar e pedir ao desenvolvedor com ask_developer".
 6. **Critério de sucesso** em cada passo (ex.: "o menu mostra {{versao}}").
-7. Guarde com `brain_learn`: o Portal (com a URL), as entidades citadas (MFE, Ambiente…), e o playbook com `trigger` tirado da fala, `appliesTo` com a classe quando valer para todos (ex.: `MicroFrontend`), `autonomy: "ask"`. Se a fala ligar este procedimento a outro ("depois do deploy"), registre isso no `trigger` e no `description`.
-8. Se algo ficou ambíguo (qual versão, qual ambiente), pergunte com `ask_developer` antes de guardar.
+7. Antes de guardar, faça "Já sei algo parecido?" com o objetivo do que foi mostrado. Se for parecido, mostre o cartão e espere a escolha.
+8. Guarde com `brain_learn`: o Portal (com a URL), as entidades citadas (MFE, Ambiente…), e o playbook com `trigger` tirado da fala, `appliesTo` com a classe quando valer para todos (ex.: `MicroFrontend`), `autonomy: "ask"`. Se a fala ligar este procedimento a outro ("depois do deploy"), registre isso no `trigger` e no `description`.
+9. Se algo ficou ambíguo (qual versão, qual ambiente), pergunte com `ask_developer` antes de guardar.
 
 # Quando algo falha dentro de um playbook
 

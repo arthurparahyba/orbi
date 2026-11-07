@@ -10,6 +10,9 @@ import * as v from 'valibot';
  */
 const StepStatus = v.picklist(['pending', 'running', 'done', 'failed', 'waiting', 'skipped']);
 
+/** An existing playbook as the cards show it; the runtime fills it from the brain, never the model. */
+const KnownPlaybook = v.object({ name: v.string(), description: v.string(), uses: v.number(), successes: v.number(), learnedAt: v.string() });
+
 export const UiComponent = v.variant('component', [
   v.object({
     component: v.literal('stepper'),
@@ -49,6 +52,25 @@ export const UiComponent = v.variant('component', [
   }),
   v.object({ component: v.literal('link'), id: v.string(), title: v.string(), url: v.string() }),
   v.object({ component: v.literal('code'), id: v.string(), title: v.string(), language: v.string(), text: v.string() }),
+  v.object({
+    // "Já sei fazer isso": the same thing as a playbook; Orbi goes on with it.
+    component: v.literal('known'),
+    id: v.string(),
+    playbook: KnownPlaybook,
+  }),
+  v.object({
+    // "Já sei algo parecido": similar, not the same; the developer chooses what to do.
+    component: v.literal('similar'),
+    id: v.string(),
+    known: v.string(),
+    relation: v.string(),
+    playbook: KnownPlaybook,
+    reuse: v.array(v.string()),
+    changes: v.array(v.string()),
+    suggestion: v.string(),
+    options: v.array(v.object({ label: v.string(), hint: v.optional(v.string()) })),
+    inboxId: v.string(),
+  }),
   v.object({
     component: v.literal('learning'),
     id: v.string(),

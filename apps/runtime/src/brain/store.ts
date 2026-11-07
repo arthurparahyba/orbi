@@ -100,6 +100,9 @@ export class BrainStore {
   // ── playbooks ───────────────────────────────────────────────────────────
   savePlaybook(pb: Omit<Playbook, 'uses' | 'successes' | 'updatedAt'>): Playbook {
     const problems = playbookProblems(pb);
+    if (pb.variationOf && (pb.variationOf === pb.name || !this.playbookRepo.get(pb.variationOf))) {
+      problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
+    }
     if (problems.length) throw new Error(problems.join('; '));
     this.playbookRepo.save(pb);
     return this.playbookRepo.get(pb.name)!;

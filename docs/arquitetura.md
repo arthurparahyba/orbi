@@ -172,6 +172,29 @@ O `npm run demo` continua com uma ontologia e um grafo de exemplo
 perde, na migração 4, os tipos de fábrica que nunca foram usados nem editados;
 o que você já ensinou fica.
 
+## Já sei algo parecido?
+
+Antes de agir num pedido e antes de guardar um procedimento, o Orbi procura o
+que já sabe:
+
+1. `playbook_similar` acha os playbooks que dividem palavras com o objetivo
+   (sem acento, plural nem palavrinhas; nome e gatilho pesam mais que os
+   passos). É barato e não decide nada: só traz candidatos com passos e histórico.
+2. O modelo compara e decide: **igual** (mesmo objetivo e passos), **parecido**
+   ou **distante**. Na dúvida, é parecido. O playbook de uma ação nunca serve
+   para a ação oposta.
+3. `similar_found` mostra o resultado. Igual vira uma linha, "Já sei fazer
+   isso", e o turno segue. Parecido vira o cartão (o que sei, o que aproveito, o
+   que muda, a sugestão e as opções) e o turno termina até você escolher. O
+   histórico do cartão (usos, sucessos, data) vem do cérebro, nunca do modelo.
+4. Se a escolha for uma versão, o playbook novo leva `variationOf` com o nome
+   da base e mantém o `id` dos passos aproveitados. O cartão de aprovação compara
+   com a base e marca cada passo como igual, muda, novo ou sai. A base não muda.
+
+No Cérebro, cada variação aparece logo abaixo da base, com a ligação nos dois
+sentidos. O `npm run demo` tem o caso de exemplo: peça para deletar um
+repositório.
+
 ## Prompts
 
 O que o modelo lê fica em `src/prompts/*.md`, fora do código: dá para revisar e

@@ -8,6 +8,7 @@ import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
 import { Message } from './Message';
 import { conversationMarkdown } from './transcript';
+import { ChatContext } from '../../components/ChatContext';
 
 const SUGGESTIONS = [
   'Ensinar pelo navegador',
@@ -61,6 +62,7 @@ export function Chat({ id, title, onTitled }: { id: string; title: string; onTit
           {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : agent.status === 'connecting' ? 'Conectando…' : 'Pronto'}
         </span>
       </header>
+      <ChatContext.Provider value={{ send: (t) => void send(t) }}>
       <div className="messages" aria-live="polite">
         {agent.historyReady && visible.length === 0 && (
           <div className="suggest">
@@ -73,6 +75,7 @@ export function Chat({ id, title, onTitled }: { id: string; title: string; onTit
         {agent.error && <div className="banner small" role="alert">{agent.error.message}</div>}
         <div ref={endRef} />
       </div>
+      </ChatContext.Provider>
       {demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}
       <Composer onSend={send} />
     </section>

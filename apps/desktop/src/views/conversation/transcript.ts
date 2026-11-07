@@ -27,6 +27,17 @@ function component(c: UiComponent): string {
       return `[${c.title}](${c.url})`;
     case 'code':
       return `**${c.title}**\n${fence(clip(c.text), c.language)}`;
+    case 'known':
+      return `_Já sei fazer isso: \`${c.playbook.name}\` (${c.playbook.successes} de ${c.playbook.uses} deram certo)._`;
+    case 'similar':
+      return [
+        c.known,
+        `**Já sei algo parecido: \`${c.playbook.name}\`** (${c.relation}; ${c.playbook.successes} de ${c.playbook.uses} deram certo)`,
+        ...c.reuse.map((r) => `- aproveita: ${r}`),
+        ...c.changes.map((r) => `- muda: ${r}`),
+        c.suggestion && `Sugestão: ${c.suggestion}`,
+        `Opções: ${c.options.map((o) => o.label).join(' · ')}`,
+      ].filter(Boolean).join('\n');
     case 'learning':
       return [`**Aprendizado proposto: ${c.title}**`, ...c.items.map((i) => `- ${i.kind}: ${i.summary}`)].join('\n');
   }

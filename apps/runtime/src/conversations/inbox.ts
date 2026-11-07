@@ -20,6 +20,8 @@ export interface InboxItem {
   routine?: string;
   createdAt: string;
   status: 'open' | 'approved' | 'denied' | 'answered';
+  /** For answered questions: what the developer answered (cards show the choice). */
+  answer?: string;
 }
 
 type Row = Record<string, unknown>;
@@ -33,6 +35,7 @@ const toItem = (r: Row): InboxItem => ({
   ...(r.routine ? { routine: String(r.routine) } : {}),
   createdAt: String(r.created_at),
   status: String(r.status) as InboxItem['status'],
+  ...(r.answer ? { answer: String(r.answer) } : {}),
 });
 
 export class Inbox {
@@ -63,11 +66,11 @@ export class Inbox {
     return r ? toItem(r) : undefined;
   }
 
-  resolve(id: string, status: Exclude<InboxItem['status'], 'open'>): InboxItem {
+  resolve(id: string, status: Exclude<InboxItem['status'], 'open'>, answer?: string): InboxItem {
     const item = this.get(id);
     if (!item) throw new Error(`inbox item not found: ${id}`);
     if (item.status !== 'open') throw new Error(`inbox item already ${item.status}`);
-    this.db.prepare("UPDATE inbox_items SET status = ? WHERE id = ? AND status = 'open'").run(status, id);
-    return { ...item, status };
+    this.db.prepare("UPDATE inbox_items SET status = ?, answer = ? WHERE id = ? AND status = 'open'").run(status, answer ?? null, id);
+    return { ...item, status, ...(answer ? { answer } : {}) };
   }
 }

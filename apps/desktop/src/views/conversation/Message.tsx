@@ -8,7 +8,7 @@ const TOOL_LABEL: Record<string, string> = {
   run_command: 'Comando', run_read_only_command: 'Comando (leitura)', run_python: 'Python', brain_query: 'Consulta ao cérebro',
   brain_learn: 'Aprender', browser_read: 'Navegador (leitura)', browser_act: 'Ação no navegador', playbook_start: 'Iniciar playbook',
   playbook_step: 'Passo do playbook', claude_code_prepare_fix: 'Claude Code: preparar correção', claude_code_push_fix: 'Claude Code: enviar correção',
-  show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente',
+  show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente', playbook_similar: 'Procurar o que já sei',
 };
 
 /** One message of the conversation, as the developer should see it. */
@@ -37,7 +37,7 @@ export function Message({ m }: { m: FlueConversationMessage }) {
 
 type ToolPart = Extract<FlueConversationPart, { type: 'dynamic-tool' }>;
 /** Tools whose result is already drawn as a ui component (stepper, cards). */
-const SILENT_TOOLS = new Set(['show_ui', 'playbook_start', 'playbook_step']);
+const SILENT_TOOLS = new Set(['show_ui', 'playbook_start', 'playbook_step', 'similar_found']);
 
 /** Consecutive tool calls fold into one "atividade" row so the stepper and text stay readable. */
 export function groupParts(parts: FlueConversationPart[]): Array<FlueConversationPart | ToolPart[]> {
