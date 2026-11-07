@@ -48,6 +48,18 @@ export class PlaybookRepo {
     this.db.prepare('UPDATE playbooks SET autonomy = ?, updated_at = ? WHERE name = ?').run(autonomy, now(), name);
   }
 
+  /** Full-text search (see brain/domain/similarity.ts): best first, by BM25 with the name weighing most. */
+  search(query: string, limit: number): Playbook[] {
+    if (!query) return [];
+    const rows = this.db
+      .prepare(
+        `SELECT p.* FROM playbooks_fts f JOIN playbooks p ON p.name = f.key
+         WHERE playbooks_fts MATCH ? ORDER BY bm25(playbooks_fts, 0, 8, 4, 4, 2, 1), p.successes DESC LIMIT ?`,
+      )
+      .all(query, limit) as Row[];
+    return rows.map(toPlaybook);
+  }
+
   get(name: string): Playbook | undefined {
     const r = this.db.prepare('SELECT * FROM playbooks WHERE name = ?').get(name) as Row | undefined;
     return r ? toPlaybook(r) : undefined;

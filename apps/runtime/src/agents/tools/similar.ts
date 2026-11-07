@@ -1,7 +1,6 @@
 import { useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { services } from '../../services.ts';
-import { similarPlaybooks } from '../../brain/domain/similarity.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -17,22 +16,24 @@ export function useSimilar(ctx: AgentContext) {
     name: 'playbook_similar',
     description:
       'Find playbooks that look like a request or a procedure you are about to store. Give the goal in a few words ("deletar repositório no GitHub"). ' +
-      'Returns up to 3 candidates with their steps and track record; you judge if one is the same, similar or unrelated.',
+      'Returns up to 3 candidates, best first, with steps, instructions and track record; you judge if one is the same, similar or unrelated. ' +
+      'Also how you find any playbook not in your skill catalog: run it with playbook_start by name.',
     input: v.object({ text: v.string() }),
     async run({ data }) {
       const all = brain.playbooks();
-      const candidates = similarPlaybooks(data.text, all).map(({ playbook: p, shared }) => ({
+      const candidates = brain.searchPlaybooks(data.text, 3).map(({ playbook: p, shared }) => ({
         name: p.name,
         description: p.description,
         trigger: p.trigger,
         appliesTo: p.appliesTo,
         autonomy: p.autonomy,
         steps: p.steps,
+        instructions: p.instructions,
         uses: p.uses,
         successes: p.successes,
         variationOf: p.variationOf,
         variations: all.filter((o) => o.variationOf === p.name).map((o) => o.name),
-        sharedWords: shared,
+        sharedStems: shared,
       }));
       const result = candidates.length ? { candidates } : { candidates, note: 'nada parecido: siga normalmente' };
       return { output: JSON.parse(JSON.stringify(result)) };

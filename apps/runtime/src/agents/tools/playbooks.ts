@@ -9,10 +9,17 @@ export function useActiveRun() {
 }
 
 /**
- * Playbooks: mounted as Agent Skills (the catalog line is cheap; the model
- * activates one to read its steps when a request matches its description),
- * plus the two tools that run one as a live checklist.
+ * Playbooks: the most used are mounted as Agent Skills (one catalog line each;
+ * the model activates one to read its steps), plus the two tools that run one
+ * as a live checklist. The catalog stays small however many playbooks exist:
+ * the rest are found by search (playbook_similar) and started by name. The
+ * order (uses, then name) is stable, so the catalog rarely changes between
+ * turns and the prompt cache holds.
  */
+export function skillCatalog<T extends { name: string; uses: number }>(playbooks: T[], size: number): T[] {
+  return [...playbooks].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, Math.max(0, size));
+}
+
 export function usePlaybooks(ctx: AgentContext) {
   const { brain } = services();
 
@@ -28,7 +35,7 @@ export function usePlaybooks(ctx: AgentContext) {
     });
   };
 
-  for (const pb of brain.playbooks()) {
+  for (const pb of skillCatalog(brain.playbooks(), services().config.skillCatalogSize)) {
     useSkill(
       defineSkill({
         name: pb.name,

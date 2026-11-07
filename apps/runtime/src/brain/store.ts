@@ -1,7 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
 import { openDatabase, transaction } from '../db/database.ts';
-import { edgeProblems, entityProblems, findGaps, rankByTerms } from './domain/ontology.ts';
+import { edgeProblems, entityProblems, findGaps } from './domain/ontology.ts';
+import { ftsQuery, sharedStems } from './domain/similarity.ts';
 import { advanceRun, newRun, playbookProblems } from './domain/playbooks.ts';
 import { changeFromProposal, proposalProblems } from './domain/learning.ts';
 import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun, Proposal, ProposalKind, StepStatus } from './domain/types.ts';
@@ -85,9 +86,9 @@ export class BrainStore {
   reachable(id: string, depth = 2): Array<{ id: string; depth: number }> {
     return this.graphRepo.reachable(id, depth, now());
   }
+  /** Entities for a text, best first (full-text index; see domain/similarity.ts). */
   search(text: string, limit = 10): Entity[] {
-    const terms = text.toLowerCase().split(/\s+/).filter(Boolean);
-    return rankByTerms(this.graphRepo.matching(terms), text, limit);
+    return this.graphRepo.search(ftsQuery(text), limit);
   }
   gaps(): Gap[] {
     const at = now();
@@ -117,6 +118,13 @@ export class BrainStore {
   }
   playbooks(): Playbook[] {
     return this.playbookRepo.all();
+  }
+  /** Playbooks for a request, best first, with the stems they share with it. */
+  searchPlaybooks(text: string, limit = 3): Array<{ playbook: Playbook; shared: string[] }> {
+    return this.playbookRepo.search(ftsQuery(text), limit).map((playbook) => ({
+      playbook,
+      shared: sharedStems(text, [playbook.name, playbook.description, playbook.trigger, ...playbook.steps.map((s) => `${s.label} ${s.how}`)].join(' ')),
+    }));
   }
 
   startRun(playbookName: string, conversationId: string, params: Record<string, string> = {}): PlaybookRun {

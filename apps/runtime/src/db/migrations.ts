@@ -73,4 +73,37 @@ DELETE FROM types WHERE ((name = 'Classe' AND description = 'Categoria de coisas
     name: 'pendência guarda a resposta escolhida',
     sql: `ALTER TABLE inbox_items ADD COLUMN answer TEXT;`,
   },
+  {
+    name: 'índice de busca (FTS5, sem acento) para playbooks e entidades',
+    sql: `
+CREATE VIRTUAL TABLE playbooks_fts USING fts5(key UNINDEXED, name, description, trigger, applies, steps, tokenize = 'unicode61 remove_diacritics 2');
+CREATE VIRTUAL TABLE entities_fts USING fts5(key UNINDEXED, id, type, props, body, tokenize = 'unicode61 remove_diacritics 2');
+CREATE TRIGGER playbooks_fts_ai AFTER INSERT ON playbooks BEGIN
+  INSERT INTO playbooks_fts (key, name, description, trigger, applies, steps)
+  VALUES (NEW.name, NEW.name, NEW.description, NEW.trigger, COALESCE(NEW.applies_to, ''), (SELECT COALESCE(group_concat(json_extract(value, '$.label') || ' ' || json_extract(value, '$.how'), ' '), '') FROM json_each(NEW.steps)));
+END;
+CREATE TRIGGER playbooks_fts_au AFTER UPDATE ON playbooks BEGIN
+  DELETE FROM playbooks_fts WHERE key = OLD.name;
+  INSERT INTO playbooks_fts (key, name, description, trigger, applies, steps)
+  VALUES (NEW.name, NEW.name, NEW.description, NEW.trigger, COALESCE(NEW.applies_to, ''), (SELECT COALESCE(group_concat(json_extract(value, '$.label') || ' ' || json_extract(value, '$.how'), ' '), '') FROM json_each(NEW.steps)));
+END;
+CREATE TRIGGER playbooks_fts_ad AFTER DELETE ON playbooks BEGIN
+  DELETE FROM playbooks_fts WHERE key = OLD.name;
+END;
+CREATE TRIGGER entities_fts_ai AFTER INSERT ON entities BEGIN
+  INSERT INTO entities_fts (key, id, type, props, body) VALUES (NEW.id, NEW.id, NEW.type, NEW.props, NEW.body);
+END;
+CREATE TRIGGER entities_fts_au AFTER UPDATE ON entities BEGIN
+  DELETE FROM entities_fts WHERE key = OLD.id;
+  INSERT INTO entities_fts (key, id, type, props, body) VALUES (NEW.id, NEW.id, NEW.type, NEW.props, NEW.body);
+END;
+CREATE TRIGGER entities_fts_ad AFTER DELETE ON entities BEGIN
+  DELETE FROM entities_fts WHERE key = OLD.id;
+END;
+INSERT INTO playbooks_fts (key, name, description, trigger, applies, steps)
+  SELECT name, name, description, trigger, COALESCE(applies_to, ''),
+    (SELECT COALESCE(group_concat(json_extract(value, '$.label') || ' ' || json_extract(value, '$.how'), ' '), '') FROM json_each(playbooks.steps))
+  FROM playbooks;
+INSERT INTO entities_fts (key, id, type, props, body) SELECT id, id, type, props, body FROM entities;`,
+  },
 ];

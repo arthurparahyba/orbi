@@ -134,3 +134,11 @@ test('cérebro: proposta só vale depois de aplicada; playbook conta usos e suce
   assert.equal(b.updateRunStep(run.id, 'a', 'done').status, 'done');
   assert.deepEqual([b.playbook('subir-dev')?.uses, b.playbook('subir-dev')?.successes], [1, 1]);
 });
+
+test('catálogo de skills: só os mais usados, em ordem estável', async () => {
+  const { skillCatalog } = await import('../src/agents/tools/playbooks.ts');
+  const pbs = [{ name: 'b', uses: 2 }, { name: 'a', uses: 2 }, { name: 'c', uses: 9 }, { name: 'd', uses: 0 }];
+  assert.deepEqual(skillCatalog(pbs, 3).map((p) => p.name), ['c', 'a', 'b']);
+  assert.deepEqual(skillCatalog(pbs, 0), []);
+  assert.equal(pbs[0].name, 'b', 'não reordena a lista original');
+});

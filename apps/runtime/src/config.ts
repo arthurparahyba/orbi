@@ -76,6 +76,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     parentPid: env.ORBI_PARENT_PID ? Number(env.ORBI_PARENT_PID) : undefined,
     /** Seconds between checks for due follow-ups. */
     followupIntervalMs: Number(env.ORBI_FOLLOWUP_INTERVAL_MS ?? '15000'),
+    /** How many playbooks (the most used) are mounted as skills; the rest are found with playbook_similar. */
+    skillCatalogSize: Number(env.ORBI_SKILL_CATALOG_SIZE ?? '15'),
 
     chrome: chromeConfig(env, at),
     vault: vaultConfig(env, at),
@@ -136,6 +138,10 @@ function sttConfig(env: NodeJS.ProcessEnv, { path, dataDir }: Paths) {
     model: env.ORBI_STT_MODEL ?? 'whisper-1',
     language: env.ORBI_STT_LANGUAGE ?? 'pt',
     modelsDir: path(env.ORBI_MODELS_DIR ?? `${dataDir}/models`),
+    /** Where to download the Whisper model from when huggingface.co is blocked (a company mirror, e.g. Artifactory). */
+    modelHost: env.ORBI_STT_MODEL_HOST,
+    /** Never download: use only the model already in modelsDir (copied by hand on a closed network). */
+    offline: env.ORBI_STT_OFFLINE === 'true',
   };
 }
 

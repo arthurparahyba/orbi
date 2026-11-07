@@ -172,14 +172,38 @@ O `npm run demo` continua com uma ontologia e um grafo de exemplo
 perde, na migração 4, os tipos de fábrica que nunca foram usados nem editados;
 o que você já ensinou fica.
 
+## Busca
+
+Toda busca por texto (procedimentos em `playbook_similar`, entidades em
+`brain_query`) passa pelo índice de texto do SQLite (FTS5), mantido por
+gatilhos a cada escrita:
+
+- o pedido vira palavras sem acento e sem palavrinhas ("de", "para"…), cortadas
+  no radical: "deleta", "deletar" e "deletado" viram `delet*`;
+- o índice ordena por BM25: palavra rara e decisiva pesa mais que palavra comum,
+  e o nome do procedimento pesa mais que a descrição, que pesa mais que os passos;
+- sinônimos ("apagar" × "deletar") não se encontram aqui; isso é a busca por
+  significado, que ainda não existe.
+
+O catálogo de skills nas instruções do modelo tem só os 15 procedimentos mais
+usados (`ORBI_SKILL_CATALOG_SIZE`), em ordem estável. Os outros o modelo acha
+com `playbook_similar` e roda pelo nome. Assim as instruções não crescem com o
+cérebro.
+
+**Medição.** `test/fixtures/search-eval.json` tem 24 procedimentos e 40 pedidos,
+cada um com o procedimento certo. `npm run eval:search -w @orbi/runtime` mostra
+o acerto no 1º lugar e entre os 3 primeiros, separado em pedidos com as mesmas
+palavras e pedidos por sinônimo. Um teste trava o mínimo, para nenhuma mudança
+piorar a busca sem ninguém ver. Hoje: 100% entre os 3 com as mesmas palavras
+(antes do índice, 91%), 38% por sinônimo.
+
 ## Já sei algo parecido?
 
 Antes de agir num pedido e antes de guardar um procedimento, o Orbi procura o
 que já sabe:
 
-1. `playbook_similar` acha os playbooks que dividem palavras com o objetivo
-   (sem acento, plural nem palavrinhas; nome e gatilho pesam mais que os
-   passos). É barato e não decide nada: só traz candidatos com passos e histórico.
+1. `playbook_similar` busca no índice (veja "Busca" abaixo) e traz os 3
+   melhores com passos, instruções e histórico. Não decide nada.
 2. O modelo compara e decide: **igual** (mesmo objetivo e passos), **parecido**
    ou **distante**. Na dúvida, é parecido. O playbook de uma ação nunca serve
    para a ação oposta.

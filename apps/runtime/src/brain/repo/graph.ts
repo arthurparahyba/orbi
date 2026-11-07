@@ -83,6 +83,18 @@ export class GraphRepo {
   }
 
   /** Entities whose text contains any of the terms. */
+  /** Full-text search over id, type, properties and text: best first (BM25). */
+  search(query: string, limit: number): Entity[] {
+    if (!query) return [];
+    const rows = this.db
+      .prepare(
+        `SELECT e.* FROM entities_fts f JOIN entities e ON e.id = f.key
+         WHERE entities_fts MATCH ? ORDER BY bm25(entities_fts, 0, 6, 3, 2, 1) LIMIT ?`,
+      )
+      .all(query, limit) as Row[];
+    return rows.map(toEntity);
+  }
+
   matching(terms: string[]): Entity[] {
     if (!terms.length) return [];
     const clause = terms.map(() => `LOWER(id || ' ' || type || ' ' || props || ' ' || body) LIKE ?`).join(' OR ');

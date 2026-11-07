@@ -1,0 +1,606 @@
+{
+ "playbooks": [
+  {
+   "name": "criar-repositorio",
+   "description": "Cria um repositório na organização com o template do time.",
+   "trigger": "pedirem um repositório novo",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Conferir que o nome está livre",
+     "how": "gh repo view"
+    },
+    {
+     "id": "s1",
+     "label": "Criar o repositório",
+     "how": "gh repo create --template"
+    },
+    {
+     "id": "s2",
+     "label": "Proteger a branch main",
+     "how": "gh api branches protection"
+    }
+   ]
+  },
+  {
+   "name": "deletar-repositorio",
+   "description": "Apaga um repositório da organização depois de conferir PRs abertos.",
+   "trigger": "pedirem para apagar um repositório",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Listar PRs abertos",
+     "how": "gh pr list"
+    },
+    {
+     "id": "s1",
+     "label": "Apagar",
+     "how": "gh repo delete --yes"
+    }
+   ]
+  },
+  {
+   "name": "arquivar-repositorio",
+   "description": "Arquiva um repositório que saiu de uso, deixando só leitura.",
+   "trigger": "repositório sem uso",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Arquivar",
+     "how": "gh repo archive"
+    }
+   ]
+  },
+  {
+   "name": "subir-para-dev",
+   "description": "Faz o deploy do serviço no ambiente de desenvolvimento.",
+   "trigger": "merge na main ou pedido de deploy em dev",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Conferir que a main está verde",
+     "how": "gh run list"
+    },
+    {
+     "id": "s1",
+     "label": "Disparar o workflow deploy-dev",
+     "how": "gh workflow run deploy-dev"
+    },
+    {
+     "id": "s2",
+     "label": "Conferir a URL de dev",
+     "how": "curl health"
+    }
+   ]
+  },
+  {
+   "name": "subir-para-homologacao",
+   "description": "Promove a versão de dev para homologação (hml).",
+   "trigger": "validação em dev concluída",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Disparar deploy-hml",
+     "how": "gh workflow run deploy-hml"
+    },
+    {
+     "id": "s1",
+     "label": "Avisar QA",
+     "how": "mensagem no canal"
+    }
+   ]
+  },
+  {
+   "name": "subir-para-producao",
+   "description": "Publica em produção com GMUD aprovada.",
+   "trigger": "GMUD aprovada",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Conferir GMUD aprovada",
+     "how": "ServiceNow"
+    },
+    {
+     "id": "s1",
+     "label": "Disparar deploy-prd",
+     "how": "gh workflow run deploy-prd"
+    },
+    {
+     "id": "s2",
+     "label": "Monitorar erros por 30 minutos",
+     "how": "aws logs tail"
+    }
+   ]
+  },
+  {
+   "name": "abrir-gmud",
+   "description": "Abre a GMUD (mudança) no ServiceNow para uma release.",
+   "trigger": "release pronta para produção",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Preencher a GMUD",
+     "how": "navegador ServiceNow"
+    },
+    {
+     "id": "s1",
+     "label": "Anexar evidências de homologação",
+     "how": "upload"
+    }
+   ]
+  },
+  {
+   "name": "rollback-producao",
+   "description": "Volta a versão anterior em produção quando algo quebra.",
+   "trigger": "erro em produção depois de deploy",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Achar a última versão boa",
+     "how": "gh release list"
+    },
+    {
+     "id": "s1",
+     "label": "Redeploy da versão anterior",
+     "how": "gh workflow run deploy-prd --ref"
+    }
+   ]
+  },
+  {
+   "name": "atualizar-versao-mfe",
+   "description": "Troca a versão do MFE no portal interno depois do deploy.",
+   "trigger": "deploy do MFE concluído",
+   "appliesTo": "MicroFrontend",
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Abrir o portal interno",
+     "how": "navegador"
+    },
+    {
+     "id": "s1",
+     "label": "Trocar a versão na aba Configuração",
+     "how": "browser_act fill"
+    }
+   ]
+  },
+  {
+   "name": "atualizar-versao-mfe-parceiros",
+   "description": "Troca a versão do MFE no portal de parceiros, aba Publicação.",
+   "trigger": "deploy do MFE concluído",
+   "appliesTo": "MicroFrontend",
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Abrir o portal de parceiros",
+     "how": "navegador"
+    },
+    {
+     "id": "s1",
+     "label": "Trocar o release na aba Publicação",
+     "how": "browser_act fill"
+    }
+   ]
+  },
+  {
+   "name": "rodar-pipeline-novamente",
+   "description": "Reexecuta um workflow de CI que falhou por instabilidade.",
+   "trigger": "CI falhou por timeout ou flaky",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Ver o log do erro",
+     "how": "gh run view --log-failed"
+    },
+    {
+     "id": "s1",
+     "label": "Reexecutar",
+     "how": "gh run rerun --failed"
+    }
+   ]
+  },
+  {
+   "name": "corrigir-teste-quebrado",
+   "description": "Investiga e corrige teste unitário que quebrou no CI.",
+   "trigger": "teste falhando no CI",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Investigar o erro",
+     "how": "subagente investigador"
+    },
+    {
+     "id": "s1",
+     "label": "Preparar correção",
+     "how": "claude_code_prepare_fix"
+    }
+   ]
+  },
+  {
+   "name": "ver-logs-servico",
+   "description": "Mostra os logs recentes de um serviço na AWS CloudWatch.",
+   "trigger": "pedirem logs ou erro em ambiente",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Achar o log group",
+     "how": "aws logs describe-log-groups"
+    },
+    {
+     "id": "s1",
+     "label": "Mostrar últimas linhas",
+     "how": "aws logs tail"
+    }
+   ]
+  },
+  {
+   "name": "ligar-feature-flag",
+   "description": "Liga ou desliga uma feature flag no LaunchDarkly.",
+   "trigger": "pedirem para ativar funcionalidade",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Abrir o LaunchDarkly",
+     "how": "navegador"
+    },
+    {
+     "id": "s1",
+     "label": "Mudar o toggle",
+     "how": "browser_act click"
+    }
+   ]
+  },
+  {
+   "name": "rotacionar-segredo",
+   "description": "Gera um segredo novo e atualiza no Secrets Manager e nos serviços.",
+   "trigger": "segredo vencendo ou vazado",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Gerar novo valor",
+     "how": "aws secretsmanager rotate-secret"
+    },
+    {
+     "id": "s1",
+     "label": "Reiniciar serviços",
+     "how": "aws ecs update-service --force-new-deployment"
+    }
+   ]
+  },
+  {
+   "name": "criar-branch-feature",
+   "description": "Cria branch de feature a partir da main com o padrão do time.",
+   "trigger": "começar história nova",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Atualizar main",
+     "how": "git pull"
+    },
+    {
+     "id": "s1",
+     "label": "Criar branch feature/<historia>",
+     "how": "git switch -c"
+    }
+   ]
+  },
+  {
+   "name": "abrir-pull-request",
+   "description": "Abre PR da branch atual com template e revisores do time.",
+   "trigger": "branch pronta para revisão",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Push da branch",
+     "how": "git push"
+    },
+    {
+     "id": "s1",
+     "label": "Abrir PR",
+     "how": "gh pr create --fill"
+    }
+   ]
+  },
+  {
+   "name": "mergear-pull-request",
+   "description": "Faz merge do PR aprovado com squash e apaga a branch.",
+   "trigger": "PR aprovado e CI verde",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Conferir aprovações",
+     "how": "gh pr view"
+    },
+    {
+     "id": "s1",
+     "label": "Merge",
+     "how": "gh pr merge --squash --delete-branch"
+    }
+   ]
+  },
+  {
+   "name": "gerar-release",
+   "description": "Gera tag e release notes a partir dos PRs mergeados.",
+   "trigger": "fim da sprint ou release pedida",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Calcular versão",
+     "how": "semver"
+    },
+    {
+     "id": "s1",
+     "label": "Criar release",
+     "how": "gh release create --generate-notes"
+    }
+   ]
+  },
+  {
+   "name": "atualizar-dependencias",
+   "description": "Atualiza dependências do npm e roda os testes.",
+   "trigger": "alerta do Dependabot",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Atualizar",
+     "how": "npm update"
+    },
+    {
+     "id": "s1",
+     "label": "Rodar testes",
+     "how": "npm test"
+    }
+   ]
+  },
+  {
+   "name": "escalar-servico",
+   "description": "Aumenta o número de instâncias de um serviço no ECS.",
+   "trigger": "latência alta ou pico de acesso",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Mudar desired count",
+     "how": "aws ecs update-service --desired-count"
+    }
+   ]
+  },
+  {
+   "name": "limpar-cache-cdn",
+   "description": "Invalida o cache do CloudFront depois de publicar o front.",
+   "trigger": "front publicado e usuários vendo versão antiga",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Criar invalidação",
+     "how": "aws cloudfront create-invalidation"
+    }
+   ]
+  },
+  {
+   "name": "registrar-incidente",
+   "description": "Registra um incidente com linha do tempo e causa.",
+   "trigger": "algo quebrou em produção",
+   "appliesTo": null,
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Criar registro",
+     "how": "brain_learn Incidente"
+    },
+    {
+     "id": "s1",
+     "label": "Avisar o time",
+     "how": "canal"
+    }
+   ]
+  },
+  {
+   "name": "cadastrar-mfe-no-portal",
+   "description": "Cadastra um MFE novo no menu do portal interno.",
+   "trigger": "MFE novo publicado pela primeira vez",
+   "appliesTo": "MicroFrontend",
+   "steps": [
+    {
+     "id": "s0",
+     "label": "Abrir o portal interno",
+     "how": "navegador"
+    },
+    {
+     "id": "s1",
+     "label": "Adicionar item no menu",
+     "how": "browser_act"
+    }
+   ]
+  }
+ ],
+ "queries": [
+  {
+   "text": "Deleta o repositório teste-orbi",
+   "expect": "deletar-repositorio"
+  },
+  {
+   "text": "cria um repo novo pro time",
+   "expect": "criar-repositorio"
+  },
+  {
+   "text": "quero um repositório novo chamado pagamentos-api",
+   "expect": "criar-repositorio"
+  },
+  {
+   "text": "arquiva o repositório antigo do boleto",
+   "expect": "arquivar-repositorio"
+  },
+  {
+   "text": "sobe o portal-clientes para dev",
+   "expect": "subir-para-dev"
+  },
+  {
+   "text": "faz deploy em desenvolvimento do svc-boletos",
+   "expect": "subir-para-dev"
+  },
+  {
+   "text": "promove para homologação",
+   "expect": "subir-para-homologacao"
+  },
+  {
+   "text": "publica em produção a versão 2.3",
+   "expect": "subir-para-producao"
+  },
+  {
+   "text": "abre a GMUD da release de sexta",
+   "expect": "abrir-gmud"
+  },
+  {
+   "text": "abrir mudança no ServiceNow",
+   "expect": "abrir-gmud"
+  },
+  {
+   "text": "deu erro em produção, volta a versão anterior",
+   "expect": "rollback-producao"
+  },
+  {
+   "text": "faz rollback do deploy de ontem",
+   "expect": "rollback-producao"
+  },
+  {
+   "text": "atualiza a versão do MFE de checkout no portal",
+   "expect": "atualizar-versao-mfe"
+  },
+  {
+   "text": "troca a versão do micro front no portal de parceiros",
+   "expect": "atualizar-versao-mfe-parceiros"
+  },
+  {
+   "text": "o CI falhou por timeout, roda de novo",
+   "expect": "rodar-pipeline-novamente"
+  },
+  {
+   "text": "reexecuta o workflow que quebrou",
+   "expect": "rodar-pipeline-novamente"
+  },
+  {
+   "text": "o teste unitário quebrou no CI, corrige",
+   "expect": "corrigir-teste-quebrado"
+  },
+  {
+   "text": "me mostra os logs do svc-boletos",
+   "expect": "ver-logs-servico"
+  },
+  {
+   "text": "o que está dando erro no CloudWatch do pagamentos",
+   "expect": "ver-logs-servico"
+  },
+  {
+   "text": "liga a feature flag do novo checkout",
+   "expect": "ligar-feature-flag"
+  },
+  {
+   "text": "ativa a funcionalidade nova no LaunchDarkly",
+   "expect": "ligar-feature-flag"
+  },
+  {
+   "text": "rotaciona a senha do banco que vazou",
+   "expect": "rotacionar-segredo"
+  },
+  {
+   "text": "cria uma branch para a história PAG-123",
+   "expect": "criar-branch-feature"
+  },
+  {
+   "text": "abre o PR dessa branch",
+   "expect": "abrir-pull-request"
+  },
+  {
+   "text": "abre pull request com os revisores do time",
+   "expect": "abrir-pull-request"
+  },
+  {
+   "text": "faz o merge do PR aprovado",
+   "expect": "mergear-pull-request"
+  },
+  {
+   "text": "gera a release com as notas",
+   "expect": "gerar-release"
+  },
+  {
+   "text": "atualiza as dependências do npm",
+   "expect": "atualizar-dependencias"
+  },
+  {
+   "text": "aumenta as instâncias do serviço de pagamentos",
+   "expect": "escalar-servico"
+  },
+  {
+   "text": "invalida o cache do CloudFront",
+   "expect": "limpar-cache-cdn"
+  },
+  {
+   "text": "registra o incidente de hoje cedo",
+   "expect": "registrar-incidente"
+  },
+  {
+   "text": "cadastra o MFE novo no menu do portal",
+   "expect": "cadastrar-mfe-no-portal"
+  },
+  {
+   "text": "remove o repo de testes",
+   "expect": "deletar-repositorio",
+   "semantic": true
+  },
+  {
+   "text": "joga em prod",
+   "expect": "subir-para-producao",
+   "semantic": true
+  },
+  {
+   "text": "desfaz a última publicação",
+   "expect": "rollback-producao",
+   "semantic": true
+  },
+  {
+   "text": "o build ficou vermelho de novo, tenta outra vez",
+   "expect": "rodar-pipeline-novamente",
+   "semantic": true
+  },
+  {
+   "text": "habilita o toggle do checkout",
+   "expect": "ligar-feature-flag",
+   "semantic": true
+  },
+  {
+   "text": "o site está lento, coloca mais máquinas",
+   "expect": "escalar-servico",
+   "semantic": true
+  },
+  {
+   "text": "usuários ainda veem a versão velha do front",
+   "expect": "limpar-cache-cdn",
+   "semantic": true
+  },
+  {
+   "text": "troca a credencial do RDS",
+   "expect": "rotacionar-segredo",
+   "semantic": true
+  }
+ ]
+}

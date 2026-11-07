@@ -66,6 +66,11 @@ function localWhisper(stt: SttConfig): Transcriber {
         throw new Error('transcrição local precisa do pacote @huggingface/transformers (npm install)');
       });
       t.env.cacheDir = stt.modelsDir;
+      if (stt.modelHost) t.env.remoteHost = stt.modelHost.endsWith('/') ? stt.modelHost : `${stt.modelHost}/`;
+      if (stt.offline) {
+        t.env.allowRemoteModels = false;
+        t.env.localModelPath = stt.modelsDir;
+      }
       log.info('carregando modelo de transcrição (a primeira vez baixa o modelo)', { model: stt.localModel });
       return (await t.pipeline('automatic-speech-recognition', stt.localModel, { dtype: 'q8' })) as unknown as Asr;
     })().catch((error) => {

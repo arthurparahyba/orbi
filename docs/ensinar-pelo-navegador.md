@@ -59,3 +59,17 @@ aprovar → executar).
 
 No `npm run demo`, o botão já vem com um portal de exemplo
 (`http://127.0.0.1:4310/login`, usuário `arthur`, senha `s3nh@-Portal!`).
+
+## Transcrição no Windows e em rede fechada
+
+A transcrição local usa o Whisper pelo transformers.js, que roda no Windows,
+no macOS e no Linux. O que pode atrapalhar no computador da empresa é baixar o
+modelo (cerca de 250 MB do huggingface.co) na primeira vez. Há três saídas:
+
+- `ORBI_STT_MODEL_HOST`: um espelho do Hugging Face na empresa (Artifactory, Nexus);
+- `ORBI_STT_OFFLINE=true`: copie a pasta do modelo para `ORBI_MODELS_DIR` e o Orbi
+  não tenta baixar nada;
+- `ORBI_STT=http`: um serviço de transcrição compatível com a API da OpenAI, se a
+  empresa tiver um.
+
+Sem nenhuma delas, a demonstração continua funcionando sem a narração (só os cliques).
