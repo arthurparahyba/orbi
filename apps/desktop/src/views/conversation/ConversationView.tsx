@@ -2,13 +2,23 @@ import { useEffect, useState } from 'react';
 import { api, type ConversationInfo, type InboxItem } from '../../api';
 import { useLive } from '../../hooks';
 import { PlusIcon } from '../../components/Icons';
+import { Segmented } from '../../components/Segmented';
 import { Chat } from './Chat';
 import { InboxPanel } from './InboxPanel';
 
 /** The Conversa screen: conversation list, the open conversation and what waits for the developer. */
-export function ConversationView({ openInbox }: { openInbox: InboxItem[] }) {
-  const list = useLive(api.conversations, ['conversations']);
-  const [current, setCurrent] = useState<string | undefined>();
+type Filter = 'todas' | 'minhas' | 'agentes';
+
+export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[]; focus?: { id: string } }) {
+  const list = useLive(api.conversations, ['conversations', 'agents']);
+  const [current, setCurrent] = useState<string | undefined>(focus?.id);
+  const [filter, setFilter] = useState<Filter>('todas');
+  const fromAgents = (list.data ?? []).some((c) => c.origin);
+  const shown = (list.data ?? []).filter((c) => filter === 'todas' || (filter === 'agentes') === !!c.origin);
+
+  useEffect(() => {
+    if (focus) setCurrent(focus.id);
+  }, [focus]);
 
   useEffect(() => {
     if (!current && list.data?.length) setCurrent(list.data[0].id);
@@ -27,13 +37,19 @@ export function ConversationView({ openInbox }: { openInbox: InboxItem[] }) {
           <h2>Conversas</h2>
           <button type="button" className="icon-btn" onClick={newConversation} title="Nova conversa" aria-label="Nova conversa"><PlusIcon size={16} /></button>
         </div>
+        {fromAgents && (
+          <div className="conv-filter">
+            <Segmented<Filter> label="Mostrar" value={filter} onChange={setFilter} options={[{ value: 'todas', label: 'Todas' }, { value: 'minhas', label: 'Minhas' }, { value: 'agentes', label: 'Dos agentes' }]} />
+          </div>
+        )}
         <ul>
-          {(list.data ?? []).map((c: ConversationInfo) => {
+          {shown.map((c: ConversationInfo) => {
             const pending = openInbox.filter((i) => i.conversationId === c.id).length;
             return (
               <li key={c.id}>
                 <button type="button" className={`conv ${c.id === current ? 'active' : ''}`} onClick={() => setCurrent(c.id)}>
                   <span className="conv-title">{c.title}</span>
+                  {c.origin && <span className="conv-origin">pedido por {c.origin.agent}{c.origin.repo ? ` · ${c.origin.repo}` : ''}</span>}
                   <span className="conv-meta">{new Date(c.updatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
                   {pending > 0 && <span className="badge">{pending}</span>}
                 </button>
@@ -44,7 +60,7 @@ export function ConversationView({ openInbox }: { openInbox: InboxItem[] }) {
         </ul>
       </aside>
       {current ? (
-        <Chat key={current} id={current} title={list.data?.find((c) => c.id === current)?.title ?? ''} onTitled={list.reload} />
+        <Chat key={current} id={current} title={list.data?.find((c) => c.id === current)?.title ?? ''} origin={list.data?.find((c) => c.id === current)?.origin} onTitled={list.reload} />
       ) : (
         <div className="empty-chat">
           <p>Comece uma conversa para ensinar um procedimento ao Orbi ou pedir que ele execute algo que já sabe.</p>

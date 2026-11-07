@@ -56,6 +56,24 @@ export const UsageDaysQuery = v.optional(
 );
 
 /** Every error the API returns has this shape. */
+/**
+ * POST /api/inbox/:id/secret — the credential typed in the chat card. Goes to
+ * the vault, never to the conversation. Without `value`, keeps the one already there.
+ */
+export const ProvideSecret = v.object({
+  name: v.pipe(v.string(), v.regex(/^[a-z0-9][a-z0-9._/@-]{0,127}$/, 'nome inválido: letras minúsculas, números e . _ / @ -')),
+  value: v.optional(v.pipe(v.string(), v.minLength(1))),
+  description: v.optional(v.pipe(v.string(), v.maxLength(200))),
+});
+
+/** POST /api/agents/clients — connect a coding agent. */
+export const CreateAgentClient = v.object({ name: v.pipe(v.string(), v.trim(), v.minLength(1, 'dê um nome ao agente'), v.maxLength(80)) });
+/** PATCH /api/agents/clients/:id — what the agent may do besides searching. */
+export const EditAgentClient = v.object({ canDelegate: v.optional(v.boolean()), canTeach: v.optional(v.boolean()) });
+/** POST /api/agents/suggestions/:id/accept — optionally as a variation of a known procedure. */
+export const AcceptSuggestion = v.object({ variationOf: v.optional(v.pipe(v.string(), v.minLength(1))) });
+export const SuggestionStatusQuery = v.optional(v.picklist(['open', 'accepted', 'rejected', '']));
+
 export interface ApiError {
   error: {
     /** Stable, for code: invalid_body, not_found, conflict, unauthorized, too_large, internal. */
@@ -78,3 +96,7 @@ export type SetPlaybookAutonomy = v.InferOutput<typeof SetPlaybookAutonomy>;
 export type EditEntity = v.InferOutput<typeof EditEntity>;
 export type EditPlaybook = v.InferOutput<typeof EditPlaybook>;
 export type SetAutonomy = v.InferOutput<typeof SetAutonomy>;
+export type CreateAgentClient = v.InferOutput<typeof CreateAgentClient>;
+export type EditAgentClient = v.InferOutput<typeof EditAgentClient>;
+export type AcceptSuggestion = v.InferOutput<typeof AcceptSuggestion>;
+export type ProvideSecret = v.InferOutput<typeof ProvideSecret>;

@@ -12,9 +12,21 @@ momento, dentro da ferramenta que preenche o campo.
 - **Durante uma demonstração** (documento 6): quando você digita uma senha, um
   token, um código ou o usuário num formulário de login, o painel mostra
   "No cofre: portal.interno/senha". O valor nunca aparece.
+- **Na conversa, quando o Orbi precisa de uma**: ao aprender ou executar algo
+  que pede login, ele chama `ask_secret` propondo um nome (`github/senha`). Aparece
+  o cartão **"O Orbi precisa de uma credencial"** com o nome (editável) e um campo
+  de senha. **Guardar no cofre** grava direto no cofre; o valor não vira mensagem
+  e não passa pelo modelo. O Orbi recebe só o sinal de que `{{segredo:github/senha}}`
+  existe e segue. Se o nome já estiver no cofre, o cartão oferece usar o que existe.
+  O pedido também aparece em **Pendências** como "Credencial".
 - **No cartão de aprovação do procedimento**: as credenciais aparecem só pelo nome.
-- **Tela Autonomia → Cofre**: nomes, descrição e de onde cada uma veio. Dá para
-  cadastrar uma nova ou apagar; o valor pode ser escrito, nunca lido.
+- **Tela Autonomia → Cofre**: nomes, descrição e de onde cada uma veio.
+  **Adicionar credencial** cadastra uma nova (nome, descrição, valor) e mostra a
+  referência para usar no procedimento; **Trocar valor** e **Remover** cuidam das
+  existentes. O valor pode ser escrito, nunca lido.
+- **O Orbi sabe os nomes**: a cada turno ele recebe a lista de referências do
+  cofre (nome e descrição, nunca o valor), para usar a certa no `browser_act` e no
+  procedimento. Não cole senhas na conversa: o modelo recusa e elas ficariam no histórico.
 
 ## Como funciona
 
@@ -51,6 +63,23 @@ sequenceDiagram
 - **Saída limpa**: `redact` troca o valor por `••••••` em tudo que a ferramenta
   devolve, para uma página que mostre a senha de volta não a vazar para o modelo.
 
+### Pela conversa
+
+```mermaid
+sequenceDiagram
+  participant Modelo
+  participant Conversa as Cartão na conversa
+  participant API as POST /api/inbox/:id/secret
+  participant Cofre
+
+  Modelo->>Conversa: ask_secret { name: "github/senha", description, reason }
+  Note over Modelo: o turno termina e espera
+  Conversa->>API: nome + valor (digitado no cartão)
+  API->>Cofre: set("github/senha", valor)
+  API->>Modelo: sinal "guardou {{segredo:github/senha}}" (sem o valor)
+  Modelo->>Modelo: segue usando a referência
+```
+
 ### Onde fica guardado
 
 | Armazenamento | Quando |
@@ -71,8 +100,12 @@ nunca o valor.
 | `apps/runtime/src/browser/page-recorder.ts` | Reconhece campos de credencial na página |
 | `apps/runtime/src/browser/recorder.ts` | Manda o valor ao cofre e grava só a referência |
 | `apps/runtime/src/agents/tools/browser.ts` | Resolve na hora de agir e limpa a saída |
-| `apps/runtime/src/http/routes/vault.ts` | Listar (só nomes), gravar, apagar |
-| `apps/desktop/src/views/autonomy/Vault.tsx` | Seção Cofre da tela Autonomia |
+| `apps/runtime/src/http/routes/vault.ts` | Listar (só nomes), gravar (valida o nome), apagar |
+| `apps/runtime/src/agents/tools/secrets.ts` | `ask_secret`: o cartão que pede uma credencial na conversa |
+| `apps/runtime/src/http/routes/inbox.ts` | `POST /api/inbox/:id/secret`: grava no cofre e avisa a conversa só com a referência |
+| `apps/runtime/src/agents/orbi.ts` | Passa ao modelo os nomes do cofre a cada turno |
+| `apps/desktop/src/views/autonomy/Vault.tsx`, `AddSecret.tsx` | Seção Cofre da tela Autonomia e o formulário de nova credencial |
+| `apps/desktop/src/components/SecretCard.tsx` | O cartão de credencial na conversa |
 
 ## Tecnologias
 
@@ -100,4 +133,6 @@ nunca o valor.
   resolução, nome que falta, limpeza da saída, arquivo criptografado.
 - `npm run e2e:demo -w @orbi/runtime`: a senha digitada na demonstração vai ao
   cofre e é usada na reexecução sem aparecer em lugar nenhum.
-- `apps/runtime/test/http.test.ts`: a API nunca devolve o valor.
+- `apps/runtime/test/http.test.ts`: a API nunca devolve o valor; nome inválido é recusado.
+- `apps/runtime/test/agent-flow.test.ts` ("credencial pela conversa"): o cartão grava no
+  cofre, a pendência guarda só a referência e o valor nunca aparece no que o modelo recebe.

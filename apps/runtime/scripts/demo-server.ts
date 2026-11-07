@@ -32,7 +32,7 @@ const { start } = await import('@flue/runtime/node');
 const { serve } = await import('@hono/node-server');
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { default: app } = await import('../src/app.ts');
-const { brain, conversations, stt } = (await import('../src/services.ts')).services();
+const { brain, conversations, stt, agents } = (await import('../src/services.ts')).services();
 const { EXAMPLE_TYPES } = await import('../src/brain/domain/ontology.ts');
 if (process.env.DEMO_FAKE_STT) {
   const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
@@ -125,6 +125,30 @@ function seed() {
   }
 }
 seed();
+seedAgents();
+
+/** A connected coding agent, one finished request and one suggestion, so the Agentes screen has something. */
+function seedAgents() {
+  if (agents.clients.list().length > 0) return;
+  const { client, token } = agents.clients.create('Claude Code · notebook');
+  console.log(`[demo] agente de exemplo conectado; token MCP: ${token}`);
+  const conv = conversations.create('criar-repositorio: repositório para o extrato');
+  const req = agents.requests.add({ clientId: client.id, conversationId: conv.id, task: 'Criar o repositório acme/extrato-front com o template do time', procedure: 'criar-repositorio', context: { repo: 'acme/portal-clientes-front', branch: 'feature/extrato' } });
+  agents.requests.finish(req.id, { status: 'done', summary: 'Repositório acme/extrato-front criado e com a main protegida.', links: ['https://github.com/acme/extrato-front'] });
+  agents.suggestions.add('Claude Code · notebook', {
+    name: 'abrir-pr-de-release',
+    description: 'Abrir o PR de release da develop para a main com o changelog da sprint.',
+    trigger: 'fim da sprint, depois do code freeze',
+    steps: [
+      { id: 'changelog', label: 'Gerar o changelog', how: 'git log --oneline main..develop, agrupado por tipo de commit' },
+      { id: 'pr', label: 'Abrir o PR develop → main', how: 'gh pr create --base main --head develop --title "Release {{versao}}"' },
+      { id: 'revisores', label: 'Pedir revisão do tech lead', how: 'gh pr edit --add-reviewer {{tech_lead}}' },
+    ],
+    instructions: 'Só depois do code freeze. Se houver PR aberto para a develop, avise antes.',
+    why: 'Fiz isso nas últimas 3 sprints, sempre igual.',
+    similarTo: [],
+  });
+}
 
 // ── the scripted "model" ───────────────────────────────────────────────────
 type Msg = { role: string; content: unknown };
@@ -141,7 +165,7 @@ const respond = async (context: { messages: Msg[] }) => {
   // The runtime also injects plumbing signals (MCP availability, new skills…); skip them.
   for (let i = msgs.length - 1; i >= 0; i--) {
     const t = textOf(msgs[i]);
-    const plumbing = t.startsWith('<signal') && !/tool-approval|followup/.test(t.slice(0, 200));
+    const plumbing = t.startsWith('<signal') && !/tool-approval|followup|agent-request|secret-saved/.test(t.slice(0, 200));
     if (msgs[i].role === 'user' && !plumbing) { lastUser = i; break; }
   }
   const said = lastUser >= 0 ? textOf(msgs[lastUser]).toLowerCase() : '';
@@ -150,6 +174,10 @@ const respond = async (context: { messages: Msg[] }) => {
   await sleep(600);
 
   if (said.includes('<demonstracao')) return fromDemonstration(textOf(msgs[lastUser]), toolsSince);
+  const fromAgent = msgs.some((m) => textOf(m).includes('<agent-request'));
+  if (fromAgent) return agentScenario(said, toolsSince);
+  const secret = secretScenario(said);
+  if (secret) return secret;
   const similar = similarScenario(said, toolsSince);
   if (similar) return similar;
   if ((said.includes('aprovou') || said.includes('tool-approval-result')) && (said.includes('mostrou no navegador') || said.includes('versao-do-mfe'))) {
@@ -327,4 +355,37 @@ function similarScenario(said: string, toolsSince: number) {
     suggestion: 'uma versão nova, deletar-repositorio, partindo do de criar. Separada, porque deletar não tem volta e precisa de outra autonomia.',
     options: [{ label: 'Criar versão a partir deste' }, { label: 'É outra coisa: aprender do zero' }, { label: 'Era isso mesmo' }],
   });
+}
+
+/** A coding agent delegated criar-repositorio over MCP: run it; creating waits for the developer. */
+function agentScenario(said: string, toolsSince: number) {
+  if (said.includes('negou')) return call('agent_reply', { status: 'failed', summary: 'O desenvolvedor não aprovou criar o repositório. Nada foi criado.' });
+  if (said.includes('tool-approval') || said.includes('aprovou')) {
+    const after = [
+      () => call('playbook_step', { stepId: 'criar', status: 'done', note: 'acme/pagamentos-v2 criado' }),
+      () => call('playbook_step', { stepId: 'proteger', status: 'done', note: 'main protegida' }),
+      () => call('playbook_step', { stepId: 'avisar', status: 'done' }),
+      () => call('agent_reply', { status: 'done', summary: 'Repositório acme/pagamentos-v2 criado com o template do time e a main protegida.', links: ['https://github.com/acme/pagamentos-v2'] }),
+    ];
+    return (after[toolsSince] ?? (() => fauxAssistantMessage(fauxText('Feito. Avisei o Claude Code.'))))();
+  }
+  const script = [
+    () => call('playbook_start', { name: 'criar-repositorio', params: { repo: 'pagamentos-v2' } }, 'Pedido do Claude Code: vou rodar o **criar-repositorio** para acme/pagamentos-v2.'),
+    () => call('playbook_step', { stepId: 'conferir', status: 'done', note: 'nome livre na organização' }),
+    () => call('playbook_step', { stepId: 'criar', status: 'running' }),
+    () => call('run_command', { binary: 'gh', args: ['repo', 'create', 'acme/pagamentos-v2', '--template', 'acme/base', '--private'], purpose: 'Criar o repositório pedido pelo Claude Code' }),
+  ];
+  return (script[toolsSince] ?? (() => fauxAssistantMessage(fauxText('Criar o repositório espera a sua aprovação. O Claude Code vê "esperando o desenvolvedor".'))))();
+}
+
+/** Teaching a login: Orbi asks for the password in a card that saves straight to the vault. */
+function secretScenario(said: string) {
+  if (said.includes('secret-saved') || said.includes('guardou a credencial')) {
+    return fauxAssistantMessage(fauxText('Pronto: no login vou usar `{{segredo:github/senha}}`. O valor fica só no cofre; eu nunca vejo.'));
+  }
+  if (/senha|login|logar/.test(said) && said.includes('github')) {
+    return call('ask_secret', { name: 'github/senha', description: 'Senha do GitHub', reason: 'Para entrar no GitHub pelo navegador antes de apagar o repositório.' },
+      'Para entrar no GitHub preciso da sua senha. Não cole aqui na conversa: digite no cartão abaixo, que guarda direto no cofre.');
+  }
+  return undefined;
 }

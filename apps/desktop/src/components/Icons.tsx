@@ -31,3 +31,4 @@ export const PencilIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 20h
 export const TrashIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>);
 export const UpIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 14l6-6 6 6" /></svg>);
 export const DownIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 10l6 6 6-6" /></svg>);
+export const PlugIcon = ({ size }: P) => (<svg {...base(size)}><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5" /></svg>);

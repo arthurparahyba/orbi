@@ -31,6 +31,7 @@ export function healthRoutes(s: OrbiServices, background: Background) {
       workspace: config.workspace,
       binaries: binaryStatus(config.allowedBinaries),
       stt: s.stt.name(),
+      mcpUrl: `http://127.0.0.1:${config.port}/mcp`,
     };
     return c.json(health);
   });

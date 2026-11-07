@@ -9,6 +9,8 @@ import { useActiveRun, usePlaybooks } from './tools/playbooks.ts';
 import { useVoice } from './tools/voice.ts';
 import { useSimilar } from './tools/similar.ts';
 import { useClock } from './tools/clock.ts';
+import { useAgentRequest } from './tools/requests.ts';
+import { useSecrets } from './tools/secrets.ts';
 
 /**
  * Orbi's generic capabilities. Nothing here knows about CI, GMUD or portals:
@@ -33,7 +35,10 @@ export function useOrbi(conversationId: string) {
   usePlaybooks(ctx);
   // voice and clock
   useVoice(ctx);
+  useSecrets(ctx);
   useClock(ctx);
+  // a coding agent asked for this conversation (MCP)
+  useAgentRequest(ctx);
 
   return { activeRun };
 }

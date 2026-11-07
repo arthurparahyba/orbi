@@ -38,6 +38,8 @@ function component(c: UiComponent): string {
         c.suggestion && `Sugestão: ${c.suggestion}`,
         `Opções: ${c.options.map((o) => o.label).join(' · ')}`,
       ].filter(Boolean).join('\n');
+    case 'secret':
+      return `**O Orbi pediu uma credencial:** \`{{segredo:${c.name}}}\` (${c.description || c.reason}). O valor vai direto ao cofre.`;
     case 'learning':
       return [`**Aprendizado proposto: ${c.title}**`, ...c.items.map((i) => `- ${i.kind}: ${i.summary}`)].join('\n');
   }
@@ -63,6 +65,10 @@ function message(m: FlueConversationMessage): string | undefined {
   if (m.role === 'system') {
     if (m.settlement) return `_— a execução ${m.settlement.outcome === 'aborted' ? 'foi interrompida' : 'falhou'} —_`;
     if (m.signal?.tagName === 'followup' || m.signal?.attributes?.type === 'followup') return '_— retorno agendado —_';
+    if (m.signal?.tagName === 'secret-saved' || m.signal?.attributes?.type === 'secret-saved') return '_— credencial guardada no cofre —_';
+    if (m.signal?.tagName === 'agent-request' || m.signal?.attributes?.type === 'agent-request') {
+      return `> ${m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('').split('\n').join('\n> ')}`;
+    }
     return undefined;
   }
   const body = m.parts.map(part).filter(Boolean).join('\n\n');

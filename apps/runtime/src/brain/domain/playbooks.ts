@@ -35,6 +35,12 @@ export function fillParams(text: string, params: Record<string, string>): string
   return text.replace(/\{\{\s*([a-zA-Z_][\w-]*)\s*\}\}/g, (all, key: string) => params[key] ?? all);
 }
 
+/** The {{parameters}} a playbook expects, in order of appearance (credentials are not parameters). */
+export function playbookParams(pb: Pick<Playbook, 'steps' | 'instructions'>): string[] {
+  const text = [pb.instructions, ...pb.steps.map((s) => `${s.label} ${s.how}`)].join(' ');
+  return [...new Set([...text.matchAll(/\{\{\s*([a-zA-Z_][\w-]*)\s*\}\}/g)].map((m) => m[1]))];
+}
+
 /** A new run of `pb`: every step pending, parameters filled. */
 export function newRun(pb: Playbook, id: string, conversationId: string, params: Record<string, string>, startedAt: string): PlaybookRun {
   return {

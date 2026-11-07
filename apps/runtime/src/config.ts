@@ -32,6 +32,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
 
   return {
     cwd,
+    /** Port the runtime listens on (scripts/write-entry.mjs reads the same PORT); coding agents connect to /mcp there. */
+    port: Number.parseInt(env.PORT || '3000', 10),
     /** Which LLM: 'anthropic' (default) or an adapter/plugin (ORBI_LLM; see src/llm). */
     llm: llm.kind,
     /** Model spec for every agent; with an adapter, `orbi-llm/<model>` (final once the adapter loads). */

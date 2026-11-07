@@ -13,6 +13,9 @@ import type { ConversationInfo } from './conversations/conversations.ts';
 import type { InboxItem } from './conversations/inbox.ts';
 import type { AutonomyLevel, Category } from './autonomy/policy.ts';
 import type { SecretInfo } from './vault/vault.ts';
+import type { AgentClient } from './mcp/clients.ts';
+import type { AgentRequest } from './mcp/requests.ts';
+import type { AgentSuggestion } from './mcp/suggestions.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -32,6 +35,9 @@ export type ContractChecks = [
   Check<Fits<NarrationSegment, C.NarrationSegment>>,
   Check<Fits<Recording, C.Recording>>,
   Check<Fits<SecretInfo, C.SecretInfo>>,
+  Check<Fits<AgentClient, C.AgentClient>>,
+  Check<Fits<AgentRequest, C.AgentRequest>>,
+  Check<Fits<AgentSuggestion, C.AgentSuggestion>>,
   // Enumerations must match exactly: the app offers every value as a choice.
   Check<Same<Autonomy, C.Autonomy>>,
   Check<Same<AutonomyLevel, C.Autonomy>>,

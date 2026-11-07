@@ -3,6 +3,8 @@ import { useFlueAgent } from '@flue/react';
 import { agentUrl, api, type Recording } from '../../api';
 import { useChanges, usePoll } from '../../hooks';
 import { CheckIcon, CopyIcon, RecordIcon, SendIcon } from '../../components/Icons';
+import { OriginBanner } from './OriginBanner';
+import type { ConversationOrigin } from '../../api';
 import { StartDemonstration } from '../../components/Demonstration';
 import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
@@ -20,7 +22,7 @@ const SUGGESTIONS = [
 type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator };
 
 /** One conversation with Orbi: messages, the browser-teaching dock and the composer. */
-export function Chat({ id, title, onTitled }: { id: string; title: string; onTitled(): void }) {
+export function Chat({ id, title, origin, onTitled }: { id: string; title: string; origin?: ConversationOrigin; onTitled(): void }) {
   const agent = useFlueAgent({ url: agentUrl(id) });
   const [demo, setDemo] = useState<Demo | undefined>();
   const endRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,7 @@ export function Chat({ id, title, onTitled }: { id: string; title: string; onTit
           {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : agent.status === 'connecting' ? 'Conectando…' : 'Pronto'}
         </span>
       </header>
+      {origin && <OriginBanner origin={origin} />}
       <ChatContext.Provider value={{ send: (t) => void send(t) }}>
       <div className="messages" aria-live="polite">
         {agent.historyReady && visible.length === 0 && (

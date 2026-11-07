@@ -6,7 +6,7 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 14). A visão geral está em `docs/arquitetura.md`.
+`docs/funcionalidades/` (01 a 15). A visão geral está em `docs/arquitetura.md`.
 
 ## Estrutura
 
@@ -21,12 +21,13 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/brain/          domain/ (regras puras) · repo/ (SQL) · store.ts (fachada BrainStore)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
+  src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/prompts/*.md    textos que o modelo lê
   src/{autonomy,browser,code,conversations,llm,observability,terminal,vault,voice}/
   test/               node:test (+ fixtures/search-eval.json)
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
-  src/views/{conversation,brain,autonomy}/   telas
+  src/views/{conversation,brain,agents,autonomy}/   telas
   src/components/     cartões do canal ui, gravação, confirmação
   src/live.ts, hooks.ts   feed de eventos (SSE) e useLive
   test/               Vitest
@@ -97,6 +98,12 @@ cofre ou ponte MCP, `npm run e2e`.
   workspace, com ambiente montado explicitamente. `run_python` roda em pasta própria sem o
   ambiente do usuário.
 - Nunca peça nem cole chaves de API; elas ficam em `apps/runtime/.env` (ignorado pelo git).
+- Credencial que o Orbi precisa é pedida com `ask_secret`: o cartão grava direto no cofre
+  (`POST /api/inbox/:id/secret`) e o modelo recebe só a referência. Nunca leve um valor
+  digitado pelo usuário para a conversa.
+- **Agentes de código (MCP)** entram por `/mcp` com token próprio (só o hash fica no banco).
+  Eles nunca aprovam, nunca veem credenciais e nunca gravam no cérebro: `orbi_teach` vira
+  sugestão, e só o desenvolvedor aceita (`/api/agents/suggestions/:id/accept`).
 
 ## Armadilhas conhecidas
 

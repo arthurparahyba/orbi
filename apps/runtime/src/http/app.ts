@@ -14,6 +14,8 @@ import { autonomyRoutes } from './routes/autonomy.ts';
 import { healthRoutes } from './routes/health.ts';
 import { eventRoutes } from './routes/events.ts';
 import { usageRoutes } from './routes/usage.ts';
+import { agentRoutes } from './routes/agents.ts';
+import { mcpRoutes } from './routes/mcp.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.
@@ -27,6 +29,7 @@ const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\
  *   /agents/orbi/:id   Flue conversation: POST a message, GET the event stream
  *   /api/...            one router per resource (routes/)
  *   /api/events         what changed, as server-sent events (the app refetches)
+ *   /mcp                Orbi as an MCP server for coding agents (own token per agent)
  */
 export function createHttpApp(s: OrbiServices, background: Background, agent: Agent): Hono {
   const app = new Hono();
@@ -43,7 +46,8 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   );
   app.use('*', async (c, next) => {
     const token = s.config.apiToken;
-    if (c.req.method !== 'OPTIONS' && token && c.req.header('authorization') !== `Bearer ${token}`) {
+    // /mcp authenticates each coding agent with its own token (routes/mcp.ts).
+    if (c.req.method !== 'OPTIONS' && token && !/^\/mcp\/?$/.test(c.req.path) && c.req.header('authorization') !== `Bearer ${token}`) {
       throw new HttpError(401, 'unauthorized', 'token ausente ou inválido');
     }
     await next();
@@ -59,5 +63,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/health', healthRoutes(s, background));
   app.route('/api/events', eventRoutes(s));
   app.route('/api/usage', usageRoutes(s));
+  app.route('/api/agents', agentRoutes(s));
+  app.route('/mcp', mcpRoutes(s, agent));
   return app;
 }

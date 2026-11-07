@@ -193,6 +193,9 @@ export class BrainStore {
   runs(limit = 20): PlaybookRun[] {
     return this.playbookRepo.runs(limit);
   }
+  lastRunIn(conversationId: string): PlaybookRun | undefined {
+    return this.playbookRepo.lastRunIn(conversationId);
+  }
 
   // ── learning (waits for the developer) ─────────────────────────────────
   check(kind: ProposalKind, payload: Record<string, unknown>): string[] {

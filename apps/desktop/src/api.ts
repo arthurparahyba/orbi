@@ -1,4 +1,5 @@
 import type {
+  AgentClient, AgentClientCreated, ProvideSecret, AgentRequest, AgentSuggestion, EditAgentClient,
   ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
@@ -42,6 +43,7 @@ export const api = {
   inbox: (status: InboxItem['status'] | 'all' = 'open') => request<InboxItem[]>(`/api/inbox${status === 'all' ? '?status=' : `?status=${status}`}`),
   decide: (id: string, decision: 'approve' | 'deny') =>
     request(`/api/inbox/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, approver: 'Você' }) }),
+  provideSecret: (id: string, secret: ProvideSecret) => request(`/api/inbox/${id}/secret`, { method: 'POST', body: JSON.stringify(secret) }),
   answer: (id: string, text: string) => request(`/api/inbox/${id}/answer`, { method: 'POST', body: JSON.stringify({ text }) }),
   brain: () => request<BrainSnapshot>('/api/brain'),
   entity: (id: string) => request<EntityDetail>(`/api/brain/entities/${encodeURIComponent(id)}`),
@@ -73,7 +75,17 @@ export const api = {
   },
   usage: (days = 30) => request<UsageReport>(`/api/usage?days=${days}`),
   vault: () => request<{ backend: 'keychain' | 'file'; secrets: SecretInfo[] }>('/api/vault'),
-  setSecret: (name: string, value: string) => request<SecretInfo>(`/api/vault/${name}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+  setSecret: (name: string, value: string, description?: string) =>
+    request<SecretInfo>(`/api/vault/${name}`, { method: 'PUT', body: JSON.stringify({ value, ...(description ? { description } : {}) }) }),
   deleteSecret: (name: string) => request<{ deleted: boolean }>(`/api/vault/${name}`, { method: 'DELETE' }),
   exportBrain: () => request<{ written: number; dir: string }>('/api/brain/export', { method: 'POST' }),
+  agentClients: () => request<AgentClient[]>('/api/agents/clients'),
+  createAgentClient: (name: string) => request<AgentClientCreated>('/api/agents/clients', { method: 'POST', body: JSON.stringify({ name }) }),
+  editAgentClient: (id: string, change: EditAgentClient) => request<AgentClient>(`/api/agents/clients/${id}`, { method: 'PATCH', body: JSON.stringify(change) }),
+  revokeAgentClient: (id: string) => request<AgentClient>(`/api/agents/clients/${id}`, { method: 'DELETE' }),
+  agentRequests: () => request<AgentRequest[]>('/api/agents/requests'),
+  suggestions: (status: AgentSuggestion['status'] | 'all' = 'open') => request<AgentSuggestion[]>(`/api/agents/suggestions?status=${status === 'all' ? '' : status}`),
+  acceptSuggestion: (id: string, variationOf?: string) =>
+    request<Playbook>(`/api/agents/suggestions/${id}/accept`, { method: 'POST', body: JSON.stringify(variationOf ? { variationOf } : {}) }),
+  rejectSuggestion: (id: string) => request<AgentSuggestion>(`/api/agents/suggestions/${id}/reject`, { method: 'POST' }),
 };

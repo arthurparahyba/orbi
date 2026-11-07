@@ -215,3 +215,87 @@ test('agendar retorno: o Orbi encerra o turno e é acordado depois', async () =>
   assert.equal(due[0].conversationId, 'chat:teste-retorno');
   assert.equal(brain.claimDueFollowups(later).length, 0, 'cada retorno dispara uma vez só');
 });
+
+test('pedido de agente (MCP): delega, o Orbi roda o procedimento e devolve o resultado', async () => {
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const { agents, vault } = (await import('../src/services.ts')).services();
+  await vault.set('github/senha', 'valor-que-nao-vaza', { description: 'Senha do GitHub' });
+  const created = await app.request('/api/agents/clients', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Claude Code' }) });
+  const { token } = (await created.json()) as { token: string };
+  const client = new Client({ name: 'teste', version: '0' });
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL('http://127.0.0.1:3000/mcp'), {
+      requestInit: { headers: { authorization: `Bearer ${token}` } },
+      fetch: async (url, init) => app.request(String(url), init as RequestInit),
+    }),
+  );
+
+  faux.setResponses([
+    (context) => {
+      const prompt = JSON.stringify(context);
+      assert.match(prompt, /Pedido do agente \\"Claude Code\\" pelo MCP/);
+      assert.match(prompt, /agent_reply/, 'a conversa pedida por um agente tem a ferramenta de resposta');
+      assert.match(prompt, /\{\{segredo:github\/senha\}\} \(Senha do GitHub\)/, 'o Orbi sabe o nome das credenciais do cofre');
+      assert.equal(prompt.includes('valor-que-nao-vaza'), false, 'mas nunca o valor');
+      return fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'versao-no-portal', target: 'novo-front' }), { stopReason: 'toolUse' });
+    },
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'abrir', status: 'done' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'salvar', status: 'done', note: 'versão 0.2.0 salva' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('agent_reply', { status: 'done', summary: 'Versão 0.2.0 do novo-front salva no portal.', links: ['http://portal.local/admin/menus'] }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Feito, avisei o agente.')),
+  ]);
+
+  const res = (await client.callTool({
+    name: 'orbi_delegate',
+    arguments: { procedure: 'versao-no-portal', task: 'Atualizar a versão do novo-front para 0.2.0', context: { repo: 'acme/novo-front', branch: 'main' } },
+  })) as { content: Array<{ text: string }> };
+  const { request_id } = JSON.parse(res.content[0].text) as { request_id: string };
+
+  const status = async () => JSON.parse(((await client.callTool({ name: 'orbi_status', arguments: { request_id } })) as { content: Array<{ text: string }> }).content[0].text);
+  for (let i = 0; i < 100 && agents.requests.get(request_id)?.status === 'running'; i++) await new Promise((r) => setTimeout(r, 50));
+  const final = await status();
+  assert.equal(final.status, 'done');
+  assert.equal(final.summary, 'Versão 0.2.0 do novo-front salva no portal.');
+  assert.deepEqual(final.links, ['http://portal.local/admin/menus']);
+
+  const list = (await (await app.request('/api/conversations')).json()) as Array<{ id: string; origin?: { agent: string; repo?: string } }>;
+  const conv = list.find((c) => c.origin?.agent === 'Claude Code');
+  assert.ok(conv, 'a conversa aparece marcada com quem pediu');
+  assert.equal(conv.origin?.repo, 'acme/novo-front');
+  assert.equal(brain.lastRunIn(conv.id)?.status, 'done');
+  await client.close();
+});
+
+test('credencial pela conversa: o cartão guarda no cofre e o Orbi só recebe a referência', async () => {
+  const { vault } = (await import('../src/services.ts')).services();
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('ask_secret', { name: 'gitlab/token', description: 'Token do GitLab', reason: 'para entrar no GitLab e apagar o repositório' }), { stopReason: 'toolUse' }),
+  ]);
+  const orbi = init(Orbi, { id: 'chat:teste-credencial' });
+  const reply = await orbi.read(await orbi.dispatch('Vou te ensinar a apagar um repositório no GitLab.'));
+  const card = components(reply).find((p: any) => p.component === 'secret') as any;
+  assert.equal(card?.name, 'gitlab/token');
+  const item = inbox.get(card.inboxId)!;
+  assert.equal(item.kind, 'secret');
+
+  faux.setResponses([
+    (context) => {
+      const prompt = JSON.stringify(context);
+      assert.match(prompt, /guardou a credencial no cofre: \{\{segredo:gitlab\/token\}\}/);
+      assert.equal(prompt.includes('glpat-nao-pode-vazar'), false, 'o valor nunca chega ao modelo');
+      return fauxAssistantMessage(fauxText('Credencial pronta, seguindo.'));
+    },
+  ]);
+  const res = await app.request(`/api/inbox/${item.id}/secret`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'gitlab/token', value: 'glpat-nao-pode-vazar', description: 'Token do GitLab' }),
+  });
+  assert.equal(res.status, 202);
+  await orbi.read(await res.json());
+  assert.equal(await vault.get('gitlab/token'), 'glpat-nao-pode-vazar');
+  assert.equal(inbox.get(item.id)?.answer, '{{segredo:gitlab/token}}', 'a pendência guarda a referência, não o valor');
+  const again = await app.request(`/api/inbox/${item.id}/secret`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'gitlab/token', value: 'x' }) });
+  assert.equal(again.status, 409);
+});

@@ -72,6 +72,16 @@ export const UiComponent = v.variant('component', [
     inboxId: v.string(),
   }),
   v.object({
+    // A credential Orbi needs: the developer types it in the card and it goes straight to the vault.
+    component: v.literal('secret'),
+    id: v.string(),
+    /** Proposed name; the developer may change it. */
+    name: v.string(),
+    description: v.string(),
+    reason: v.string(),
+    inboxId: v.string(),
+  }),
+  v.object({
     component: v.literal('learning'),
     id: v.string(),
     title: v.string(),

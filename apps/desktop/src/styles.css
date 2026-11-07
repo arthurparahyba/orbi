@@ -393,3 +393,57 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .step-actions { display: flex; flex-direction: column; gap: 2px; }
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 @media (max-width: 640px) { .two-cols { grid-template-columns: 1fr; } }
+
+/* ── cofre: adicionar credencial ───────────────────────── */
+.add-secret { align-items: flex-end; }
+.add-secret-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; flex: 1; }
+.add-secret-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.add-secret-fields p { grid-column: 1 / -1; margin: 0; }
+.err-text { color: #ffb4b4; }
+.ok-text { color: #7fdcae; }
+.gap8 { gap: 8px; }
+
+/* ── agentes ───────────────────────────────────────────── */
+.agentes { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: auto; }
+.tab-badge { margin-left: 6px; height: 16px; min-width: 16px; font-size: 10px; }
+.agents-empty { margin: 32px 24px; max-width: 560px; }
+.agents-empty p { margin: 0 0 8px; }
+.agents-table-wrap { padding: 16px 24px; }
+.agents-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.agents-table th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.agents-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.agents-table tr:last-child td { border-bottom: 0; }
+.suggestions { display: flex; flex-direction: column; gap: 12px; padding: 16px 24px; max-width: 900px; }
+.suggestion { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.suggestion header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.suggestion h2 { font-family: var(--mono); font-size: 14px; margin: 0; }
+.suggestion p { margin: 6px 0; }
+.suggestion footer { flex-wrap: wrap; margin-top: 10px; }
+.similar-note { color: var(--amber); }
+.sug-steps { margin: 8px 0; padding-left: 20px; font-size: 13px; }
+.connections { padding: 16px 24px; display: flex; flex-direction: column; gap: 20px; max-width: 1180px; }
+.connections h2 { font-size: 16px; margin: 0 0 10px; }
+.connections h2 .muted { font-weight: 400; margin-left: 8px; }
+.con-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; }
+.con-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.con-steps { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; }
+.con-steps input { flex: 1; }
+.con-steps label { display: block; margin-bottom: 4px; }
+.con-cmd { white-space: pre-wrap; word-break: break-all; margin: 6px 0; }
+.con-rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.con-clients { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.con-client { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.dot.off { background: var(--border-2); }
+.conv-origin { grid-column: 1; font-size: 11px; color: var(--blue); }
+.conv-filter { padding: 0 14px 8px; }
+.origin-banner { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 24px; font-size: 12.5px; background: rgba(108, 168, 255, 0.08); border-bottom: 1px solid var(--border); color: var(--muted); }
+.origin-banner strong { color: var(--text); font-weight: 500; }
+.msg.system.agent-request { justify-content: flex-start; }
+.msg.system.agent-request { text-align: left; }
+.agent-request .card { text-align: left; border: 1px solid rgba(108, 168, 255, 0.35); background: rgba(108, 168, 255, 0.06); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; white-space: pre-wrap; max-width: 720px; }
+.ui-card.secret { border-color: rgba(242, 177, 60, 0.45); }
+.ui-card.secret.is-answered { border-color: var(--border); }
+.secret-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px; margin-top: 8px; }
+.secret-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.secret-form > .row, .secret-form > p { grid-column: 1 / -1; margin: 0; }
+.agents-table td:last-child { white-space: nowrap; }

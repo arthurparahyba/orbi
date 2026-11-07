@@ -13,7 +13,7 @@ import instructions from '../prompts/orbi.md?raw';
  * instructions are in prompts/orbi.md; the current state is added here.
  */
 export function Orbi({ id }: { id: string }) {
-  const { config, brain, browser } = services();
+  const { config, brain, browser, vault } = services();
   useModel(config.model, { thinkingLevel: 'low' });
   useMcpConnection(browser.connection);
   useSubagent({ ...investigador, model: config.model });
@@ -21,10 +21,13 @@ export function Orbi({ id }: { id: string }) {
   const { activeRun } = useOrbi(id);
 
   const stats = brain.stats();
+  // Names only: the values never reach the model.
+  const secrets = vault.list().map((x) => `{{segredo:${x.name}}}${x.description ? ` (${x.description})` : ''}`);
   return [
     instructions,
     `Cérebro agora: ${stats.types} tipos, ${stats.entities} entidades, ${stats.edges} ligações, ${stats.playbooks} playbooks, ${stats.openProposals} aprendizados aguardando aprovação.`,
     activeRun ? `Playbook em execução: ${activeRun.playbook} (run ${activeRun.runId}, autonomia ${activeRun.autonomy}).` : 'Nenhum playbook em execução.',
+    secrets.length ? `Credenciais no cofre (use só a referência): ${secrets.join(', ')}.` : 'Nenhuma credencial no cofre.',
     `Workspace com os clones: ${config.workspace}. Conversa: ${id}.`,
   ].join('\n');
 }

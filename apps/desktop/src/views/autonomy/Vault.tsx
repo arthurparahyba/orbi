@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, type SecretInfo } from '../../api';
 import { useLive } from '../../hooks';
+import { AddSecret } from './AddSecret';
 
 /** Credentials: names and where they came from; values only go in, never out. */
 export function Vault() {
@@ -16,9 +17,10 @@ export function Vault() {
         {vault.data?.backend === 'keychain'
           ? 'Guardadas no cofre do sistema (Keychain no macOS). '
           : 'Guardadas num arquivo criptografado (AES-256) na pasta de dados. '}
-        Os playbooks só têm a referência; o valor é usado dentro da ação do navegador e nunca chega ao modelo nem ao cérebro.
+        Os procedimentos só têm a referência (<code>{'{{segredo:nome}}'}</code>); o valor é usado dentro da ação do navegador e nunca chega ao modelo nem ao cérebro. Não cole senhas na conversa: guarde aqui e diga ao Orbi o nome.
       </p>
-      {vault.data?.secrets.length === 0 && <div className="auto-row muted">Nenhuma credencial ainda. Elas entram aqui quando você digita uma senha durante uma demonstração.</div>}
+      <AddSecret taken={vault.data?.secrets.map((s) => s.name) ?? []} onAdded={() => void vault.reload()} />
+      {vault.data?.secrets.length === 0 && <div className="auto-row muted">Nenhuma credencial ainda. Adicione acima, ou elas entram aqui quando você digita uma senha durante uma demonstração.</div>}
       {vault.data?.secrets.map((s) => (
         <div key={s.name} className="auto-row vault-row">
           <div>

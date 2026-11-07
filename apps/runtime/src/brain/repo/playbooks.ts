@@ -107,4 +107,10 @@ export class PlaybookRepo {
   runs(limit: number): PlaybookRun[] {
     return (this.db.prepare('SELECT * FROM playbook_runs ORDER BY started_at DESC LIMIT ?').all(limit) as Row[]).map(toRun);
   }
+
+  /** The latest run started in a conversation. */
+  lastRunIn(conversationId: string): PlaybookRun | undefined {
+    const r = this.db.prepare('SELECT * FROM playbook_runs WHERE conversation_id = ? ORDER BY started_at DESC, id DESC LIMIT 1').get(conversationId) as Row | undefined;
+    return r ? toRun(r) : undefined;
+  }
 }

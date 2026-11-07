@@ -94,6 +94,8 @@ test('cofre: grava, lista sem valor e apaga', async () => {
   const listed = await call('GET', '/api/vault');
   assert.deepEqual(listed.json.secrets.map((s: any) => s.name), ['portal/senha']);
   assert.ok(!JSON.stringify(listed.json).includes('hunter2'), 'o valor nunca sai pela API');
+  assert.equal(listed.json.secrets[0].origin, 'adicionada por você');
+  isApiError((await call('PUT', '/api/vault/GitHub Senha', { value: 'x' })).json, 'invalid_body');
   assert.equal((await call('DELETE', '/api/vault/portal/senha')).json.deleted, true);
 });
 

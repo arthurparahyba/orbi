@@ -12,6 +12,9 @@ import type { CodeFixer } from './code/claude-code.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
+import type { AgentClients } from './mcp/clients.ts';
+import type { AgentRequests } from './mcp/requests.ts';
+import type { AgentSuggestions } from './mcp/suggestions.ts';
 
 /**
  * Everything Orbi's code uses, created once by `createOrbi` (compose.ts).
@@ -40,6 +43,8 @@ export interface OrbiServices {
   events: Events;
   /** Model and tool usage per conversation (fed by telemetry.ts). */
   usage: UsageStore;
+  /** Coding agents that call Orbi over MCP: who they are, what they asked, what they suggested. */
+  agents: { clients: AgentClients; requests: AgentRequests; suggestions: AgentSuggestions };
 }
 
 let current: OrbiServices | undefined;

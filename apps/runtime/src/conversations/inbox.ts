@@ -3,10 +3,10 @@ import { ulid } from 'ulidx';
 
 /**
  * What the "Pendências" panel shows: approvals waiting for a decision,
- * learning to approve and questions Orbi asked. Decisions go back into the
+ * learning to approve, questions Orbi asked and credentials it needs. Decisions go back into the
  * agent conversation as signals (see http/app.ts).
  */
-export type InboxKind = 'approval' | 'question' | 'learning';
+export type InboxKind = 'approval' | 'question' | 'learning' | 'secret';
 
 export interface InboxItem {
   id: string;

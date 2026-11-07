@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react';
 import type { InboxItem, UiComponent } from '@orbi/contracts';
 import { AlertIcon, BulbIcon, CheckIcon, ClockIcon, LinkIcon, XIcon } from './Icons';
 import { KnownLine, SimilarCard } from './SimilarCards';
+import { SecretCard } from './SecretCard';
 import { CHANGE_LABEL, stepDiff, type Step } from './stepDiff';
 import { api } from '../api';
 import { useLive } from '../hooks';
@@ -270,6 +271,7 @@ export function UiComponentView({ c }: { c: UiComponent }) {
     case 'learning': return <Learning c={c} />;
     case 'known': return <KnownLine c={c} />;
     case 'similar': return <SimilarCard c={c} />;
+    case 'secret': return <SecretCard c={c} />;
     case 'link':
       return <a className="ui-card link-card" href={c.url} target="_blank" rel="noreferrer"><LinkIcon size={14} /> {c.title}</a>;
     case 'code':

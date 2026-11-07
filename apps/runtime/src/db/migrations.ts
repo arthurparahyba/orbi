@@ -106,4 +106,23 @@ INSERT INTO playbooks_fts (key, name, description, trigger, applies, steps)
   FROM playbooks;
 INSERT INTO entities_fts (key, id, type, props, body) SELECT id, id, type, props, body FROM entities;`,
   },
+  {
+    name: 'agentes de código pelo MCP: conexões, pedidos e sugestões',
+    sql: `
+CREATE TABLE agent_clients (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE,
+  can_delegate INTEGER NOT NULL DEFAULT 1, can_teach INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL, last_seen_at TEXT, revoked_at TEXT);
+CREATE TABLE agent_requests (
+  id TEXT PRIMARY KEY, client_id TEXT NOT NULL, conversation_id TEXT NOT NULL UNIQUE, task TEXT NOT NULL,
+  procedure TEXT, context TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'running',
+  summary TEXT, links TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, finished_at TEXT);
+CREATE INDEX agent_requests_created ON agent_requests(created_at);
+CREATE TABLE agent_suggestions (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, trigger TEXT NOT NULL DEFAULT '',
+  steps TEXT NOT NULL, instructions TEXT NOT NULL DEFAULT '', why TEXT NOT NULL DEFAULT '',
+  agents TEXT NOT NULL DEFAULT '[]', count INTEGER NOT NULL DEFAULT 1, similar_to TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX agent_suggestions_status ON agent_suggestions(status, updated_at);`,
+  },
 ];

@@ -24,6 +24,9 @@ import type { ConversationInfo } from './conversations/conversations.ts';
 import { startBridge, type RunningBridge } from './browser/mcp/bridge.ts';
 import { binaryStatus } from './terminal/exec.ts';
 import type { OrbiServices } from './services.ts';
+import { AgentClients } from './mcp/clients.ts';
+import { AgentRequests } from './mcp/requests.ts';
+import { AgentSuggestions } from './mcp/suggestions.ts';
 
 /**
  * The composition root: the only place that creates Orbi's parts and wires
@@ -64,6 +67,7 @@ export async function createOrbi(
     llm,
     events,
     usage: overrides.usage ?? new UsageStore(db),
+    agents: overrides.agents ?? { clients: new AgentClients(db), requests: new AgentRequests(db), suggestions: new AgentSuggestions(db) },
     brain: overrides.brain ?? new BrainStore(db),
     inbox,
     policy,

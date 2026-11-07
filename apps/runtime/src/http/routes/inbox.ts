@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { tellAgent } from '../../conversations/tell.ts';
-import { Answer, Decision, InboxStatusQuery } from '@orbi/contracts';
+import { Answer, Decision, InboxStatusQuery, ProvideSecret } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound, query } from '../errors.ts';
 import type { Agent } from './types.ts';
 
 /** What waits for the developer. Decisions and answers go back into the conversation. */
-export function inboxRoutes({ inbox, events }: OrbiServices, agent: Agent) {
+export function inboxRoutes({ inbox, events, vault }: OrbiServices, agent: Agent) {
   const open = (id: string) => {
     const item = inbox.get(id);
     if (!item) throw notFound('item');
@@ -42,6 +42,20 @@ export function inboxRoutes({ inbox, events }: OrbiServices, agent: Agent) {
       if (item.kind !== 'question') throw new HttpError(409, 'conflict', 'este item não é uma pergunta');
       inbox.resolve(item.id, 'answered', text);
       const receipt = await tellAgent(events, agent, { id: item.conversationId, message: { kind: 'user', body: text } });
+      return c.json(receipt, 202);
+    })
+    .post('/:id/secret', async (c) => {
+      // The value goes to the vault only. The conversation learns the reference, never the value.
+      const { name, value, description } = await body(c, ProvideSecret);
+      const item = open(c.req.param('id'));
+      if (item.kind !== 'secret') throw new HttpError(409, 'conflict', 'este item não pede credencial');
+      if (value) await vault.set(name, value, { description, origin: vault.has(name) ? undefined : 'adicionada por você na conversa' });
+      else if (!vault.has(name)) throw new HttpError(400, 'invalid_body', 'digite o valor: essa credencial ainda não está no cofre');
+      inbox.resolve(item.id, 'answered', `{{segredo:${name}}}`);
+      const receipt = await tellAgent(events, agent, {
+        id: item.conversationId,
+        message: { kind: 'signal', type: 'secret-saved', tagName: 'secret-saved', body: `O desenvolvedor guardou a credencial no cofre: {{segredo:${name}}}. Use essa referência; o valor você não vê.`, attributes: { name } },
+      });
       return c.json(receipt, 202);
     });
 }
