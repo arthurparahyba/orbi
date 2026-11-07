@@ -78,3 +78,12 @@ export interface UsageReport {
   period: UsageTotals;
   conversations: ConversationUsage[];
 }
+
+/** GET /api/brain/entities/:id */
+export interface EntityDetail {
+  entity: Entity;
+  relations: { out: Edge[]; in: Edge[] };
+  nearby: Array<{ id: string; depth: number }>;
+  /** What deleting it takes along. */
+  dependents: { relations: number };
+}

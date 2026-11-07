@@ -1,5 +1,5 @@
 import type {
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, Entity, Edge, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -44,10 +44,15 @@ export const api = {
     request(`/api/inbox/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, approver: 'Você' }) }),
   answer: (id: string, text: string) => request(`/api/inbox/${id}/answer`, { method: 'POST', body: JSON.stringify({ text }) }),
   brain: () => request<BrainSnapshot>('/api/brain'),
-  entity: (id: string) =>
-    request<{ entity: Entity; relations: { out: Edge[]; in: Edge[] }; nearby: Array<{ id: string; depth: number }> }>(
-      `/api/brain/entities/${encodeURIComponent(id)}`,
-    ),
+  entity: (id: string) => request<EntityDetail>(`/api/brain/entities/${encodeURIComponent(id)}`),
+  editEntity: (id: string, change: EditEntity) =>
+    request<Entity>(`/api/brain/entities/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(change) }),
+  deleteEntity: (id: string) =>
+    request<{ deleted: true; relations: number }>(`/api/brain/entities/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  editPlaybook: (name: string, change: EditPlaybook) =>
+    request<Playbook>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify(change) }),
+  deletePlaybook: (name: string) =>
+    request<{ deleted: true; detachedVariations: string[] }>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   playbooks: () => request<Playbook[]>('/api/brain/playbooks'),
   setPlaybookAutonomy: (name: string, autonomy: Autonomy) =>
     request<Playbook>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'PATCH', body: JSON.stringify({ autonomy }) }),

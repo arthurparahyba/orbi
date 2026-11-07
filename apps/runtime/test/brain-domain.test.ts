@@ -144,3 +144,66 @@ test('variação: precisa de uma base que existe e fica ligada a ela', () => {
   b.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'criar-repositorio' });
   assert.equal(b.playbook('deletar-repositorio')?.variationOf, 'criar-repositorio');
 });
+
+test('edição: entidade troca propriedades e texto, mantém tipo; o índice acompanha', () => {
+  const b = new BrainStore(':memory:');
+  b.upsertType({ name: 'Portal', description: '', relations: { usa: 'Portal' }, requires: [] });
+  b.upsertEntity({ id: 'portal-parceiros', type: 'Portal', props: { url: 'https://antigo' }, body: 'Portal de parceiros' });
+  const edited = b.editEntity('portal-parceiros', { props: { url: 'https://novo.parceiros' } });
+  assert.equal(edited.type, 'Portal');
+  assert.equal(edited.body, 'Portal de parceiros', 'o que não veio fica como estava');
+  assert.equal(b.search('novo.parceiros')[0]?.id, 'portal-parceiros');
+  assert.equal(b.search('antigo').length, 0);
+  assert.throws(() => b.editEntity('nao-existe', {}), /não encontrada/);
+});
+
+test('exclusão: entidade leva as ligações junto, inclusive as passadas', () => {
+  const b = new BrainStore(':memory:');
+  b.upsertType({ name: 'Pessoa', description: '', relations: { substitutaDe: 'Pessoa' }, requires: [] });
+  for (const id of ['marina', 'rafael', 'ana']) b.upsertEntity({ id, type: 'Pessoa', props: {}, body: '' });
+  b.addEdge({ from: 'rafael', rel: 'substitutaDe', to: 'marina' });
+  b.addEdge({ from: 'ana', rel: 'substitutaDe', to: 'marina', validFrom: '2025-01-01T00:00:00Z', validTo: '2025-06-01T00:00:00Z' });
+  assert.deepEqual(b.entityDependents('marina'), { relations: 2 });
+  assert.deepEqual(b.deleteEntity('marina'), { relations: 2 });
+  assert.equal(b.get('marina'), undefined);
+  assert.equal(b.graph().edges.length, 0);
+  assert.equal(b.search('marina').length, 0, 'sai do índice');
+});
+
+test('edição de procedimento: valida passos, mantém nome, autonomia, base e contadores', () => {
+  const b = new BrainStore(':memory:');
+  b.savePlaybook(pb('criar-repositorio', 'Cria', 'pedido', ['Conferir', 'Criar']));
+  b.savePlaybook({ ...pb('deletar-repositorio', 'Apaga', 'pedido', ['Apagar']), variationOf: 'criar-repositorio' });
+  b.setPlaybookAutonomy('criar-repositorio', 'auto');
+  b.startRun('criar-repositorio', 'c1');
+  const edited = b.editPlaybook('criar-repositorio', {
+    description: 'Cria um repositório com o template do time',
+    steps: [{ id: '1', label: 'Criar', how: 'gh repo create' }, { id: 'avisar', label: 'Avisar', how: 'link' }],
+  });
+  assert.equal(edited.autonomy, 'auto');
+  assert.equal(edited.uses, 1, 'contadores ficam');
+  assert.deepEqual(edited.steps.map((s) => s.id), ['1', 'avisar']);
+  assert.equal(b.searchPlaybooks('template')[0].playbook.name, 'criar-repositorio', 'o índice acompanha');
+  assert.throws(() => b.editPlaybook('criar-repositorio', { steps: [] }), /sem passos/);
+  assert.throws(() => b.editPlaybook('criar-repositorio', { steps: [{ id: 'a', label: 'A', how: '' }, { id: 'a', label: 'B', how: '' }] }), /repetido/);
+  assert.throws(() => b.editPlaybook('criar-repositorio', { steps: [{ id: 'a', label: ' ', how: '' }] }), /sem nome/);
+});
+
+test('exclusão de procedimento: variações ficam sem a ligação, histórico fica', () => {
+  const b = new BrainStore(':memory:');
+  b.savePlaybook(pb('criar-repositorio', 'Cria', 'pedido', ['Criar']));
+  b.savePlaybook({ ...pb('deletar-repositorio', 'Apaga', 'pedido', ['Apagar']), variationOf: 'criar-repositorio' });
+  b.startRun('criar-repositorio', 'c1');
+  assert.deepEqual(b.deletePlaybook('criar-repositorio'), { detachedVariations: ['deletar-repositorio'] });
+  assert.equal(b.playbook('criar-repositorio'), undefined);
+  assert.equal(b.playbook('deletar-repositorio')?.variationOf, null);
+  assert.equal(b.runs().length, 1, 'execuções passadas continuam em Execuções');
+  assert.equal(b.searchPlaybooks('cria').length, 0);
+});
+
+test('id de passo novo a partir do nome, sem repetir', async () => {
+  const { stepId } = await import('../src/brain/domain/playbooks.ts');
+  assert.equal(stepId('Abrir o portal', []), 'abrir-o-portal');
+  assert.equal(stepId('Abrir o portal', ['abrir-o-portal']), 'abrir-o-portal-2');
+  assert.equal(stepId('✓', []), 'passo');
+});

@@ -27,3 +27,7 @@ export const MicOffIcon = ({ size }: P) => (<svg {...base(size)}><path d="M9 9v2
 export const GlobeIcon = ({ size }: P) => (<svg {...base(size)}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z" /></svg>);
 export const KeyIcon = ({ size }: P) => (<svg {...base(size)}><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3M14 9l2 2" /></svg>);
 export const CopyIcon = ({ size }: P) => (<svg {...base(size)}><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>);
+export const PencilIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="M14 6l4 4" /></svg>);
+export const TrashIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>);
+export const UpIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 14l6-6 6 6" /></svg>);
+export const DownIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 10l6 6 6-6" /></svg>);

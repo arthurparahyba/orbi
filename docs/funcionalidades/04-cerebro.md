@@ -18,6 +18,9 @@ trabalha com o Orbi, e cada coisa nova só entra depois que você aprova.
   - **Playbooks**: procedimentos, variações e nível de autonomia (documento 5);
   - **Execuções**: cada vez que um procedimento rodou e como terminou cada passo;
   - **Ontologia**: os tipos e as ligações que cada um aceita.
+- **Editar e apagar uma entidade**: no detalhe, **Editar** muda as propriedades
+  e a descrição (o id e o tipo ficam). **Apagar** pede confirmação e diz quantas
+  ligações vão junto, incluindo as do histórico.
 - **Exportar Markdown**: gera uma nota por entidade e por procedimento, com links
   entre elas, para abrir no Obsidian. Só leitura: o cérebro continua no banco.
 - **Na conversa**, o cartão de aprovação de um aprendizado mostra o que vai entrar.
@@ -149,6 +152,29 @@ flowchart LR
 - `brain/store.ts`: a fachada que aplica as regras e grava pelos repositórios,
   com transações onde mais de uma tabela muda.
 
+## Quando você edita
+
+```mermaid
+sequenceDiagram
+  actor Voce as Você
+  participant Tela as Cérebro (EntityEditor)
+  participant Rota as PATCH /api/brain/entities/:id
+  participant Store as BrainStore
+  participant Indice as entities_fts
+
+  Voce->>Tela: muda propriedades e descrição, Salvar
+  Tela->>Rota: props, body
+  Rota->>Store: editEntity (mesmas regras do aprendizado)
+  Store->>Indice: gatilho atualiza a busca
+  Store-->>Tela: evento "brain", e a tela atualiza
+```
+
+Edição pela tela não passa por aprovação: é você mudando. Valem as mesmas
+regras de quando o Orbi aprende. Propriedades que não eram texto (uma lista, um
+número) continuam do mesmo tipo se o valor novo ainda for JSON válido. Apagar
+(`DELETE /api/brain/entities/:id`) remove a entidade e todas as ligações dela,
+numa transação.
+
 ## Peças
 
 | Onde | O quê |
@@ -157,7 +183,9 @@ flowchart LR
 | `apps/runtime/src/agents/tools/brain.ts` | `brain_query` (livre) e `brain_learn` (pelo portão) |
 | `apps/runtime/src/db/migrations.ts` | Esquema e migrações versionadas |
 | `apps/runtime/src/http/routes/brain.ts` | `GET /api/brain`, entidades, procedimentos, execuções, exportação |
-| `apps/desktop/src/views/brain/` | A tela: grafo e layout, detalhe, playbooks, execuções, ontologia |
+| `apps/desktop/src/views/brain/` | A tela: grafo e layout, detalhe, editores, playbooks, execuções, ontologia |
+| `apps/desktop/src/views/brain/editing.ts` | Propriedades como linhas editáveis e passos como lista (sem React, testável) |
+| `apps/desktop/src/components/ConfirmDelete.tsx` | Confirmação de exclusão com as consequências |
 
 ## Tecnologias
 
@@ -181,8 +209,9 @@ Tudo em `data/orbi.db`. A exportação Markdown vai para `data/brain-md/`.
 ## Limites conhecidos
 
 - A busca por texto acha palavras e radicais, não sinônimos (documento 8).
-- Não há edição manual de entidades pela tela; correções passam pela conversa.
-- Não há como apagar uma entidade pela tela.
+- Pela tela não dá para mudar o id nem o tipo de uma entidade, nem criar ou
+  encerrar uma ligação; isso passa pela conversa.
+- Apagar uma entidade não mexe em procedimentos que a citam no texto.
 
 ## Testes
 

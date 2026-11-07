@@ -272,6 +272,8 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `POST /api/recordings` · `GET /api/recordings/:id` · `POST …/audio` · `POST …/stop` | Demonstração no navegador |
 | `GET /api/vault` · `PUT/DELETE /api/vault/:name` | Cofre (só nomes e descrições, nunca valores) |
 | `GET /api/health` | Modelo, chave, ponte do Chrome, cérebro, onde fica o `.env` |
+| `PATCH`/`DELETE /api/brain/entities/:id` | Editar ou apagar uma entidade (pela tela Cérebro) |
+| `PUT`/`DELETE /api/brain/playbooks/:name` | Editar ou apagar um procedimento |
 | `GET /api/events` | Feed de mudanças (server-sent events) |
 | `GET /api/usage?days=30` | Uso do modelo e das ferramentas: hoje, período e por conversa |
 

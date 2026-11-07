@@ -7,8 +7,24 @@ const PLAYBOOK_NAME = /^[a-z0-9][a-z0-9-]{1,63}$/;
 export function playbookProblems(pb: Pick<Playbook, 'name' | 'steps'>): string[] {
   const problems: string[] = [];
   if (!PLAYBOOK_NAME.test(pb.name)) problems.push(`nome de playbook inválido: ${pb.name}`);
-  if (!Array.isArray(pb.steps) || pb.steps.length === 0) problems.push('playbook sem passos');
+  if (!Array.isArray(pb.steps) || pb.steps.length === 0) return [...problems, 'playbook sem passos'];
+  const ids = new Set<string>();
+  pb.steps.forEach((step, i) => {
+    if (!step.id?.trim()) problems.push(`passo ${i + 1} sem id`);
+    else if (ids.has(step.id)) problems.push(`id de passo repetido: ${step.id}`);
+    ids.add(step.id);
+    if (!step.label?.trim()) problems.push(`passo ${i + 1} sem nome`);
+  });
   return problems;
+}
+
+/** A new step id from a label, not used by the steps already there ("Abrir o portal" → "abrir-o-portal"). */
+export function stepId(label: string, taken: Iterable<string>): string {
+  const base = label.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'passo';
+  const used = new Set(taken);
+  let id = base;
+  for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+  return id;
 }
 
 /**

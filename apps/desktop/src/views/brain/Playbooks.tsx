@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { api, type Autonomy, type Playbook, type PlaybookRun } from '../../api';
 import { useLive } from '../../hooks';
 import { Segmented } from '../../components/Segmented';
+import { ConfirmDelete } from '../../components/ConfirmDelete';
+import { PencilIcon, TrashIcon } from '../../components/Icons';
+import { PlaybookEditor } from './PlaybookEditor';
 import { fmt } from './look';
 
 /** Each variation right after the playbook it came from. */
@@ -22,6 +25,7 @@ const AUTONOMY_LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask:
 export function Playbooks() {
   const pbs = useLive(api.playbooks, ['brain']);
   const [open, setOpen] = useState<string>();
+  const [mode, setMode] = useState<{ name: string; kind: 'edit' | 'delete' }>();
   if (!pbs.data) return <p className="muted pad">Carregando…</p>;
   if (pbs.data.length === 0) return <p className="muted pad">Nenhum procedimento aprendido ainda. Ensine um na tela Conversa.</p>;
   return (
@@ -44,8 +48,24 @@ export function Playbooks() {
               />
             </div>
           </header>
-          {open === p.name && (
+          {open === p.name && mode?.name === p.name && mode.kind === 'edit' ? (
             <div className="pb-body">
+              <PlaybookEditor playbook={p} onDone={() => setMode(undefined)} />
+            </div>
+          ) : open === p.name && (
+            <div className="pb-body">
+              <div className="row gap detail-actions">
+                <button type="button" className="btn small" onClick={() => setMode({ name: p.name, kind: 'edit' })}><PencilIcon size={13} /> Editar</button>
+                <button type="button" className="btn small" onClick={() => setMode({ name: p.name, kind: 'delete' })}><TrashIcon size={13} /> Apagar</button>
+              </div>
+              {mode?.name === p.name && mode.kind === 'delete' && (
+                <ConfirmDelete
+                  what={`o procedimento ${p.name}`}
+                  consequences={deleteConsequences(p, pbs.data ?? [])}
+                  onConfirm={async () => { await api.deletePlaybook(p.name); setMode(undefined); setOpen(undefined); }}
+                  onCancel={() => setMode(undefined)}
+                />
+              )}
               <p className="muted small">Gatilho: {p.trigger}{p.appliesTo ? ` · aplica-se a ${p.appliesTo}` : ''}</p>
               <ol className="steps static">
                 {p.steps.map((s, i) => <li key={s.id} className="step"><span className="step-dot">{i + 1}</span><span className="step-body"><span className="step-label">{s.label}</span><span className="step-note">{s.how}</span></span></li>)}
@@ -57,6 +77,16 @@ export function Playbooks() {
       ))}
     </div>
   );
+}
+
+/** What deleting a playbook means, in words. */
+export function deleteConsequences(p: Playbook, all: Playbook[]): string[] {
+  const variations = all.filter((o) => o.variationOf === p.name).map((o) => o.name);
+  return [
+    'O Orbi deixa de saber fazer isso; se pedirem de novo, ele aprende do zero.',
+    ...(variations.length ? [`${variations.length === 1 ? 'A variação' : 'As variações'} ${variations.join(', ')} ${variations.length === 1 ? 'continua' : 'continuam'}, sem a ligação com este.`] : []),
+    ...(p.uses ? [`As ${p.uses} execuções passadas continuam em Execuções.`] : []),
+  ];
 }
 
 /** "variação de X" on a variation; "Variações: …" on a base. */

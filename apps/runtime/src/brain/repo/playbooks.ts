@@ -44,6 +44,14 @@ export class PlaybookRepo {
       .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, now());
   }
 
+  /** Removes a playbook. Its variations stay, no longer linked; its runs stay as history. Returns the variations detached. */
+  delete(name: string): string[] {
+    const variations = (this.db.prepare('SELECT name FROM playbooks WHERE variation_of = ? ORDER BY name').all(name) as Row[]).map((r) => String(r.name));
+    this.db.prepare('UPDATE playbooks SET variation_of = NULL WHERE variation_of = ?').run(name);
+    this.db.prepare('DELETE FROM playbooks WHERE name = ?').run(name);
+    return variations;
+  }
+
   setAutonomy(name: string, autonomy: Autonomy): void {
     this.db.prepare('UPDATE playbooks SET autonomy = ?, updated_at = ? WHERE name = ?').run(autonomy, now(), name);
   }

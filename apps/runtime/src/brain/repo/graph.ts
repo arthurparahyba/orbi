@@ -35,6 +35,18 @@ export class GraphRepo {
     return { ...entity, updatedAt };
   }
 
+  /** Removes an entity and every relation from or to it, in the past too. Returns how many relations went. */
+  deleteEntity(id: string): number {
+    const edges = Number(this.db.prepare('DELETE FROM edges WHERE from_id = ? OR to_id = ?').run(id, id).changes);
+    this.db.prepare('DELETE FROM entities WHERE id = ?').run(id);
+    return edges;
+  }
+
+  /** Relations from or to an entity, in the past too (what a delete takes along). */
+  edgeCount(id: string): number {
+    return Number((this.db.prepare('SELECT COUNT(*) AS n FROM edges WHERE from_id = ? OR to_id = ?').get(id, id) as { n: number }).n);
+  }
+
   insertEdge(edge: Edge): void {
     this.db
       .prepare('INSERT OR REPLACE INTO edges (from_id, rel, to_id, attrs, valid_from, valid_to) VALUES (?, ?, ?, ?, ?, ?)')

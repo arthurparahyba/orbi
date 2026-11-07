@@ -25,6 +25,24 @@ export const SetSecret = v.object({ value: v.pipe(v.string(), v.minLength(1)), d
 
 const AutonomyLevel = v.picklist(['observe', 'ask', 'auto']);
 export const SetPlaybookAutonomy = v.object({ autonomy: AutonomyLevel });
+/** PATCH /api/brain/entities/:id — the developer corrects an entity. */
+export const EditEntity = v.object({
+  props: v.optional(v.record(v.string(), v.unknown())),
+  body: v.optional(v.string()),
+});
+const PlaybookStep = v.object({
+  id: v.pipe(v.string(), v.trim(), v.minLength(1, 'passo sem id')),
+  label: v.pipe(v.string(), v.trim(), v.minLength(1, 'passo sem nome')),
+  how: v.string(),
+});
+/** PUT /api/brain/playbooks/:name — the developer edits a playbook (name, autonomy and base stay). */
+export const EditPlaybook = v.object({
+  description: v.optional(v.string()),
+  trigger: v.optional(v.string()),
+  appliesTo: v.optional(v.nullable(v.string())),
+  steps: v.optional(v.pipe(v.array(PlaybookStep), v.minLength(1, 'o procedimento precisa de pelo menos um passo'))),
+  instructions: v.optional(v.string()),
+});
 export const SetAutonomy = v.object({
   category: v.picklist(['comandos-leitura', 'comandos-escrita', 'navegador-leitura', 'navegador-escrita', 'codigo-teste', 'codigo-producao', 'aprender']),
   level: AutonomyLevel,
@@ -57,4 +75,6 @@ export type StartRecording = v.InferOutput<typeof StartRecording>;
 export type StopRecording = v.InferOutput<typeof StopRecording>;
 export type SetSecret = v.InferOutput<typeof SetSecret>;
 export type SetPlaybookAutonomy = v.InferOutput<typeof SetPlaybookAutonomy>;
+export type EditEntity = v.InferOutput<typeof EditEntity>;
+export type EditPlaybook = v.InferOutput<typeof EditPlaybook>;
 export type SetAutonomy = v.InferOutput<typeof SetAutonomy>;

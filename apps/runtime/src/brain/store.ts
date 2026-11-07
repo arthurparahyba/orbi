@@ -65,6 +65,27 @@ export class BrainStore {
     return this.graphRepo.upsertEntity(entity);
   }
 
+  /** The developer edits an entity on the Cérebro screen: properties and text (type and id stay). */
+  editEntity(id: string, change: { props?: Record<string, unknown>; body?: string }): Entity {
+    const current = this.get(id);
+    if (!current) throw new Error(`entidade não encontrada: ${id}`);
+    return this.upsertEntity({ id, type: current.type, props: change.props ?? current.props, body: change.body ?? current.body });
+  }
+
+  /** What deleting an entity takes along: its relations, current and past. */
+  entityDependents(id: string): { relations: number } {
+    return { relations: this.graphRepo.edgeCount(id) };
+  }
+
+  deleteEntity(id: string): { relations: number } {
+    if (!this.get(id)) throw new Error(`entidade não encontrada: ${id}`);
+    let relations = 0;
+    transaction(this.db, () => {
+      relations = this.graphRepo.deleteEntity(id);
+    });
+    return { relations };
+  }
+
   /** Add a fact. Edges are temporal: `validTo` lets "Marina approves until 31/12" expire by itself. */
   addEdge(edge: { from: string; rel: string; to: string; attrs?: Record<string, unknown>; validFrom?: string; validTo?: string | null }): Edge {
     const problems = this.validateEdge(edge);
@@ -108,6 +129,24 @@ export class BrainStore {
     this.playbookRepo.save(pb);
     return this.playbookRepo.get(pb.name)!;
   }
+  /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
+  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions'>>): Playbook {
+    const current = this.playbookRepo.get(name);
+    if (!current) throw new Error(`playbook não encontrado: ${name}`);
+    const { uses: _u, successes: _s, updatedAt: _t, ...rest } = current;
+    return this.savePlaybook({ ...rest, ...change });
+  }
+
+  /** Deletes a playbook. Variations stay (unlinked); past runs stay in Execuções. */
+  deletePlaybook(name: string): { detachedVariations: string[] } {
+    if (!this.playbookRepo.get(name)) throw new Error(`playbook não encontrado: ${name}`);
+    let detachedVariations: string[] = [];
+    transaction(this.db, () => {
+      detachedVariations = this.playbookRepo.delete(name);
+    });
+    return { detachedVariations };
+  }
+
   setPlaybookAutonomy(name: string, autonomy: Autonomy): Playbook {
     if (!this.playbookRepo.get(name)) throw new Error(`playbook não encontrado: ${name}`);
     this.playbookRepo.setAutonomy(name, autonomy);

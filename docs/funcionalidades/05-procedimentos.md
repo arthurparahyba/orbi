@@ -16,6 +16,15 @@ repetitivo depois do commit em algo que o Orbi faz sozinho.
 - **Cérebro → Playbooks**: todos os procedimentos, quantas vezes deram certo, o
   nível de autonomia e as variações, cada uma logo abaixo da base.
 - **Cérebro → Execuções**: o histórico de cada vez que rodou.
+- **Editar e apagar**: ao abrir um procedimento em Cérebro → Playbooks:
+  - **Editar** muda para que serve, quando usar, a classe, as instruções e os
+    passos (renomear, reordenar, incluir, tirar). O nome, a autonomia, a base e os
+    contadores ficam. Passos existentes mantêm o `id`, então um passo renomeado
+    continua sendo o mesmo para o histórico e para as variações; passos novos
+    ganham um `id` a partir do nome.
+  - **Apagar** pede confirmação e diz o que acontece: o Orbi deixa de saber fazer
+    aquilo, as variações continuam (sem a ligação) e as execuções passadas
+    continuam em Execuções.
 
 ## Anatomia de um procedimento
 
@@ -113,7 +122,9 @@ procedimentos.
 | `apps/runtime/src/brain/repo/playbooks.ts` | SQL de procedimentos, execuções e busca |
 | `apps/runtime/src/skills/aprender-procedimento.ts` + `prompts/aprender-procedimento.md` | Como aprender |
 | `apps/desktop/src/components/UiComponents.tsx` | Checklist (`stepper`) e prévia do aprendizado |
-| `apps/desktop/src/views/brain/Playbooks.tsx` | Lista, variações, autonomia, execuções |
+| `apps/desktop/src/views/brain/Playbooks.tsx` | Lista, variações, autonomia, execuções, apagar |
+| `apps/desktop/src/views/brain/PlaybookEditor.tsx` | Editor de procedimento |
+| `apps/runtime/src/http/routes/brain.ts` | `PUT` e `DELETE /api/brain/playbooks/:name` |
 
 ## Tecnologias
 
@@ -138,8 +149,10 @@ procedimentos.
 
 ## Limites conhecidos
 
-- Não há edição de passos pela tela; ajustes são pedidos na conversa e passam por aprovação.
 - Um procedimento roda por vez em cada conversa.
+- Editar um procedimento não muda uma execução já em andamento: ela segue com os
+  passos que tinha quando começou.
+- Pela tela não dá para renomear um procedimento; peça na conversa.
 
 ## Testes
 

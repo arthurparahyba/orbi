@@ -112,6 +112,30 @@ test('cérebro e autonomia: leitura, 404 e validação', async () => {
   assert.equal((await call('GET', '/api/autonomy')).json.categories['comandos-escrita'], 'auto');
 });
 
+test('cérebro: editar e apagar entidades e procedimentos', async () => {
+  const { orbi, call } = await setup();
+  orbi.brain.upsertType({ name: 'Portal', description: '', relations: {}, requires: [] });
+  orbi.brain.upsertEntity({ id: 'portal', type: 'Portal', props: { url: 'a' }, body: '' });
+  orbi.brain.savePlaybook({ name: 'abrir-portal', description: 'Abre', trigger: '', appliesTo: null, autonomy: 'ask', steps: [{ id: 'a', label: 'Abrir', how: '' }], instructions: '', learnedFrom: null, variationOf: null });
+
+  assert.equal((await call('GET', '/api/brain/entities/portal')).json.dependents.relations, 0);
+  assert.equal((await call('PATCH', '/api/brain/entities/portal', { props: { url: 'b' } })).json.props.url, 'b');
+  isApiError((await call('PATCH', '/api/brain/entities/portal', { body: 3 })).json, 'invalid_body');
+  assert.equal((await call('PATCH', '/api/brain/entities/nada', {})).status, 404);
+
+  const bad = await call('PUT', '/api/brain/playbooks/abrir-portal', { steps: [{ id: 'x', label: 'A', how: '' }, { id: 'x', label: 'B', how: '' }] });
+  assert.equal(bad.status, 400);
+  assert.match(bad.json.error.message, /repetido/);
+  isApiError((await call('PUT', '/api/brain/playbooks/abrir-portal', { steps: [] })).json, 'invalid_body');
+  const ok = await call('PUT', '/api/brain/playbooks/abrir-portal', { trigger: 'deploy', steps: [{ id: 'a', label: 'Abrir o portal', how: 'navegador' }] });
+  assert.equal(ok.json.steps[0].label, 'Abrir o portal');
+  assert.equal(ok.json.trigger, 'deploy');
+
+  assert.deepEqual((await call('DELETE', '/api/brain/playbooks/abrir-portal')).json, { deleted: true, detachedVariations: [] });
+  assert.equal((await call('DELETE', '/api/brain/playbooks/abrir-portal')).status, 404);
+  assert.deepEqual((await call('DELETE', '/api/brain/entities/portal')).json, { deleted: true, relations: 0 });
+});
+
 test('health, rota inexistente e token', async () => {
   const { call } = await setup({ ORBI_API_TOKEN: 'segredo' });
   const denied = await call('GET', '/api/health');

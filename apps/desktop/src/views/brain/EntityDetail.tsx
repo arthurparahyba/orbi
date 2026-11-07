@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import { api, type BrainSnapshot } from '../../api';
 import { colorOf, fmt, labelOf } from './look';
+import { EntityEditor } from './EntityEditor';
+import { ConfirmDelete } from '../../components/ConfirmDelete';
+import { PencilIcon, TrashIcon } from '../../components/Icons';
 
 /** What Orbi knows about one entity: properties, relations now and their history. */
-export function EntityDetail({ id, snapshot, onSelect }: { id?: string; snapshot: BrainSnapshot; onSelect(id: string): void }) {
+export function EntityDetail({ id, snapshot, onSelect, onDeleted }: { id?: string; snapshot: BrainSnapshot; onSelect(id: string): void; onDeleted(): void }) {
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof api.entity>>>();
+  const [mode, setMode] = useState<'view' | 'edit' | 'delete'>('view');
+  const [version, setVersion] = useState(0);
   useEffect(() => {
     setDetail(undefined);
     if (id) api.entity(id).then(setDetail, () => setDetail(undefined));
-  }, [id, snapshot.stats.edges, snapshot.stats.entities]);
+  }, [id, snapshot.stats.edges, snapshot.stats.entities, version]);
+  useEffect(() => setMode('view'), [id]);
 
   if (!id) return <aside className="detail muted pad">Selecione um nó para ver o que o Orbi sabe sobre ele, com as relações atuais e o histórico.</aside>;
   if (!detail) return <aside className="detail muted pad">Carregando…</aside>;
@@ -21,8 +27,28 @@ export function EntityDetail({ id, snapshot, onSelect }: { id?: string; snapshot
       <span className="type-chip" style={{ borderColor: colorOf(e.type), color: colorOf(e.type) }}>{e.type}</span>
       <h2>{labelOf(e)}</h2>
       <p className="mono muted small">{e.id}</p>
-      {e.body && <p>{e.body}</p>}
-      {props.length > 0 && (
+      {mode === 'view' && (
+        <div className="row gap detail-actions">
+          <button type="button" className="btn small" onClick={() => setMode('edit')}><PencilIcon size={13} /> Editar</button>
+          <button type="button" className="btn small" onClick={() => setMode('delete')}><TrashIcon size={13} /> Apagar</button>
+        </div>
+      )}
+      {mode === 'delete' && (
+        <ConfirmDelete
+          what={e.id}
+          consequences={[
+            detail.dependents.relations
+              ? `Leva junto ${detail.dependents.relations} ${detail.dependents.relations === 1 ? 'ligação' : 'ligações'} (atuais e do histórico).`
+              : 'Não tem ligações.',
+            'Procedimentos que citam esta entidade no texto não mudam.',
+          ]}
+          onConfirm={async () => { await api.deleteEntity(e.id); onDeleted(); }}
+          onCancel={() => setMode('view')}
+        />
+      )}
+      {mode === 'edit' && <EntityEditor entity={e} onDone={(saved) => { setMode('view'); if (saved) setVersion((v) => v + 1); }} />}
+      {mode !== 'edit' && e.body && <p>{e.body}</p>}
+      {mode !== 'edit' && props.length > 0 && (
         <dl className="props">
           {props.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{typeof v === 'string' ? v : JSON.stringify(v)}</dd></div>)}
         </dl>
