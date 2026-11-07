@@ -25,7 +25,9 @@ export function pageRecorder(binding: string) {
   };
 
   const clean = (s: string | null | undefined, max = 80) => (s ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
-  const SECRET_HINT = /pass|senha|secret|segredo|token|otp|mfa|2fa|totp|pin\b|cvv|api[-_ ]?key|chave/i;
+  const SECRET_HINT = /pass(?!key)|senha|secret|segredo|token|otp|mfa|2fa|totp|pin\b|cvv|api[-_ ]?key|chave/i;
+  // A name for something is not a secret, even next to a secret word ("Passkey nickname", "Nome do token").
+  const NOT_SECRET_HINT = /nickname|apelido|nome d[oae]|display name|label/i;
   const USER_HINT = /user|login|usu[aá]rio|e-?mail|matr[ií]cula|cpf/i;
 
   const labelOf = (el: Element): string => {
@@ -85,7 +87,7 @@ export function pageRecorder(binding: string) {
     const type = (input.type ?? '').toLowerCase();
     const auto = (el.getAttribute('autocomplete') ?? '').toLowerCase();
     const hint = `${input.name ?? ''} ${el.id} ${labelOf(el)} ${el.getAttribute('placeholder') ?? ''}`;
-    if (type === 'password' || /password|one-time-code|cc-number|cc-csc/.test(auto) || SECRET_HINT.test(hint)) return 'secret';
+    if (type === 'password' || /password|one-time-code|cc-number|cc-csc/.test(auto) || (SECRET_HINT.test(hint) && !NOT_SECRET_HINT.test(hint))) return 'secret';
     const form = el.closest('form') ?? document;
     if ((auto === 'username' || USER_HINT.test(hint)) && form.querySelector('input[type=password]')) return 'user';
     return null;
@@ -112,7 +114,10 @@ export function pageRecorder(binding: string) {
     }
   };
 
+  // Only what the person did: pages also click and fill by script (GitHub sets
+  // hidden "supported"/"true" fields on its login), and that is not a step.
   document.addEventListener('click', (e) => {
+    if (!e.isTrusted) return;
     const raw = e.target as Element | null;
     if (!raw || !(raw instanceof Element)) return;
     const el = raw.closest(INTERACTIVE) ?? raw;
@@ -124,12 +129,14 @@ export function pageRecorder(binding: string) {
 
   document.addEventListener('change', (e) => {
     const el = e.target as Element | null;
-    if (el && el instanceof Element) fieldEvent(el, 'fill');
+    if (!e.isTrusted || !el || !(el instanceof Element)) return;
+    if ((el as HTMLInputElement).type === 'hidden') return;
+    fieldEvent(el, 'fill');
   }, true);
 
   document.addEventListener('keydown', (e) => {
     const el = e.target as Element | null;
-    if (!el || !(el instanceof Element) || e.key !== 'Enter' || !isTextField(el) || el.tagName === 'TEXTAREA') return;
+    if (!e.isTrusted || !el || !(el instanceof Element) || e.key !== 'Enter' || !isTextField(el) || el.tagName === 'TEXTAREA') return;
     fieldEvent(el, 'fill'); // Enter may submit before `change` fires
     send({ kind: 'key', key: 'Enter', target: describe(el) });
   }, true);

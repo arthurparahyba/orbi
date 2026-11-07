@@ -56,25 +56,75 @@ export function wavToFloat32(wav: Buffer): { samples: Float32Array; sampleRate: 
   return { samples: out, sampleRate: 16_000 };
 }
 
+type Asr = (audio: Float32Array, options: Record<string, unknown>) => Promise<{ text: string } | Array<{ text: string }>>;
+export type ModelProgress = { status: string; file?: string; progress?: number; loaded?: number; total?: number };
+
+/**
+ * Loads Whisper with transformers.js, downloading it into modelsDir the first
+ * time. The library decides whether to cache a download with
+ * `response instanceof Response`; a fetch from another implementation fails
+ * that check, nothing is cached, and loading ends in "Unable to get model file
+ * path or buffer". So fetch here always hands back this runtime's Response.
+ * A failure names the file and the real cause (blocked host, status, disk).
+ */
+export async function loadWhisper(stt: SttConfig, onProgress?: (p: ModelProgress) => void): Promise<Asr> {
+  mkdirSync(stt.modelsDir, { recursive: true });
+  const t = await import('@huggingface/transformers').catch(() => {
+    throw new Error('transcrição local precisa do pacote @huggingface/transformers (npm install)');
+  });
+  t.env.cacheDir = stt.modelsDir;
+  t.env.useFSCache = true;
+  t.env.useBrowserCache = false;
+  t.env.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const res: Pick<Response, 'body' | 'status' | 'statusText' | 'headers'> = await fetch(input, init);
+    return res instanceof Response ? res : new Response(res.body, { status: res.status, statusText: res.statusText, headers: res.headers });
+  };
+  if (stt.modelHost) t.env.remoteHost = stt.modelHost.endsWith('/') ? stt.modelHost : `${stt.modelHost}/`;
+  if (stt.offline) {
+    t.env.allowRemoteModels = false;
+    t.env.localModelPath = stt.modelsDir;
+  }
+  let lastFile = '';
+  try {
+    return (await t.pipeline('automatic-speech-recognition', stt.localModel, {
+      dtype: 'q8',
+      progress_callback: (p: ModelProgress) => {
+        if (p.file) lastFile = p.file;
+        onProgress?.(p);
+      },
+    })) as unknown as Asr;
+  } catch (error) {
+    throw new Error(modelLoadError(stt, lastFile, error));
+  }
+}
+
+/** One line a person can act on, with the underlying cause (fetch errors hide it in `cause`). */
+export function modelLoadError(stt: Pick<SttConfig, 'localModel' | 'modelHost' | 'offline' | 'modelsDir'>, file: string, error: unknown): string {
+  const causes: string[] = [];
+  for (let e: unknown = error; e && causes.length < 4; e = (e as { cause?: unknown }).cause) {
+    const msg = e instanceof Error ? `${e.message}${(e as { code?: string }).code ? ` (${(e as { code?: string }).code})` : ''}` : String(e);
+    if (!causes.includes(msg)) causes.push(msg);
+  }
+  const where = stt.offline ? `em ${stt.modelsDir}` : `de ${stt.modelHost ?? 'huggingface.co'}`;
+  return `não consegui carregar o modelo de transcrição ${stt.localModel} ${where}${file ? ` (arquivo ${file})` : ''}: ${causes.join(' ← ')}. ` +
+    'Teste com `npm run stt:testar -w @orbi/runtime`; veja docs/funcionalidades/06-ensinar-pelo-navegador.md.';
+}
+
 function localWhisper(stt: SttConfig): Transcriber {
-  type Asr = (audio: Float32Array, options: Record<string, unknown>) => Promise<{ text: string } | Array<{ text: string }>>;
   let asr: Promise<Asr> | undefined;
   const load = () =>
     (asr ??= (async () => {
-      mkdirSync(stt.modelsDir, { recursive: true });
-      const t = await import('@huggingface/transformers').catch(() => {
-        throw new Error('transcrição local precisa do pacote @huggingface/transformers (npm install)');
+      log.info('carregando modelo de transcrição (a primeira vez baixa o modelo)', { model: stt.localModel, dir: stt.modelsDir });
+      let reported = '';
+      return loadWhisper(stt, (p) => {
+        if (p.status === 'download' && p.file && p.file !== reported) {
+          reported = p.file;
+          log.info('baixando arquivo do modelo de transcrição', { file: p.file });
+        }
       });
-      t.env.cacheDir = stt.modelsDir;
-      if (stt.modelHost) t.env.remoteHost = stt.modelHost.endsWith('/') ? stt.modelHost : `${stt.modelHost}/`;
-      if (stt.offline) {
-        t.env.allowRemoteModels = false;
-        t.env.localModelPath = stt.modelsDir;
-      }
-      log.info('carregando modelo de transcrição (a primeira vez baixa o modelo)', { model: stt.localModel });
-      return (await t.pipeline('automatic-speech-recognition', stt.localModel, { dtype: 'q8' })) as unknown as Asr;
     })().catch((error) => {
       asr = undefined;
+      log.error('modelo de transcrição não carregou', { error });
       throw error;
     }));
   return {

@@ -30,6 +30,15 @@ function useRecording(initial: Recording, onClosed: () => void) {
     if (r.status === 'done' || r.status === 'discarded') closed.current();
   }, [fetched.data]);
 
+  // The change feed should say when it is done; while transcribing, also ask now and then,
+  // so a missed event never leaves the panel stuck.
+  const transcribing = rec.status === 'transcribing';
+  useEffect(() => {
+    if (!transcribing) return;
+    const timer = setInterval(() => void fetched.reload(), 2_000);
+    return () => clearInterval(timer);
+  }, [transcribing, fetched.reload]);
+
   const finish = async (discard: boolean) => {
     setRec(await api.stopRecording(rec.id, discard));
     if (discard) closed.current();
@@ -68,6 +77,7 @@ export function RecordingPanel({ initial, narrator, onClosed }: { initial: Recor
             <button type="button" className="btn small primary" onClick={() => stop(false)}>Terminar e aprender</button>
           </>
         )}
+        {!recording && <button type="button" className="btn small" onClick={onClosed} title="Esconde o painel; o Orbi recebe a demonstração quando a transcrição terminar">Fechar</button>}
       </header>
       <div className="demo-cols">
         <Actions rec={rec} />

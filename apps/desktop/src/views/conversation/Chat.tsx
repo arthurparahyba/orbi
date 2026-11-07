@@ -37,12 +37,19 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
   }, [id]);
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [agent.messages]);
 
-  // A conversation can start out-of-band (a demonstration dispatched by the runtime, a scheduled
-  // follow-up): when the runtime says it wrote to this one and we show nothing yet, fetch it.
-  const { refresh, status, messages } = agent;
+  // The runtime can write to this conversation out-of-band (a finished demonstration, an approval,
+  // a follow-up, an agent's request): when it says so, catch up and resume live updates.
+  // Also when the window comes back to the front, in case the live stream dropped meanwhile.
+  const { refresh } = agent;
   useChanges((c) => {
-    if (c.topic === 'dispatched' && c.id === id && status === 'idle' && messages.length === 0) void refresh();
+    if ((c.topic === 'dispatched' && c.id === id) || c.topic === 'hello') void refresh();
   });
+  useEffect(() => {
+    const back = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => { document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
+  }, [refresh]);
 
   const send = async (text: string) => {
     const t = text.trim();

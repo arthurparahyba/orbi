@@ -160,12 +160,29 @@ vez. As saídas são `ORBI_STT_MODEL_HOST` (espelho interno), `ORBI_STT_OFFLINE`
 (modelo copiado à mão) ou `ORBI_STT=http` (serviço da empresa). Sem nenhuma, a
 demonstração funciona sem a narração, só com os cliques.
 
+### Quando a narração sai "não transcrito"
+
+Rode `npm run stt:testar -w @orbi/runtime`. Ele carrega o modelo como o runtime
+(mesmo `.env`, mesma pasta), mostra cada arquivo baixado e transcreve um segundo
+de silêncio. Se falhar, a mensagem diz o arquivo e a causa (host bloqueado,
+status HTTP, disco). O erro "Unable to get model file path or buffer" vinha de o
+transformers.js não guardar o download quando o `fetch` devolve um `Response` de
+outra implementação; o runtime agora entrega sempre o `Response` do próprio Node
+(`voice/stt.ts`, `loadWhisper`).
+
 No macOS o app pede permissão de microfone na primeira gravação
 (`apps/desktop/src-tauri/Info.plist`).
 
 ## Limites conhecidos
 
 - Uma gravação por vez.
+- O gravador só registra o que a pessoa fez (`isTrusted`): cliques e preenchimentos
+  feitos por script da própria página (o login do GitHub preenche campos ocultos)
+  ficam de fora, assim como campos `hidden`.
+- Campo com nome de algo ("Passkey nickname", "Nome do token") não é credencial,
+  mesmo perto de uma palavra de senha.
+- O painel da gravação confere sozinho, a cada 2 s, se a transcrição acabou (caso
+  um evento se perca) e tem **Fechar** depois de terminar a gravação.
 - A transcrição pode errar termos técnicos; o modelo corrige pelo contexto, mas
   vale conferir o cartão antes de aprovar.
 - Não testado no Windows.
