@@ -62,7 +62,7 @@ test('revisão: execuções terminadas, uma vez só, com problemas e configuraç
   const inbox = new Inbox(db);
   const runs = new PipelineRuns(db);
   const engine = new PipelineEngine({ brain: b, runs, inbox });
-  engine.start('top-repos', { destino: '/x' }, { conversationId: 'c1' });
+  const { run: delivery } = engine.start('top-repos', { destino: '/x' }, { conversationId: 'c1' });
   const run = b.startRun('consultar', 'c1');
   engine.runStarted(run);
   b.updateRunStep(run.id, 'buscar', 'done');
@@ -71,6 +71,8 @@ test('revisão: execuções terminadas, uma vez só, com problemas e configuraç
   assert.equal(b.runForFailureIn('c1')?.id, run.id);
   b.addRunDeviation(run.id, { kind: 'falha', detail: 'show_ui falhou: Validation failed', tool: 'show_ui', step: 'entregar' });
   const s = { brain: b, inbox, pipelines: { runs, engine } };
+  assert.equal(reviewConversation(s, 'c1'), null, 'a entrega ainda roda: a revisão espera');
+  engine.cancel(delivery.id);
   const review = reviewConversation(s, 'c1')!;
   assert.deepEqual(review.runs.map((r) => [r.playbook, r.problems]), [['consultar', ['passo entregar foi dado como feito ("Tabela exibida"), mas show_ui falhou']]]);
   assert.equal(review.runs[0].level, undefined, 'com problema não sobe');
@@ -88,4 +90,44 @@ test('gh api -X GET é leitura; saveTo resolve o caminho', () => {
   assert.equal(savePath('~/p/top.tsv', '/ws', '/home/a'), '/home/a/p/top.tsv');
   assert.equal(savePath('dados/top.tsv', '/ws'), '/ws/dados/top.tsv');
   assert.equal(savePath('/tmp/x.tsv', '/ws'), '/tmp/x.tsv');
+});
+
+test('passo que já recebe o valor não é alarme; padrão sugerido; título da correção', async () => {
+  const b = new BrainStore(':memory:');
+  gitstars(b);
+  b.savePlaybook(pb('gerar', [['definir-destino', 'Usar {{destino}}. Só perguntar ao desenvolvedor se vier vazio.'], ['gerar-html', 'lê {{lista}}']], ['html_path']));
+  assert.equal(b.pipelineWarnings(b.pipeline('top-repos')!).filter((w) => w.stage === 'gerar').length, 0);
+  const { defaultSuggestions } = await import('../src/brain/domain/review.ts');
+  assert.deepEqual(defaultSuggestions([{ name: 'destino' }], [{ destino: '/x' }, { destino: '/x' }]), [{ input: 'destino', value: '/x', times: 2 }]);
+  assert.deepEqual(defaultSuggestions([{ name: 'destino' }], [{ destino: '/x' }, { destino: '/y' }]), []);
+  assert.deepEqual(defaultSuggestions([{ name: 'destino', default: '/x' }], [{ destino: '/x' }, { destino: '/x' }]), []);
+  const { learnTitle } = await import('../src/agents/tools/brain.ts');
+  const exists = (n: string) => n === 'gerar' || n === 'publicar';
+  assert.equal(learnTitle([{ kind: 'playbook', payload: { name: 'gerar' } }, { kind: 'playbook', payload: { name: 'publicar' } }], 'r', exists), 'Corrigir 2 procedimentos: gerar, publicar');
+  assert.equal(learnTitle([{ kind: 'playbook', payload: { name: 'gerar' } }, { kind: 'pipeline', payload: { name: 'top-repos' } }], 'r', exists), 'Corrigir o procedimento gerar e a esteira top-repos');
+  assert.equal(learnTitle([{ kind: 'playbook', payload: { name: 'novo' } }], 'aprendi', exists), 'Aprender: aprendi');
+});
+
+test('esteira: etapa fora de ordem é recusada; revisão só no fim; procedimento aberto é apontado; encerrar', () => {
+  const b = new BrainStore(':memory:');
+  gitstars(b);
+  const db = (b as unknown as { db: never }).db;
+  const inbox = new Inbox(db);
+  const runs = new PipelineRuns(db);
+  const engine = new PipelineEngine({ brain: b, runs, inbox });
+  const { run: delivery } = engine.start('top-repos', { destino: '/x' }, { conversationId: 'c2' });
+  const first = b.startRun('consultar', 'c2');
+  engine.runStarted(first);
+  b.updateRunStep(first.id, 'entregar', 'done');
+  assert.match(engine.startProblem('c2', 'gerar') ?? '', /etapa 1 \(Coletar.*faltam os passos buscar/);
+  assert.equal(engine.startProblem('c2', 'consultar'), null);
+  assert.equal(engine.startProblem('outra', 'gerar'), null);
+  const s = { brain: b, inbox, pipelines: { runs, engine } };
+  assert.equal(reviewConversation(s, 'c2'), null, 'entrega rodando: revisão espera');
+  engine.cancel(delivery.id);
+  assert.throws(() => engine.cancel(delivery.id), /encerrada/);
+  const review = reviewConversation(s, 'c2')!;
+  assert.equal(review.runs[0].status, 'open');
+  assert.match(review.runs[0].problems[0], /ficou aberto: o passo buscar não foi fechado/);
+  assert.equal(reviewConversation(s, 'c2'), null, 'uma vez só');
 });

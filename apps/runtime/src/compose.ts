@@ -21,7 +21,7 @@ import { createEvents } from './events.ts';
 import { tellAgent } from './conversations/tell.ts';
 import { UsageStore } from './observability/usage.ts';
 import { watchAgents } from './observability/telemetry.ts';
-import { hasProblems, reviewConversation, reviewInstruction } from './review/review.ts';
+import { sendReview } from './review/review.ts';
 import { ToolOutcomes, type ToolOutcome } from './observability/tool-outcomes.ts';
 import { log } from './observability/log.ts';
 import type { InboxItem } from './conversations/inbox.ts';
@@ -115,24 +115,6 @@ export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'
     tool: outcome.tool,
     step: step?.id ?? null,
   });
-}
-
-/**
- * Reviews what ended in a conversation's turn and, when there is something to show (a problem,
- * a level change), tells the conversation: the card comes from the signal's data, and the Orbi
- * proposes the fixes. A clean run with no level change passes quietly.
- */
-export async function sendReview(s: OrbiServices, agent: Agent, conversationId: string): Promise<void> {
-  try {
-    const review = reviewConversation(s, conversationId);
-    if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
-    await tellAgent(s.events, agent, {
-      id: conversationId,
-      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review), attributes: { review: JSON.stringify(review) } },
-    });
-  } catch (error) {
-    log.error('revisão da execução falhou', { conversation: conversationId, error: error instanceof Error ? error.message : String(error) });
-  }
 }
 
 /** State kept in JSON files before the single database: imported once. */

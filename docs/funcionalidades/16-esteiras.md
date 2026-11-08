@@ -91,6 +91,14 @@ sequenceDiagram
   - na revisão, com os dados da entrega: passo que escreve fixo um valor que uma
     etapa anterior entrega (um caminho), em vez de `{{nome}}`.
   São avisos, não impedem salvar. `GET /api/pipelines` traz `warnings`.
+- **Etapa por etapa**: enquanto a etapa atual não termina, o Orbi não consegue
+  começar o procedimento de outra etapa da mesma esteira: `playbook_start` devolve o
+  que falta (os passos abertos) e que a esteira diz a próxima.
+- **Encerrar** (na faixa da esteira, na conversa): termina uma entrega rodando ou
+  presa (uma etapa que nunca fechou). A revisão que vem em seguida aponta o que
+  ficou aberto.
+- **Padrão sugerido**: na revisão do fim da entrega, uma entrada sem padrão que
+  recebeu o mesmo valor nas últimas entregas vira sugestão de padrão na correção.
 - **Padrão**: `withDefaults` completa as entradas que o pedido deixou de fora antes
   de validar.
 - **Passagem que vira automática**: numa passagem `ask` em que você clicou
@@ -146,6 +154,7 @@ sequenceDiagram
 | `GET /api/pipeline-runs?active=1` · `GET /api/pipeline-runs/conversation/:id` | Entregas |
 | `POST /api/pipeline-runs/:id/decide` `{decision, values?}` | `continue`, `retry`, `skip` ou `stop` |
 | `POST /api/pipelines/:name/fix` | Conversa nova em que o Orbi propõe a correção dos problemas de configuração |
+| `POST /api/pipeline-runs/:id/cancel` | Encerrar uma entrega rodando ou presa |
 
 ## Limites conhecidos
 

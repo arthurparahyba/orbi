@@ -42,7 +42,7 @@ export interface AutonomyEvent { id: string; subjectKind: 'playbook' | 'passage'
  */
 export interface ExecutionReview {
   runs: Array<{
-    runId: string; playbook: string; status: 'done' | 'failed'; problems: string[];
+    runId: string; playbook: string; status: 'done' | 'failed' | 'open'; problems: string[];
     level?: { from: number; to: number; reason: string; inboxId?: string; alone: string[]; asks: string[] };
   }>;
   config: Array<{ stage: string; playbook: string; text: string }>;

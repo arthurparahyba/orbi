@@ -15,7 +15,7 @@ import { PlaybookRepo } from './repo/playbooks.ts';
 import { pipelineConfigProblems } from './domain/review.ts';
 import { LevelRepo, type AutonomyEvent, type KnownAction } from './repo/levels.ts';
 import {
-  decideAction, levelAfterEdit, runDeviations, settleLevel, PASSAGE_STREAK,
+  decideAction, runDeviations, settleLevel, PASSAGE_STREAK,
   type Deviation, type Level, type LevelChange, type LevelState, type RunAction,
 } from './domain/levels.ts';
 import { ProposalRepo } from './repo/proposals.ts';
@@ -139,15 +139,8 @@ export class BrainStore {
       problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
     }
     if (problems.length) throw new Error(problems.join('; '));
-    const before = this.playbookRepo.get(pb.name);
+    // Editing the steps keeps the level: a changed step runs other actions, and new actions ask anyway.
     this.playbookRepo.save(pb);
-    // New steps: what it knew may not hold any more, one level down.
-    // A level the developer set by hand stays.
-    if (before && before.levelBy !== 'user' && JSON.stringify(before.steps) !== JSON.stringify(pb.steps)) {
-      const { state, change } = levelAfterEdit(levelState(before));
-      this.playbookRepo.setLevel(pb.name, state);
-      if (change) this.levels.addEvent({ subjectKind: 'playbook', subject: pb.name, from: `N${change.from}`, to: `N${change.to}`, reason: change.reason, conversationId: null });
-    }
     return this.playbookRepo.get(pb.name)!;
   }
   /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
@@ -231,6 +224,9 @@ export class BrainStore {
    */
   runForFailureIn(conversationId: string): PlaybookRun | undefined {
     return this.openRunIn(conversationId) ?? this.playbookRepo.unreviewedIn(conversationId).at(-1);
+  }
+  openUnreviewedRunsIn(conversationId: string): PlaybookRun[] {
+    return this.playbookRepo.openUnreviewedIn(conversationId);
   }
   unreviewedRunsIn(conversationId: string): PlaybookRun[] {
     return this.playbookRepo.unreviewedIn(conversationId);

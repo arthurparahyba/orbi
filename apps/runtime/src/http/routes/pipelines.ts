@@ -89,5 +89,19 @@ export function pipelineRunRoutes({ pipelines, events }: OrbiServices, agent: Ag
       }
       if (instruction) await tellAgent(events, agent, { id: run.conversationId, message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', body: instruction } });
       return c.json(pipelines.runs.get(run.id), 202);
+    })
+    // Encerrar: ends a delivery that is running or stuck (a stage that never closed). The turn it
+    // starts ends with the review, which points out what was left open.
+    .post('/:id/cancel', async (c) => {
+      const run = pipelines.runs.get(c.req.param('id'));
+      if (!run) throw notFound('entrega');
+      let instruction: string;
+      try {
+        instruction = pipelines.engine.cancel(run.id).instruction;
+      } catch (error) {
+        throw new HttpError(409, 'conflict', error instanceof Error ? error.message : String(error));
+      }
+      await tellAgent(events, agent, { id: run.conversationId, message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', body: instruction } });
+      return c.json(pipelines.runs.get(run.id), 202);
     });
 }

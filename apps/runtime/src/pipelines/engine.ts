@@ -62,6 +62,41 @@ export class PipelineEngine {
     this.d.runs.save(run);
   }
 
+  /**
+   * Before a procedure starts in a conversation that is delivering an esteira: the delivery goes
+   * stage by stage, so a procedure of another stage cannot start while the current one is open.
+   * Returns what is wrong (for the model), or null.
+   */
+  startProblem(conversationId: string, playbook: string): string | null {
+    const run = this.d.runs.inConversation(conversationId);
+    if (!run || run.status !== 'running') return null;
+    const stage = run.stages[run.current];
+    if (!stage || stage.playbook === playbook) return null;
+    // Not part of this esteira (later stages have no procedure chosen yet: look at the definition).
+    const def = this.d.brain.pipeline(run.pipeline);
+    if (!def?.stages.some((s) => s.options.some((o) => o.playbook === playbook))) return null;
+    const open = stage.runId ? this.d.brain.run(stage.runId) : undefined;
+    const pending = open ? open.steps.filter((s) => s.status === 'pending' || s.status === 'running' || s.status === 'waiting').map((s) => s.id) : [];
+    return (
+      `A esteira ${run.pipeline} está na etapa ${run.current + 1} (${stage.label}, procedimento ${stage.playbook}), que ainda não terminou` +
+      `${pending.length ? `: faltam os passos ${pending.join(', ')}. Feche cada um com playbook_step (done ou skipped, com nota)` : `: rode ${stage.playbook} primeiro`}. ` +
+      'Quando ela terminar, a esteira diz qual é a próxima. Não comece outra etapa por conta própria.'
+    );
+  }
+
+  /** The developer ends a delivery that is running or stuck (Encerrar). Returns the text for the conversation. */
+  cancel(runId: string): { run: PipelineRun; instruction: string } {
+    const run = this.d.runs.get(runId);
+    if (!run) throw new Error('entrega não encontrada');
+    if (run.status !== 'running' && run.status !== 'waiting') throw new Error(`esta entrega já está ${run.status === 'done' ? 'concluída' : 'encerrada'}`);
+    if (run.waiting?.inboxId && this.d.inbox.get(run.waiting.inboxId)?.status === 'open') this.d.inbox.resolve(run.waiting.inboxId, 'denied');
+    const label = run.stages[run.current]?.label ?? '';
+    run.waiting = null;
+    run.status = 'cancelled';
+    this.d.runs.save(run);
+    return { run, instruction: `O desenvolvedor encerrou a entrega na etapa ${label}. Não rode mais nada dela: confirme em uma linha e pare.${agentNote(run, 'failed')}` };
+  }
+
   /** A procedure finished: record what it handed over and decide the next step. */
   runFinished(pbRun: PlaybookRun): string | null {
     const run = this.d.runs.byPlaybookRun(pbRun.id);

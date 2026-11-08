@@ -54,7 +54,8 @@ export function pipelineConfigProblems(
         add(`${pb.name} não recebe nada das etapas anteriores (não há {{parâmetros}} nos passos): os dados só chegam se o modelo lembrar.`);
       }
       for (const step of pb.steps) {
-        if (ASKS.test(step.how) && upstream.length > 0) {
+        // A step that already uses a {{parameter}} receives the value: asking only if it comes empty is fine.
+        if (ASKS.test(step.how) && !step.how.includes('{{') && upstream.length > 0) {
           add(`passo ${step.id} de ${pb.name} pergunta ao desenvolvedor; na esteira, receba como parâmetro o que já vem de antes (${upstream.slice(0, 4).join(', ')}).`);
         }
         for (const v of earlierValues) {
@@ -67,5 +68,21 @@ export function pipelineConfigProblems(
     }
     for (const [name, value] of Object.entries(delivered[stage.id] ?? {})) earlierValues.push({ stage: stage.id, name, value });
   });
+  return out;
+}
+
+/**
+ * Inputs without a default that got the same value in the recent deliveries: suggest keeping
+ * it as the default, so the Orbi stops asking.
+ */
+export function defaultSuggestions(inputs: Array<{ name: string; default?: string }>, recent: Array<Record<string, string>>, min = 2): Array<{ input: string; value: string; times: number }> {
+  const out: Array<{ input: string; value: string; times: number }> = [];
+  for (const i of inputs) {
+    if (i.default) continue;
+    const values = recent.map((r) => r[i.name]).filter((v): v is string => !!v);
+    if (values.length < min) continue;
+    const same = values.filter((v) => v === values[0]).length;
+    if (same === values.length) out.push({ input: i.name, value: values[0], times: same });
+  }
   return out;
 }

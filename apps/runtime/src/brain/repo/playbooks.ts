@@ -91,6 +91,15 @@ export class PlaybookRepo {
     ).map(toRun);
   }
 
+  /** Runs of a conversation still open (a step never closed) and not reviewed. */
+  openUnreviewedIn(conversationId: string): PlaybookRun[] {
+    return (
+      this.db
+        .prepare("SELECT * FROM playbook_runs WHERE conversation_id = ? AND status IN ('running', 'waiting') AND reviewed_at IS NULL ORDER BY started_at, id")
+        .all(conversationId) as Row[]
+    ).map(toRun);
+  }
+
   setRunTrail(id: string, actions: RunAction[], deviations: Deviation[]): void {
     this.db.prepare('UPDATE playbook_runs SET actions = ?, deviations = ? WHERE id = ?').run(json(actions), json(deviations), id);
   }

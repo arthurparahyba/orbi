@@ -93,7 +93,7 @@ export function LearningPreview({ detail }: { detail: string }) {
             </div>
             {base && (
               <p className="small muted learn-base">
-                {pb.variationOf ? <>Variação de <code>{base.name}</code>; a base não muda.</> : <>Substitui o <code>{base.name}</code> que eu sabia.</>}
+                {pb.variationOf ? <>Variação de <code>{base.name}</code>; a base não muda.</> : <>Corrige o <code>{base.name}</code>: os passos marcados mudam, o resto fica.</>}
               </p>
             )}
             {pb.description && <p className="small">{pb.description}</p>}

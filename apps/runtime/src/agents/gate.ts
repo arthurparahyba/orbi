@@ -48,7 +48,8 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         // Inside a playbook: its level, and whether this exact action already worked before.
         const active = activeRun();
         const pb = active ? brain.playbook(active.playbook) : undefined;
-        const run = active ? brain.run(active.runId) : undefined;
+        // Learning is about the brain, not a step of the running procedure: it stays out of its trail.
+        const run = active && def.category(data) !== 'aprender' ? brain.run(active.runId) : undefined;
         const effect = def.effect?.(data) ?? effectOfCategory(category);
         const step = currentStep(run);
         const action: RunAction = {
@@ -75,8 +76,9 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         ui({
           component: 'approval', id: `approval-${toolCallId}`, title, detail, category, inboxId: item.id, effect,
           ...(def.command ? { command: def.command(data) } : {}),
-          ...(pb ? { reason: askReason(pb, { known, effect }) } : {}),
-          ...(step ? { step: step.text } : {}),
+          // Learning is not an action of the running procedure: no level reason, no step.
+          ...(pb && category !== 'aprender' ? { reason: askReason(pb, { known, effect }) } : {}),
+          ...(step && category !== 'aprender' ? { step: step.text } : {}),
         });
         return { output: { status: 'pending_approval', approvalId: toolCallId, category }, terminate: true };
       },

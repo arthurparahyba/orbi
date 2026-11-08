@@ -53,8 +53,9 @@ repetitivas rodem sem você, e o Orbi só chame quando há uma decisão nova.
   as falhas daquele turno chegaram, nunca no meio.
 - **Sobe sozinho**: N1 → N2 com uma execução de ponta a ponta sem desvio; N2 → N3
   com mais três seguidas. Nunca passa do **nível máximo** que você escolher.
-- **Desce um nível** quando a execução falha ou você nega uma ação. Editar os
-  passos também desce um nível, a não ser que o nível tenha sido posto por você.
+- **Desce um nível** quando a execução falha ou você nega uma ação. Editar os passos
+  (por exemplo, uma correção vinda da revisão) **não** muda o nível: um passo que
+  mudou roda outras ações, e ação nova pede aprovação de qualquer jeito.
 - **Desvio**: um passo falhou ou foi pulado, uma ferramenta falhou, você negou uma
   ação. A execução com desvio não conta para subir, e as ações dela não viram conhecidas.
 - **Pôr à mão**: escolher o nível na tela vale como decisão sua. N3 posto por você

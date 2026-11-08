@@ -101,16 +101,16 @@ test('cérebro: ações conhecidas, execução limpa sobe, falha registrada não
   assert.deepEqual(r2.deviations, ['show_ui falhou']);
   assert.equal(b.playbook('publicar')!.cleanStreak, 0);
 
-  // Steps edited by learning: one level down. Level set by the developer: stays.
+  // Editing the steps (a fix from the review) keeps the level: new actions ask anyway.
   b.editPlaybook('publicar', { steps: [{ id: 'p0', label: 'Copiar com python3', how: '' }, { id: 'p1', label: 'Push', how: '' }] });
-  assert.equal(b.playbook('publicar')!.level, 1);
+  assert.equal(b.playbook('publicar')!.level, 2);
   b.setPlaybookLevel('publicar', { level: 3 });
   assert.deepEqual([b.playbook('publicar')!.levelBy, b.playbook('publicar')!.autonomy], ['user', 'auto']);
   b.editPlaybook('publicar', { steps: [{ id: 'p0', label: 'Copiar', how: '' }] });
   assert.equal(b.playbook('publicar')!.level, 3);
   b.setPlaybookLevel('publicar', { levelMax: 2 });
   assert.equal(b.playbook('publicar')!.level, 2, 'o teto puxa o nível');
-  assert.deepEqual(b.autonomyEvents('playbook', 'publicar').map((e) => `${e.from}>${e.to}`), ['teto N3>teto N2', 'N3>N2', 'N1>N3', 'N2>N1', 'N1>N2']);
+  assert.deepEqual(b.autonomyEvents('playbook', 'publicar').map((e) => `${e.from}>${e.to}`), ['teto N3>teto N2', 'N3>N2', 'N2>N3', 'N1>N2']);
 });
 
 test('cérebro: autonomia auto continua valendo como N3 seu', () => {

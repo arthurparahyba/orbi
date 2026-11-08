@@ -65,6 +65,9 @@ export function usePlaybooks(ctx: AgentContext) {
     async run({ data }) {
       const pb = brain.playbook(data.name);
       if (!pb) return { output: { error: `playbook não existe: ${data.name}`, available: brain.playbooks().map((p) => p.name) } };
+      // In an esteira, stages go in order: a later stage does not start while the current is open.
+      const outOfOrder = pipelines.engine.startProblem(ctx.conversationId, pb.name);
+      if (outOfOrder) return { output: { error: outOfOrder } };
       const run = brain.startRun(pb.name, ctx.conversationId, data.params);
       ctx.setActiveRun({ runId: run.id, playbook: pb.name, autonomy: pb.autonomy });
       pipelines.engine.runStarted(run);
@@ -113,7 +116,21 @@ export function usePlaybooks(ctx: AgentContext) {
         return { output: { error: error instanceof Error ? error.message : String(error) } };
       }
       showRun(run.id);
-      if (run.status !== 'done' && run.status !== 'failed') return { output: { runStatus: run.status } };
+      if (run.status !== 'done' && run.status !== 'failed') {
+        // The last step was given but some before it are still open: the run does not end until they are.
+        const last = run.steps.at(-1);
+        const open = run.steps.filter((s) => s.status === 'pending' || s.status === 'running').map((s) => s.id);
+        if (last?.id === data.stepId && last.status === 'done' && open.length) {
+          return {
+            output: {
+              runStatus: run.status,
+              pendentes: open,
+              hint: `O procedimento só termina quando todos os passos fecham. Marque ${open.join(', ')} com playbook_step (done se foi feito, skipped se não precisou), com uma nota. Sem isso, a esteira não segue.`,
+            },
+          };
+        }
+        return { output: { runStatus: run.status } };
+      }
       ctx.setActiveRun(null);
       // The level and the review come when the turn ends (review/review.ts), after every failure is in.
       // Part of an esteira: the engine says what comes next (the next stage, or wait for the developer).

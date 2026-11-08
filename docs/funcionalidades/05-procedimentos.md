@@ -102,6 +102,9 @@ sequenceDiagram
   (N1, N2, N3) e se a ação já é conhecida decidem o que pede aprovação
   (documento 3). O portão registra na execução cada ação que rodou e cada desvio
   (ferramenta que falhou, ação negada).
+- **Passo esquecido**: marcar o último passo com outro ainda aberto devolve na hora
+  `pendentes` e o pedido de fechá-los (feito ou pulado). O procedimento só termina
+  quando todos fecham; numa esteira, só então ela segue.
 - **Passo com ferramenta falhada não fecha**: `playbook_step` com `done` logo
   depois de uma ferramenta que falhou é recusado; o Orbi corrige ou marca o passo
   como falhou ou pulado (`observability/tool-outcomes.ts`).
@@ -117,7 +120,13 @@ sequenceDiagram
   conversa o cartão **Revisão da execução** e, havendo problema, pede ao Orbi as
   correções num único `brain_learn` (o cartão de aprendizado espera você). Execução
   limpa sem mudança de nível passa em silêncio. Cada execução é revisada uma vez
-  (`playbook_runs.reviewed_at`).
+  (`playbook_runs.reviewed_at`). Numa esteira, a revisão espera a entrega terminar,
+  ser encerrada ou parar numa decisão sua; não acontece a cada aprovação no caminho.
+  Procedimento que ficou aberto quando a entrega terminou aparece como "ficou aberto".
+- **Cartão da correção**: quando o Orbi corrige procedimentos que já existem, o
+  título é "Corrigir N procedimentos: …" e cada passo aparece marcado (igual, muda,
+  novo, sai) contra a versão atual. Aprender não leva "por que pede" nem o passo do
+  procedimento que estiver rodando, e não entra no histórico da execução.
 - **Passo que pergunta algo que já veio**: quando o valor chegou como parâmetro
   (da esteira, do padrão), o Orbi usa e não pergunta (regra no prompt).
 - **Estados de um passo**: pendente, em andamento, concluído, falhou, esperando

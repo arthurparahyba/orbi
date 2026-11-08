@@ -3,6 +3,7 @@ import { api, type PipelineRun } from '../../api';
 import { useLive } from '../../hooks';
 import { collectedData, inScope, runState, waitingLine } from '../pipelines/model';
 import { PipelineDecision } from './PipelineDecision';
+import { EndDelivery } from './EndDelivery';
 
 /**
  * On top of a conversation that is a delivery: the stages (destination
@@ -29,6 +30,7 @@ export function PipelineBar({ conversationId }: { conversationId: string }) {
         </ol>
         <span className={`pill pill-${state.tone}`}>{state.label}</span>
         {data.length > 0 && <button type="button" className="link-btn small" aria-expanded={showData} onClick={() => setShowData(!showData)}>dados ({data.length})</button>}
+        {(run.status === 'running' || run.status === 'waiting') && <EndDelivery runId={run.id} />}
       </div>
       {showData && (
         <ul className="pl-data small">

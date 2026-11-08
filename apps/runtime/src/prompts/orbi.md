@@ -8,6 +8,7 @@ Como você trabalha:
 - Um passo que manda perguntar algo (uma pasta, uma versão) não pergunta quando o valor já veio como parâmetro, da esteira ou do padrão: use o valor e dê o passo como feito, com uma nota.
 - Um passo só está feito se a ferramenta dele deu certo. Se falhou, corrija e tente de novo, ou marque o passo como `failed` ou `skipped` com a nota do que aconteceu. Nunca diga que mostrou ou fez algo que falhou.
 - No fim de cada execução o runtime faz a revisão e manda o sinal "Revisão da execução" (o cartão já aparece na conversa). Se ele apontar problemas, siga o que ele pede: um `brain_learn` só, com os procedimentos corrigidos, sem rodar nada de novo. Se disser que está tudo certo, no máximo uma linha.
+- Feche todos os passos de um procedimento, cada um com `done` ou `skipped` e uma nota: ele só termina quando todos fecham, e a esteira só segue quando ele termina. Numa esteira, nunca comece a etapa seguinte por conta própria: espere a instrução da esteira.
 - Chame as ferramentas de um passo antes de dar o passo como feito, uma depois da outra: nunca o `playbook_step` com `done` na mesma leva da ferramenta que faz o passo.
 - Para guardar a saída de um comando (uma lista, um JSON grande), use `saveTo` no `run_command`: a saída vai direto para o arquivo, sem passar por você. Nunca copie a saída à mão para outro comando.
 - Os procedimentos ganham autonomia com o uso (N1 pede tudo, N2 repete sozinho o que já deu certo, N3 repete até o que publica). Ação nova sempre pede aprovação: isso é esperado, não é erro.

@@ -92,6 +92,20 @@ const ORDER = { type: 0, entity: 1, edge: 2, playbook: 3, pipeline: 4 } as const
 export const inLearningOrder = <T extends { kind: keyof typeof ORDER }>(items: readonly T[]): T[] =>
   [...items].sort((a, b) => ORDER[a.kind] - ORDER[b.kind]);
 
+/**
+ * The learning card's heading: a fix to procedures that already exist reads as one
+ * ("Corrigir 2 procedimentos: a, b"); anything else as "Aprender: <reason>".
+ */
+export function learnTitle(items: Array<{ kind: string; payload: { name?: string } }>, reason: string, exists: (playbook: string) => boolean): string {
+  const fixes = items.filter((i) => i.kind === 'playbook' && i.payload.name && exists(i.payload.name)).map((i) => i.payload.name!);
+  const pipelines = items.filter((i) => i.kind === 'pipeline').map((i) => i.payload.name ?? '');
+  if (fixes.length && fixes.length + pipelines.length === items.length) {
+    const what = [fixes.length === 1 ? `o procedimento ${fixes[0]}` : `${fixes.length} procedimentos: ${fixes.join(', ')}`, ...pipelines.map((n) => `a esteira ${n}`)];
+    return `Corrigir ${what.join(' e ')}`;
+  }
+  return `Aprender: ${reason}`;
+}
+
 export function useBrain(ctx: AgentContext) {
   const { brain } = services();
   useTool(brainQuery);
@@ -104,7 +118,7 @@ export function useBrain(ctx: AgentContext) {
       'The batch is checked first (problems come back at once, nothing is asked); then shown to the developer to approve, and saved all or nothing.',
     input: v.object({ reason: v.string(), items: v.array(learnItem) }),
     category: () => 'aprender',
-    summary: (a) => `Aprender: ${a.reason}`,
+    summary: (a) => learnTitle(a.items as Array<{ kind: string; payload: { name?: string } }>, a.reason, (name) => !!brain.playbook(name)),
     precheck: (a) => {
       const problems = brain.learnProblems(inLearningOrder(a.items) as never);
       return problems.length ? [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'] : [];

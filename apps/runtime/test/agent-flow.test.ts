@@ -407,6 +407,33 @@ test('revisão no fim: falha em paralelo com o passo é pega, pede correção e 
   assert.equal((await app.request(`/api/inbox/${note.id}/decision`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve' }) })).status, 409);
 });
 
+test('passo esquecido: marcar o último com outro aberto avisa na hora, e o procedimento só termina fechando', async () => {
+  brain.savePlaybook({
+    name: 'coletar-teste', description: 'Coleta', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
+    steps: [{ id: 'buscar', label: 'Buscar', how: '' }, { id: 'montar', label: 'Montar', how: '' }, { id: 'entregar', label: 'Entregar', how: '' }],
+  });
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'coletar-teste' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'buscar', status: 'done' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'entregar', status: 'done' }), { stopReason: 'toolUse' }),
+    (context) => {
+      assert.match(JSON.stringify(context), /pendentes.*montar.*Sem isso, a esteira não segue/);
+      return fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'montar', status: 'done', note: 'montado junto com buscar' }), { stopReason: 'toolUse' });
+    },
+    fauxAssistantMessage(fauxText('Pronto.')),
+    () => {
+      reviewed = true;
+      return fauxAssistantMessage(fauxText('Subiu para N2.'));
+    },
+  ]);
+  let reviewed = false;
+  const orbi = init(Orbi, { id: 'chat:teste-passo-esquecido' });
+  await orbi.read(await orbi.dispatch('coleta'));
+  assert.equal(brain.lastRunIn('chat:teste-passo-esquecido')!.status, 'done');
+  for (let i = 0; i < 100 && !reviewed; i++) await new Promise((r) => setTimeout(r, 50));
+  assert.ok(reviewed, 'a revisão (subiu de nível) chega');
+});
+
 test('credencial pela conversa: o cartão guarda no cofre e o Orbi só recebe a referência', async () => {
   const { vault } = (await import('../src/services.ts')).services();
   faux.setResponses([

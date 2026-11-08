@@ -1,8 +1,13 @@
 import type { ExecutionReview } from '@orbi/contracts';
 import type { OrbiServices } from '../services.ts';
 import { LEVEL_NAMES } from '../brain/domain/levels.ts';
-import { pipelineConfigProblems, stepClaimProblems, type ConfigProblem } from '../brain/domain/review.ts';
+import { defaultSuggestions, pipelineConfigProblems, stepClaimProblems, type ConfigProblem } from '../brain/domain/review.ts';
 import { collected } from '../pipelines/engine.ts';
+import { tellAgent } from '../conversations/tell.ts';
+import { log } from '../observability/log.ts';
+import type { dispatch } from '@flue/runtime';
+
+type Agent = Parameters<typeof dispatch>[0];
 
 /**
  * The review at the end of an execution. It runs when the conversation's turn ends, so every
@@ -12,9 +17,23 @@ import { collected } from '../pipelines/engine.ts';
  * the configuration problems. Returns null when there was nothing to review.
  */
 export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pipelines'>, conversationId: string): ExecutionReview | null {
+  // A delivery is reviewed once, when it ends or stops for a decision, not at every approval on the way.
+  const delivery = s.pipelines.runs.inConversation(conversationId);
+  if (delivery?.status === 'running') return null;
+  const ended = delivery && (delivery.status === 'done' || delivery.status === 'cancelled');
   const runs = s.brain.unreviewedRunsIn(conversationId);
-  if (runs.length === 0) return null;
+  // Procedures left open when the delivery ended (a step never closed): they never finished.
+  const open = ended ? s.brain.openUnreviewedRunsIn(conversationId) : [];
+  if (runs.length === 0 && open.length === 0) return null;
   const out: ExecutionReview = { runs: [], config: [] };
+  for (const run of open) {
+    const pending = run.steps.filter((x) => x.status !== 'done' && x.status !== 'skipped').map((x) => x.id);
+    out.runs.push({
+      runId: run.id, playbook: run.playbook, status: 'open',
+      problems: [`ficou aberto: ${pending.length === 1 ? 'o passo' : 'os passos'} ${pending.join(', ')} não ${pending.length === 1 ? 'foi fechado' : 'foram fechados'}, então a esteira não seguiu por ele`, ...stepClaimProblems(run), ...run.deviations.map((d) => d.detail)],
+    });
+    s.brain.markReviewed(run.id);
+  }
   for (const run of runs) {
     const settled = s.brain.settleRun(run.id);
     // A failure behind a step given as done reads once, as that claim.
@@ -39,11 +58,18 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     out.runs.push(entry);
   }
   // The esteira this conversation delivers: what its configuration keeps from flowing.
-  const delivery = s.pipelines.runs.inConversation(conversationId);
   const def = delivery && s.brain.pipeline(delivery.pipeline);
   if (delivery && def) {
     out.pipeline = def.name;
-    out.config = pipelineConfigProblems(def, (name) => s.brain.playbook(name), collected(delivery).stages);
+    out.config = delivery.waiting?.kind === 'passage' ? [] : pipelineConfigProblems(def, (name) => s.brain.playbook(name), collected(delivery).stages);
+    // The same answer in the last deliveries: keep it as the input's default.
+    const recent = s.pipelines.runs.list({ limit: 50 }).filter((r) => r.pipeline === def.name).slice(0, 3).map((r) => r.inputs);
+    for (const d of ended ? defaultSuggestions(def.inputs, recent) : []) {
+      out.config.push({
+        stage: 'entrada', playbook: def.name,
+        text: `a entrada ${d.input} não tem padrão e você usou "${d.value}" nas últimas ${d.times} entregas: guarde como padrão (default) da entrada na esteira.`,
+      });
+    }
   }
   return out;
 }
@@ -71,4 +97,22 @@ function groupConfig(config: ConfigProblem[]): Array<[string, string[]]> {
   const by = new Map<string, string[]>();
   for (const c of config) by.set(c.playbook, [...(by.get(c.playbook) ?? []), c.text]);
   return [...by];
+}
+
+/**
+ * Reviews what ended in a conversation and, when there is something to show (a problem, a level
+ * change), tells the conversation: the card comes from the signal's data, and the Orbi proposes
+ * the fixes. A clean run with no level change passes quietly.
+ */
+export async function sendReview(s: OrbiServices, agent: Agent, conversationId: string): Promise<void> {
+  try {
+    const review = reviewConversation(s, conversationId);
+    if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
+    await tellAgent(s.events, agent, {
+      id: conversationId,
+      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review), attributes: { review: JSON.stringify(review) } },
+    });
+  } catch (error) {
+    log.error('revisão da execução falhou', { conversation: conversationId, error: error instanceof Error ? error.message : String(error) });
+  }
 }
