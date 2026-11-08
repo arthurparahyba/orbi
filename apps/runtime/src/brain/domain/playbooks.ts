@@ -58,6 +58,8 @@ export function newRun(pb: Playbook, id: string, conversationId: string, params:
     status: 'running',
     params,
     outputs: {},
+    actions: [],
+    deviations: [],
     steps: pb.steps.map((s) => ({ ...s, label: fillParams(s.label, params), how: fillParams(s.how, params), status: 'pending' as StepStatus })),
     startedAt,
     finishedAt: null,

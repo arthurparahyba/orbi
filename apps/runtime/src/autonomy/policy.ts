@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { decideAction, type Effect, type Level, type LevelBy } from '../brain/domain/levels.ts';
 
 /**
  * Autonomy levels, the same three the Rotinas screen shows:
@@ -58,24 +59,46 @@ export function parsePolicy(raw: unknown): AutonomyPolicy {
 export function decide(
   policy: AutonomyPolicy,
   category: Category,
-  activePlaybook?: { autonomy: AutonomyLevel } | null,
+  activePlaybook?: { autonomy: AutonomyLevel; level?: Level; levelBy?: LevelBy; name?: string } | null,
+  action?: { known: boolean; effect: Effect },
 ): AutonomyLevel {
   const global = policy.categories[category] ?? 'ask';
   if (category === 'aprender') return global === 'observe' ? 'observe' : 'ask'; // learning always waits
   if (!activePlaybook || ALWAYS_GLOBAL.has(category)) return global;
   // Inside a playbook its own level wins, but it can only loosen what the developer
   // allowed globally from "ask" to "auto" — never act where the global is "observe".
-  if (global === 'observe') return 'observe';
-  return activePlaybook.autonomy;
+  if (global === 'observe' || activePlaybook.autonomy === 'observe') return 'observe';
+  // A playbook never tightens what the developer let run on its own: reads stay as set globally.
+  if (category.endsWith('-leitura') && global === 'auto') return 'auto';
+  if (activePlaybook.level === undefined || !action) return activePlaybook.autonomy;
+  return decideAction({ level: activePlaybook.level, levelBy: activePlaybook.levelBy ?? 'learned' }, action);
+}
+
+/** The effect a category implies when the tool does not say more. */
+export function effectOfCategory(category: Category): Effect {
+  if (category.endsWith('-leitura')) return 'leitura';
+  return category === 'navegador-escrita' ? 'publica' : 'local';
 }
 
 // ── command classification ────────────────────────────────────────────────
 
 /** Read-only verbs by CLI. Anything else counts as a write and follows `comandos-escrita`. */
+/** git's global options come before the verb (`git -C dir status`): skip them to find the verb. */
+export function gitVerbArgs(args: readonly string[]): readonly string[] {
+  let i = 0;
+  while (i < args.length) {
+    const a = args[i]!;
+    if (a === '-C' || a === '-c' || a === '--git-dir' || a === '--work-tree' || a === '--namespace') i += 2;
+    else if (a.startsWith('--git-dir=') || a.startsWith('--work-tree=') || a.startsWith('--namespace=') || a === '--no-pager' || a === '-P' || a === '--bare') i += 1;
+    else break;
+  }
+  return args.slice(i);
+}
+
 const READ_ONLY: Record<string, (args: readonly string[]) => boolean> = {
-  git: (a) => ['status', 'log', 'diff', 'show', 'fetch', 'branch', 'rev-parse', 'ls-files', 'blame', 'remote'].includes(a[0] ?? '')
+  git: (all) => { const a = gitVerbArgs(all); return ['status', 'log', 'diff', 'show', 'fetch', 'branch', 'rev-parse', 'ls-files', 'blame', 'remote'].includes(a[0] ?? '')
     && !(a[0] === 'branch' && a.some((x) => ['-d', '-D', '-m', '-M', '--delete', '--move'].includes(x)))
-    && !(a[0] === 'remote' && a[1] !== undefined && a[1] !== '-v' && a[1] !== 'show' && a[1] !== 'get-url'),
+    && !(a[0] === 'remote' && a[1] !== undefined && a[1] !== '-v' && a[1] !== 'show' && a[1] !== 'get-url'); },
   gh: (a) => {
     const [group, verb] = a;
     if (group === 'api') return !a.some((x) => ['-X', '--method', '-f', '-F', '--field', '--raw-field', '--input'].includes(x));
@@ -88,6 +111,34 @@ const READ_ONLY: Record<string, (args: readonly string[]) => boolean> = {
   },
   python3: () => false, // scripts can do anything: governed by its own tool
 };
+
+/**
+ * What a command does to the world, beyond read/write: `publica` reaches outside this machine
+ * (push, PR, release, deploy, cloud writes), `apaga` removes something hard to get back.
+ * Everything else that writes is `local`. Generic CLI knowledge, not the user's domain.
+ */
+export function commandEffect(binary: string, args: readonly string[]): 'leitura' | 'local' | 'publica' | 'apaga' {
+  if (commandCategory(binary, args) === 'comandos-leitura') return 'leitura';
+  if (binary === 'git') {
+    const a = gitVerbArgs(args);
+    const verb = a[0] ?? '';
+    if (verb === 'push') {
+      return a.some((x) => ['-f', '--force', '--force-with-lease', '-d', '--delete', '--mirror', '--prune'].includes(x) || /^:/.test(x) || x.startsWith('--force'))
+        ? 'apaga'
+        : 'publica';
+    }
+    if (verb === 'clean' || (verb === 'reset' && a.includes('--hard')) || (verb === 'branch' && a.some((x) => x === '-D' || x === '--delete' || x === '-d'))) return 'apaga';
+    return 'local';
+  }
+  if (binary === 'gh') {
+    if (args.includes('delete') || (args.some((x) => /^(-X|--method)$/.test(x)) && args.some((x) => x.toUpperCase() === 'DELETE'))) return 'apaga';
+    if (args[0] === 'repo' && ['clone', 'set-default'].includes(args[1] ?? '')) return 'local';
+    return 'publica';
+  }
+  if (binary === 'aws') return args.some((x) => /^(delete|terminate|remove|deregister)-|^(rm|rb)$/.test(x)) ? 'apaga' : 'publica';
+  if (binary === 'rm' || binary === 'rmdir') return 'apaga';
+  return 'local';
+}
 
 export function commandCategory(binary: string, args: readonly string[]): Category {
   const check = READ_ONLY[binary];

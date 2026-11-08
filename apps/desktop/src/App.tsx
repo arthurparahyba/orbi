@@ -3,6 +3,7 @@ import { api, type InboxItem } from './api';
 import { useLive, usePoll } from './hooks';
 import { BrainIcon, ChatIcon, DialIcon, OrbiIcon, PipelineIcon, PlugIcon } from './components/Icons';
 import { InboxContext, type InboxActions } from './components/UiComponents';
+import { needsYou } from './views/conversation/inbox';
 import { ConversationView } from './views/conversation/ConversationView';
 import { BrainView } from './views/brain/BrainView';
 import { AutonomyView } from './views/autonomy/AutonomyView';
@@ -29,6 +30,8 @@ export function App() {
     [inbox.data, decide, answer],
   );
   const open = (inbox.data ?? []).filter((i: InboxItem) => i.status === 'open');
+  // Notes (a level went up) inform and wait for nothing: they do not count as "esperando você".
+  const waiting = open.filter(needsYou);
 
   const online = !health.error && !!health.data;
   const chromeOk = health.data && 'tools' in health.data.chrome;
@@ -38,7 +41,7 @@ export function App() {
       <div className="app">
         <nav className="rail" aria-label="Telas">
           <div className="brand" title="Orbi"><OrbiIcon size={20} /></div>
-          <RailButton active={screen === 'conversa'} onClick={() => setScreen('conversa')} label="Conversa" badge={open.length}><ChatIcon /></RailButton>
+          <RailButton active={screen === 'conversa'} onClick={() => setScreen('conversa')} label="Conversa" badge={waiting.length}><ChatIcon /></RailButton>
           <RailButton active={screen === 'esteiras'} onClick={() => setScreen('esteiras')} label="Esteiras" badge={waitingPipelines} badgeLabel="entregas esperando você"><PipelineIcon /></RailButton>
           <RailButton active={screen === 'cerebro'} onClick={() => setScreen('cerebro')} label="Cérebro"><BrainIcon /></RailButton>
           <RailButton active={screen === 'agentes'} onClick={() => setScreen('agentes')} label="Agentes" badge={suggestions.data?.length} badgeLabel="sugestões"><PlugIcon /></RailButton>
@@ -57,7 +60,7 @@ export function App() {
           {screen === 'conversa' && <ConversationView openInbox={open} focus={focus} />}
           {screen === 'esteiras' && <PipelinesView onOpenConversation={openConversation} />}
           {screen === 'cerebro' && <BrainView />}
-          {screen === 'agentes' && <AgentsView openInbox={open} health={health.data} onOpenConversation={openConversation} />}
+          {screen === 'agentes' && <AgentsView openInbox={waiting} health={health.data} onOpenConversation={openConversation} />}
           {screen === 'autonomia' && <AutonomyView health={health.data} />}
         </main>
       </div>

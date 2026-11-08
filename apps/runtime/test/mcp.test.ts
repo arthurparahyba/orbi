@@ -187,7 +187,7 @@ test('status: rodando, esperando o desenvolvedor, concluído', () => {
     context: {}, status: 'running' as const, summary: null, links: [], createdAt: '', finishedAt: null,
   };
   const run = {
-    id: 'r', playbook: 'p', conversationId: 'chat:1', status: 'running' as const, startedAt: '', finishedAt: null, params: {}, outputs: {},
+    id: 'r', playbook: 'p', conversationId: 'chat:1', status: 'running' as const, startedAt: '', finishedAt: null, params: {}, outputs: {}, actions: [], deviations: [],
     steps: [{ id: 'a', label: 'Build', how: '', status: 'done' as const }, { id: 'b', label: 'Deploy em dev', how: '', status: 'running' as const }],
   };
   assert.equal(requestStatus(req, run, []).step, '2/2 Deploy em dev');

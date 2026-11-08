@@ -34,7 +34,7 @@ export function SecretCard({ c }: { c: Extract<UiComponent, { component: 'secret
   };
 
   return (
-    <section className={`ui-card secret ${item && item.status !== 'open' ? 'is-answered' : ''}`}>
+    <section className={`ui-card secret ${item && item.status !== 'open' ? 'is-answered' : ''}`} data-inbox={c.inboxId}>
       <header className="ui-card-head"><KeyIcon size={14} /><span className="ui-kicker">O Orbi precisa de uma credencial</span></header>
       <p className="ui-title">{c.description || c.name}</p>
       {c.reason && <p className="muted small">{c.reason}</p>}

@@ -1,27 +1,30 @@
 import type { InboxItem } from '../../api';
-import { AlertIcon, BulbIcon, KeyIcon } from '../../components/Icons';
+import { groupInbox } from './inbox';
+import { InboxEntry } from './InboxEntry';
 
-const KIND_LABEL: Record<InboxItem['kind'], string> = { approval: 'Aprovação', learning: 'Aprendizado', question: 'Pergunta', secret: 'Credencial', pipeline: 'Esteira' };
-
-/** Approvals, questions, learning and credentials waiting for the developer; a click opens their conversation. */
-export function InboxPanel({ items, onOpen }: { items: InboxItem[]; onOpen(id: string): void }) {
+/**
+ * What is open, in three groups: what waits for your approval (with Aprovar and Ir até),
+ * questions, and notes that only inform (a level went up, with Manter).
+ */
+export function InboxPanel(props: { items: InboxItem[]; current?: string; onOpen(conversationId: string): void; onGoTo(item: InboxItem): void }) {
+  const groups = groupInbox(props.items);
+  const waiting = props.items.filter((i) => i.kind !== 'level').length;
   return (
     <aside className="inbox" aria-label="Pendências">
-      <h2>Pendências <span className="muted">{items.length}</span></h2>
-      {items.length === 0 && <p className="muted pad">Nada esperando por você.</p>}
-      <ul>
-        {items.map((i) => (
-          <li key={i.id}>
-            <button type="button" className="inbox-item" onClick={() => onOpen(i.conversationId)}>
-              <span className={`ui-icon ${i.kind === 'learning' ? 'info' : 'warn'}`}>{i.kind === 'learning' ? <BulbIcon size={14} /> : i.kind === 'secret' ? <KeyIcon size={14} /> : <AlertIcon size={14} />}</span>
-              <span>
-                <span className="inbox-kind">{KIND_LABEL[i.kind]}</span>
-                <span className="inbox-title">{i.title}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <h2>Pendências <span className="muted">{waiting}</span></h2>
+      {groups.length === 0 && <p className="muted pad">Nada esperando por você.</p>}
+      {groups.map((g) => (
+        <section key={g.key} className={`inbox-group is-${g.key}`} aria-label={g.title}>
+          <h3>{g.title} · {g.items.length}</h3>
+          <ul>
+            {g.items.map((i) => (
+              <li key={i.id}>
+                <InboxEntry item={i} here={i.conversationId === props.current} onOpen={() => props.onOpen(i.conversationId)} onGoTo={() => props.onGoTo(i)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </aside>
   );
 }

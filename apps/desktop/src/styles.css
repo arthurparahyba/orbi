@@ -100,8 +100,8 @@ input:focus, textarea:focus { border-color: var(--blue); }
 .conv-meta { grid-column: 1; font-size: 11px; color: var(--muted); }
 .conv .badge { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 .inbox h2 { margin-bottom: 10px; }
-.inbox-item { width: 100%; display: flex; gap: 10px; text-align: left; padding: 10px; margin-bottom: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
-.inbox-item:hover { border-color: var(--border-2); }
+.inbox-item { width: 100%; box-sizing: border-box; display: flex; gap: 10px; text-align: left; padding: 10px; margin-bottom: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); }
+.inbox-group.is-aprovar .inbox-item { border-color: rgba(242, 177, 60, 0.45); }
 .inbox-kind { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .inbox-title { display: block; }
 .empty-chat { display: grid; place-content: center; justify-items: center; gap: 14px; padding: 40px; text-align: center; color: var(--muted); }
@@ -533,3 +533,55 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .messages-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .messages-wrap > .messages { flex: 1; min-height: 0; }
 .new-msgs { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+
+/* Pendências in groups, with actions right there */
+.inbox-group { margin-bottom: 14px; }
+.inbox-group h3 { margin: 0 0 8px; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.inbox-group.is-aprovar h3 { color: var(--amber); }
+.inbox-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.inbox-kind { text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+.inbox-detail { font-size: 12px; color: var(--muted); }
+.inbox-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; align-items: center; }
+
+/* "Ir até": the card the panel pointed to */
+.is-target { outline: 2px solid var(--amber); outline-offset: 3px; box-shadow: 0 0 0 8px rgba(242, 177, 60, 0.12); transition: outline-color 0.4s; }
+
+/* Approval card: what, reach, why, command */
+.approval-facts { display: grid; grid-template-columns: 96px 1fr; gap: 4px 12px; margin: 4px 0 8px; font-size: 13px; }
+.approval-facts dt { color: var(--muted); }
+.approval-facts dd { margin: 0; }
+.approval-command { display: block; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--muted); margin-bottom: 6px; white-space: pre-wrap; word-break: break-all; }
+.effect { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text); }
+.effect.is-publica, .effect.is-apaga { background: rgba(255, 138, 138, 0.14); color: #ffb4b4; }
+.effect.is-local { background: rgba(108, 168, 255, 0.14); color: #9cc4ff; }
+
+/* Level card */
+.ui-card.level-card.is-up { border-color: #2f5a45; background: #13201a; }
+.ui-card.level-card.is-down { border-color: rgba(255, 138, 138, 0.35); }
+.level-arrow { font-weight: 700; color: #7fdcae; }
+.level-card.is-down .level-arrow { color: #ffb4b4; }
+.level-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; font-size: 13px; }
+.level-cols > div { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface); }
+.level-col-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.level-col-title.is-alone { color: #7fdcae; }
+.level-col-title.is-asks { color: var(--amber); }
+
+/* A procedure's autonomy on the Cérebro screen */
+.level-pill { font-size: 11.5px; }
+.level-pill.is-n2 { background: rgba(108, 168, 255, 0.15); color: #9cc4ff; }
+.level-pill.is-n3 { background: rgba(127, 220, 174, 0.14); color: #7fdcae; }
+.level-pill.is-observe { background: var(--surface-2); color: var(--muted); }
+.pb-autonomy { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.pb-autonomy .spacer { flex: 1; }
+.level-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.level-step { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--border-2); background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.level-step strong { color: var(--text); font-size: 13px; font-weight: 500; }
+.level-step.is-current { border: 2px solid var(--blue); padding: 8px 10px; background: rgba(108, 168, 255, 0.08); color: var(--text); }
+.level-step:disabled { opacity: 0.45; cursor: default; }
+.level-progress { display: inline-flex; gap: 4px; }
+.level-progress i { width: 22px; height: 6px; border-radius: 3px; background: var(--border-2); }
+.level-progress i.is-done { background: #7fdcae; }
+.pb-autonomy select { background: var(--bg); color: var(--text); border: 1px solid var(--border-2); border-radius: 6px; padding: 2px 6px; font: inherit; }
+.pb-known ul, .pb-history ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.pb-known li { display: flex; gap: 8px; align-items: center; }
+.pb-known summary, .pb-history summary { cursor: pointer; font-size: 13px; }

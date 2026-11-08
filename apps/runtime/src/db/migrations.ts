@@ -157,4 +157,26 @@ ALTER TABLE agent_clients ADD COLUMN can_run_pipelines INTEGER NOT NULL DEFAULT 
 ALTER TABLE agent_clients ADD COLUMN can_skip_passages INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE agent_requests ADD COLUMN pipeline TEXT;`,
   },
+  {
+    name: 'autonomia que cresce: nível por procedimento, ações conhecidas, desvios de cada execução e o histórico',
+    sql: `
+ALTER TABLE playbooks ADD COLUMN level INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE playbooks ADD COLUMN level_max INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE playbooks ADD COLUMN level_by TEXT NOT NULL DEFAULT 'learned';
+ALTER TABLE playbooks ADD COLUMN clean_streak INTEGER NOT NULL DEFAULT 0;
+UPDATE playbooks SET level = 3, level_by = 'user' WHERE autonomy = 'auto';
+ALTER TABLE playbook_runs ADD COLUMN actions TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE playbook_runs ADD COLUMN deviations TEXT NOT NULL DEFAULT '[]';
+CREATE TABLE playbook_known_actions (
+  playbook TEXT NOT NULL, fingerprint TEXT NOT NULL, tool TEXT NOT NULL, effect TEXT NOT NULL,
+  summary TEXT NOT NULL DEFAULT '', step TEXT, count INTEGER NOT NULL DEFAULT 1,
+  first_at TEXT NOT NULL, last_at TEXT NOT NULL,
+  PRIMARY KEY (playbook, fingerprint));
+CREATE TABLE autonomy_events (
+  id TEXT PRIMARY KEY, subject_kind TEXT NOT NULL, subject TEXT NOT NULL,
+  from_level TEXT NOT NULL, to_level TEXT NOT NULL, reason TEXT NOT NULL,
+  conversation_id TEXT, created_at TEXT NOT NULL);
+CREATE INDEX autonomy_events_subject ON autonomy_events(subject_kind, subject, created_at);
+ALTER TABLE pipelines ADD COLUMN passage_streaks TEXT NOT NULL DEFAULT '{}';`,
+  },
 ];

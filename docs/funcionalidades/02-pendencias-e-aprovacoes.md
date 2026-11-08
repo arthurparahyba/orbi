@@ -9,21 +9,32 @@ daquilo acontece, e o Orbi encerra o turno em vez de ficar esperando.
 
 ## Onde aparece
 
-- **Painel Pendências**, à direita da tela Conversa: um item por pendência
-  aberta. Clicar abre a conversa de onde veio.
-- **Número no ícone Conversa**, na barra lateral: quantas estão abertas.
+- **Painel Pendências**, à direita da tela Conversa, em três grupos:
+  - **Falta você aprovar**: ações, aprendizados e decisões de esteira. Ação
+    pode ser aprovada ali mesmo. **Ir até ↓** rola a conversa até o cartão e o
+    destaca; se for de outra conversa, **Abrir conversa →** abre e rola.
+  - **Perguntas**: perguntas do Orbi e credenciais.
+  - **Para você saber**: avisos que não esperam nada (um procedimento subiu de
+    nível, uma passagem de esteira virou automática), com **Manter** (desfaz) e **Ok**.
+  Cada item diz se é desta conversa ou de outra e há quanto tempo.
+- **Número no ícone Conversa** e nas conversas: quantas esperam você (os avisos não contam).
 - **Na própria conversa**, como cartões:
-  - **aprovação** (ação ou aprendizado), com **Aprovar** e **Negar**. O de
-    aprendizado mostra o procedimento em passos legíveis e, se for uma variação,
-    o que mudou em relação à base (documento 8);
+  - **aprovação** (ação ou aprendizado), com **Aprovar** e **Negar**. O de ação
+    diz o que acontece em palavras, o **alcance** (nesta máquina, publica para
+    fora, apaga, e se dá para desfazer), **por que pede** (o nível do procedimento,
+    ou que a ação é nova), o passo e o comando numa linha; os argumentos brutos
+    ficam em "ver detalhes". O de aprendizado mostra o procedimento em passos
+    legíveis e, se for uma variação, o que mudou em relação à base (documento 8);
   - **pergunta** (`ask_developer`), com botões de opção e um campo de resposta livre;
   - **"Já sei algo parecido"**, com as opções da escolha (documento 8).
 
 ## Como funciona
 
-Há três tipos de pendência na tabela `inbox_items`: `approval`, `learning` e
-`question`. As duas primeiras nascem no **portão de autonomia**; a terceira nasce
-das ferramentas que perguntam.
+Os tipos de pendência na tabela `inbox_items`: `approval` e `learning` nascem no
+**portão de autonomia**; `question` e `secret`, das ferramentas que perguntam;
+`pipeline`, do motor da esteira; `level`, do fim de uma execução que mudou um
+nível (documento 3). `level` só informa: não conta como "esperando você", não
+deixa um pedido de agente em "esperando" e não aceita `/decision`.
 
 ```mermaid
 sequenceDiagram
@@ -73,9 +84,11 @@ Pontos que importam:
 | `apps/runtime/src/agents/gate.ts` | O portão: decide, guarda, cria a pendência, executa ao aprovar |
 | `apps/runtime/src/agents/tools/voice.ts` | `ask_developer` e `show_ui` |
 | `apps/runtime/src/conversations/inbox.ts` | Pendências no banco (`add`, `resolve` com a resposta) |
-| `apps/runtime/src/http/routes/inbox.ts` | `GET /api/inbox`, `POST /:id/decision`, `POST /:id/answer` |
-| `apps/desktop/src/views/conversation/InboxPanel.tsx` | O painel |
-| `apps/desktop/src/components/UiComponents.tsx` | Cartões de aprovação (com a prévia do aprendizado) e de pergunta |
+| `apps/runtime/src/http/routes/inbox.ts` | `GET /api/inbox`, `POST /:id/decision`, `/answer`, `/secret`, `/dismiss`, `/keep` |
+| `apps/desktop/src/views/conversation/{InboxPanel,InboxEntry}.tsx`, `inbox.ts` | O painel em grupos e cada item com as ações |
+| `apps/desktop/src/views/conversation/useGoTo.ts` | Ir até: rola até o cartão (`data-inbox`) e destaca |
+| `apps/desktop/src/components/ApprovalCard.tsx`, `effect.ts` | Cartão de aprovação legível |
+| `apps/desktop/src/components/UiComponents.tsx` | Prévia do aprendizado e cartão de pergunta |
 | `apps/desktop/src/App.tsx` | `InboxContext`: decidir e responder de qualquer cartão |
 
 ## Tecnologias
@@ -95,10 +108,14 @@ Pontos que importam:
 ## Limites conhecidos
 
 - Aprovar não tem prazo: uma pendência antiga continua valendo até ser decidida.
-- Não há aprovação em lote; cada cartão é decidido sozinho.
+- Não há aprovação em lote; cada cartão é decidido sozinho. Com o nível dos
+  procedimentos subindo, eles ficam menos frequentes (documento 3).
+- Aprendizado não se aprova pelo painel: o Ir até leva ao cartão, para ler antes.
 
 ## Testes
 
 - `apps/runtime/test/agent-flow.test.ts`: aprendizado fica pendente até aprovar;
   pergunta "parecido" vira pendência e a escolha chega ao agente.
 - `apps/runtime/test/http.test.ts`: validação, `404`, `409` (já decidido, tipo errado).
+- `apps/desktop/test/message.test.ts`: grupos do painel, avisos fora da contagem,
+  rótulo do Manter, ferramentas internas escondidas, comando e saída legíveis.

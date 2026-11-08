@@ -1,6 +1,6 @@
 import type {
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -46,6 +46,9 @@ export const api = {
     request(`/api/inbox/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, approver: 'Você' }) }),
   provideSecret: (id: string, secret: ProvideSecret) => request(`/api/inbox/${id}/secret`, { method: 'POST', body: JSON.stringify(secret) }),
   answer: (id: string, text: string) => request(`/api/inbox/${id}/answer`, { method: 'POST', body: JSON.stringify({ text }) }),
+  /** A note (level changed): seen, or undo the change. */
+  dismissInbox: (id: string) => request(`/api/inbox/${id}/dismiss`, { method: 'POST' }),
+  keepInbox: (id: string) => request(`/api/inbox/${id}/keep`, { method: 'POST' }),
   brain: () => request<BrainSnapshot>('/api/brain'),
   entity: (id: string) => request<EntityDetail>(`/api/brain/entities/${encodeURIComponent(id)}`),
   editEntity: (id: string, change: EditEntity) =>
@@ -59,6 +62,9 @@ export const api = {
   playbooks: () => request<Playbook[]>('/api/brain/playbooks'),
   setPlaybookAutonomy: (name: string, autonomy: Autonomy) =>
     request<Playbook>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'PATCH', body: JSON.stringify({ autonomy }) }),
+  setPlaybookLevel: (name: string, change: { level?: 1 | 2 | 3; levelMax?: 1 | 2 | 3 }) =>
+    request<Playbook>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'PATCH', body: JSON.stringify(change) }),
+  playbookAutonomy: (name: string) => request<PlaybookAutonomy>(`/api/brain/playbooks/${encodeURIComponent(name)}/autonomy`),
   runs: () => request<PlaybookRun[]>('/api/brain/runs'),
   autonomy: () => request<{ categories: Record<Category, Autonomy> }>('/api/autonomy'),
   setAutonomy: (category: Category, level: Autonomy) =>

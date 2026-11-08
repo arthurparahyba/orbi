@@ -152,7 +152,7 @@ export const MCP_TOOLS: McpTool[] = [
     run({ request_id }, { s, client }) {
       const req = s.agents.requests.get(request_id);
       if (!req || req.clientId !== client.id) throw new ToolError(`pedido não encontrado: ${request_id}`);
-      return requestStatus(req, s.brain.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }), s.pipelines.runs.inConversation(req.conversationId));
+      return requestStatus(req, s.brain.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }).filter((i) => i.kind !== 'level'), s.pipelines.runs.inConversation(req.conversationId));
     },
   }),
 

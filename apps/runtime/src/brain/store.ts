@@ -12,6 +12,11 @@ import { pipelineGaps, pipelineProblems, type Pipeline, type PipelineInputDef } 
 import { playbookParams } from './domain/playbooks.ts';
 import { GraphRepo } from './repo/graph.ts';
 import { PlaybookRepo } from './repo/playbooks.ts';
+import { LevelRepo, type AutonomyEvent, type KnownAction } from './repo/levels.ts';
+import {
+  decideAction, levelAfterEdit, runDeviations, settleLevel, PASSAGE_STREAK,
+  type Deviation, type Level, type LevelChange, type LevelState, type RunAction,
+} from './domain/levels.ts';
 import { ProposalRepo } from './repo/proposals.ts';
 import { FollowupRepo, type DueFollowup } from './repo/followups.ts';
 import { exportMarkdown } from './export.ts';
@@ -32,6 +37,7 @@ export class BrainStore {
   private readonly pipelineRepo: PipelineRepo;
   private readonly proposalRepo: ProposalRepo;
   private readonly followups: FollowupRepo;
+  private readonly levels: LevelRepo;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -42,6 +48,7 @@ export class BrainStore {
     this.pipelineRepo = new PipelineRepo(this.db);
     this.proposalRepo = new ProposalRepo(this.db);
     this.followups = new FollowupRepo(this.db);
+    this.levels = new LevelRepo(this.db);
   }
 
   // ── ontology ────────────────────────────────────────────────────────────
@@ -131,7 +138,15 @@ export class BrainStore {
       problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
     }
     if (problems.length) throw new Error(problems.join('; '));
+    const before = this.playbookRepo.get(pb.name);
     this.playbookRepo.save(pb);
+    // New steps: what it knew may not hold any more, one level down.
+    // A level the developer set by hand stays.
+    if (before && before.levelBy !== 'user' && JSON.stringify(before.steps) !== JSON.stringify(pb.steps)) {
+      const { state, change } = levelAfterEdit(levelState(before));
+      this.playbookRepo.setLevel(pb.name, state);
+      if (change) this.levels.addEvent({ subjectKind: 'playbook', subject: pb.name, from: `N${change.from}`, to: `N${change.to}`, reason: change.reason, conversationId: null });
+    }
     return this.playbookRepo.get(pb.name)!;
   }
   /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
@@ -150,14 +165,93 @@ export class BrainStore {
     let detachedVariations: string[] = [];
     transaction(this.db, () => {
       detachedVariations = this.playbookRepo.delete(name);
+      this.levels.forget(name);
     });
     return { detachedVariations };
   }
 
+  /** observe: only reports. ask and auto are shortcuts for N1 and N3, set by the developer. */
   setPlaybookAutonomy(name: string, autonomy: Autonomy): Playbook {
-    if (!this.playbookRepo.get(name)) throw new Error(`playbook não encontrado: ${name}`);
+    const pb = this.playbookRepo.get(name);
+    if (!pb) throw new Error(`playbook não encontrado: ${name}`);
     this.playbookRepo.setAutonomy(name, autonomy);
+    // Leaving "só observar" keeps the level it had; otherwise ask/auto choose N1/N3.
+    if (pb.autonomy === 'observe' && autonomy !== 'observe') this.playbookRepo.setLevel(name, levelState(pb));
+    else if (autonomy !== 'observe') this.setPlaybookLevel(name, { level: autonomy === 'auto' ? 3 : 1 });
     return this.playbookRepo.get(name)!;
+  }
+
+  // ── autonomy that grows with use (domain/levels.ts) ──────────────────────
+  /** The developer sets the level or its ceiling (Cérebro, or "Manter em N1"). */
+  setPlaybookLevel(name: string, change: { level?: Level; levelMax?: Level }, conversationId: string | null = null): Playbook {
+    const pb = this.playbookRepo.get(name);
+    if (!pb) throw new Error(`playbook não encontrado: ${name}`);
+    const levelMax = change.levelMax ?? pb.levelMax;
+    const level = Math.min(change.level ?? pb.level, levelMax) as Level;
+    this.playbookRepo.setLevel(name, { level, levelMax, levelBy: change.level !== undefined || level !== pb.level ? 'user' : pb.levelBy, cleanStreak: level === pb.level ? pb.cleanStreak : 0 });
+    if (level !== pb.level) this.levels.addEvent({ subjectKind: 'playbook', subject: name, from: `N${pb.level}`, to: `N${level}`, reason: 'você mudou', conversationId });
+    if (levelMax !== pb.levelMax) this.levels.addEvent({ subjectKind: 'playbook', subject: name, from: `teto N${pb.levelMax}`, to: `teto N${levelMax}`, reason: 'você mudou', conversationId });
+    return this.playbookRepo.get(name)!;
+  }
+  isKnownAction(playbook: string, fingerprint: string): boolean {
+    return this.levels.isKnown(playbook, fingerprint);
+  }
+  knownActions(playbook: string): KnownAction[] {
+    return this.levels.known(playbook);
+  }
+  autonomyEvents(kind: AutonomyEvent['subjectKind'], subject: string): AutonomyEvent[] {
+    return this.levels.events(kind, subject);
+  }
+  addAutonomyEvent(e: Omit<AutonomyEvent, 'id' | 'createdAt'>): AutonomyEvent {
+    return this.levels.addEvent(e);
+  }
+  /** An action a run carried out (the gate calls it after running). */
+  recordRunAction(runId: string, action: RunAction): void {
+    const run = this.playbookRepo.run(runId);
+    if (!run || run.actions.some((a) => a.fingerprint === action.fingerprint)) return;
+    this.playbookRepo.setRunTrail(runId, [...run.actions, action], run.deviations);
+  }
+  /** Something went off the path in a run: a tool failed, an action was denied. */
+  addRunDeviation(runId: string, deviation: Omit<Deviation, 'at'>): void {
+    const run = this.playbookRepo.run(runId);
+    if (!run) return;
+    const last = run.deviations.at(-1);
+    if (last && last.detail === deviation.detail && last.step === (deviation.step ?? null)) return; // the same failure, reported twice
+    this.playbookRepo.setRunTrail(runId, run.actions, [...run.deviations, { ...deviation, step: deviation.step ?? null, at: now() }]);
+  }
+  /** The run still going on in a conversation, if any. */
+  openRunIn(conversationId: string): PlaybookRun | undefined {
+    const run = this.playbookRepo.lastRunIn(conversationId);
+    return run && (run.status === 'running' || run.status === 'waiting') ? run : undefined;
+  }
+  /**
+   * After a run ends: a clean run teaches its actions and may raise the level; a failure or a
+   * denial lowers it. Returns the change (if any), what kept it from counting, and what the
+   * playbook now does alone or still asks.
+   */
+  settleRun(runId: string): { change: LevelChange | null; deviations: string[]; level: Level; alone: string[]; asks: string[] } {
+    const run = this.playbookRepo.run(runId);
+    const pb = run && this.playbookRepo.get(run.playbook);
+    if (!run || !pb) throw new Error(`execução não encontrada: ${runId}`);
+    const deviations = runDeviations(run);
+    const clean = run.status === 'done' && deviations.length === 0;
+    const { state, change } = settleLevel(levelState(pb), {
+      clean,
+      denied: run.deviations.some((d) => d.kind === 'negado'),
+      failed: run.status === 'failed',
+    });
+    transaction(this.db, () => {
+      if (clean) this.levels.learn(pb.name, run.actions);
+      this.playbookRepo.setLevel(pb.name, state);
+      if (change) this.levels.addEvent({ subjectKind: 'playbook', subject: pb.name, from: `N${change.from}`, to: `N${change.to}`, reason: change.reason, conversationId: run.conversationId });
+    });
+    const alone: string[] = [];
+    const asks: string[] = [];
+    for (const k of this.levels.known(pb.name)) {
+      if (k.effect === 'leitura') continue;
+      (decideAction(state, { known: true, effect: k.effect }) === 'auto' ? alone : asks).push(k.summary);
+    }
+    return { change, deviations, level: state.level, alone, asks };
   }
   playbook(name: string): Playbook | undefined {
     return this.playbookRepo.get(name);
@@ -228,6 +322,42 @@ export class BrainStore {
   pipelineGaps(p: PipelineInputDef) {
     return pipelineGaps(p, (name) => this.playbookRepo.get(name), (pb) => playbookParams(pb));
   }
+  /**
+   * The developer decided on a passage that asks. After PASSAGE_STREAK times "go on" in a row,
+   * the passage goes on by itself; "stop" starts the count again. Returns the change, if any.
+   */
+  notePassage(name: string, stageId: string, continued: boolean, conversationId: string | null): { from: string; to: string; reason: string } | null {
+    const p = this.pipelineRepo.get(name);
+    const stage = p?.stages.find((s) => s.id === stageId);
+    if (!p || !stage || stage.passage !== 'ask') return null;
+    const streaks = this.pipelineRepo.passageStreaks(name);
+    const count = continued ? (streaks[stageId] ?? 0) + 1 : 0;
+    if (count < PASSAGE_STREAK) {
+      this.pipelineRepo.setPassageStreaks(name, { ...streaks, [stageId]: count });
+      return null;
+    }
+    const reason = `você seguiu ${PASSAGE_STREAK} vezes seguidas`;
+    transaction(this.db, () => {
+      this.pipelineRepo.save({ ...p, stages: p.stages.map((s) => (s.id === stageId ? { ...s, passage: 'auto' as const } : s)) });
+      this.pipelineRepo.setPassageStreaks(name, { ...streaks, [stageId]: 0 });
+      this.levels.addEvent({ subjectKind: 'passage', subject: `${name}/${stageId}`, from: 'pergunta', to: 'segue', reason, conversationId });
+    });
+    return { from: 'pergunta', to: 'segue', reason };
+  }
+  /** "Manter perguntando": the passage asks again, and the count starts over. */
+  keepPassageAsking(name: string, stageId: string, conversationId: string | null): void {
+    const p = this.pipelineRepo.get(name);
+    if (!p || !p.stages.some((s) => s.id === stageId)) throw new Error(`etapa não encontrada: ${name}/${stageId}`);
+    transaction(this.db, () => {
+      this.pipelineRepo.save({ ...p, stages: p.stages.map((s) => (s.id === stageId ? { ...s, passage: 'ask' as const } : s)) });
+      this.pipelineRepo.setPassageStreaks(name, { ...this.pipelineRepo.passageStreaks(name), [stageId]: 0 });
+      this.levels.addEvent({ subjectKind: 'passage', subject: `${name}/${stageId}`, from: 'segue', to: 'pergunta', reason: 'você mudou', conversationId });
+    });
+  }
+  passageStreaks(name: string): Record<string, number> {
+    return this.pipelineRepo.passageStreaks(name);
+  }
+
   /** Esteiras that use a playbook. */
   pipelinesUsing(playbook: string): string[] {
     return this.pipelineRepo.using(playbook);
@@ -317,3 +447,5 @@ export class BrainStore {
     return exportMarkdown(dir, { entities: this.graphRepo.entities(), playbooks: this.playbooks(), outEdges: (id) => this.neighbors(id).out });
   }
 }
+
+const levelState = (pb: Playbook): LevelState => ({ level: pb.level, levelMax: pb.levelMax, levelBy: pb.levelBy, cleanStreak: pb.cleanStreak });

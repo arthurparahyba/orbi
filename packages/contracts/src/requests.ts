@@ -24,7 +24,9 @@ export const StopRecording = v.object({ discard: v.optional(v.boolean()) });
 export const SetSecret = v.object({ value: v.pipe(v.string(), v.minLength(1)), description: v.optional(v.string()) });
 
 const AutonomyLevel = v.picklist(['observe', 'ask', 'auto']);
-export const SetPlaybookAutonomy = v.object({ autonomy: AutonomyLevel });
+const Level = v.picklist([1, 2, 3]);
+/** PATCH /api/brain/playbooks/:name — autonomy (observe/ask/auto), or the level and its ceiling. */
+export const SetPlaybookAutonomy = v.object({ autonomy: v.optional(AutonomyLevel), level: v.optional(Level), levelMax: v.optional(Level) });
 /** PATCH /api/brain/entities/:id — the developer corrects an entity. */
 export const EditEntity = v.object({
   props: v.optional(v.record(v.string(), v.unknown())),
@@ -79,7 +81,7 @@ const DataName = v.pipe(v.string(), v.regex(/^[a-z_][a-z0-9_]{0,39}$/, 'nome do 
 /** PUT /api/pipelines/:name — the esteira from the editor (the runtime checks the rest). */
 export const SavePipeline = v.object({
   description: v.optional(v.string(), ''),
-  inputs: v.optional(v.array(v.object({ name: DataName, description: v.optional(v.string(), ''), options: v.optional(v.array(v.string())) })), []),
+  inputs: v.optional(v.array(v.object({ name: DataName, description: v.optional(v.string(), ''), options: v.optional(v.array(v.string())), default: v.optional(v.pipe(v.string(), v.maxLength(500))) })), []),
   stages: v.pipe(
     v.array(v.object({
       id: v.pipe(v.string(), v.regex(/^[a-z0-9][a-z0-9-]{0,39}$/, 'id da etapa: letras minúsculas, números e -')),

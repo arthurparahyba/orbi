@@ -12,6 +12,11 @@ rodaram e o procedimento em andamento.
 - **Tela Conversa**: lista de conversas à esquerda, a conversa aberta no centro,
   as pendências à direita.
 - **Botão +** cria uma conversa nova. O título vira o primeiro pedido.
+- **Ferramentas**: chamadas internas (checklist, consultas ao cérebro, interface)
+  não aparecem, porque o checklist e os cartões já mostram. O resto aparece pelo
+  propósito ("Obter a URL do Pages"); aberto, mostra o comando e o que ele
+  imprimiu, não o JSON. Várias seguidas viram uma linha ("2 comandos · 1 ação no
+  navegador"). Uma chamada que espera aprovação aparece só como o cartão.
 - **Copiar conversa**, no topo, copia tudo em Markdown (mensagens, ferramentas
   com entrada e resultado, cartões, falhas) para colar num chamado ou mandar a alguém.
 - **Microfone** ao lado de Enviar: dita a mensagem. A fala é cortada nas pausas,

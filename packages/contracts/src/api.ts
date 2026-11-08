@@ -10,7 +10,7 @@ export interface ConversationInfo {
 }
 export interface ConversationOrigin { agent: string; requestId: string; procedure: string | null; repo?: string; branch?: string; session?: string }
 export interface InboxItem {
-  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline'; conversationId: string; title: string; detail: string;
+  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level'; conversationId: string; title: string; detail: string;
   approvalId?: string; routine?: string; createdAt: string; status: 'open' | 'approved' | 'denied' | 'answered';
   /** What the developer answered, for answered questions. */
   answer?: string;
@@ -27,12 +27,22 @@ export interface Playbook {
   variationOf: string | null; uses: number; successes: number; updatedAt: string;
   /** What it hands over when it finishes, for the next stage of an esteira or an agent. */
   outputs: PlaybookOutput[];
+  /** Autonomy that grows with use: 1 Aprendendo, 2 Assistido, 3 Autônomo; the ceiling; who set it. */
+  level: 1 | 2 | 3; levelMax: 1 | 2 | 3; levelBy: 'learned' | 'promoted' | 'demoted' | 'user'; cleanStreak: number;
 }
+export type ActionEffect = 'leitura' | 'local' | 'publica' | 'apaga';
+/** An action a playbook already did in a run without deviation: repeats it on its own by level. */
+export interface KnownAction { playbook: string; fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null; count: number; firstAt: string; lastAt: string }
+export interface AutonomyEvent { id: string; subjectKind: 'playbook' | 'passage'; subject: string; from: string; to: string; reason: string; conversationId: string | null; createdAt: string }
+/** GET /api/brain/playbooks/:name/autonomy */
+export interface PlaybookAutonomy { knownActions: KnownAction[]; events: AutonomyEvent[]; runsForN3: number }
 export interface PlaybookOutput { name: string; description: string }
 export interface PlaybookRun {
   id: string; playbook: string; conversationId: string; status: 'running' | 'done' | 'failed' | 'waiting';
   steps: Array<{ id: string; label: string; status: string; note?: string }>; startedAt: string; finishedAt: string | null;
   params: Record<string, string>; outputs: Record<string, string>;
+  actions: Array<{ fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null }>;
+  deviations: Array<{ kind: 'falha' | 'negado' | 'passo'; detail: string; tool?: string; step?: string | null; at: string }>;
 }
 export interface BrainSnapshot {
   stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };
@@ -146,7 +156,7 @@ export interface VoiceStatus {
 }
 
 /** Esteira: procedures in sequence (GET /api/pipelines). */
-export interface PipelineInput { name: string; description: string; options?: string[] }
+export interface PipelineInput { name: string; description: string; options?: string[]; default?: string }
 export interface PipelineOption { playbook: string; when?: { field: string; equals: string }; map?: Record<string, string> }
 export interface PipelineStage { id: string; label: string; options: PipelineOption[]; passage: 'ask' | 'auto' }
 export interface Pipeline {

@@ -70,7 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     scratchDir: path(env.ORBI_SCRATCH_DIR ?? `${dataDir}/scratch`),
 
     /** CLIs the agent may run. No shell: each call is binary + arguments. */
-    allowedBinaries: list(env.ORBI_ALLOWED_BINARIES, ['git', 'gh', 'aws', 'python3']),
+    allowedBinaries: list(env.ORBI_ALLOWED_BINARIES, ['git', 'gh', 'aws', 'python3', 'cp', 'mkdir']),
 
     /** Optional bearer token every HTTP route requires. */
     apiToken: env.ORBI_API_TOKEN,

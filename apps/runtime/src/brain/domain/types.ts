@@ -1,4 +1,5 @@
 /** The brain's vocabulary: what it stores, as the rest of Orbi sees it. */
+import type { Deviation, Level, LevelBy, RunAction } from './levels.ts';
 
 export type Autonomy = 'observe' | 'ask' | 'auto';
 
@@ -55,6 +56,11 @@ export interface Playbook {
   variationOf: string | null;
   /** What it hands over at the end, for whoever comes next (an esteira's next stage, an agent). */
   outputs: PlaybookOutput[];
+  /** Autonomy that grows with use (domain/levels.ts). */
+  level: Level;
+  levelMax: Level;
+  levelBy: LevelBy;
+  cleanStreak: number;
   uses: number;
   successes: number;
   updatedAt: string;
@@ -72,6 +78,10 @@ export interface PlaybookRun {
   params: Record<string, string>;
   /** What it handed over (declared outputs only). */
   outputs: Record<string, string>;
+  /** Actions it ran (they become known when the run ends without deviation). */
+  actions: RunAction[];
+  /** What went off the path: a tool failed, an action was denied. */
+  deviations: Deviation[];
   startedAt: string;
   finishedAt: string | null;
 }
@@ -95,4 +105,6 @@ export interface Gap {
 }
 
 /** A playbook as saved: outputs may be left out (none). */
-export type PlaybookInput = Omit<Playbook, 'uses' | 'successes' | 'updatedAt' | 'outputs'> & { outputs?: PlaybookOutput[] };
+export type PlaybookInput = Omit<Playbook, 'uses' | 'successes' | 'updatedAt' | 'outputs' | 'level' | 'levelMax' | 'levelBy' | 'cleanStreak'> & {
+  outputs?: PlaybookOutput[];
+};

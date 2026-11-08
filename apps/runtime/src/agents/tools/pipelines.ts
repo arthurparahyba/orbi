@@ -17,6 +17,7 @@ export function usePipelines(ctx: AgentContext) {
     description:
       'Start an esteira (procedures in sequence) in this conversation, when the developer asks for a delivery. ' +
       '`destination` is the stage id to stop at when the developer says how far to go ("até a GMUD"); leave it out to go to the end. ' +
+      'Inputs with a default can be left out: the default is used, do not ask for them. ' +
       'The engine tells you which procedure to run at each stage and with which data; follow it.',
     input: v.object({
       name: v.string(),
@@ -32,7 +33,7 @@ export function usePipelines(ctx: AgentContext) {
         return {
           output: {
             error: error instanceof Error ? error.message : String(error),
-            ...(p ? { inputs: p.inputs.map((i) => ({ name: i.name, description: i.description, options: i.options ?? [] })), stages: p.stages.map((s) => s.id) } : { available: brain.pipelines().map((x) => x.name) }),
+            ...(p ? { inputs: p.inputs.map((i) => ({ name: i.name, description: i.description, options: i.options ?? [], ...(i.default ? { default: i.default } : {}) })), stages: p.stages.map((s) => s.id) } : { available: brain.pipelines().map((x) => x.name) }),
           },
         };
       }

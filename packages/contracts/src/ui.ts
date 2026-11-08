@@ -35,6 +35,28 @@ export const UiComponent = v.variant('component', [
     detail: v.string(),
     category: v.string(),
     inboxId: v.string(),
+    /** What it does to the world: reads, changes this machine, publishes outside, deletes. */
+    effect: v.optional(v.picklist(['leitura', 'local', 'publica', 'apaga'])),
+    /** The command or action in one line. */
+    command: v.optional(v.string()),
+    /** Why it asks (the level, or that the action is new). */
+    reason: v.optional(v.string()),
+    /** "passo 2 de 4 · Copiar o index.html". */
+    step: v.optional(v.string()),
+  }),
+  v.object({
+    component: v.literal('level'),
+    id: v.string(),
+    playbook: v.string(),
+    from: v.number(),
+    to: v.number(),
+    reason: v.string(),
+    /** Known actions it now does alone, and those it still asks. */
+    alone: v.array(v.string()),
+    asks: v.array(v.string()),
+    /** What it takes to go further, if anything. */
+    next: v.optional(v.string()),
+    inboxId: v.optional(v.string()),
   }),
   v.object({
     component: v.literal('question'),

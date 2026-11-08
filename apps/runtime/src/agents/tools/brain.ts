@@ -58,8 +58,8 @@ const learnItem = v.variant('kind', [
       name: v.pipe(v.string(), v.description('kebab-case')),
       description: v.string(),
       inputs: v.pipe(
-        v.array(v.object({ name: v.string(), description: v.string(), options: v.optional(v.array(v.string())) })),
-        v.description('What it needs to start; `options` when a branch depends on it (e.g. tipo: front/backend)'),
+        v.array(v.object({ name: v.string(), description: v.string(), options: v.optional(v.array(v.string())), default: v.optional(v.string()) })),
+        v.description('What it needs to start; `options` when a branch depends on it (e.g. tipo: front/backend); `default` when the developer gave a usual value (a folder, a branch): then it starts without asking'),
       ),
       stages: v.pipe(
         v.array(

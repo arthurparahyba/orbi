@@ -6,7 +6,7 @@ import { HttpError, body, notFound, query } from '../errors.ts';
 import type { Agent } from './types.ts';
 
 /** What waits for the developer. Decisions and answers go back into the conversation. */
-export function inboxRoutes({ inbox, events, vault }: OrbiServices, agent: Agent) {
+export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServices, agent: Agent) {
   const open = (id: string) => {
     const item = inbox.get(id);
     if (!item) throw notFound('item');
@@ -23,7 +23,7 @@ export function inboxRoutes({ inbox, events, vault }: OrbiServices, agent: Agent
     .post('/:id/decision', async (c) => {
       const { decision, approver = 'Desenvolvedor' } = await body(c, Decision);
       const item = open(c.req.param('id'));
-      if (!item.approvalId) throw new HttpError(409, 'conflict', 'este item não é uma aprovação');
+      if (!item.approvalId || item.kind === 'level') throw new HttpError(409, 'conflict', 'este item não é uma aprovação');
       inbox.resolve(item.id, decision === 'approve' ? 'approved' : 'denied');
       const receipt = await tellAgent(events, agent, {
         id: item.conversationId,
@@ -35,6 +35,25 @@ export function inboxRoutes({ inbox, events, vault }: OrbiServices, agent: Agent
         },
       });
       return c.json(receipt, 202);
+    })
+    // A note that only informs (a level or a passage changed): seen.
+    .post('/:id/dismiss', (c) => {
+      const item = open(c.req.param('id'));
+      if (item.kind !== 'level') throw new HttpError(409, 'conflict', 'só avisos podem ser dispensados');
+      return c.json(inbox.resolve(item.id, 'answered', 'ok'));
+    })
+    // "Manter": undo the automatic change the note is about.
+    .post('/:id/keep', (c) => {
+      const item = open(c.req.param('id'));
+      if (item.kind !== 'level' || !item.routine || !item.approvalId) throw new HttpError(409, 'conflict', 'este aviso não tem o que manter');
+      const [kind, subject] = [item.routine.slice(0, item.routine.indexOf(':')), item.routine.slice(item.routine.indexOf(':') + 1)];
+      if (kind === 'playbook') {
+        if (!brain.playbook(subject)) throw notFound('playbook');
+        brain.setPlaybookLevel(subject, { level: Number(item.approvalId) as 1 | 2 | 3 }, item.conversationId);
+      } else if (kind === 'passage') {
+        pipelines.engine.keepAsking(subject, item.conversationId);
+      } else throw new HttpError(409, 'conflict', 'aviso desconhecido');
+      return c.json(inbox.resolve(item.id, 'answered', 'mantido'));
     })
     .post('/:id/answer', async (c) => {
       const { text } = await body(c, Answer);

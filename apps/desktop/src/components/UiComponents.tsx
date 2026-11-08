@@ -4,6 +4,8 @@ import { AlertIcon, BulbIcon, CheckIcon, ClockIcon, LinkIcon, XIcon } from './Ic
 import { KnownLine, SimilarCard } from './SimilarCards';
 import { SecretCard } from './SecretCard';
 import { PipelinePreview } from './PipelinePreview';
+import { ApprovalCard } from './ApprovalCard';
+import { LevelCard } from './LevelCard';
 import type { PipelineDef } from '../views/pipelines/model';
 import { CHANGE_LABEL, stepDiff, type Step } from './stepDiff';
 import { api } from '../api';
@@ -24,7 +26,7 @@ export interface InboxActions {
 }
 export const InboxContext = createContext<InboxActions>({ items: new Map(), decide: async () => {}, answer: async () => {} });
 
-const CATEGORY_LABEL: Record<string, string> = {
+export const CATEGORY_LABEL: Record<string, string> = {
   'comandos-leitura': 'Comando de leitura',
   'comandos-escrita': 'Comando que altera algo',
   'navegador-leitura': 'Navegador (leitura)',
@@ -63,45 +65,11 @@ function Stepper({ c }: { c: Extract<UiComponent, { component: 'stepper' }> }) {
   );
 }
 
-function Approval({ c }: { c: Extract<UiComponent, { component: 'approval' }> }) {
-  const inbox = useContext(InboxContext);
-  const item = inbox.items.get(c.inboxId);
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-  const status = item?.status ?? 'open';
-  const act = async (d: 'approve' | 'deny') => {
-    setBusy(true);
-    try { await inbox.decide(c.inboxId, d); } finally { setBusy(false); }
-  };
-  return (
-    <section className={`ui-card approval is-${status}`}>
-      <header className="ui-card-head">
-        <span className="ui-icon warn"><AlertIcon /></span>
-        <span className="ui-kicker">{CATEGORY_LABEL[c.category] ?? c.category}</span>
-      </header>
-      <p className="ui-title">{c.title}</p>
-      {c.category === 'aprender' && <LearningPreview detail={c.detail} />}
-      <button type="button" className="link-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {open ? 'Esconder detalhes' : c.category === 'aprender' ? 'Ver dados brutos' : 'Ver detalhes'}
-      </button>
-      {open && <pre className="code small">{c.detail}</pre>}
-      {status === 'open' ? (
-        <div className="row gap">
-          <button type="button" className="btn primary" disabled={busy} onClick={() => act('approve')}><CheckIcon size={14} /> Aprovar</button>
-          <button type="button" className="btn" disabled={busy} onClick={() => act('deny')}><XIcon size={14} /> Negar</button>
-        </div>
-      ) : (
-        <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>
-      )}
-    </section>
-  );
-}
-
 interface LearnItem { kind: string; payload: Record<string, any> }
 const placeholders = (text: string) => [...new Set([...text.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map((m) => m[1]))];
 
 /** What the Orbi is about to store, readable: the playbook as numbered steps, its trigger, parameters and the facts. */
-function LearningPreview({ detail }: { detail: string }) {
+export function LearningPreview({ detail }: { detail: string }) {
   // A variation (or a replacement) is shown against the playbook it comes from.
   const known = useLive(api.playbooks, ['brain']);
   let items: LearnItem[] = [];
@@ -206,7 +174,7 @@ function Question({ c }: { c: Extract<UiComponent, { component: 'question' }> })
     setText('');
   };
   return (
-    <section className={`ui-card question ${answered ? 'is-answered' : ''}`}>
+    <section className={`ui-card question ${answered ? 'is-answered' : ''}`} data-inbox={c.inboxId}>
       <header className="ui-card-head"><span className="ui-kicker">Pergunta do Orbi</span></header>
       <p className="ui-title">{c.question}</p>
       {answered ? (
@@ -269,7 +237,8 @@ function Learning({ c }: { c: Extract<UiComponent, { component: 'learning' }> })
 export function UiComponentView({ c }: { c: UiComponent }) {
   switch (c.component) {
     case 'stepper': return <Stepper c={c} />;
-    case 'approval': return <Approval c={c} />;
+    case 'approval': return <ApprovalCard c={c} />;
+    case 'level': return <LevelCard c={c} />;
     case 'question': return <Question c={c} />;
     case 'status': return <Status c={c} />;
     case 'table': return <Table c={c} />;

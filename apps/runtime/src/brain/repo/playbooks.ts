@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Autonomy, Playbook, PlaybookInput, PlaybookRun } from '../domain/types.ts';
+import type { Deviation, Level, LevelState, RunAction } from '../domain/levels.ts';
 import { json, now, nullable, parse, type Row } from './rows.ts';
 
 const toPlaybook = (r: Row): Playbook => ({
@@ -13,6 +14,10 @@ const toPlaybook = (r: Row): Playbook => ({
   learnedFrom: nullable(r.learned_from),
   variationOf: nullable(r.variation_of),
   outputs: parse(r.outputs, []),
+  level: Number(r.level ?? 1) as Level,
+  levelMax: Number(r.level_max ?? 3) as Level,
+  levelBy: String(r.level_by ?? 'learned') as Playbook['levelBy'],
+  cleanStreak: Number(r.clean_streak ?? 0),
   uses: Number(r.uses),
   successes: Number(r.successes),
   updatedAt: String(r.updated_at),
@@ -26,6 +31,8 @@ const toRun = (r: Row): PlaybookRun => ({
   steps: parse(r.steps, []),
   params: parse(r.params, {}),
   outputs: parse(r.outputs, {}),
+  actions: parse(r.actions, []),
+  deviations: parse(r.deviations, []),
   startedAt: String(r.started_at),
   finishedAt: nullable(r.finished_at),
 });
@@ -37,14 +44,16 @@ export class PlaybookRepo {
   save(pb: PlaybookInput): void {
     this.db
       .prepare(
-        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at, level, level_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description, applies_to = excluded.applies_to,
            trigger = excluded.trigger, autonomy = excluded.autonomy, steps = excluded.steps,
            instructions = excluded.instructions, learned_from = excluded.learned_from,
            variation_of = excluded.variation_of, outputs = excluded.outputs, updated_at = excluded.updated_at`,
       )
-      .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, json(pb.outputs ?? []), now());
+      // A new playbook marked "auto" was trusted by whoever made it: it starts at N3, set by the developer.
+      .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, json(pb.outputs ?? []), now(),
+        pb.autonomy === 'auto' ? 3 : 1, pb.autonomy === 'auto' ? 'user' : 'learned');
   }
 
   /** Removes a playbook. Its variations stay, no longer linked; its runs stay as history. Returns the variations detached. */
@@ -57,6 +66,20 @@ export class PlaybookRepo {
 
   setAutonomy(name: string, autonomy: Autonomy): void {
     this.db.prepare('UPDATE playbooks SET autonomy = ?, updated_at = ? WHERE name = ?').run(autonomy, now(), name);
+  }
+
+  /** Level, ceiling, who set it and the clean-run streak; `autonomy` follows (auto at N3, else ask; observe stays). */
+  setLevel(name: string, state: LevelState): void {
+    this.db
+      .prepare(
+        `UPDATE playbooks SET level = ?, level_max = ?, level_by = ?, clean_streak = ?,
+           autonomy = CASE WHEN autonomy = 'observe' THEN 'observe' WHEN ? = 3 THEN 'auto' ELSE 'ask' END WHERE name = ?`,
+      )
+      .run(state.level, state.levelMax, state.levelBy, state.cleanStreak, state.level, name);
+  }
+
+  setRunTrail(id: string, actions: RunAction[], deviations: Deviation[]): void {
+    this.db.prepare('UPDATE playbook_runs SET actions = ?, deviations = ? WHERE id = ?').run(json(actions), json(deviations), id);
   }
 
   /** Full-text search (see brain/domain/similarity.ts): best first, by BM25 with the name weighing most. */

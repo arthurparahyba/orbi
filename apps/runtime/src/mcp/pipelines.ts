@@ -27,7 +27,7 @@ export function searchPipelines(all: Pipeline[], query?: string): Pipeline[] {
 }
 
 const inputLine = (p: Pipeline) =>
-  p.inputs.map((i) => ({ name: i.name, description: i.description, ...(i.options?.length ? { options: i.options } : {}) }));
+  p.inputs.map((i) => ({ name: i.name, description: i.description, ...(i.options?.length ? { options: i.options } : {}), ...(i.default ? { default: i.default } : {}) }));
 
 export function pipelineSummary(p: Pipeline) {
   return {

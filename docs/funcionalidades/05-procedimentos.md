@@ -99,8 +99,17 @@ sequenceDiagram
 ```
 
 - **Autonomia durante a execução**: enquanto um procedimento roda, o nível dele
-  vale para os passos comuns (documento 3). Um procedimento em "Automático" roda
-  inteiro sem cartões.
+  (N1, N2, N3) e se a ação já é conhecida decidem o que pede aprovação
+  (documento 3). O portão registra na execução cada ação que rodou e cada desvio
+  (ferramenta que falhou, ação negada).
+- **Passo com ferramenta falhada não fecha**: `playbook_step` com `done` logo
+  depois de uma ferramenta que falhou é recusado; o Orbi corrige ou marca o passo
+  como falhou ou pulado (`observability/tool-outcomes.ts`).
+- **Fim da execução**: o cérebro acerta o nível (`settleRun`). Se mudou, aparece o
+  cartão de nível. Se houve falha, a saída pede ao Orbi que proponha a correção
+  do procedimento com `brain_learn` (o cartão de aprendizado espera você).
+- **Passo que pergunta algo que já veio**: quando o valor chegou como parâmetro
+  (da esteira, do padrão), o Orbi usa e não pergunta (regra no prompt).
 - **Estados de um passo**: pendente, em andamento, concluído, falhou, esperando
   (CI, aprovação, retorno agendado) e pulado. Qualquer falha marca a execução
   como falha; tudo concluído ou pulado a encerra.
@@ -155,6 +164,8 @@ procedimentos.
 ## Limites conhecidos
 
 - Um procedimento roda por vez em cada conversa.
+- A correção sugerida depende do modelo propor bem; o runtime só garante que ele
+  é avisado do que falhou e que nada muda no cérebro sem você.
 - Editar um procedimento não muda uma execução já em andamento: ela segue com os
   passos que tinha quando começou.
 - Pela tela não dá para renomear um procedimento; peça na conversa.

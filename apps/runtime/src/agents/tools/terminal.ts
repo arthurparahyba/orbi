@@ -5,7 +5,8 @@ import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { services } from '../../services.ts';
 import { runCommand } from '../../terminal/exec.ts';
-import { commandCategory } from '../../autonomy/policy.ts';
+import { commandCategory, commandEffect } from '../../autonomy/policy.ts';
+import { homedir } from 'node:os';
 import type { AgentContext } from '../context.ts';
 
 /** Terminal: git, gh, aws and python3, without a shell, inside the workspace. */
@@ -81,6 +82,17 @@ export const runPython = defineTool({
   },
 });
 
+/** One line for the card: the home folder as ~, long arguments (inline scripts) cut. */
+export function shortCommand(binary: string, args: readonly string[], home = homedir()): string {
+  const parts = args.map((a) => {
+    const short = home && a.includes(home) ? a.split(home).join('~') : a;
+    const one = short.replace(/\s+/g, ' ');
+    const shown = one.length > 80 ? `${one.slice(0, 77)}…` : one;
+    return /[\s"']/.test(shown) ? `"${shown.replace(/"/g, '\\"')}"` : shown;
+  });
+  return [binary, ...parts].join(' ');
+}
+
 export function useTerminal(ctx: AgentContext) {
   const { allowedBinaries } = services().config;
   ctx.gated({
@@ -89,6 +101,10 @@ export function useTerminal(ctx: AgentContext) {
     input: commandInput,
     category: (a) => commandCategory(a.binary, a.args),
     summary: (a) => `${a.purpose}: ${a.binary} ${a.args.join(' ')}`,
+    title: (a) => a.purpose,
+    command: (a) => shortCommand(a.binary, a.args),
+    effect: (a) => commandEffect(a.binary, a.args),
+    fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}`,
     execute: (a) => execCommand(a),
     timeoutMs: 1_800_000,
   });

@@ -34,6 +34,9 @@ modelo: qual ramo, com quais dados, se precisa perguntar.
 - **Criar pela conversa**: "quando o workflow de dev terminar, já promove para
   homologação e depois abre a GMUD" vira um cartão de aprendizado com a prévia da
   esteira (`brain_learn` com tipo `pipeline`), aprovado como qualquer aprendizado.
+- **Valor padrão** nas entradas (editor da esteira, coluna "padrão"): com ele, o
+  Orbi começa sem perguntar e mostra o valor usado; **Começar uma entrega** já vem
+  preenchido. Se você responder a mesma coisa duas vezes, o Orbi propõe guardar como padrão.
 - **Cérebro → Procedimentos**: cada procedimento mostra **Recebe** (parâmetros) e
   **Entrega** (o que registra ao terminar), editáveis.
 - **Agentes de código**: listam, leem e rodam esteiras pelo MCP (documento 15).
@@ -73,6 +76,11 @@ sequenceDiagram
 - **Ramos**: uma etapa pode ter várias opções, cada uma com uma condição
   `campo = valor` sobre uma entrada ou uma entrega anterior. Nenhuma condição bate:
   a esteira para e explica.
+- **Padrão**: `withDefaults` completa as entradas que o pedido deixou de fora antes
+  de validar.
+- **Passagem que vira automática**: numa passagem `ask` em que você clicou
+  **Seguir** três vezes seguidas, ela passa a `auto`, com um aviso em Pendências
+  (**Manter perguntando** desfaz). **Encerrar aqui** zera a contagem.
 - **Passagens**: `auto` segue; `ask` espera, a não ser que (a) quem começou foi o
   desenvolvedor com um destino, ou (b) quem começou foi um agente com a permissão
   **pular perguntas**. O destino de um agente sozinho não libera.
@@ -109,6 +117,8 @@ sequenceDiagram
   `pipeline_runs` (esteira, conversa, estado, destino, entradas, etapas com
   parâmetros, origem e entregas, etapa atual, quem pediu, o que espera).
 - Migração 12: permissões de esteira dos agentes e `agent_requests.pipeline`.
+- Migração 13: `pipelines.passage_streaks` (quantas vezes seguidas você seguiu cada
+  passagem). O padrão das entradas fica no JSON `inputs` (`default`).
 - As duas tabelas geram o evento `pipelines`.
 
 ## API
@@ -134,6 +144,7 @@ sequenceDiagram
 - `apps/runtime/test/pipelines.test.ts`: validação, dados por nome e por mapa,
   ramo, passagem que pergunta, destino, regras para agentes, falha (tentar, pular,
   encerrar), dados que faltam, procedimento em uso não se apaga.
+- `apps/runtime/test/levels.test.ts`: padrão nas entradas e passagem que vira automática.
 - `apps/runtime/test/agent-flow.test.ts` ("esteira pedida por agente"): pelo MCP,
   com o modelo roteirizado: roda a etapa, para na passagem, segue com a decisão,
   passa os dados e responde ao agente.

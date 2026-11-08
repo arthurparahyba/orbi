@@ -34,7 +34,7 @@ describe('copiar conversa', () => {
     expect(md).toContain('**Ferramenta `run_command`** (erro)');
     expect(md).toContain('"binary": "gh"');
     expect(md).toContain('gh: não encontrado');
-    expect(md).toContain('**Pedido de aprovação: Deletar teste-orbi** (comandos-escrita)');
+    expect(md).toContain('**Pedido de aprovação: Deletar teste-orbi**');
     expect(md).toContain('- [x] Conferir dono');
     expect(md).toContain('- [ ] Deletar');
     expect(md).toContain('a execução falhou');

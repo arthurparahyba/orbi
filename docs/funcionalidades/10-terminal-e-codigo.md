@@ -35,8 +35,11 @@ flowchart LR
 
 - **Sem shell**: o comando é sempre binário + lista de argumentos, entregues
   direto ao sistema. Não há como encadear com `;`, `|` ou `$(...)`.
-- **Lista de binários permitidos**: `git`, `gh`, `aws` e `python3`, a menos que
-  você configure outros. Qualquer outro é recusado.
+- **Lista de binários permitidos**: `git`, `gh`, `aws`, `python3`, `cp` e `mkdir`,
+  a menos que você configure outros. Qualquer outro é recusado.
+- **`git -C pasta …`** é classificado pelo verbo que vem depois (`git -C x status`
+  é leitura). Cada comando também tem um efeito (nesta máquina, publica, apaga),
+  usado pelos níveis de autonomia (documento 3) e mostrado no cartão.
 - **Só dentro do workspace**: a pasta onde o comando roda tem que estar dentro de
   `ORBI_WORKSPACE`, onde ficam os clones.
 - **Ambiente controlado**: o comando não herda o ambiente inteiro do Orbi. Recebe

@@ -6,16 +6,55 @@ const tool = (toolName: string, state = 'output-available') => ({ type: 'dynamic
 const text = (t: string) => ({ type: 'text', text: t }) as FlueConversationPart;
 
 describe('groupParts', () => {
-  it('junta ferramentas seguidas e esconde as que já viram interface', () => {
-    const parts = [text('oi'), tool('run_command'), tool('show_ui'), tool('brain_query'), text('pronto'), tool('run_command')];
+  it('junta ferramentas seguidas e esconde as internas (checklist, cérebro, interface)', () => {
+    const parts = [text('oi'), tool('run_command'), tool('show_ui'), tool('brain_query'), tool('browser_read'), text('pronto'), tool('run_command')];
     const groups = groupParts(parts);
     expect(groups).toHaveLength(4);
-    expect(Array.isArray(groups[1]) && groups[1].map((t) => t.toolName)).toEqual(['run_command', 'brain_query']);
+    expect(Array.isArray(groups[1]) && groups[1].map((t) => t.toolName)).toEqual(['run_command', 'browser_read']);
     expect(Array.isArray(groups[3]) && groups[3]).toHaveLength(1);
   });
 
   it('mostra uma ferramenta silenciosa quando ela falha', () => {
     const groups = groupParts([tool('show_ui', 'output-error')]);
     expect(groups).toHaveLength(1);
+  });
+});
+
+describe('ferramentas legíveis', async () => {
+  const { isSilent, toolLabel, toolCommand, toolResult, groupSummary } = await import('../src/views/conversation/tools');
+  const call = (toolName: string, input: unknown, output?: unknown, state = 'output-available') => ({ toolName, state, input, output });
+
+  it('pedido de aprovação some: o cartão mostra', () => {
+    expect(isSilent(call('run_command', {}, { status: 'pending_approval', approvalId: 'x' }))).toBe(true);
+    expect(isSilent(call('run_command', {}, { status: 'executed', result: '' }))).toBe(false);
+  });
+
+  it('lê pelo propósito, com o comando e a saída em vez do JSON', () => {
+    const c = call('run_command', { binary: 'gh', args: ['api', 'repos/a/b/pages'], purpose: 'Obter a URL do Pages' },
+      { status: 'executed', result: JSON.stringify({ exitCode: 0, stdout: 'https://a.github.io/b/\n', stderr: '' }) });
+    expect(toolLabel(c)).toBe('Obter a URL do Pages');
+    expect(toolCommand(c)).toBe('gh api repos/a/b/pages');
+    expect(toolResult(c)).toBe('https://a.github.io/b/\n(saída 0)');
+  });
+
+  it('resume um grupo em palavras', () => {
+    expect(groupSummary([call('run_command', {}), call('run_command', {}), call('browser_act', {})])).toBe('2 comandos · 1 ação no navegador');
+  });
+});
+
+describe('pendências', async () => {
+  const { groupInbox, keepLabel, needsYou, since } = await import('../src/views/conversation/inbox');
+  const item = (kind: string, extra: Record<string, string> = {}) => ({ id: kind, kind, conversationId: 'c', title: kind, detail: '', createdAt: '', status: 'open', ...extra }) as never;
+
+  it('agrupa o que falta aprovar, as perguntas e os avisos', () => {
+    const g = groupInbox([item('question'), item('level'), item('approval'), item('pipeline'), item('secret')]);
+    expect(g.map((x) => [x.title, x.items.length])).toEqual([['Falta você aprovar', 2], ['Perguntas', 2], ['Para você saber', 1]]);
+  });
+
+  it('aviso não conta como esperando você e sabe o que manter', () => {
+    expect(needsYou(item('level'))).toBe(false);
+    expect(keepLabel(item('level', { routine: 'playbook:publicar', approvalId: '1' }))).toBe('Manter em N1');
+    expect(keepLabel(item('level', { routine: 'passage:site/publicar', approvalId: 'ask' }))).toBe('Manter perguntando');
+    expect(since(new Date(Date.now() - 2 * 60_000).toISOString())).toBe('há 2 min');
   });
 });

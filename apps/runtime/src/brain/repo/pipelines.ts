@@ -41,6 +41,16 @@ export class PipelineRepo {
     this.db.prepare('UPDATE pipelines SET uses = uses + 1 WHERE name = ?').run(name);
   }
 
+  /** How many times in a row the developer let each passage go on (stage id → count). */
+  passageStreaks(name: string): Record<string, number> {
+    const r = this.db.prepare('SELECT passage_streaks FROM pipelines WHERE name = ?').get(name) as Row | undefined;
+    return r ? parse(r.passage_streaks, {}) : {};
+  }
+
+  setPassageStreaks(name: string, streaks: Record<string, number>): void {
+    this.db.prepare('UPDATE pipelines SET passage_streaks = ? WHERE name = ?').run(json(streaks), name);
+  }
+
   /** Esteiras that use a playbook (to warn before deleting it). */
   using(playbook: string): string[] {
     return this.all().filter((p) => p.stages.some((s) => s.options.some((o) => o.playbook === playbook))).map((p) => p.name);

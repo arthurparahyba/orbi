@@ -13,6 +13,8 @@ export interface PipelineInput {
   description: string;
   /** Allowed values, when it picks a branch. */
   options?: string[];
+  /** Used when the request does not say: the Orbi starts without asking. */
+  default?: string;
 }
 
 /** One way to run a stage. With several, `when` picks the branch. */
@@ -67,6 +69,7 @@ export function pipelineProblems(p: PipelineInputDef, playbook: (name: string) =
   for (const i of p.inputs ?? []) {
     if (!DATA_NAME.test(i.name ?? '')) problems.push(`entrada inválida: ${i.name} (letras minúsculas, números e _)`);
     else if (inputs.has(i.name)) problems.push(`entrada repetida: ${i.name}`);
+    if (i.default !== undefined && i.default !== '' && i.options?.length && !i.options.includes(i.default)) problems.push(`padrão de ${i.name} deve ser ${i.options.join(' ou ')}`);
     inputs.add(i.name);
   }
   if (!Array.isArray(p.stages) || p.stages.length === 0) return [...problems, 'a esteira precisa de pelo menos uma etapa'];
@@ -186,6 +189,13 @@ export function pipelineGaps(p: PipelineInputDef, playbook: (name: string) => Pl
 }
 
 /** Inputs the esteira needs that were not given, and values outside a field's options. */
+/** The inputs given, with each default filled where the request left it out. */
+export function withDefaults(p: Pick<Pipeline, 'inputs'>, given: Record<string, string>): Record<string, string> {
+  const out = { ...given };
+  for (const i of p.inputs) if ((out[i.name] === undefined || out[i.name] === '') && i.default) out[i.name] = i.default;
+  return out;
+}
+
 export function inputProblems(p: Pick<Pipeline, 'inputs'>, given: Record<string, string>): string[] {
   const problems: string[] = [];
   for (const i of p.inputs) {

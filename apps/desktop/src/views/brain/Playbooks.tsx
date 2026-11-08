@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { api, type Autonomy, type Playbook } from '../../api';
+import { api, type Playbook } from '../../api';
 import { useLive } from '../../hooks';
-import { Segmented } from '../../components/Segmented';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { PencilIcon, TrashIcon } from '../../components/Icons';
 import { PlaybookEditor } from './PlaybookEditor';
 import { PlaybookData } from './PlaybookData';
+import { PlaybookAutonomyPanel } from './PlaybookAutonomy';
+import { levelPill } from './levels';
 
 /** Each variation right after the playbook it came from. */
 export function withVariations(list: Playbook[]): Playbook[] {
@@ -19,9 +20,7 @@ export function withVariations(list: Playbook[]): Playbook[] {
   return out;
 }
 
-const AUTONOMY_LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };
-
-/** Learned procedures, each with its own autonomy. */
+/** Learned procedures, each with its level of autonomy (it grows with use). */
 export function Playbooks() {
   const pbs = useLive(api.playbooks, ['brain']);
   const [open, setOpen] = useState<string>();
@@ -40,12 +39,7 @@ export function Playbooks() {
             <PlaybookLinks p={p} all={pbs.data ?? []} onOpen={setOpen} />
             <div className="pb-meta">
               <span className="muted small">{p.uses ? `${p.successes} de ${p.uses} deram certo` : 'ainda não usado'}</span>
-              <Segmented
-                label={`Autonomia de ${p.name}`}
-                value={p.autonomy}
-                options={(['observe', 'ask', 'auto'] as Autonomy[]).map((a) => ({ value: a, label: AUTONOMY_LABEL[a] }))}
-                onChange={async (a) => { await api.setPlaybookAutonomy(p.name, a); await pbs.reload(); }}
-              />
+              <span className={`pill level-pill is-n${p.level} ${p.autonomy === 'observe' ? 'is-observe' : ''}`} title="Autonomia: sobe sozinha com o uso">{levelPill(p)}</span>
             </div>
           </header>
           {open === p.name && mode?.name === p.name && mode.kind === 'edit' ? (
@@ -67,6 +61,7 @@ export function Playbooks() {
                 />
               )}
               <p className="muted small">Gatilho: {p.trigger}{p.appliesTo ? ` · aplica-se a ${p.appliesTo}` : ''}</p>
+              <PlaybookAutonomyPanel p={p} />
               <PlaybookData p={p} />
               <ol className="steps static">
                 {p.steps.map((s, i) => <li key={s.id} className="step"><span className="step-dot">{i + 1}</span><span className="step-body"><span className="step-label">{s.label}</span><span className="step-note">{s.how}</span></span></li>)}

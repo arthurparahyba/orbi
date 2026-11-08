@@ -33,6 +33,8 @@ export function useBrowser(ctx: AgentContext) {
     input: v.object({ tool: v.string(), args: v.record(v.string(), v.unknown()), purpose: v.string() }),
     category: (a) => browserCategory(a.tool),
     summary: (a) => `${a.purpose} (navegador: ${a.tool})`,
+    title: (a) => a.purpose,
+    command: (a) => `navegador: ${a.tool}`,
     execute: async (a) => {
       const { value: args, used } = await vault.resolve(a.args);
       try {

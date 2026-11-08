@@ -21,6 +21,7 @@ import { createEvents } from './events.ts';
 import { tellAgent } from './conversations/tell.ts';
 import { UsageStore } from './observability/usage.ts';
 import { watchAgents } from './observability/telemetry.ts';
+import { ToolOutcomes, type ToolOutcome } from './observability/tool-outcomes.ts';
 import { log } from './observability/log.ts';
 import type { InboxItem } from './conversations/inbox.ts';
 import type { ConversationInfo } from './conversations/conversations.ts';
@@ -74,6 +75,7 @@ export async function createOrbi(
     llm,
     events,
     usage: overrides.usage ?? new UsageStore(db),
+    toolOutcomes: overrides.toolOutcomes ?? new ToolOutcomes(),
     agents: overrides.agents ?? { clients: new AgentClients(db), requests: new AgentRequests(db), suggestions: new AgentSuggestions(db) },
     brain,
     pipelines: overrides.pipelines ?? { runs: pipelineRuns, engine: new PipelineEngine({ brain, runs: pipelineRuns, inbox }) },
@@ -93,6 +95,24 @@ export async function createOrbi(
           ? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, model: config.codeModel, budgetUsd: config.codeFixBudgetUsd })
           : null,
   };
+}
+
+/**
+ * A tool call ended. A failure inside a running playbook is a deviation of that run: the run
+ * does not count toward the next level, and the Orbi is asked to propose a fix at the end.
+ */
+export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'>, conversationId: string, outcome: ToolOutcome): void {
+  s.toolOutcomes.record(conversationId, outcome);
+  if (!outcome.failed || outcome.tool === 'playbook_step' || outcome.tool === 'playbook_start') return;
+  const run = s.brain.openRunIn(conversationId);
+  if (!run) return;
+  const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending');
+  s.brain.addRunDeviation(run.id, {
+    kind: 'falha',
+    detail: `${outcome.tool} falhou${outcome.error ? `: ${outcome.error.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,
+    tool: outcome.tool,
+    step: step?.id ?? null,
+  });
 }
 
 /** State kept in JSON files before the single database: imported once. */
@@ -120,7 +140,7 @@ type Agent = Parameters<typeof dispatch>[0];
 export function startBackground(s: OrbiServices, agent: Agent): Background {
   logStartup(s);
   // Every model and tool call: counted per conversation and logged.
-  const unwatch = watchAgents({ usage: s.usage, log });
+  const unwatch = watchAgents({ usage: s.usage, log, onTool: (conversationId, outcome) => recordToolOutcome(s, conversationId, outcome) });
   const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   const timers = [startFollowups(s, agent), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();

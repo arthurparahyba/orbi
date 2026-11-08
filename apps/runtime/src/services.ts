@@ -12,6 +12,7 @@ import type { CodeFixer } from './code/claude-code.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
+import type { ToolOutcomes } from './observability/tool-outcomes.ts';
 import type { AgentClients } from './mcp/clients.ts';
 import type { VoiceModel } from './voice/model.ts';
 import type { PipelineRuns } from './pipelines/runs.ts';
@@ -46,6 +47,8 @@ export interface OrbiServices {
   events: Events;
   /** Model and tool usage per conversation (fed by telemetry.ts). */
   usage: UsageStore;
+  /** The last tool call of each conversation and whether it failed. */
+  toolOutcomes: ToolOutcomes;
   /** Coding agents that call Orbi over MCP: who they are, what they asked, what they suggested. */
   /** The local transcription model: which, where its files are, download and change. */
   voice: VoiceModel;

@@ -2,10 +2,21 @@ import { useAgentStart, useDelivery, usePersistentState, useTool } from '@flue/r
 import type * as v from 'valibot';
 import type { UiComponent } from '@orbi/contracts';
 import { services } from '../services.ts';
-import { decide, type Category } from '../autonomy/policy.ts';
+import { decide, effectOfCategory, type Category } from '../autonomy/policy.ts';
+import { askReason, defaultFingerprint, fingerprintWith, type RunAction } from '../brain/domain/levels.ts';
+import type { PlaybookRun } from '../brain/domain/types.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
 
-type Pending = { tool: string; args: unknown; category: Category; requestedAt: string };
+type Pending = { tool: string; args: unknown; category: Category; requestedAt: string; runId?: string; action?: RunAction };
+
+/** "passo 2 de 4 · Copiar o index.html": the step running now, for the card and the trail. */
+function currentStep(run: PlaybookRun | undefined): { id: string; text: string } | null {
+  if (!run) return null;
+  const i = run.steps.findIndex((s) => s.status === 'running' || s.status === 'waiting');
+  const at = i >= 0 ? i : run.steps.findIndex((s) => s.status === 'pending');
+  if (at < 0) return null;
+  return { id: run.steps[at]!.id, text: `passo ${at + 1} de ${run.steps.length} · ${run.steps[at]!.label}` };
+}
 type Executor = (args: unknown, approvalId: string) => Promise<string>;
 
 /**
@@ -16,7 +27,7 @@ type Executor = (args: unknown, approvalId: string) => Promise<string>;
  *             developer approves (signal `tool-approval`, sent by the HTTP inbox route)
  */
 export function useGate(conversationId: string, ui: (c: UiComponent) => void, activeRun: () => ActiveRun) {
-  const { inbox, policy } = services();
+  const { inbox, policy, brain } = services();
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
   const delivery = useDelivery();
   const executors = new Map<string, Executor>();
@@ -34,15 +45,39 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           return { output: { status: 'invalid', problems, hint: 'Nada foi feito nem pedido ao desenvolvedor. Corrija e chame de novo com tudo.' } };
         }
         const category = def.category(data);
-        const level = decide(policy.get(), category, activeRun());
-        if (level === 'auto') return { output: { status: 'executed', category, result: await def.execute(data, toolCallId) } };
+        // Inside a playbook: its level, and whether this exact action already worked before.
+        const active = activeRun();
+        const pb = active ? brain.playbook(active.playbook) : undefined;
+        const run = active ? brain.run(active.runId) : undefined;
+        const effect = def.effect?.(data) ?? effectOfCategory(category);
+        const step = currentStep(run);
+        const action: RunAction = {
+          fingerprint: fingerprintWith(def.fingerprint?.(data) ?? defaultFingerprint(def.name, data), run?.params ?? {}),
+          tool: def.name,
+          effect,
+          summary: def.title?.(data) ?? def.summary(data),
+          step: step?.id ?? null,
+        };
+        const known = pb ? brain.isKnownAction(pb.name, action.fingerprint) : false;
+        const level = decide(policy.get(), category, pb ?? null, { known, effect });
+        if (level === 'auto') {
+          const result = await def.execute(data, toolCallId);
+          if (run) brain.recordRunAction(run.id, action);
+          return { output: { status: 'executed', category, result } };
+        }
         if (level === 'observe') {
           return { output: { status: 'not_executed', category, reason: `"${category}" está em modo observar: relate o que faria e não tente de novo.` } };
         }
-        setPending((prev) => ({ ...prev, [toolCallId]: { tool: def.name, args: data, category, requestedAt: new Date().toISOString() } }));
+        setPending((prev) => ({ ...prev, [toolCallId]: { tool: def.name, args: data, category, requestedAt: new Date().toISOString(), ...(run ? { runId: run.id, action } : {}) } }));
         const detail = JSON.stringify(data, null, 2);
-        const item = inbox.add({ kind: category === 'aprender' ? 'learning' : 'approval', conversationId, title: def.summary(data), detail, approvalId: toolCallId, routine: category });
-        ui({ component: 'approval', id: `approval-${toolCallId}`, title: def.summary(data), detail, category, inboxId: item.id });
+        const title = def.title?.(data) ?? def.summary(data);
+        const item = inbox.add({ kind: category === 'aprender' ? 'learning' : 'approval', conversationId, title, detail, approvalId: toolCallId, routine: category });
+        ui({
+          component: 'approval', id: `approval-${toolCallId}`, title, detail, category, inboxId: item.id, effect,
+          ...(def.command ? { command: def.command(data) } : {}),
+          ...(pb ? { reason: askReason(pb, { known, effect }) } : {}),
+          ...(step ? { step: step.text } : {}),
+        });
         return { output: { status: 'pending_approval', approvalId: toolCallId, category }, terminate: true };
       },
     });
@@ -56,13 +91,16 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
     if (!call) return;
     setPending(({ [approvalId]: _done, ...rest }) => rest);
     if (decision !== 'approve') {
+      if (call.runId) brain.addRunDeviation(call.runId, { kind: 'negado', detail: `você negou: ${call.action?.summary ?? call.tool}`, tool: call.tool, step: call.action?.step ?? null });
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} negou ${call.tool} (${approvalId}). Não tente de novo; pergunte como seguir.` });
       return;
     }
     try {
       const result = await executors.get(call.tool)!(call.args, approvalId);
+      if (call.runId && call.action) brain.recordRunAction(call.runId, call.action);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} aprovou ${call.tool} (${approvalId}). Resultado: ${result}` });
     } catch (error) {
+      if (call.runId) brain.addRunDeviation(call.runId, { kind: 'falha', detail: `${call.tool} falhou: ${String(error).slice(0, 200)}`, tool: call.tool, step: call.action?.step ?? null });
       append({ kind: 'signal', type: 'tool-approval-result', body: `${call.tool} (${approvalId}) foi aprovado mas falhou: ${String(error)}` });
     }
   });

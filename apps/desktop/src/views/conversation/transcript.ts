@@ -18,7 +18,9 @@ function component(c: UiComponent): string {
     case 'status':
       return `**${c.title}** (${c.state}): ${c.text}`;
     case 'approval':
-      return `**Pedido de aprovação: ${c.title}** (${c.category})\n${c.detail}`;
+      return [`**Pedido de aprovação: ${c.title}**${c.step ? ` (${c.step})` : ''}`, c.command && `\`${c.command}\``, c.reason && `Por que pede: ${c.reason}`].filter(Boolean).join('\n');
+    case 'level':
+      return `**${c.playbook}: N${c.from} → N${c.to}** (${c.reason})${c.alone.length ? `\n- segue sozinho: ${c.alone.join(', ')}` : ''}${c.asks.length ? `\n- ainda pergunta: ${c.asks.join(', ')}` : ''}`;
     case 'question':
       return `**Pergunta:** ${c.question}${c.options.length ? `\nOpções: ${c.options.join(' · ')}` : ''}`;
     case 'table':

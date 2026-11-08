@@ -1,5 +1,5 @@
 import type { BrainStore, PlaybookRun } from '../brain/store.ts';
-import { chooseOption, inputProblems, passageNeedsDeveloper, resolveParams, type Pipeline, type PipelineData } from '../brain/domain/pipelines.ts';
+import { chooseOption, inputProblems, passageNeedsDeveloper, resolveParams, withDefaults, type Pipeline, type PipelineData } from '../brain/domain/pipelines.ts';
 import { playbookParams } from '../brain/domain/playbooks.ts';
 import type { Inbox } from '../conversations/inbox.ts';
 import type { PipelineRun, PipelineRunStage, PipelineRuns } from './runs.ts';
@@ -29,6 +29,7 @@ export class PipelineEngine {
     opts: { conversationId: string; destination?: string | null; requestedBy?: string; skipQuestions?: boolean },
   ): { run: PipelineRun; instruction: string } {
     const p = this.pipeline(name);
+    inputs = withDefaults(p, inputs);
     const problems = inputProblems(p, inputs);
     if (opts.destination && !p.stages.some((s) => s.id === opts.destination)) problems.push(`destino não é uma etapa: ${opts.destination} (etapas: ${p.stages.map((s) => s.id).join(', ')})`);
     if (problems.length) throw new Error(problems.join('; '));
@@ -92,11 +93,15 @@ export class PipelineEngine {
     run.status = 'running';
     const i = run.stages.findIndex((s) => s.id === waiting.stage);
     if (decision === 'stop') {
+      if (waiting.kind === 'passage') this.notePassage(run, waiting.stage, false);
       run.status = 'cancelled';
       this.d.runs.save(run);
       return `O desenvolvedor encerrou a entrega na etapa ${run.stages[i].label}. Confirme em uma linha e pare.${agentNote(run, 'failed')}`;
     }
-    if (waiting.kind === 'passage') return this.enter(run, i, values).instruction;
+    if (waiting.kind === 'passage') {
+      this.notePassage(run, waiting.stage, true);
+      return this.enter(run, i, values).instruction;
+    }
     if (waiting.kind === 'params') return this.enter(run, i, values).instruction;
     // failure
     if (decision === 'skip') {
@@ -106,7 +111,28 @@ export class PipelineEngine {
     return this.enter(run, i, values).instruction;
   }
 
+  /** "Manter perguntando" on the note of a passage that became automatic (subject `esteira/etapa`). */
+  keepAsking(subject: string, conversationId: string | null): void {
+    const cut = subject.lastIndexOf('/');
+    this.d.brain.keepPassageAsking(subject.slice(0, cut), subject.slice(cut + 1), conversationId);
+  }
+
   // ── internals ──────────────────────────────────────────────────────────
+
+  /** Counts the developer's decision; after enough "go on", the passage becomes automatic (with a note). */
+  private notePassage(run: PipelineRun, stageId: string, continued: boolean): void {
+    const change = this.d.brain.notePassage(run.pipeline, stageId, continued, run.conversationId);
+    if (!change) return;
+    const label = run.stages.find((s) => s.id === stageId)?.label ?? stageId;
+    this.d.inbox.add({
+      kind: 'level',
+      conversationId: run.conversationId,
+      title: `${run.pipeline}: a passagem para ${label} agora segue sozinha`,
+      detail: change.reason,
+      routine: `passage:${run.pipeline}/${stageId}`,
+      approvalId: 'ask',
+    });
+  }
 
   private pipeline(name: string): Pipeline {
     const p = this.d.brain.pipeline(name);

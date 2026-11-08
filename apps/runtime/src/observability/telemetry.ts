@@ -10,9 +10,11 @@ import type { UsageStore } from './usage.ts';
 export interface TelemetryDeps {
   usage: Pick<UsageStore, 'recordTurn' | 'recordTool'>;
   log: Logger;
+  /** Every tool call's outcome, per conversation (failed steps, deviations of a run). */
+  onTool?: (conversationId: string, outcome: { tool: string; failed: boolean; error?: string }) => void;
 }
 
-export function handleObservation(event: FlueObservation, { usage, log }: TelemetryDeps): void {
+export function handleObservation(event: FlueObservation, { usage, log, onTool }: TelemetryDeps): void {
   // Orbi's conversations are Flue agent instances (`chat:…`); Flue's own conversationId is an
   // internal stream id. Subagent work carries the parent's instance, so it counts there too.
   const conversation = event.instanceId ?? event.conversationId;
@@ -36,6 +38,7 @@ export function handleObservation(event: FlueObservation, { usage, log }: Teleme
     }
     case 'tool': {
       if (conversation) usage.recordTool({ conversationId: conversation, durationMs: event.durationMs, failed: event.isError });
+      if (conversation) onTool?.(conversation, { tool: event.toolName, failed: event.isError, ...(event.isError ? { error: toolError(event.result) } : {}) });
       const attrs = { conversation, tool: event.toolName, ms: event.durationMs };
       if (event.isError) log.warn('ferramenta falhou', { ...attrs, error: toolError(event.result) });
       else log.debug('ferramenta', attrs);

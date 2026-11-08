@@ -3,13 +3,7 @@ import { ClockIcon, KeyIcon, ToolIcon } from '../../components/Icons';
 import { UiComponentView, type UiComponent } from '../../components/UiComponents';
 import { Markdown } from '../../components/Markdown';
 import { DemonstrationCard } from '../../components/Demonstration';
-
-const TOOL_LABEL: Record<string, string> = {
-  run_command: 'Comando', run_read_only_command: 'Comando (leitura)', run_python: 'Python', brain_query: 'Consulta ao cérebro',
-  brain_learn: 'Aprender', browser_read: 'Navegador (leitura)', browser_act: 'Ação no navegador', playbook_start: 'Iniciar playbook',
-  playbook_step: 'Passo do playbook', claude_code_prepare_fix: 'Claude Code: preparar correção', claude_code_push_fix: 'Claude Code: enviar correção',
-  show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente', playbook_similar: 'Procurar o que já sei', agent_reply: 'Resposta ao agente', ask_secret: 'Pedir credencial', pipeline_start: 'Começar esteira', pipeline_provide: 'Dados da etapa',
-};
+import { groupSummary, isSilent, toolCommand, toolLabel, toolResult } from './tools';
 
 /** One message of the conversation, as the developer should see it. */
 export function Message({ m }: { m: FlueConversationMessage }) {
@@ -47,15 +41,13 @@ export function Message({ m }: { m: FlueConversationMessage }) {
 }
 
 type ToolPart = Extract<FlueConversationPart, { type: 'dynamic-tool' }>;
-/** Tools whose result is already drawn as a ui component (stepper, cards). */
-const SILENT_TOOLS = new Set(['show_ui', 'playbook_start', 'playbook_step', 'similar_found', 'ask_secret']);
 
-/** Consecutive tool calls fold into one "atividade" row so the stepper and text stay readable. */
+/** Consecutive tool calls fold into one row so the checklist, cards and text stay readable. */
 export function groupParts(parts: FlueConversationPart[]): Array<FlueConversationPart | ToolPart[]> {
   const out: Array<FlueConversationPart | ToolPart[]> = [];
   for (const p of parts) {
     if (p.type === 'dynamic-tool') {
-      if (SILENT_TOOLS.has(p.toolName) && p.state !== 'output-error') continue;
+      if (isSilent(p)) continue;
       const last = out[out.length - 1];
       if (Array.isArray(last)) last.push(p);
       else out.push([p]);
@@ -65,17 +57,34 @@ export function groupParts(parts: FlueConversationPart[]): Array<FlueConversatio
 }
 
 function ToolGroup({ tools }: { tools: ToolPart[] }) {
-  if (tools.length === 1) return <Part p={tools[0]} />;
+  if (tools.length === 1) return <ToolRow t={tools[0]} />;
   const running = tools.some((t) => t.state === 'input-available');
   const failed = tools.filter((t) => t.state === 'output-error').length;
   return (
     <details className={`tool group ${running ? 'is-input-available' : failed ? 'is-output-error' : ''}`}>
       <summary>
         <ToolIcon size={13} />
-        <span>{tools.length} ações: {[...new Set(tools.map((t) => TOOL_LABEL[t.toolName] ?? t.toolName))].join(', ')}</span>
+        <span>{groupSummary(tools)}</span>
         <span className="tool-state">{running ? 'executando' : failed ? `${failed} com erro` : 'ok'}</span>
       </summary>
-      <div className="tool-list">{tools.map((t, i) => <Part key={i} p={t} />)}</div>
+      <div className="tool-list">{tools.map((t, i) => <ToolRow key={i} t={t} />)}</div>
+    </details>
+  );
+}
+
+/** One call: its purpose; on open, the command and what it printed (the arguments only for other tools). */
+function ToolRow({ t }: { t: ToolPart }) {
+  const command = toolCommand(t);
+  const result = toolResult(t);
+  return (
+    <details className={`tool is-${t.state}`}>
+      <summary>
+        <ToolIcon size={13} />
+        <span>{toolLabel(t)}</span>
+        <span className="tool-state">{t.state === 'input-available' ? 'executando' : t.state === 'output-error' ? 'erro' : 'ok'}</span>
+      </summary>
+      {command ? <pre className="code small">$ {command}</pre> : <pre className="code small">{JSON.stringify(t.input, null, 2)}</pre>}
+      {result && <pre className={`code small ${t.state === 'output-error' ? 'err' : ''}`}>{result.length > 4000 ? `${result.slice(0, 4000)}\n…` : result}</pre>}
     </details>
   );
 }
@@ -83,20 +92,7 @@ function ToolGroup({ tools }: { tools: ToolPart[] }) {
 function Part({ p }: { p: FlueConversationPart }) {
   if (p.type === 'text') return p.text.trim() ? <Markdown text={p.text} /> : null;
   if (p.type === 'reasoning') return null;
-  if (p.type === 'dynamic-tool') {
-    return (
-      <details className={`tool is-${p.state}`}>
-        <summary>
-          <ToolIcon size={13} />
-          <span>{TOOL_LABEL[p.toolName] ?? p.toolName}</span>
-          <span className="tool-state">{p.state === 'input-available' ? 'executando' : p.state === 'output-error' ? 'erro' : 'ok'}</span>
-        </summary>
-        <pre className="code small">{JSON.stringify(p.input, null, 2)}</pre>
-        {p.state === 'output-available' && <pre className="code small">{typeof p.output === 'string' ? p.output : JSON.stringify(p.output, null, 2)}</pre>}
-        {p.state === 'output-error' && <pre className="code small err">{p.errorText}</pre>}
-      </details>
-    );
-  }
+  if (p.type === 'dynamic-tool') return <ToolRow t={p} />;
   if (p.type === 'data-ui') {
     const comps = ((p.data as { components?: UiComponent[] })?.components ?? []);
     return <div className="ui-stack">{comps.map((c) => <UiComponentView key={c.id} c={c} />)}</div>;

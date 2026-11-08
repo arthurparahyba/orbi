@@ -33,6 +33,8 @@ erDiagram
   ENTITIES ||--o{ EDGES : "destino"
   PLAYBOOKS ||--o{ PLAYBOOKS : "variação de"
   PLAYBOOKS ||--o{ PLAYBOOK_RUNS : "execuções"
+  PLAYBOOKS ||--o{ PLAYBOOK_KNOWN_ACTIONS : "já fez"
+  PLAYBOOKS ||--o{ AUTONOMY_EVENTS : "histórico de nível"
   PIPELINES ||--o{ PIPELINE_RUNS : "entregas"
   PLAYBOOKS }o--o{ PIPELINES : "etapas usam"
   PIPELINE_RUNS ||--o{ PLAYBOOK_RUNS : "uma por etapa"
@@ -79,8 +81,28 @@ erDiagram
     json outputs
     text variation_of
     text learned_from
+    int level
+    int level_max
+    text level_by
+    int clean_streak
     int uses
     int successes
+  }
+  PLAYBOOK_KNOWN_ACTIONS {
+    text playbook PK
+    text fingerprint PK
+    text tool
+    text effect
+    text summary
+    int count
+  }
+  AUTONOMY_EVENTS {
+    text id PK
+    text subject_kind
+    text subject
+    text from_level
+    text to_level
+    text reason
   }
   PLAYBOOK_RUNS {
     text id PK
@@ -90,6 +112,8 @@ erDiagram
     json steps
     json params
     json outputs
+    json actions
+    json deviations
   }
   PIPELINES {
     text name PK
@@ -231,7 +255,10 @@ a antiga (`valid_to`) e abrindo outra; o passado continua consultável.
 | `name` PK | kebab-case, `promover-front-hml` |
 | `description`, `trigger` | Quando usar; é por aqui que a busca acha |
 | `applies_to` | Classe a que se aplica (`MicroFrontend`), ou nulo |
-| `autonomy` | `observe`, `ask` ou `auto` |
+| `autonomy` | `observe` (só observar), `ask` (= N1) ou `auto` (= N3 posto por você); acompanha o nível |
+| `level`, `level_max` | Nível de autonomia (1 a 3) e o máximo permitido (migração 13; documento 3) |
+| `level_by` | Quem pôs o nível: `learned`, `promoted`, `demoted` ou `user` |
+| `clean_streak` | Execuções seguidas sem desvio no nível atual |
 | `steps` | JSON `[{ id, label, how }]`, com `{{parametro}}` e `{{segredo:nome}}` |
 | `instructions` | Texto que vale para o procedimento todo |
 | `outputs` | JSON `[{ name, description }]`: o que ele **entrega** (migração 10) |
@@ -251,7 +278,21 @@ conversa, **Cérebro → Execuções**.
 | `steps` | JSON: cada passo com estado e nota |
 | `params` | JSON: o que recebeu (migração 10) |
 | `outputs` | JSON: o que entregou (migração 10) |
+| `actions` | JSON: as ações que rodou, com impressão digital, efeito e passo (migração 13) |
+| `deviations` | JSON: o que saiu do caminho: ferramenta que falhou, ação negada (migração 13) |
 | `started_at`, `finished_at` | Duração |
+
+**`playbook_known_actions`** · o que cada procedimento já fez numa execução sem
+desvio (migração 13). Chave `(playbook, fingerprint)`: a impressão digital é a
+ferramenta e os argumentos, com os valores dos parâmetros trocados por `{{nome}}`.
+Guarda `tool`, `effect` (`leitura`, `local`, `publica`, `apaga`), `summary`, `step`,
+`count` e as datas. É o que os níveis N2 e N3 repetem sozinhos.
+Tela **Cérebro → Playbooks → Ações conhecidas**.
+
+**`autonomy_events`** · histórico das mudanças de autonomia (migração 13):
+`subject_kind` `playbook` (o nível, `N1 → N2`, ou o teto) ou `passage` (uma
+passagem de esteira, `esteira/etapa`, `pergunta → segue`), com o motivo e a
+conversa. Tela **Cérebro → Playbooks → Histórico**.
 
 **`proposals`** · o que o Orbi quer guardar no cérebro e espera aprovação. Viram
 cartões de aprendizado e pendências.
@@ -273,6 +314,7 @@ cartões de aprendizado e pendências.
 | `inputs` | JSON `[{ name, description, options? }]`: o que precisa para começar |
 | `stages` | JSON `[{ id, label, passage: "ask" \| "auto", options: [{ playbook, when?, map? }] }]` |
 | `uses` | Quantas entregas começaram |
+| `passage_streaks` | JSON `{ etapa: n }`: quantas vezes seguidas você seguiu cada passagem que pergunta (migração 13) |
 
 **`pipeline_runs`** · cada entrega rodando ou terminada. Tela **Esteiras → Em
 andamento** e a faixa da conversa.
@@ -304,9 +346,9 @@ histórico do Flue foi limpo (`purged_at`).
 
 | Coluna | O quê |
 | --- | --- |
-| `kind` | `approval`, `question`, `learning`, `secret` ou `pipeline` |
+| `kind` | `approval`, `question`, `learning`, `secret`, `pipeline` ou `level` (aviso que só informa) |
 | `conversation_id`, `title`, `detail` | Onde e o quê |
-| `approval_id`, `routine` | Ligação com o portão de autonomia |
+| `approval_id`, `routine` | Ligação com o portão de autonomia. Num aviso `level`: `routine` é o que mudou (`playbook:nome`, `passage:esteira/etapa`) e `approval_id` o valor de antes, para o Manter |
 | `status` | `open`, `approved`, `denied` ou `answered` |
 | `answer` | A resposta escolhida (migração 6) |
 
@@ -360,8 +402,9 @@ editada, sempre se cria outra.
 | 10 | `playbooks.outputs`, `playbook_runs.params` e `playbook_runs.outputs` |
 | 11 | `pipelines`, `pipeline_runs` |
 | 12 | Permissões de esteira dos agentes e `agent_requests.pipeline` |
+| 13 | Autonomia que cresce: nível em `playbooks` (procedimentos `auto` viram N3 seu), `actions` e `deviations` em `playbook_runs`, `playbook_known_actions`, `autonomy_events`, `pipelines.passage_streaks` |
 
-O número é o `user_version` depois que a migração roda (hoje 12). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 13). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos
@@ -376,7 +419,7 @@ Assim nenhuma loja precisa avisar que mudou.
 
 | Tabelas | Tópico | Id no evento |
 | --- | --- | --- |
-| `types`, `entities`, `edges`, `playbooks`, `proposals` | `brain` | — |
+| `types`, `entities`, `edges`, `playbooks`, `proposals`, `playbook_known_actions`, `autonomy_events` | `brain` | — |
 | `playbook_runs` | `runs` | `id` |
 | `inbox_items` | `inbox` | `id` |
 | `conversations` | `conversations` | `id` |

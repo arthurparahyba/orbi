@@ -14,6 +14,7 @@ import type { Narrator } from '../../audio';
 import { Message } from './Message';
 import { contentKey } from './scroll';
 import { useFollowBottom } from './useFollowBottom';
+import { useGoTo } from './useGoTo';
 import { conversationMarkdown } from './transcript';
 import { ChatContext } from '../../components/ChatContext';
 
@@ -27,7 +28,7 @@ const SUGGESTIONS = [
 type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator };
 
 /** One conversation with Orbi: messages, the browser-teaching dock and the composer. */
-export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; title: string; origin?: ConversationOrigin; onTitled(): void; onDeleted(): void }) {
+export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: string; title: string; origin?: ConversationOrigin; target?: { inboxId: string; n: number }; onTitled(): void; onDeleted(): void }) {
   const [deleting, setDeleting] = useState(false);
   const agent = useFlueAgent({ url: agentUrl(id) });
   const [demo, setDemo] = useState<Demo | undefined>();
@@ -41,6 +42,7 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
   // Only follow new messages while the reader is at the bottom: refreshes bring the same list
   // every few seconds, and reading older messages must not be interrupted.
   const follow = useFollowBottom(id, contentKey(visible));
+  useGoTo(follow.box, target, visible.length);
 
   // The runtime can write to this conversation out-of-band (a finished demonstration, an approval,
   // a follow-up, an agent's request): when it says so, catch up and resume live updates.

@@ -16,7 +16,7 @@ export function PipelineDetail({ p, onEdit, onStarted }: { p: Pipeline; onEdit()
           <h2>{p.name}</h2>
           {p.description && <p className="muted">{p.description}</p>}
           {p.inputs.length > 0 && (
-            <p className="small">Começa com: {p.inputs.map((i) => <code key={i.name} title={i.description}>{i.name}{i.options?.length ? ` (${i.options.join(' / ')})` : ''}</code>)}</p>
+            <p className="small">Começa com: {p.inputs.map((i) => <code key={i.name} title={i.description}>{i.name}{i.options?.length ? ` (${i.options.join(' / ')})` : ''}{i.default ? ` = ${i.default}` : ''}</code>)}</p>
           )}
         </div>
         <button type="button" className="btn small" onClick={onEdit}>Editar</button>

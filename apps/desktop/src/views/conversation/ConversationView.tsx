@@ -5,6 +5,7 @@ import { PlusIcon } from '../../components/Icons';
 import { Segmented } from '../../components/Segmented';
 import { Chat } from './Chat';
 import { InboxPanel } from './InboxPanel';
+import { needsYou } from './inbox';
 
 /** The Conversa screen: conversation list, the open conversation and what waits for the developer. */
 type Filter = 'todas' | 'minhas' | 'agentes';
@@ -13,6 +14,12 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
   const list = useLive(api.conversations, ['conversations', 'agents']);
   const [current, setCurrent] = useState<string | undefined>(focus?.id);
   const [filter, setFilter] = useState<Filter>('todas');
+  // "Ir até": the card to scroll to, once the conversation is open (n makes a repeated click count).
+  const [target, setTarget] = useState<{ conversationId: string; inboxId: string; n: number }>();
+  const goTo = (item: InboxItem) => {
+    setCurrent(item.conversationId);
+    setTarget((t) => ({ conversationId: item.conversationId, inboxId: item.id, n: (t?.n ?? 0) + 1 }));
+  };
   const fromAgents = (list.data ?? []).some((c) => c.origin);
   const shown = (list.data ?? []).filter((c) => filter === 'todas' || (filter === 'agentes') === !!c.origin);
 
@@ -44,7 +51,7 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
         )}
         <ul>
           {shown.map((c: ConversationInfo) => {
-            const pending = openInbox.filter((i) => i.conversationId === c.id).length;
+            const pending = openInbox.filter((i) => i.conversationId === c.id && needsYou(i)).length;
             return (
               <li key={c.id}>
                 <button type="button" className={`conv ${c.id === current ? 'active' : ''}`} onClick={() => setCurrent(c.id)}>
@@ -60,7 +67,7 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
         </ul>
       </aside>
       {current ? (
-        <Chat key={current} id={current} title={list.data?.find((c) => c.id === current)?.title ?? ''} origin={list.data?.find((c) => c.id === current)?.origin} onTitled={list.reload}
+        <Chat key={current} id={current} target={target?.conversationId === current ? target : undefined} title={list.data?.find((c) => c.id === current)?.title ?? ''} origin={list.data?.find((c) => c.id === current)?.origin} onTitled={list.reload}
           onDeleted={() => { setCurrent(list.data?.find((c) => c.id !== current)?.id); void list.reload(); }} />
       ) : (
         <div className="empty-chat">
@@ -68,7 +75,7 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
           <button type="button" className="btn primary" onClick={newConversation}><PlusIcon size={14} /> Nova conversa</button>
         </div>
       )}
-      <InboxPanel items={openInbox} onOpen={setCurrent} />
+      <InboxPanel items={openInbox} current={current} onOpen={setCurrent} onGoTo={goTo} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { RUNS_FOR_N3 } from '../../brain/domain/levels.ts';
 import { EditEntity, EditPlaybook, SetPlaybookAutonomy } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound } from '../errors.ts';
@@ -33,9 +34,17 @@ export function brainRoutes({ brain, config }: OrbiServices) {
     .get('/search', (c) => c.json(brain.search(c.req.query('q') ?? '')))
     .get('/playbooks', (c) => c.json(brain.playbooks()))
     .patch('/playbooks/:name', async (c) => {
-      const { autonomy } = await body(c, SetPlaybookAutonomy);
-      if (!brain.playbook(c.req.param('name'))) throw notFound('playbook');
-      return c.json(brain.setPlaybookAutonomy(c.req.param('name'), autonomy));
+      const { autonomy, level, levelMax } = await body(c, SetPlaybookAutonomy);
+      const name = c.req.param('name');
+      if (!brain.playbook(name)) throw notFound('playbook');
+      if (autonomy) brain.setPlaybookAutonomy(name, autonomy);
+      if (level !== undefined || levelMax !== undefined) brain.setPlaybookLevel(name, { level, levelMax });
+      return c.json(brain.playbook(name));
+    })
+    .get('/playbooks/:name/autonomy', (c) => {
+      const name = c.req.param('name');
+      if (!brain.playbook(name)) throw notFound('playbook');
+      return c.json({ knownActions: brain.knownActions(name), events: brain.autonomyEvents('playbook', name), runsForN3: RUNS_FOR_N3 });
     })
     .put('/playbooks/:name', async (c) => {
       const change = await body(c, EditPlaybook);

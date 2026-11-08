@@ -107,6 +107,10 @@ cofre ou ponte MCP, `npm run e2e`.
   Eles nunca aprovam, nunca veem credenciais e nunca gravam no cérebro: `orbi_teach` vira
   sugestão, e só o desenvolvedor aceita (`/api/agents/suggestions/:id/accept`). Rodar
   esteiras e pular perguntas de passagem são permissões desligadas por padrão.
+- **Autonomia que cresce**: dentro de um procedimento, o portão decide pelo nível (N1–N3,
+  `brain/domain/levels.ts`) e pela ação já ser conhecida. Apagar nunca roda sozinho, a não
+  ser no N3 posto pelo desenvolvedor com a ação conhecida. Subir e descer é do runtime
+  (`settleRun`), nunca do modelo, e sempre avisa (cartão e Pendências, com Manter).
 - **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
   modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
   ou com a permissão do agente.

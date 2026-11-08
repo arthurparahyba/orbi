@@ -3,7 +3,7 @@ import { api, type Pipeline } from '../../api';
 
 /** Begin a delivery: the esteira's inputs and how far to go. Opens its conversation. */
 export function StartForm({ p, onStarted, onCancel }: { p: Pipeline; onStarted(conversationId: string): void; onCancel(): void }) {
-  const [inputs, setInputs] = useState<Record<string, string>>(() => Object.fromEntries(p.inputs.map((i) => [i.name, i.options?.[0] ?? ''])));
+  const [inputs, setInputs] = useState<Record<string, string>>(() => Object.fromEntries(p.inputs.map((i) => [i.name, i.default ?? i.options?.[0] ?? ''])));
   const [destination, setDestination] = useState('');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);

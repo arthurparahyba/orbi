@@ -7,6 +7,8 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   entities: { topic: 'brain' },
   edges: { topic: 'brain' },
   playbooks: { topic: 'brain' },
+  playbook_known_actions: { topic: 'brain' },
+  autonomy_events: { topic: 'brain' },
   proposals: { topic: 'brain' },
   playbook_runs: { topic: 'runs', id: 'id' },
   inbox_items: { topic: 'inbox', id: 'id' },
