@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFlueAgent } from '@flue/react';
 import { agentUrl, api, type Recording } from '../../api';
 import { useChanges, usePoll } from '../../hooks';
@@ -12,6 +12,8 @@ import { StartDemonstration } from '../../components/Demonstration';
 import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
 import { Message } from './Message';
+import { contentKey } from './scroll';
+import { useFollowBottom } from './useFollowBottom';
 import { conversationMarkdown } from './transcript';
 import { ChatContext } from '../../components/ChatContext';
 
@@ -29,7 +31,6 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
   const [deleting, setDeleting] = useState(false);
   const agent = useFlueAgent({ url: agentUrl(id) });
   const [demo, setDemo] = useState<Demo | undefined>();
-  const endRef = useRef<HTMLDivElement>(null);
   const busy = agent.status === 'submitted' || agent.status === 'streaming';
   const visible = agent.messages.filter((m) => m.display !== 'hidden');
 
@@ -37,7 +38,9 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
   useEffect(() => {
     api.activeRecording().then((r) => { if (r && r.conversationId === id) setDemo({ mode: 'live', rec: r }); }, () => {});
   }, [id]);
-  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [agent.messages]);
+  // Only follow new messages while the reader is at the bottom: refreshes bring the same list
+  // every few seconds, and reading older messages must not be interrupted.
+  const follow = useFollowBottom(id, contentKey(visible));
 
   // The runtime can write to this conversation out-of-band (a finished demonstration, an approval,
   // a follow-up, an agent's request): when it says so, catch up and resume live updates.
@@ -60,6 +63,7 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
     if (title === 'Nova conversa' || !visible.some((m) => m.role === 'user')) {
       void api.renameConversation(id, t.length > 60 ? `${t.slice(0, 57)}…` : t).then(onTitled, () => {});
     }
+    follow.toBottom();
     await agent.sendMessage(t);
   };
 
@@ -94,7 +98,8 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
       {origin && <OriginBanner origin={origin} />}
       <PipelineBar conversationId={id} />
       <ChatContext.Provider value={{ send: (t) => void send(t) }}>
-      <div className="messages" aria-live="polite">
+      <div className="messages-wrap">
+      <div className="messages" aria-live="polite" ref={follow.box} onScroll={follow.onScroll}>
         {agent.historyReady && visible.length === 0 && (
           <div className="suggest">
             <p className="muted">O Orbi não vem sabendo fazer nada específico: ele aprende com você e guarda no cérebro. Tente:</p>
@@ -104,7 +109,10 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
         {visible.map((m) => <Message key={m.id} m={m} />)}
         {agent.status === 'submitted' && <div className="msg assistant"><span className="typing"><i /><i /><i /></span></div>}
         {agent.error && <div className="banner small" role="alert">{agent.error.message}</div>}
-        <div ref={endRef} />
+      </div>
+      {follow.unread && (
+        <button type="button" className="btn small new-msgs" onClick={follow.toBottom}>Novas mensagens ↓</button>
+      )}
       </div>
       </ChatContext.Provider>
       {demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}

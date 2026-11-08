@@ -530,3 +530,6 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .pill-waiting { background: rgba(242, 177, 60, 0.15); color: var(--amber); }
 .pill-cancelled { background: rgba(169, 176, 187, 0.12); color: var(--muted); }
 .msg.system.pipeline-signal { color: var(--muted); font-size: 12px; }
+.messages-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.messages-wrap > .messages { flex: 1; min-height: 0; }
+.new-msgs { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
