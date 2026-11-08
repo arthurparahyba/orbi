@@ -27,6 +27,10 @@ trabalha com o Orbi, e cada coisa nova só entra depois que você aprova.
 
 ## O modelo de dados
 
+A parte do banco que é o cérebro. O banco inteiro (conversas, pendências,
+esteiras, agentes, uso), as migrações e os gatilhos estão em
+[../banco.md](../banco.md).
+
 ```mermaid
 erDiagram
   TYPES ||--o{ ENTITIES : "tipo de"
@@ -34,10 +38,12 @@ erDiagram
   ENTITIES ||--o{ EDGES : "destino"
   PLAYBOOKS ||--o{ PLAYBOOK_RUNS : "execuções"
   PLAYBOOKS ||--o{ PLAYBOOKS : "variação de"
+  PLAYBOOKS }o--o{ PIPELINES : "etapas usam"
   PROPOSALS }o--|| TYPES : "vira"
   PROPOSALS }o--|| ENTITIES : "vira"
   PROPOSALS }o--|| EDGES : "vira"
   PROPOSALS }o--|| PLAYBOOKS : "vira"
+  PROPOSALS }o--|| PIPELINES : "vira"
 
   TYPES {
     text name PK
@@ -62,7 +68,9 @@ erDiagram
     text name PK
     text description
     text trigger
+    text applies_to
     json steps
+    json outputs
     text autonomy
     text variation_of
     int uses
@@ -73,7 +81,15 @@ erDiagram
     text playbook
     text conversation_id
     json steps
+    json params
+    json outputs
     text status
+  }
+  PIPELINES {
+    text name PK
+    json inputs
+    json stages
+    int uses
   }
   PROPOSALS {
     text id PK
@@ -93,6 +109,9 @@ erDiagram
   fim. "A Marina aprova GMUDs até 31/12; a partir de janeiro, o Rafael" vira duas
   ligações com datas. Consultas por padrão olham o presente, e o passado continua lá.
 - **Procedimentos** (`playbooks`) e **execuções** (`playbook_runs`): documento 5.
+  Cada procedimento declara o que entrega (`outputs`); cada execução guarda o que
+  recebeu (`params`) e o que entregou (`outputs`).
+- **Esteiras** (`pipelines`): procedimentos em sequência, documento 16.
 - **Propostas** (`proposals`): o que o Orbi quer guardar e ainda espera aprovação.
 
 ### Lacunas

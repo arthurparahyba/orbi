@@ -87,6 +87,7 @@ As senhas ficam no Keychain do macOS, nunca nesses arquivos.
   terminal e código, retornos agendados, modelo e plugins, uso e logs, app desktop): onde aparece,
   como funciona, diagramas, peças, tecnologias, configuração, limites e testes
 - [Arquitetura](docs/arquitetura.md): visão geral, camadas, composição, contrato, API local
+- [Banco de dados](docs/banco.md): tabelas, diagrama, migrações, gatilhos e índice de busca
 - [Desenvolvimento](docs/desenvolvimento.md): testes, demo, como adicionar um componente de interface
 - [Empacotamento](docs/empacotamento.md): o que o `npm run build` faz, tamanho, assinatura no macOS
 - [Plugins](docs/plugins.md): conectar o LLM da sua empresa sem mexer no código do Orbi

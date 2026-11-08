@@ -6,7 +6,8 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 16). A visão geral está em `docs/arquitetura.md`.
+`docs/funcionalidades/` (01 a 16). A visão geral está em `docs/arquitetura.md`; as
+tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Estrutura
 
@@ -79,7 +80,7 @@ cofre ou ponte MCP, `npm run e2e`.
   `contracts/src/ui.ts`, desenhado em `apps/desktop/src/components/`. Dados mostrados nos
   cartões (histórico, contadores) vêm do banco, preenchidos pelo runtime, nunca do modelo.
 - **Banco**: um arquivo `data/orbi.db`. Migrações em `db/migrations.ts` são só de acréscimo,
-  nunca edite uma que já existe. Toda tabela que a tela mostra precisa estar em `db/changes.ts`
+  nunca edite uma que já existe (e atualize `docs/banco.md`). Toda tabela que a tela mostra precisa estar em `db/changes.ts`
   para virar evento; o app não consulta de tempos em tempos (só o health, e o `live.ts` quando o feed cai).
 - **Busca** passa pelo índice FTS5 (mantido por gatilhos SQLite). Mudou a busca: rode
   `eval:search`; o teste em `brain-domain.test.ts` trava o mínimo, e esse mínimo não pode baixar.
