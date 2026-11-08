@@ -103,9 +103,13 @@ test('mcp: permissões escolhem as ferramentas que o agente vê', async () => {
   const { api, connect } = await setup();
   const { json } = await api('POST', '/api/agents/clients', { name: 'Cursor' });
   const names = async () => (await (await connect(json.token)).listTools()).tools.map((t) => t.name).sort();
-  assert.deepEqual(await names(), ['orbi_delegate', 'orbi_procedure', 'orbi_search', 'orbi_status', 'orbi_teach']);
+  assert.equal(json.client.canRunPipelines, false, 'rodar esteiras começa desligado');
+  assert.equal(json.client.canSkipPassages, false, 'pular perguntas de passagem começa desligado');
+  assert.deepEqual(await names(), ['orbi_delegate', 'orbi_pipeline', 'orbi_pipelines', 'orbi_procedure', 'orbi_search', 'orbi_status', 'orbi_teach']);
   await api('PATCH', `/api/agents/clients/${json.client.id}`, { canDelegate: false, canTeach: false });
-  assert.deepEqual(await names(), ['orbi_procedure', 'orbi_search']);
+  assert.deepEqual(await names(), ['orbi_pipeline', 'orbi_pipelines', 'orbi_procedure', 'orbi_search']);
+  await api('PATCH', `/api/agents/clients/${json.client.id}`, { canRunPipelines: true });
+  assert.deepEqual(await names(), ['orbi_pipeline', 'orbi_pipelines', 'orbi_procedure', 'orbi_run_pipeline', 'orbi_search', 'orbi_status']);
 });
 
 test('mcp: buscar e ler um procedimento (divulgação aos poucos)', async () => {
@@ -179,11 +183,11 @@ test('mcp: ensinar vira sugestão; repetir conta; aceitar grava pedindo aprovaç
 
 test('status: rodando, esperando o desenvolvedor, concluído', () => {
   const req = {
-    id: 'req_1', clientId: 'c', agent: 'Claude Code', conversationId: 'chat:1', task: 't', procedure: 'p',
+    id: 'req_1', clientId: 'c', agent: 'Claude Code', conversationId: 'chat:1', task: 't', procedure: 'p', pipeline: null,
     context: {}, status: 'running' as const, summary: null, links: [], createdAt: '', finishedAt: null,
   };
   const run = {
-    id: 'r', playbook: 'p', conversationId: 'chat:1', status: 'running' as const, startedAt: '', finishedAt: null,
+    id: 'r', playbook: 'p', conversationId: 'chat:1', status: 'running' as const, startedAt: '', finishedAt: null, params: {}, outputs: {},
     steps: [{ id: 'a', label: 'Build', how: '', status: 'done' as const }, { id: 'b', label: 'Deploy em dev', how: '', status: 'running' as const }],
   };
   assert.equal(requestStatus(req, run, []).step, '2/2 Deploy em dev');
@@ -196,4 +200,59 @@ test('status: rodando, esperando o desenvolvedor, concluído', () => {
   const done = requestStatus({ ...req, status: 'done', summary: 'ok', links: ['https://ci/1'] }, run, []);
   assert.deepEqual([done.status, done.summary, done.links], ['done', 'ok', ['https://ci/1']]);
   assert.equal(procedureName('  Publicar Versão — HML!  '), 'publicar-versao-hml');
+});
+
+/** Two procedures chained: dev hands over versao; the passage into hml asks. */
+function seedPipeline(orbi: Awaited<ReturnType<typeof setup>>['orbi']) {
+  const pb = (name: string, label: string, outputs: string[]) =>
+    orbi.brain.savePlaybook({
+      name, description: name, trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
+      steps: [{ id: 'p0', label, how: '' }], outputs: outputs.map((o) => ({ name: o, description: o })),
+    });
+  pb('workflow-dev', 'Acompanhar o workflow de {{repo}}', ['versao']);
+  pb('promover-hml', 'Promover {{versao}}', ['url_hml']);
+  orbi.brain.savePipeline({
+    name: 'entrega-do-portal',
+    description: 'Leva o portal do workflow de dev até homologação',
+    inputs: [{ name: 'repo', description: 'repositório' }],
+    stages: [
+      { id: 'dev', label: 'Workflow dev', passage: 'auto', options: [{ playbook: 'workflow-dev' }] },
+      { id: 'hml', label: 'Homologação', passage: 'ask', options: [{ playbook: 'promover-hml' }] },
+    ],
+  });
+}
+
+test('mcp: esteiras — listar, detalhar e rodar só com permissão', async () => {
+  const { orbi, api, connect, call } = await setup();
+  seedPipeline(orbi);
+  const { json } = await api('POST', '/api/agents/clients', { name: 'Claude Code' });
+  let client = await connect(json.token);
+
+  const list = await call(client, 'orbi_pipelines', { query: 'entrega do portal' });
+  assert.deepEqual(list.json.esteiras.map((p: { name: string }) => p.name), ['entrega-do-portal']);
+  assert.deepEqual(list.json.esteiras[0].inputs, [{ name: 'repo', description: 'repositório' }]);
+  assert.match(list.json.hint, /desligado/);
+  assert.equal((await call(client, 'orbi_pipelines', { query: 'folha de pagamento' })).json.esteiras.length, 0);
+
+  const detail = await call(client, 'orbi_pipeline', { name: 'entrega-do-portal' });
+  assert.deepEqual(detail.json.stages[1].runs[0], { procedure: 'promover-hml', receives: ['versao'], delivers: ['url_hml'] });
+  assert.equal(detail.json.stages[1].passage, 'espera o desenvolvedor autorizar');
+  assert.equal((await call(client, 'orbi_procedure', { name: 'workflow-dev' })).json.delivers[0].name, 'versao');
+
+  const off = await client.callTool({ name: 'orbi_run_pipeline', arguments: { name: 'entrega-do-portal', inputs: { repo: 'acme/portal' } } });
+  assert.ok((off as { isError?: boolean }).isError, 'sem a permissão, não roda');
+
+  await api('PATCH', `/api/agents/clients/${json.client.id}`, { canRunPipelines: true });
+  client = await connect(json.token);
+  const missing = await call(client, 'orbi_run_pipeline', { name: 'entrega-do-portal', inputs: {} });
+  assert.ok(missing.isError);
+  assert.match(missing.text, /falta repo/);
+  assert.equal(orbi.conversations.list().length, 0, 'entrada inválida não cria conversa');
+  const bad = await call(client, 'orbi_run_pipeline', { name: 'entrega-do-portal', inputs: { repo: 'acme/portal' }, destination: 'prod' });
+  assert.match(bad.text, /destino não é uma etapa/);
+
+  // Running it (and the agent's destination not authorizing passages) is in agent-flow.test.ts: it needs the Flue runtime.
+  await api('PATCH', `/api/agents/clients/${json.client.id}`, { canSkipPassages: true });
+  client = await connect(json.token);
+  assert.match((await call(client, 'orbi_pipeline', { name: 'entrega-do-portal' })).json.stages[1].passage, /pode pular/);
 });

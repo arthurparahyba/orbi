@@ -13,6 +13,8 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   conversations: { topic: 'conversations', id: 'id' },
   settings: { topic: 'autonomy' },
   usage: { topic: 'usage', id: 'conversation_id' },
+  pipelines: { topic: 'pipelines', id: 'name' },
+  pipeline_runs: { topic: 'pipelines', id: 'conversation_id' },
   agent_clients: { topic: 'agents', id: 'id' },
   agent_requests: { topic: 'agents', id: 'id' },
   agent_suggestions: { topic: 'agents', id: 'id' },

@@ -52,7 +52,7 @@ test('playbook: validação, parâmetros e status da execução', () => {
 });
 
 test('aprendizado: proposta checada e transformada em mudança', () => {
-  const ctx = { typeOf, entity: (id: string) => (id === 'novo-front' ? entity('novo-front', 'Repositorio') : undefined) };
+  const ctx = { typeOf, entity: (id: string) => (id === 'novo-front' ? entity('novo-front', 'Repositorio') : undefined), playbook: () => undefined };
   assert.deepEqual(proposalProblems('edge', { from: 'novo-front', rel: 'voa', to: 'x' }, ctx), ['ligação "voa" não existe para Repositorio']);
   assert.deepEqual(proposalProblems('edge', { from: 'ainda-vai-existir', rel: 'qualquer' }, ctx), [], 'origem criada no mesmo lote');
   const change = changeFromProposal('playbook', { name: 'p', steps: [{ id: 'a', label: 'A', how: '' }] }, 'chat:9');

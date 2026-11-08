@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Autonomy, Playbook, PlaybookRun } from '../domain/types.ts';
+import type { Autonomy, Playbook, PlaybookInput, PlaybookRun } from '../domain/types.ts';
 import { json, now, nullable, parse, type Row } from './rows.ts';
 
 const toPlaybook = (r: Row): Playbook => ({
@@ -12,6 +12,7 @@ const toPlaybook = (r: Row): Playbook => ({
   instructions: String(r.instructions),
   learnedFrom: nullable(r.learned_from),
   variationOf: nullable(r.variation_of),
+  outputs: parse(r.outputs, []),
   uses: Number(r.uses),
   successes: Number(r.successes),
   updatedAt: String(r.updated_at),
@@ -23,6 +24,8 @@ const toRun = (r: Row): PlaybookRun => ({
   conversationId: String(r.conversation_id),
   status: String(r.status) as PlaybookRun['status'],
   steps: parse(r.steps, []),
+  params: parse(r.params, {}),
+  outputs: parse(r.outputs, {}),
   startedAt: String(r.started_at),
   finishedAt: nullable(r.finished_at),
 });
@@ -31,17 +34,17 @@ const toRun = (r: Row): PlaybookRun => ({
 export class PlaybookRepo {
   constructor(private readonly db: DatabaseSync) {}
 
-  save(pb: Omit<Playbook, 'uses' | 'successes' | 'updatedAt'>): void {
+  save(pb: PlaybookInput): void {
     this.db
       .prepare(
-        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, uses, successes, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description, applies_to = excluded.applies_to,
            trigger = excluded.trigger, autonomy = excluded.autonomy, steps = excluded.steps,
            instructions = excluded.instructions, learned_from = excluded.learned_from,
-           variation_of = excluded.variation_of, updated_at = excluded.updated_at`,
+           variation_of = excluded.variation_of, outputs = excluded.outputs, updated_at = excluded.updated_at`,
       )
-      .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, now());
+      .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, json(pb.outputs ?? []), now());
   }
 
   /** Removes a playbook. Its variations stay, no longer linked; its runs stay as history. Returns the variations detached. */
@@ -91,12 +94,12 @@ export class PlaybookRepo {
 
   insertRun(run: PlaybookRun): void {
     this.db
-      .prepare('INSERT INTO playbook_runs (id, playbook, conversation_id, status, steps, started_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(run.id, run.playbook, run.conversationId, run.status, json(run.steps), run.startedAt);
+      .prepare('INSERT INTO playbook_runs (id, playbook, conversation_id, status, steps, params, outputs, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(run.id, run.playbook, run.conversationId, run.status, json(run.steps), json(run.params), json(run.outputs), run.startedAt);
   }
 
   updateRun(run: PlaybookRun): void {
-    this.db.prepare('UPDATE playbook_runs SET steps = ?, status = ?, finished_at = ? WHERE id = ?').run(json(run.steps), run.status, run.finishedAt, run.id);
+    this.db.prepare('UPDATE playbook_runs SET steps = ?, status = ?, outputs = ?, finished_at = ? WHERE id = ?').run(json(run.steps), run.status, json(run.outputs), run.finishedAt, run.id);
   }
 
   run(id: string): PlaybookRun | undefined {

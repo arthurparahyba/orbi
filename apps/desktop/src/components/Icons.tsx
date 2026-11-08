@@ -32,3 +32,4 @@ export const TrashIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 7h16
 export const UpIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 14l6-6 6 6" /></svg>);
 export const DownIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 10l6 6 6-6" /></svg>);
 export const PlugIcon = ({ size }: P) => (<svg {...base(size)}><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5" /></svg>);
+export const PipelineIcon = ({ size }: P) => (<svg {...base(size)}><circle cx="5" cy="6" r="2.5" /><circle cx="19" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M7.5 6h9M17.5 8l-4 8M6.5 8l4 8" /></svg>);

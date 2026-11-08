@@ -11,6 +11,7 @@ import { useSimilar } from './tools/similar.ts';
 import { useClock } from './tools/clock.ts';
 import { useAgentRequest } from './tools/requests.ts';
 import { useSecrets } from './tools/secrets.ts';
+import { usePipelines } from './tools/pipelines.ts';
 
 /**
  * Orbi's generic capabilities. Nothing here knows about CI, GMUD or portals:
@@ -36,6 +37,7 @@ export function useOrbi(conversationId: string) {
   // voice and clock
   useVoice(ctx);
   useSecrets(ctx);
+  usePipelines(ctx);
   useClock(ctx);
   // a coding agent asked for this conversation (MCP)
   useAgentRequest(ctx);

@@ -129,4 +129,32 @@ CREATE INDEX agent_suggestions_status ON agent_suggestions(status, updated_at);`
     name: 'conversas apagadas: some da lista na hora; o histórico do Flue sai na próxima partida',
     sql: `CREATE TABLE deleted_conversations (id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL, purged_at TEXT);`,
   },
+  {
+    name: 'o que cada procedimento entrega, e o que cada execução recebeu e entregou',
+    sql: `
+ALTER TABLE playbooks ADD COLUMN outputs TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE playbook_runs ADD COLUMN params TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE playbook_runs ADD COLUMN outputs TEXT NOT NULL DEFAULT '{}';`,
+  },
+  {
+    name: 'esteiras: procedimentos em sequência e as entregas rodando',
+    sql: `
+CREATE TABLE pipelines (
+  name TEXT PRIMARY KEY, description TEXT NOT NULL DEFAULT '', inputs TEXT NOT NULL DEFAULT '[]',
+  stages TEXT NOT NULL, uses INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL);
+CREATE TABLE pipeline_runs (
+  id TEXT PRIMARY KEY, pipeline TEXT NOT NULL, conversation_id TEXT NOT NULL, status TEXT NOT NULL,
+  destination TEXT, inputs TEXT NOT NULL DEFAULT '{}', stages TEXT NOT NULL, current INTEGER NOT NULL DEFAULT 0,
+  requested_by TEXT NOT NULL DEFAULT 'user', skip_questions INTEGER NOT NULL DEFAULT 0, waiting TEXT,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, finished_at TEXT);
+CREATE INDEX pipeline_runs_conversation ON pipeline_runs(conversation_id);
+CREATE INDEX pipeline_runs_status ON pipeline_runs(status, updated_at);`,
+  },
+  {
+    name: 'agentes: permissões de esteira (rodar; pular perguntas de passagem), desligadas por padrão',
+    sql: `
+ALTER TABLE agent_clients ADD COLUMN can_run_pipelines INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE agent_clients ADD COLUMN can_skip_passages INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE agent_requests ADD COLUMN pipeline TEXT;`,
+  },
 ];

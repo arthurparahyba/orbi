@@ -12,6 +12,10 @@ export interface AgentClient {
   name: string;
   canDelegate: boolean;
   canTeach: boolean;
+  /** May start esteiras (orbi_run_pipeline). Off until the developer turns it on. */
+  canRunPipelines: boolean;
+  /** Its destination also authorizes passages that ask. Off by default: they wait for the developer. */
+  canSkipPassages: boolean;
   createdAt: string;
   lastSeenAt: string | null;
   revokedAt: string | null;
@@ -23,6 +27,8 @@ const toClient = (r: Row): AgentClient => ({
   name: String(r.name),
   canDelegate: Number(r.can_delegate) === 1,
   canTeach: Number(r.can_teach) === 1,
+  canRunPipelines: Number(r.can_run_pipelines) === 1,
+  canSkipPassages: Number(r.can_skip_passages) === 1,
   createdAt: String(r.created_at),
   lastSeenAt: r.last_seen_at ? String(r.last_seen_at) : null,
   revokedAt: r.revoked_at ? String(r.revoked_at) : null,
@@ -68,12 +74,13 @@ export class AgentClients {
     return client;
   }
 
-  setPermissions(id: string, change: { canDelegate?: boolean; canTeach?: boolean }): AgentClient | undefined {
+  setPermissions(id: string, change: Partial<Pick<AgentClient, 'canDelegate' | 'canTeach' | 'canRunPipelines' | 'canSkipPassages'>>): AgentClient | undefined {
     const current = this.get(id);
     if (!current) return undefined;
-    const canDelegate = change.canDelegate ?? current.canDelegate;
-    const canTeach = change.canTeach ?? current.canTeach;
-    this.db.prepare('UPDATE agent_clients SET can_delegate = ?, can_teach = ? WHERE id = ?').run(canDelegate ? 1 : 0, canTeach ? 1 : 0, id);
+    const next = { ...current, ...Object.fromEntries(Object.entries(change).filter(([, v]) => v !== undefined)) };
+    this.db
+      .prepare('UPDATE agent_clients SET can_delegate = ?, can_teach = ?, can_run_pipelines = ?, can_skip_passages = ? WHERE id = ?')
+      .run(next.canDelegate ? 1 : 0, next.canTeach ? 1 : 0, next.canRunPipelines ? 1 : 0, next.canSkipPassages ? 1 : 0, id);
     return this.get(id);
   }
 

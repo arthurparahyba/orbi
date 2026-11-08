@@ -46,3 +46,15 @@ describe('apagar procedimento', () => {
     expect(deleteConsequences(pb('x'), [pb('x')])).toHaveLength(1);
   });
 });
+
+import { finalizeOutputs, outputProblems, playbookParams } from '../src/views/brain/editing';
+describe('recebe e entrega', () => {
+  it('acha os parâmetros sem contar credenciais', () => {
+    expect(playbookParams([{ label: 'Abrir {{repo}}', how: 'login {{segredo:gh}} e {{ versao }}' }], 'em {{repo}}')).toEqual(['repo', 'versao']);
+  });
+  it('valida e limpa as entregas', () => {
+    expect(outputProblems([{ name: 'PR', description: '' }])[0]).toMatch(/minúsculas/);
+    expect(outputProblems([{ name: 'a', description: '' }, { name: 'a', description: '' }])[0]).toMatch(/duas vezes/);
+    expect(finalizeOutputs([{ name: ' pr_url ', description: ' PR ' }, { name: '', description: 'x' }])).toEqual([{ name: 'pr_url', description: 'PR' }]);
+  });
+});

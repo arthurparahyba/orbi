@@ -3,6 +3,8 @@ import type { InboxItem, UiComponent } from '@orbi/contracts';
 import { AlertIcon, BulbIcon, CheckIcon, ClockIcon, LinkIcon, XIcon } from './Icons';
 import { KnownLine, SimilarCard } from './SimilarCards';
 import { SecretCard } from './SecretCard';
+import { PipelinePreview } from './PipelinePreview';
+import type { PipelineDef } from '../views/pipelines/model';
 import { CHANGE_LABEL, stepDiff, type Step } from './stepDiff';
 import { api } from '../api';
 import { useLive } from '../hooks';
@@ -105,7 +107,8 @@ function LearningPreview({ detail }: { detail: string }) {
   let items: LearnItem[] = [];
   try { items = (JSON.parse(detail).items ?? []) as LearnItem[]; } catch { return null; }
   const playbooks = items.filter((i) => i.kind === 'playbook').map((i) => i.payload);
-  const facts = items.filter((i) => i.kind !== 'playbook');
+  const pipelines = items.filter((i) => i.kind === 'pipeline').map((i) => i.payload);
+  const facts = items.filter((i) => i.kind !== 'playbook' && i.kind !== 'pipeline');
   return (
     <div className="learn-preview">
       {playbooks.map((pb) => {
@@ -130,6 +133,7 @@ function LearningPreview({ detail }: { detail: string }) {
               {pb.trigger && <div><dt>Quando</dt><dd>{pb.trigger}</dd></div>}
               {pb.appliesTo && <div><dt>Vale para</dt><dd>todo {pb.appliesTo}</dd></div>}
               {params.length > 0 && <div><dt>Parâmetros</dt><dd>{params.map((x) => <code key={x}>{x}</code>)}</dd></div>}
+              {Array.isArray(pb.outputs) && pb.outputs.length > 0 && <div><dt>Entrega</dt><dd>{pb.outputs.map((o: { name: string }) => <code key={o.name} className="out-name">{o.name}</code>)}</dd></div>}
               {secrets.length > 0 && <div><dt>Credenciais</dt><dd>{secrets.map((x) => <span key={x} className="secret-ref">🔒 {x}</span>)} <span className="muted">no cofre do sistema</span></dd></div>}
             </dl>
             {base ? <DiffSteps base={base.steps} next={pb.steps ?? []} /> : (
@@ -145,6 +149,7 @@ function LearningPreview({ detail }: { detail: string }) {
           </div>
         );
       })}
+      {pipelines.map((p) => <PipelinePreview key={p.name} p={p as PipelineDef} />)}
       {facts.length > 0 && (
         <div className="learn-facts">
           <span className="ui-kicker">Fatos para o cérebro</span>

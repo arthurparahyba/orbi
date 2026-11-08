@@ -22,6 +22,8 @@ export interface AgentRequest {
   conversationId: string;
   task: string;
   procedure: string | null;
+  /** The esteira it started (orbi_run_pipeline), if any. */
+  pipeline: string | null;
   context: AgentRequestContext;
   status: AgentRequestStatus;
   summary: string | null;
@@ -45,6 +47,7 @@ const toRequest = (r: Row): AgentRequest => ({
   conversationId: String(r.conversation_id),
   task: String(r.task),
   procedure: r.procedure ? String(r.procedure) : null,
+  pipeline: r.pipeline ? String(r.pipeline) : null,
   context: json<AgentRequestContext>(r.context, {}),
   status: String(r.status) as AgentRequestStatus,
   summary: r.summary ? String(r.summary) : null,
@@ -58,11 +61,11 @@ const SELECT = 'SELECT r.*, c.name AS agent FROM agent_requests r LEFT JOIN agen
 export class AgentRequests {
   constructor(private readonly db: DatabaseSync) {}
 
-  add(item: { clientId: string; conversationId: string; task: string; procedure: string | null; context: AgentRequestContext }): AgentRequest {
+  add(item: { clientId: string; conversationId: string; task: string; procedure: string | null; pipeline?: string | null; context: AgentRequestContext }): AgentRequest {
     const id = `req_${ulid().toLowerCase()}`;
     this.db
-      .prepare('INSERT INTO agent_requests (id, client_id, conversation_id, task, procedure, context, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(id, item.clientId, item.conversationId, item.task, item.procedure, JSON.stringify(item.context), new Date().toISOString());
+      .prepare('INSERT INTO agent_requests (id, client_id, conversation_id, task, procedure, pipeline, context, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, item.clientId, item.conversationId, item.task, item.procedure, item.pipeline ?? null, JSON.stringify(item.context), new Date().toISOString());
     return this.get(id)!;
   }
 

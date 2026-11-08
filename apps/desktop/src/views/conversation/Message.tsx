@@ -8,7 +8,7 @@ const TOOL_LABEL: Record<string, string> = {
   run_command: 'Comando', run_read_only_command: 'Comando (leitura)', run_python: 'Python', brain_query: 'Consulta ao cérebro',
   brain_learn: 'Aprender', browser_read: 'Navegador (leitura)', browser_act: 'Ação no navegador', playbook_start: 'Iniciar playbook',
   playbook_step: 'Passo do playbook', claude_code_prepare_fix: 'Claude Code: preparar correção', claude_code_push_fix: 'Claude Code: enviar correção',
-  show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente', playbook_similar: 'Procurar o que já sei', agent_reply: 'Resposta ao agente', ask_secret: 'Pedir credencial',
+  show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente', playbook_similar: 'Procurar o que já sei', agent_reply: 'Resposta ao agente', ask_secret: 'Pedir credencial', pipeline_start: 'Começar esteira', pipeline_provide: 'Dados da etapa',
 };
 
 /** One message of the conversation, as the developer should see it. */
@@ -19,6 +19,10 @@ export function Message({ m }: { m: FlueConversationMessage }) {
     if (m.settlement) return <div className="msg system err">A execução {m.settlement.outcome === 'aborted' ? 'foi interrompida' : 'falhou'}.</div>;
     if (m.signal?.tagName === 'followup' || m.signal?.attributes?.type === 'followup') {
       return <div className="msg system"><ClockIcon size={12} /> Retorno agendado</div>;
+    }
+    if (m.signal?.tagName === 'pipeline' || m.signal?.attributes?.type === 'pipeline') {
+      const text = m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('');
+      return <div className="msg system pipeline-signal">⚑ {text.split('. ')[0]}.</div>;
     }
     if (m.signal?.tagName === 'secret-saved' || m.signal?.attributes?.type === 'secret-saved') {
       return <div className="msg system"><KeyIcon size={12} /> Credencial guardada no cofre</div>;

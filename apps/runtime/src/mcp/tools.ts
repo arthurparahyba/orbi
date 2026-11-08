@@ -6,6 +6,7 @@ import { playbookParams, stepId } from '../brain/domain/playbooks.ts';
 import { stem, words } from '../brain/domain/similarity.ts';
 import type { AgentClient } from './clients.ts';
 import { requestStatus } from './status.ts';
+import { pipelineSummary, pipelineDetail, searchPipelines } from './pipelines.ts';
 
 type Agent = Parameters<typeof dispatch>[0];
 
@@ -23,7 +24,7 @@ export interface McpCall {
 export interface McpTool<S extends v.GenericSchema = v.GenericSchema> {
   name: string;
   description: string;
-  needs: 'search' | 'delegate' | 'teach';
+  needs: 'search' | 'delegate' | 'teach' | 'pipelines' | 'status';
   /** Valibot validates; JSON Schema is what the agent reads. Keep the two in step. */
   input: S;
   inputSchema: Record<string, unknown>;
@@ -91,6 +92,7 @@ export const MCP_TOOLS: McpTool[] = [
         trigger: p.trigger,
         autonomy: p.autonomy,
         parameters: playbookParams(p),
+        delivers: p.outputs.map((o) => ({ name: o.name, description: o.description })),
         steps: p.steps.map((st) => ({ id: st.id, label: st.label, how: st.how })),
         uses: p.uses,
         successes: p.successes,
@@ -142,14 +144,107 @@ export const MCP_TOOLS: McpTool[] = [
 
   tool({
     name: 'orbi_status',
-    needs: 'delegate',
-    description: 'Where a delegated request is: running (current step), waiting (for the developer), done or failed (short summary and links). Only your own requests.',
+    needs: 'status',
+    description:
+      'Where a request is (orbi_delegate or orbi_run_pipeline): running (current step; for an esteira, the stage "2 de 4 · Homologação" and the data handed over so far), waiting (for the developer), done or failed (short summary and links). Only your own requests.',
     input: v.object({ request_id: v.pipe(v.string(), v.minLength(1)) }),
     inputSchema: { type: 'object', properties: { request_id: str('The request_id orbi_delegate returned.') }, required: ['request_id'] },
     run({ request_id }, { s, client }) {
       const req = s.agents.requests.get(request_id);
       if (!req || req.clientId !== client.id) throw new ToolError(`pedido não encontrado: ${request_id}`);
-      return requestStatus(req, s.brain.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }));
+      return requestStatus(req, s.brain.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }), s.pipelines.runs.inConversation(req.conversationId));
+    },
+  }),
+
+  tool({
+    name: 'orbi_pipelines',
+    needs: 'search',
+    description:
+      'List the esteiras Orbi knows: procedures chained in sequence (e.g. workflow dev → homologação → abrir GMUD), each stage using what the previous one handed over. Shows what each needs to start and its stages. Without a query, lists all. Read one with orbi_pipeline; run it with orbi_run_pipeline.',
+    input: v.object({ query: v.optional(v.pipe(v.string(), v.maxLength(300))) }),
+    inputSchema: { type: 'object', properties: { query: str('What you want delivered, in a few words. Leave out to list all.') } },
+    run({ query }, { s, client }) {
+      const found = searchPipelines(s.brain.pipelines(), query);
+      return {
+        esteiras: found.map((p) => pipelineSummary(p)),
+        hint: found.length
+          ? client.canRunPipelines
+            ? 'orbi_pipeline mostra etapas, ramos e o que pergunta; orbi_run_pipeline pede para o Orbi rodar.'
+            : 'orbi_pipeline mostra os detalhes. Rodar esteiras está desligado para você: o desenvolvedor liga em Agentes › Conexões.'
+          : 'Nenhuma esteira encontrada. Veja os procedimentos avulsos com orbi_search.',
+      };
+    },
+  }),
+
+  tool({
+    name: 'orbi_pipeline',
+    needs: 'search',
+    description:
+      'Read one esteira: inputs to start it, its stages in order, the branches (which procedure runs depending on an input), what each stage receives and hands over, and which passages wait for the developer.',
+    input: v.object({ name: Name }),
+    inputSchema: { type: 'object', properties: { name: str('Esteira name, from orbi_pipelines.') }, required: ['name'] },
+    run({ name }, { s, client }) {
+      const p = s.brain.pipeline(name);
+      if (!p) throw new ToolError(`esteira não encontrada: ${name}. Use orbi_pipelines.`);
+      return pipelineDetail(p, s.brain, client);
+    },
+  }),
+
+  tool({
+    name: 'orbi_run_pipeline',
+    needs: 'pipelines',
+    description:
+      'Ask Orbi to run an esteira with its inputs, optionally only up to a destination stage. It runs in the background, in a conversation the developer sees; the developer\'s autonomy rules still apply and passages that ask wait for the developer (unless the developer allowed you to skip them). Returns a request_id for orbi_status. Do not wait in a loop.',
+    input: v.object({
+      name: Name,
+      inputs: v.record(v.string(), v.pipe(v.string(), v.maxLength(500))),
+      destination: v.optional(v.pipe(v.string(), v.maxLength(40))),
+      context: Context,
+    }),
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: str('Esteira name, from orbi_pipelines.'),
+        inputs: { type: 'object', additionalProperties: { type: 'string' }, description: 'Values for every input the esteira needs (see orbi_pipeline), e.g. {"repo": "acme/portal", "tipo": "front"}. Never credentials.' },
+        destination: str('Stage id where to stop (e.g. "gmud"). Leave out to run to the end.'),
+        context: {
+          type: 'object',
+          properties: { repo: str('Repository you are working in.'), branch: str('Current branch.'), session: str('Your session or task id, to tell your requests apart.') },
+        },
+      },
+      required: ['name', 'inputs'],
+    },
+    async run({ name, inputs, destination, context }, { s, agent, client }) {
+      const p = s.brain.pipeline(name);
+      if (!p) throw new ToolError(`esteira não encontrada: ${name}. Use orbi_pipelines.`);
+      const summary = Object.values(inputs).filter(Boolean).join(' · ');
+      const conversation = s.conversations.create(`${p.name}${summary ? `: ${summary}` : ''}`.slice(0, 80));
+      let started;
+      try {
+        started = s.pipelines.engine.start(p.name, inputs, {
+          conversationId: conversation.id,
+          destination: destination || null,
+          requestedBy: `agent:${client.name}`,
+          skipQuestions: client.canSkipPassages,
+        });
+      } catch (error) {
+        s.conversations.delete(conversation.id);
+        throw new ToolError(error instanceof Error ? error.message : String(error));
+      }
+      const task = `Rodar a esteira ${p.name}${destination ? ` até ${destination}` : ''}${summary ? ` (${summary})` : ''}`;
+      const req = s.agents.requests.add({ clientId: client.id, conversationId: conversation.id, task, procedure: null, pipeline: p.name, context: context ?? {} });
+      const where = context ? [context.repo && `repositório ${context.repo}`, context.branch && `branch ${context.branch}`, context.session && `sessão ${context.session}`].filter(Boolean) : [];
+      const body = [`Pedido do agente "${client.name}" pelo MCP (${req.id}).`, ...(where.length ? [`Contexto: ${where.join(', ')}`] : []), started.instruction].join('\n');
+      await tellAgent(s.events, agent, {
+        id: conversation.id,
+        message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', body, attributes: { requestId: req.id, agent: client.name } },
+      });
+      return {
+        request_id: req.id,
+        status: started.run.status === 'waiting' ? 'waiting' : 'running',
+        stages: started.run.stages.map((st) => st.label),
+        hint: 'O Orbi está rodando a esteira. Consulte com orbi_status quando precisar. Passagens que perguntam e aprovações ficam com o desenvolvedor.',
+      };
     },
   }),
 
@@ -241,5 +336,12 @@ function requestMessage(
 
 /** The tools this client may use. */
 export function toolsFor(client: AgentClient): McpTool[] {
-  return MCP_TOOLS.filter((t) => t.needs === 'search' || (t.needs === 'delegate' ? client.canDelegate : client.canTeach));
+  const allowed: Record<McpTool['needs'], boolean> = {
+    search: true,
+    delegate: client.canDelegate,
+    teach: client.canTeach,
+    pipelines: client.canRunPipelines,
+    status: client.canDelegate || client.canRunPipelines,
+  };
+  return MCP_TOOLS.filter((t) => allowed[t.needs]);
 }

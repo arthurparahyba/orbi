@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { api, type Playbook } from '../../api';
 import { DownIcon, PlusIcon, TrashIcon, UpIcon } from '../../components/Icons';
-import { finalizeSteps, moveStep, stepProblems, type EditableStep } from './editing';
+import { finalizeOutputs, finalizeSteps, moveStep, outputProblems, stepProblems, type EditableOutput, type EditableStep } from './editing';
+import { OutputsEditor } from './OutputsEditor';
 
 /**
  * Edit a playbook: when to use it, its steps (rename, reorder, add, remove) and
@@ -13,9 +14,10 @@ export function PlaybookEditor({ playbook, onDone }: { playbook: Playbook; onDon
   const [appliesTo, setAppliesTo] = useState(playbook.appliesTo ?? '');
   const [steps, setSteps] = useState<EditableStep[]>(() => playbook.steps.map((s) => ({ ...s })));
   const [instructions, setInstructions] = useState(playbook.instructions);
+  const [outputs, setOutputs] = useState<EditableOutput[]>(() => playbook.outputs.map((o) => ({ ...o })));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const problems = stepProblems(steps);
+  const problems = [...stepProblems(steps), ...outputProblems(outputs)];
 
   const setStep = (i: number, change: Partial<EditableStep>) => setSteps((all) => all.map((s, j) => (j === i ? { ...s, ...change } : s)));
   const save = async () => {
@@ -29,6 +31,7 @@ export function PlaybookEditor({ playbook, onDone }: { playbook: Playbook; onDon
         appliesTo: appliesTo.trim() || null,
         steps: finalizeSteps(steps),
         instructions,
+        outputs: finalizeOutputs(outputs),
       });
       onDone(true);
     } catch (e) {
@@ -75,6 +78,7 @@ export function PlaybookEditor({ playbook, onDone }: { playbook: Playbook; onDon
       <label className="field" htmlFor="pb-instr">Instruções gerais
         <textarea id="pb-instr" rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} />
       </label>
+      <OutputsEditor outputs={outputs} onChange={setOutputs} />
       <p className="muted small">Use <code>{'{{nome}}'}</code> para o que muda a cada vez e <code>{'{{segredo:…}}'}</code> para credenciais do cofre. O nome, a autonomia e a base não mudam aqui.</p>
       {(error || problems.length > 0) && <p className="form-error" role="alert">{error ?? problems.join(' ')}</p>}
       <div className="row gap">

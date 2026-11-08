@@ -35,6 +35,12 @@ export interface PlaybookStep {
   how: string;
 }
 
+/** Something a playbook hands over when it finishes (a version, a PR link, a change number). */
+export interface PlaybookOutput {
+  name: string;
+  description: string;
+}
+
 export interface Playbook {
   name: string;
   description: string;
@@ -47,6 +53,8 @@ export interface Playbook {
   learnedFrom: string | null;
   /** The playbook this one was made from ("variação de"); the base is not changed by it. */
   variationOf: string | null;
+  /** What it hands over at the end, for whoever comes next (an esteira's next stage, an agent). */
+  outputs: PlaybookOutput[];
   uses: number;
   successes: number;
   updatedAt: string;
@@ -60,11 +68,15 @@ export interface PlaybookRun {
   conversationId: string;
   status: 'running' | 'done' | 'failed' | 'waiting';
   steps: Array<PlaybookStep & { status: StepStatus; note?: string }>;
+  /** The {{parameters}} it ran with. */
+  params: Record<string, string>;
+  /** What it handed over (declared outputs only). */
+  outputs: Record<string, string>;
   startedAt: string;
   finishedAt: string | null;
 }
 
-export type ProposalKind = 'entity' | 'edge' | 'playbook' | 'type';
+export type ProposalKind = 'entity' | 'edge' | 'playbook' | 'type' | 'pipeline';
 
 export interface Proposal {
   id: string;
@@ -81,3 +93,6 @@ export interface Gap {
   type: string;
   missing: string;
 }
+
+/** A playbook as saved: outputs may be left out (none). */
+export type PlaybookInput = Omit<Playbook, 'uses' | 'successes' | 'updatedAt' | 'outputs'> & { outputs?: PlaybookOutput[] };

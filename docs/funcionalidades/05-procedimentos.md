@@ -55,6 +55,11 @@ repetitivo depois do commit em algo que o Orbi faz sozinho.
 - **`appliesTo`** prende o procedimento a uma classe ("todo MicroFrontend") em
   vez de um repositório específico.
 - **`variationOf`**: de qual procedimento este foi derivado (documento 8).
+- **`outputs`** (opcional): o que o procedimento **entrega** ao terminar, como
+  `versao` ou `numero_gmud` (nome em `snake_case` e descrição). O Orbi registra os
+  valores no último `playbook_step`; nomes não declarados são recusados e valores
+  do cofre são limpos. É assim que uma esteira passa dados de uma etapa para a
+  próxima (documento 16). Na tela: **Recebe** (os parâmetros) e **Entrega**.
 
 ## Como é aprendido
 

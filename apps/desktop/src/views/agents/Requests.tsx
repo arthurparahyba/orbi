@@ -26,7 +26,7 @@ export function Requests(props: { data?: AgentRequest[]; error?: string; openInb
             return (
               <tr key={r.id}>
                 <td>
-                  <strong>{r.procedure ?? 'sem procedimento indicado'}</strong>
+                  <strong>{r.pipeline ? `esteira ${r.pipeline}` : r.procedure ?? 'sem procedimento indicado'}</strong>
                   <span className="muted small block">{r.task}</span>
                   {r.summary && <span className={`small block ${r.status === 'failed' ? 'err-text' : ''}`}>{r.summary}</span>}
                 </td>

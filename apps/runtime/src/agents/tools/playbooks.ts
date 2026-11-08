@@ -1,6 +1,7 @@
 import { defineSkill, usePersistentState, useSkill, useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { services } from '../../services.ts';
+import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
 
 /** The playbook running in this conversation, kept across turns. */
@@ -21,7 +22,7 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
 }
 
 export function usePlaybooks(ctx: AgentContext) {
-  const { brain } = services();
+  const { brain, vault, pipelines } = services();
 
   const showRun = (runId: string) => {
     const run = brain.run(runId);
@@ -47,6 +48,9 @@ export function usePlaybooks(ctx: AgentContext) {
           '',
           '## Passos',
           ...pb.steps.map((s, i) => `${i + 1}. [${s.id}] ${s.label} — ${s.how}`),
+          ...(pb.outputs.length
+            ? ['', '## Entrega (registre com outputs no playbook_step do último passo)', ...pb.outputs.map((o) => `- ${o.name}: ${o.description}`)]
+            : []),
         ].join('\n'),
       }),
     );
@@ -62,21 +66,46 @@ export function usePlaybooks(ctx: AgentContext) {
       if (!pb) return { output: { error: `playbook não existe: ${data.name}`, available: brain.playbooks().map((p) => p.name) } };
       const run = brain.startRun(pb.name, ctx.conversationId, data.params);
       ctx.setActiveRun({ runId: run.id, playbook: pb.name, autonomy: pb.autonomy });
+      pipelines.engine.runStarted(run);
       showRun(run.id);
-      return { output: { runId: run.id, autonomy: pb.autonomy, steps: run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how })) } };
+      const steps = run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how }));
+      if (!pb.outputs.length) return { output: { runId: run.id, autonomy: pb.autonomy, steps } };
+      const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
+      return { output: { runId: run.id, autonomy: pb.autonomy, steps, outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.' } };
     },
   });
 
   useTool({
     name: 'playbook_step',
-    description: 'Report progress of the running playbook: mark a step running, done, failed, waiting (for CI, approval, a follow-up) or skipped, with a short note.',
-    input: v.object({ stepId: v.string(), status: v.picklist(['running', 'done', 'failed', 'waiting', 'skipped']), note: v.optional(v.string()) }),
+    description:
+      'Report progress of the running playbook: mark a step running, done, failed, waiting (for CI, approval, a follow-up) or skipped, with a short note. ' +
+      'With `outputs`, record what the playbook hands over (only the names it declares, e.g. {"versao": "2.5.0", "pr_url": "…"}): the next stage of an esteira and agents use them. Never credentials.',
+    input: v.object({
+      stepId: v.string(),
+      status: v.picklist(['running', 'done', 'failed', 'waiting', 'skipped']),
+      note: v.optional(v.string()),
+      outputs: v.optional(v.record(v.string(), v.pipe(v.string(), v.maxLength(2000)))),
+    }),
     async run({ data }) {
       if (!ctx.activeRun) return { output: { error: 'nenhum playbook em execução' } };
-      const run = brain.updateRunStep(ctx.activeRun.runId, data.stepId, data.status, data.note);
+      let outputs = data.outputs;
+      if (outputs && Object.keys(outputs).length) {
+        // A value that happens to be a credential never gets stored as a result.
+        const secrets = (await Promise.all(vault.list().map((x) => vault.get(x.name)))).filter((x): x is string => !!x);
+        outputs = Object.fromEntries(Object.entries(outputs).map(([k, val]) => [k, redact(val, secrets)]));
+      }
+      let run;
+      try {
+        run = brain.updateRunStep(ctx.activeRun.runId, data.stepId, data.status, data.note, outputs);
+      } catch (error) {
+        return { output: { error: error instanceof Error ? error.message : String(error) } };
+      }
       showRun(run.id);
-      if (run.status === 'done' || run.status === 'failed') ctx.setActiveRun(null);
-      return { output: { runStatus: run.status } };
+      if (run.status !== 'done' && run.status !== 'failed') return { output: { runStatus: run.status } };
+      ctx.setActiveRun(null);
+      // Part of an esteira: the engine says what comes next (the next stage, or wait for the developer).
+      const next = pipelines.engine.runFinished(run);
+      return { output: next ? { runStatus: run.status, esteira: next } : { runStatus: run.status } };
     },
   });
 }

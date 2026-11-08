@@ -5,6 +5,7 @@ import { useChanges, usePoll } from '../../hooks';
 import { CheckIcon, CopyIcon, RecordIcon, TrashIcon } from '../../components/Icons';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { OriginBanner } from './OriginBanner';
+import { PipelineBar } from './PipelineBar';
 import { Composer } from './Composer';
 import type { ConversationOrigin } from '../../api';
 import { StartDemonstration } from '../../components/Demonstration';
@@ -91,6 +92,7 @@ export function Chat({ id, title, origin, onTitled, onDeleted }: { id: string; t
         </div>
       )}
       {origin && <OriginBanner origin={origin} />}
+      <PipelineBar conversationId={id} />
       <ChatContext.Provider value={{ send: (t) => void send(t) }}>
       <div className="messages" aria-live="polite">
         {agent.historyReady && visible.length === 0 && (

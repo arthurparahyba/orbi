@@ -44,12 +44,51 @@ const learnItem = v.variant('kind', [
       steps: v.array(v.object({ id: v.string(), label: v.string(), how: v.string() })),
       instructions: v.string(),
       variationOf: v.optional(v.pipe(v.string(), v.description('Name of the playbook this one was made from (a variation); keep the ids of reused steps'))),
+      outputs: v.optional(
+        v.pipe(
+          v.array(v.object({ name: v.string(), description: v.string() })),
+          v.description('What it hands over when it finishes (snake_case names, e.g. versao, pr_url): the next stage of an esteira uses them'),
+        ),
+      ),
+    }),
+  }),
+  v.object({
+    kind: v.literal('pipeline'),
+    payload: v.object({
+      name: v.pipe(v.string(), v.description('kebab-case')),
+      description: v.string(),
+      inputs: v.pipe(
+        v.array(v.object({ name: v.string(), description: v.string(), options: v.optional(v.array(v.string())) })),
+        v.description('What it needs to start; `options` when a branch depends on it (e.g. tipo: front/backend)'),
+      ),
+      stages: v.pipe(
+        v.array(
+          v.object({
+            id: v.pipe(v.string(), v.description('kebab-case, short: dev, hml, gmud')),
+            label: v.string(),
+            passage: v.pipe(v.picklist(['ask', 'auto']), v.description('Coming into this stage: ask the developer, or go on by itself')),
+            options: v.array(
+              v.object({
+                playbook: v.string(),
+                when: v.optional(v.object({ field: v.string(), equals: v.string() })),
+                map: v.optional(
+                  v.pipe(
+                    v.record(v.string(), v.string()),
+                    v.description('Only when names differ: param ← "entrada.<input>", "<stage>.<output>" or "perguntar"'),
+                  ),
+                ),
+              }),
+            ),
+          }),
+        ),
+        v.description('In order. A stage with branches has one option per branch, each with `when`.'),
+      ),
     }),
   }),
 ]);
 
 /** Types first, then what uses them: an entity can be of a type proposed in the same batch. */
-const ORDER = { type: 0, entity: 1, edge: 2, playbook: 3 } as const;
+const ORDER = { type: 0, entity: 1, edge: 2, playbook: 3, pipeline: 4 } as const;
 export const inLearningOrder = <T extends { kind: keyof typeof ORDER }>(items: readonly T[]): T[] =>
   [...items].sort((a, b) => ORDER[a.kind] - ORDER[b.kind]);
 
@@ -59,7 +98,7 @@ export function useBrain(ctx: AgentContext) {
   ctx.gated({
     name: 'brain_learn',
     description:
-      'Save what you learned: new ontology types, entities, relations (with optional validity dates) and playbooks (procedures with steps). ' +
+      'Save what you learned: new ontology types, entities, relations (with optional validity dates), playbooks (procedures with steps) and esteiras (playbooks in sequence, `pipeline`). ' +
       'The brain starts empty: when an entity needs a type that does not exist yet, include that `type` in the same batch — never drop the entity because its type is missing. ' +
       'Save the things the procedure touches (account, repository, portal, environment) as entities, not only the playbook. ' +
       'The batch is checked first (problems come back at once, nothing is asked); then shown to the developer to approve, and saved all or nothing.',

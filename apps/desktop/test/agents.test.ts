@@ -4,7 +4,7 @@ import { secretNameProblem, toSecretName } from '../src/views/autonomy/format';
 import type { AgentRequest, InboxItem } from '../src/api';
 
 const req = (over: Partial<AgentRequest> = {}): AgentRequest => ({
-  id: 'req_1', clientId: 'c', agent: 'Claude Code', conversationId: 'chat:1', task: 't', procedure: 'p', context: {},
+  id: 'req_1', clientId: 'c', agent: 'Claude Code', conversationId: 'chat:1', task: 't', procedure: 'p', pipeline: null, context: {},
   status: 'running', summary: null, links: [], createdAt: new Date().toISOString(), finishedAt: null, ...over,
 });
 const approval = (conversationId: string): InboxItem => ({ id: 'i', kind: 'approval', conversationId, title: 'Rodar deploy', detail: '', createdAt: '', status: 'open' });

@@ -3,7 +3,8 @@ import { api } from '../../api';
 import { useLive } from '../../hooks';
 import { Gaps, Graph, Legend } from './Graph';
 import { EntityDetail } from './EntityDetail';
-import { Playbooks, Runs } from './Playbooks';
+import { Playbooks } from './Playbooks';
+import { Runs } from './Runs';
 import { Ontology } from './Ontology';
 
 type Tab = 'grafo' | 'playbooks' | 'execucoes' | 'ontologia';

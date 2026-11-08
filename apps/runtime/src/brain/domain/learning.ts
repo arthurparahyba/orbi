@@ -1,5 +1,6 @@
 import { entityProblems, isTypeName } from './ontology.ts';
-import type { Autonomy, Edge, Entity, OntologyType, Playbook, PlaybookStep, ProposalKind } from './types.ts';
+import { pipelineProblems, type PipelineInputDef } from './pipelines.ts';
+import type { Autonomy, Edge, Entity, OntologyType, Playbook, PlaybookInput, PlaybookOutput, PlaybookStep, ProposalKind } from './types.ts';
 
 /**
  * Learning: what Orbi proposes to remember waits for the developer. These rules
@@ -9,6 +10,7 @@ import type { Autonomy, Edge, Entity, OntologyType, Playbook, PlaybookStep, Prop
 export interface ProposalContext {
   typeOf(name: string): OntologyType | undefined;
   entity(id: string): Entity | undefined;
+  playbook(name: string): Playbook | undefined;
 }
 
 /** Dry-run validation against the current ontology; empty = can be proposed. */
@@ -26,7 +28,21 @@ export function proposalProblems(kind: ProposalKind, payload: Record<string, unk
     }
     case 'playbook':
       return Array.isArray(payload.steps) && payload.steps.length > 0 ? [] : ['playbook sem passos'];
+    case 'pipeline':
+      return pipelineProblems(pipelineFromPayload(payload), ctx.playbook);
   }
+}
+
+/** An esteira from a proposal or a request body, with defaults. */
+export function pipelineFromPayload(p: Record<string, unknown>): PipelineInputDef {
+  return {
+    name: String(p.name ?? ''),
+    description: String(p.description ?? ''),
+    inputs: Array.isArray(p.inputs) ? (p.inputs as PipelineInputDef['inputs']) : [],
+    stages: Array.isArray(p.stages)
+      ? (p.stages as PipelineInputDef['stages']).map((s) => ({ ...s, passage: s.passage === 'auto' ? 'auto' : 'ask', options: Array.isArray(s.options) ? s.options : [] }))
+      : [],
+  };
 }
 
 /** The change an approved proposal makes, ready for the repositories. */
@@ -34,7 +50,8 @@ export type Change =
   | { kind: 'type'; type: OntologyType; label: string }
   | { kind: 'entity'; entity: Omit<Entity, 'updatedAt'>; label: string }
   | { kind: 'edge'; edge: { from: string; rel: string; to: string; attrs: Record<string, unknown>; validFrom?: string; validTo: string | null }; label: string }
-  | { kind: 'playbook'; playbook: Omit<Playbook, 'uses' | 'successes' | 'updatedAt'>; label: string };
+  | { kind: 'playbook'; playbook: PlaybookInput; label: string }
+  | { kind: 'pipeline'; pipeline: PipelineInputDef; label: string };
 
 export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown>, conversationId: string): Change {
   switch (kind) {
@@ -77,7 +94,12 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
           instructions: String(p.instructions ?? ''),
           learnedFrom: conversationId || null,
           variationOf: p.variationOf ? String(p.variationOf) : null,
+          outputs: Array.isArray(p.outputs)
+            ? (p.outputs as Array<Partial<PlaybookOutput>>).map((o) => ({ name: String(o.name ?? ''), description: String(o.description ?? '') }))
+            : [],
         },
       };
+    case 'pipeline':
+      return { kind, label: `esteira ${p.name}`, pipeline: pipelineFromPayload(p) };
   }
 }

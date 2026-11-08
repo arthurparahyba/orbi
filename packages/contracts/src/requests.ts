@@ -42,6 +42,10 @@ export const EditPlaybook = v.object({
   appliesTo: v.optional(v.nullable(v.string())),
   steps: v.optional(v.pipe(v.array(PlaybookStep), v.minLength(1, 'o procedimento precisa de pelo menos um passo'))),
   instructions: v.optional(v.string()),
+  outputs: v.optional(v.array(v.object({
+    name: v.pipe(v.string(), v.regex(/^[a-z_][a-z0-9_]{0,39}$/, 'nome do dado: letras minúsculas, números e _ (ex.: pr_url)')),
+    description: v.string(),
+  }))),
 });
 export const SetAutonomy = v.object({
   category: v.picklist(['comandos-leitura', 'comandos-escrita', 'navegador-leitura', 'navegador-escrita', 'codigo-teste', 'codigo-producao', 'aprender']),
@@ -71,10 +75,45 @@ export const ChooseVoiceModel = v.object({
   model: v.nullable(v.pipe(v.string(), v.trim(), v.regex(/^[\w.-]+\/[\w.-]+$/, 'use o formato dono/modelo, ex.: onnx-community/whisper-base'))),
 });
 
+const DataName = v.pipe(v.string(), v.regex(/^[a-z_][a-z0-9_]{0,39}$/, 'nome do dado: letras minúsculas, números e _'));
+/** PUT /api/pipelines/:name — the esteira from the editor (the runtime checks the rest). */
+export const SavePipeline = v.object({
+  description: v.optional(v.string(), ''),
+  inputs: v.optional(v.array(v.object({ name: DataName, description: v.optional(v.string(), ''), options: v.optional(v.array(v.string())) })), []),
+  stages: v.pipe(
+    v.array(v.object({
+      id: v.pipe(v.string(), v.regex(/^[a-z0-9][a-z0-9-]{0,39}$/, 'id da etapa: letras minúsculas, números e -')),
+      label: v.pipe(v.string(), v.trim(), v.minLength(1, 'dê um nome à etapa')),
+      passage: v.picklist(['ask', 'auto']),
+      options: v.pipe(v.array(v.object({
+        playbook: v.pipe(v.string(), v.minLength(1, 'escolha o procedimento')),
+        when: v.optional(v.object({ field: v.string(), equals: v.string() })),
+        map: v.optional(v.record(v.string(), v.string())),
+      })), v.minLength(1, 'a etapa precisa de um procedimento')),
+    })),
+    v.minLength(1, 'a esteira precisa de pelo menos uma etapa'),
+  ),
+});
+/** POST /api/pipelines/:name/start — begin a delivery. */
+export const StartPipeline = v.object({
+  inputs: v.record(v.string(), v.string()),
+  destination: v.optional(v.nullable(v.string())),
+});
+/** POST /api/pipeline-runs/:id/decide — the developer at a passage, a failure or missing data. */
+export const DecidePipeline = v.object({
+  decision: v.picklist(['continue', 'retry', 'skip', 'stop']),
+  values: v.optional(v.record(v.string(), v.string())),
+});
+
 /** POST /api/agents/clients — connect a coding agent. */
 export const CreateAgentClient = v.object({ name: v.pipe(v.string(), v.trim(), v.minLength(1, 'dê um nome ao agente'), v.maxLength(80)) });
 /** PATCH /api/agents/clients/:id — what the agent may do besides searching. */
-export const EditAgentClient = v.object({ canDelegate: v.optional(v.boolean()), canTeach: v.optional(v.boolean()) });
+export const EditAgentClient = v.object({
+  canDelegate: v.optional(v.boolean()),
+  canTeach: v.optional(v.boolean()),
+  canRunPipelines: v.optional(v.boolean()),
+  canSkipPassages: v.optional(v.boolean()),
+});
 /** POST /api/agents/suggestions/:id/accept — optionally as a variation of a known procedure. */
 export const AcceptSuggestion = v.object({ variationOf: v.optional(v.pipe(v.string(), v.minLength(1))) });
 export const SuggestionStatusQuery = v.optional(v.picklist(['open', 'accepted', 'rejected', '']));
@@ -106,3 +145,6 @@ export type EditAgentClient = v.InferOutput<typeof EditAgentClient>;
 export type AcceptSuggestion = v.InferOutput<typeof AcceptSuggestion>;
 export type ProvideSecret = v.InferOutput<typeof ProvideSecret>;
 export type ChooseVoiceModel = v.InferOutput<typeof ChooseVoiceModel>;
+export type SavePipeline = v.InferOutput<typeof SavePipeline>;
+export type StartPipeline = v.InferOutput<typeof StartPipeline>;
+export type DecidePipeline = v.InferOutput<typeof DecidePipeline>;

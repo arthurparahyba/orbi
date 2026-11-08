@@ -3,10 +3,13 @@ import { ulid } from 'ulidx';
 import { openDatabase, transaction } from '../db/database.ts';
 import { edgeProblems, entityProblems, findGaps } from './domain/ontology.ts';
 import { ftsQuery, sharedStems } from './domain/similarity.ts';
-import { advanceRun, newRun, playbookProblems } from './domain/playbooks.ts';
+import { advanceRun, newRun, playbookProblems, recordOutputs } from './domain/playbooks.ts';
 import { changeFromProposal, proposalProblems } from './domain/learning.ts';
-import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun, Proposal, ProposalKind, StepStatus } from './domain/types.ts';
+import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookInput, PlaybookRun, Proposal, ProposalKind, StepStatus } from './domain/types.ts';
 import { OntologyRepo } from './repo/ontology.ts';
+import { PipelineRepo } from './repo/pipelines.ts';
+import { pipelineGaps, pipelineProblems, type Pipeline, type PipelineInputDef } from './domain/pipelines.ts';
+import { playbookParams } from './domain/playbooks.ts';
 import { GraphRepo } from './repo/graph.ts';
 import { PlaybookRepo } from './repo/playbooks.ts';
 import { ProposalRepo } from './repo/proposals.ts';
@@ -26,6 +29,7 @@ export class BrainStore {
   private readonly ontology: OntologyRepo;
   private readonly graphRepo: GraphRepo;
   private readonly playbookRepo: PlaybookRepo;
+  private readonly pipelineRepo: PipelineRepo;
   private readonly proposalRepo: ProposalRepo;
   private readonly followups: FollowupRepo;
 
@@ -35,6 +39,7 @@ export class BrainStore {
     this.ontology = new OntologyRepo(this.db);
     this.graphRepo = new GraphRepo(this.db);
     this.playbookRepo = new PlaybookRepo(this.db);
+    this.pipelineRepo = new PipelineRepo(this.db);
     this.proposalRepo = new ProposalRepo(this.db);
     this.followups = new FollowupRepo(this.db);
   }
@@ -120,7 +125,7 @@ export class BrainStore {
   }
 
   // ── playbooks ───────────────────────────────────────────────────────────
-  savePlaybook(pb: Omit<Playbook, 'uses' | 'successes' | 'updatedAt'>): Playbook {
+  savePlaybook(pb: PlaybookInput): Playbook {
     const problems = playbookProblems(pb);
     if (pb.variationOf && (pb.variationOf === pb.name || !this.playbookRepo.get(pb.variationOf))) {
       problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
@@ -130,7 +135,7 @@ export class BrainStore {
     return this.playbookRepo.get(pb.name)!;
   }
   /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
-  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions'>>): Playbook {
+  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions' | 'outputs'>>): Playbook {
     const current = this.playbookRepo.get(name);
     if (!current) throw new Error(`playbook não encontrado: ${name}`);
     const { uses: _u, successes: _s, updatedAt: _t, ...rest } = current;
@@ -140,6 +145,8 @@ export class BrainStore {
   /** Deletes a playbook. Variations stay (unlinked); past runs stay in Execuções. */
   deletePlaybook(name: string): { detachedVariations: string[] } {
     if (!this.playbookRepo.get(name)) throw new Error(`playbook não encontrado: ${name}`);
+    const using = this.pipelineRepo.using(name);
+    if (using.length) throw new Error(`o procedimento ${name} está nas esteiras ${using.join(', ')}: tire-o delas antes de apagar`);
     let detachedVariations: string[] = [];
     transaction(this.db, () => {
       detachedVariations = this.playbookRepo.delete(name);
@@ -177,10 +184,11 @@ export class BrainStore {
     return run;
   }
 
-  updateRunStep(runId: string, stepId: string, status: StepStatus, note?: string): PlaybookRun {
+  updateRunStep(runId: string, stepId: string, status: StepStatus, note?: string, outputs?: Record<string, string>): PlaybookRun {
     const current = this.playbookRepo.run(runId);
     if (!current) throw new Error(`execução não encontrada: ${runId}`);
-    const run = advanceRun(current, stepId, status, note, now());
+    let run = advanceRun(current, stepId, status, note, now());
+    if (outputs && Object.keys(outputs).length) run = recordOutputs(run, this.playbookRepo.get(run.playbook)?.outputs ?? [], outputs);
     transaction(this.db, () => {
       this.playbookRepo.updateRun(run);
       if (run.status === 'done' && current.status !== 'done') this.playbookRepo.countSuccess(run.playbook);
@@ -197,9 +205,37 @@ export class BrainStore {
     return this.playbookRepo.lastRunIn(conversationId);
   }
 
+  // ── esteiras (procedures in sequence) ─────────────────────────────────
+  savePipeline(p: PipelineInputDef): Pipeline {
+    const problems = pipelineProblems(p, (name) => this.playbookRepo.get(name));
+    if (problems.length) throw new Error(problems.join('; '));
+    this.pipelineRepo.save(p);
+    return this.pipelineRepo.get(p.name)!;
+  }
+  pipeline(name: string): Pipeline | undefined {
+    return this.pipelineRepo.get(name);
+  }
+  pipelines(): Pipeline[] {
+    return this.pipelineRepo.all();
+  }
+  deletePipeline(name: string): boolean {
+    return this.pipelineRepo.delete(name);
+  }
+  countPipelineUse(name: string): void {
+    this.pipelineRepo.countUse(name);
+  }
+  /** Parameters no stage hands over and no input gives: the Orbi will ask when it gets there. */
+  pipelineGaps(p: PipelineInputDef) {
+    return pipelineGaps(p, (name) => this.playbookRepo.get(name), (pb) => playbookParams(pb));
+  }
+  /** Esteiras that use a playbook. */
+  pipelinesUsing(playbook: string): string[] {
+    return this.pipelineRepo.using(playbook);
+  }
+
   // ── learning (waits for the developer) ─────────────────────────────────
   check(kind: ProposalKind, payload: Record<string, unknown>): string[] {
-    return proposalProblems(kind, payload, { typeOf: this.typeOf, entity: (id) => this.get(id) });
+    return proposalProblems(kind, payload, { typeOf: this.typeOf, entity: (id) => this.get(id), playbook: (name) => this.playbookRepo.get(name) });
   }
 
   propose(kind: ProposalKind, payload: Record<string, unknown>, reason: string, conversationId: string): Proposal {
@@ -223,6 +259,7 @@ export class BrainStore {
       if (change.kind === 'type') this.upsertType(change.type);
       else if (change.kind === 'entity') this.upsertEntity(change.entity);
       else if (change.kind === 'edge') this.addEdge(change.edge);
+      else if (change.kind === 'pipeline') this.savePipeline(change.pipeline);
       else this.savePlaybook(change.playbook);
       this.proposalRepo.setStatus(proposalId, 'applied');
     });

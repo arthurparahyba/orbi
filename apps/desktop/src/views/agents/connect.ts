@@ -28,6 +28,7 @@ export const CLAUDE_MD_SNIPPET = `## Orbi (trabalho repetitivo depois do código
 Este ambiente tem o Orbi, o copiloto local do desenvolvedor, conectado como MCP (\`orbi\`).
 
 - Antes de fazer à mão algo repetitivo depois do código (CI, deploy, release, portal interno, GMUD), procure com \`orbi_search\`. Se houver procedimento, leia com \`orbi_procedure\` e delegue com \`orbi_delegate\` (com repositório e branch em \`context\`).
+- Para uma entrega de várias etapas (dev, homologação, GMUD), veja as esteiras com \`orbi_pipelines\` e \`orbi_pipeline\` e rode com \`orbi_run_pipeline\` (entradas e, se quiser, a etapa de destino).
 - Não espere em loop: siga com o seu trabalho e consulte \`orbi_status\` quando precisar do resultado. "waiting" é aprovação do desenvolvedor no app do Orbi; você não aprova.
 - Quando fizer algo repetitivo que o Orbi não sabe, sugira com \`orbi_teach\`. O desenvolvedor revisa antes de virar procedimento.
 - Nunca mande credenciais ao Orbi.

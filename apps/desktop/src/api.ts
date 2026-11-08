@@ -1,5 +1,5 @@
 import type {
-  AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, AgentRequest, AgentSuggestion, EditAgentClient,
+  AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
   ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
@@ -74,6 +74,15 @@ export const api = {
     });
     if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   },
+  pipelines: () => request<Pipeline[]>('/api/pipelines'),
+  savePipeline: (name: string, def: SavePipeline) => request<Pipeline>(`/api/pipelines/${name}`, { method: 'PUT', body: JSON.stringify(def) }),
+  deletePipeline: (name: string) => request<{ deleted: true }>(`/api/pipelines/${name}`, { method: 'DELETE' }),
+  startPipeline: (name: string, inputs: Record<string, string>, destination: string | null) =>
+    request<{ run: PipelineRun; conversationId: string }>(`/api/pipelines/${name}/start`, { method: 'POST', body: JSON.stringify({ inputs, destination }) }),
+  pipelineRuns: (active = false) => request<PipelineRun[]>(`/api/pipeline-runs${active ? '?active=1' : ''}`),
+  pipelineRunIn: (conversationId: string) => request<PipelineRun | null>(`/api/pipeline-runs/conversation/${encodeURIComponent(conversationId)}`),
+  decidePipeline: (runId: string, decision: 'continue' | 'retry' | 'skip' | 'stop', values?: Record<string, string>) =>
+    request<PipelineRun>(`/api/pipeline-runs/${runId}/decide`, { method: 'POST', body: JSON.stringify({ decision, ...(values ? { values } : {}) }) }),
   voice: () => request<VoiceStatus>('/api/voice'),
   prepareVoice: () => request<VoiceStatus>('/api/voice/prepare', { method: 'POST' }),
   chooseVoiceModel: (model: string | null) => request<VoiceStatus>('/api/voice/model', { method: 'PUT', body: JSON.stringify({ model }) }),

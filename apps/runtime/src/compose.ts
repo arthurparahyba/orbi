@@ -8,6 +8,8 @@ import { Conversations } from './conversations/conversations.ts';
 import { Vault } from './vault/vault.ts';
 import { createStt } from './voice/stt.ts';
 import { VoiceModel } from './voice/model.ts';
+import { PipelineRuns } from './pipelines/runs.ts';
+import { PipelineEngine } from './pipelines/engine.ts';
 import { createChrome } from './browser/chrome.ts';
 import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
@@ -64,6 +66,8 @@ export async function createOrbi(
   const conversations = overrides.conversations ?? new Conversations(db);
   const policy = overrides.policy ?? new PolicyStore(db);
   importLegacyState(config, { inbox, conversations, policy });
+  const brain = overrides.brain ?? new BrainStore(db);
+  const pipelineRuns = new PipelineRuns(db);
 
   return {
     config: finalConfig,
@@ -71,7 +75,8 @@ export async function createOrbi(
     events,
     usage: overrides.usage ?? new UsageStore(db),
     agents: overrides.agents ?? { clients: new AgentClients(db), requests: new AgentRequests(db), suggestions: new AgentSuggestions(db) },
-    brain: overrides.brain ?? new BrainStore(db),
+    brain,
+    pipelines: overrides.pipelines ?? { runs: pipelineRuns, engine: new PipelineEngine({ brain, runs: pipelineRuns, inbox }) },
     inbox,
     policy,
     conversations,

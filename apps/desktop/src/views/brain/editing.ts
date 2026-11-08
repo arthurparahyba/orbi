@@ -74,3 +74,29 @@ export function finalizeSteps(steps: EditableStep[]): EditableStep[] {
     return step;
   });
 }
+
+/** The {{parameters}} a playbook uses (same rule as the runtime; credentials are not parameters). */
+export function playbookParams(steps: Array<{ label: string; how: string }>, instructions = ''): string[] {
+  const text = [instructions, ...steps.map((s) => `${s.label} ${s.how}`)].join(' ');
+  return [...new Set([...text.matchAll(/\{\{\s*([a-zA-Z_][\w-]*)\s*\}\}/g)].map((m) => m[1]))];
+}
+
+export interface EditableOutput { name: string; description: string }
+
+/** What is wrong with the outputs before saving. Empty rows are dropped, not errors. */
+export function outputProblems(outputs: EditableOutput[]): string[] {
+  const seen = new Set<string>();
+  const problems: string[] = [];
+  for (const o of outputs) {
+    const name = o.name.trim();
+    if (!name) continue;
+    if (!/^[a-z_][a-z0-9_]{0,39}$/.test(name)) problems.push(`"${name}": use letras minúsculas, números e _ (ex.: pr_url).`);
+    else if (seen.has(name)) problems.push(`"${name}" aparece duas vezes.`);
+    seen.add(name);
+  }
+  return problems;
+}
+
+export function finalizeOutputs(outputs: EditableOutput[]): EditableOutput[] {
+  return outputs.filter((o) => o.name.trim()).map((o) => ({ name: o.name.trim(), description: o.description.trim() }));
+}

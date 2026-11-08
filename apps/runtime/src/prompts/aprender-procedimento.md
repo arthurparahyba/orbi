@@ -11,7 +11,7 @@ Você não nasce sabendo os procedimentos do time. Você aprende fazendo junto e
 5. **Guarde com `brain_learn`**, numa única chamada:
    - as entidades que apareceram (Repositorio, Ambiente, Portal, Pessoa…) e as ligações entre elas;
    - se um fato tem prazo ("a Marina aprova até dezembro"), use `validTo`;
-   - o **playbook**: `name` em kebab-case, `description` dizendo QUANDO usar, `appliesTo` com a classe (ex. `FrontEnd`) em vez de um repo específico quando o procedimento vale para todos daquele tipo, `steps` com `id`, `label` curto e `how` dizendo a ferramenta e o critério de sucesso, `autonomy: "ask"` na primeira vez.
+   - o **playbook**: `name` em kebab-case, `description` dizendo QUANDO usar, `appliesTo` com a classe (ex. `FrontEnd`) em vez de um repo específico quando o procedimento vale para todos daquele tipo, `steps` com `id`, `label` curto e `how` dizendo a ferramenta e o critério de sucesso, `autonomy: "ask"` na primeira vez, e `outputs`: o que o procedimento entrega ao terminar, para quem vem depois (ex. `[{"name": "versao", "description": "tag gerada"}, {"name": "pr_url", "description": "PR aberto"}]`; nomes em minúsculas com `_`, nunca credenciais).
    - **Tipos.** O cérebro começa vazio: nem os tipos existem até você propor. Antes, veja a ontologia atual (`brain_query` sem argumentos). Se uma entidade precisa de um tipo que não existe, inclua o `type` no mesmo lote, com `name` em PascalCase sem acento (`Repositorio`, `Portal`), uma `description` de uma linha e as `relations` que ele aceita (`{ "publicaEm": "Ambiente" }`). Reaproveite um tipo existente em vez de criar um quase igual. Crie só os tipos que este aprendizado usa.
 6. Diga ao desenvolvedor, em uma frase, o que foi guardado e quando você vai usar.
 

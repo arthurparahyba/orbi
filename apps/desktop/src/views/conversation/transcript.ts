@@ -65,6 +65,7 @@ function message(m: FlueConversationMessage): string | undefined {
   if (m.role === 'system') {
     if (m.settlement) return `_— a execução ${m.settlement.outcome === 'aborted' ? 'foi interrompida' : 'falhou'} —_`;
     if (m.signal?.tagName === 'followup' || m.signal?.attributes?.type === 'followup') return '_— retorno agendado —_';
+    if (m.signal?.tagName === 'pipeline' || m.signal?.attributes?.type === 'pipeline') return `_— esteira: ${m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('').split('. ')[0]} —_`;
     if (m.signal?.tagName === 'secret-saved' || m.signal?.attributes?.type === 'secret-saved') return '_— credencial guardada no cofre —_';
     if (m.signal?.tagName === 'agent-request' || m.signal?.attributes?.type === 'agent-request') {
       return `> ${m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('').split('\n').join('\n> ')}`;

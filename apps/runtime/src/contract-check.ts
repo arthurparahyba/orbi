@@ -15,6 +15,8 @@ import type { AutonomyLevel, Category } from './autonomy/policy.ts';
 import type { SecretInfo } from './vault/vault.ts';
 import type { AgentClient } from './mcp/clients.ts';
 import type { VoiceStatus } from './voice/model.ts';
+import type { PipelineRun } from './pipelines/runs.ts';
+import type { Pipeline } from './brain/domain/pipelines.ts';
 import type { AgentRequest } from './mcp/requests.ts';
 import type { AgentSuggestion } from './mcp/suggestions.ts';
 
@@ -38,6 +40,8 @@ export type ContractChecks = [
   Check<Fits<SecretInfo, C.SecretInfo>>,
   Check<Fits<AgentClient, C.AgentClient>>,
   Check<Fits<VoiceStatus, C.VoiceStatus>>,
+  Check<Fits<PipelineRun, C.PipelineRun>>,
+  Check<Fits<Pipeline, C.Pipeline>>,
   Check<Fits<AgentRequest, C.AgentRequest>>,
   Check<Fits<AgentSuggestion, C.AgentSuggestion>>,
   // Enumerations must match exactly: the app offers every value as a choice.

@@ -27,6 +27,7 @@ e [plugins](../plugins.md).
 | 13 | [Uso e logs](13-uso-e-logs.md) | **Autonomia → Uso do modelo** e o arquivo `runtime.log` |
 | 14 | [App desktop e empacotamento](14-app-desktop.md) | A janela do Orbi, o runtime embutido e o instalador |
 | 15 | [Agentes de código (MCP)](15-agentes-mcp.md) | Tela **Agentes**: pedidos, sugestões e conexões do Claude Code e do Cursor |
+| 16 | [Esteiras](16-esteiras.md) | Tela **Esteiras**: procedimentos em sequência, com ramos, passagens e destino |
 
 ## Como as funcionalidades se ligam
 

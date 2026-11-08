@@ -6,7 +6,7 @@ import { ulid } from 'ulidx';
  * learning to approve, questions Orbi asked and credentials it needs. Decisions go back into the
  * agent conversation as signals (see http/app.ts).
  */
-export type InboxKind = 'approval' | 'question' | 'learning' | 'secret';
+export type InboxKind = 'approval' | 'question' | 'learning' | 'secret' | 'pipeline';
 
 export interface InboxItem {
   id: string;

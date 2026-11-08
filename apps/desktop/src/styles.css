@@ -439,7 +439,9 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .con-cmd { white-space: pre-wrap; word-break: break-all; margin: 6px 0; }
 .con-rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .con-clients { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
-.con-client { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.con-client { display: flex; flex-direction: column; gap: 6px; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--border); }
+.con-client-head { display: flex; align-items: center; gap: 10px; }
+.con-perms { display: flex; flex-wrap: wrap; gap: 6px 16px; padding-left: 18px; }
 .dot.off { background: var(--border-2); }
 .conv-origin { grid-column: 1; font-size: 11px; color: var(--blue); }
 .conv-filter { padding: 0 14px 8px; }
@@ -465,3 +467,66 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .voice-files { display: block; }
 .voice-files summary { cursor: pointer; }
 .voice-file-list { margin: 6px 0 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+
+/* ── procedimento: recebe / entrega ───────────────────── */
+.pb-data { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.pb-data h4 { margin: 0 0 4px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.pb-data p, .pb-data ul { margin: 0; }
+.pb-data ul { padding-left: 16px; }
+.pb-data code { margin-right: 6px; }
+.out-name, .run-out { color: var(--green, #7fdcae); }
+.outputs-editor { border: 0; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+.outputs-editor legend { margin-bottom: 6px; font-weight: 500; }
+.outputs-editor .mono { font-family: var(--mono); width: 160px; }
+.outputs-editor input:not(.mono) { flex: 1; }
+
+/* ── esteiras ─────────────────────────────────────────── */
+.pl-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 0; flex: 1; min-height: 0; }
+.pl-list { border-right: 1px solid var(--border); padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+.pl-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pl-item { width: 100%; text-align: left; display: flex; flex-direction: column; padding: 8px 10px; border-radius: 8px; border: 0; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.pl-item.active, .pl-item:hover { background: var(--surface-2, #1a1e27); }
+.pl-main { padding: 16px 24px; overflow: auto; min-width: 0; }
+.pl-detail h2 { margin: 0; font-size: 18px; }
+.pl-detail header p { margin: 2px 0 0; }
+.pl-detail code { margin-right: 6px; }
+.pl-stages { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; }
+.pl-passage { margin: 6px 0 6px 18px; color: var(--muted); }
+.pl-pass.auto { color: var(--green, #7fdcae); }
+.pl-pass.ask { color: var(--amber); }
+.pl-stage { padding: 10px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.pl-stage-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.pl-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.pl-option { display: flex; flex-direction: column; gap: 2px; }
+.pl-stage.branched .pl-option { padding: 8px 10px; border: 1px dashed var(--border-2, #2d3240); border-radius: 8px; }
+.pl-pb { font-family: var(--mono); }
+.info-text { color: var(--blue); }
+.warn-text { color: var(--amber); }
+.pl-start { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.pl-dots { display: inline-flex; gap: 4px; vertical-align: middle; }
+.pl-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-2, #3a4050); }
+.pl-dot.is-done { background: var(--green, #7fdcae); }
+.pl-dot.is-running { background: var(--blue); }
+.pl-dot.is-failed { background: var(--red); }
+.pl-dot.outside { opacity: 0.35; }
+.pl-bar { padding: 8px 24px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.pl-strip { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.pl-chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+.pl-chip.is-done { color: var(--green, #7fdcae); border-color: transparent; background: rgba(127, 220, 174, 0.12); }
+.pl-chip.is-failed { color: #ffb4b4; border-color: var(--red); }
+.pl-chip.current { color: var(--text); border-color: var(--blue); background: rgba(108, 168, 255, 0.12); }
+.pl-chip.outside { opacity: 0.45; border-style: dashed; }
+.pl-flag { color: var(--amber); }
+.pl-data { margin: 0; padding-left: 18px; }
+.pl-decision { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(242, 177, 60, 0.45); background: rgba(242, 177, 60, 0.06); display: flex; flex-direction: column; gap: 6px; }
+.pl-decision.failure { border-color: rgba(255, 138, 138, 0.45); background: rgba(255, 138, 138, 0.06); }
+.pl-decision p { margin: 0; }
+.pl-preview { margin: 6px 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.pl-preview .pl-pass { display: block; font-size: 12px; }
+.pl-editor h3 { margin: 12px 0 6px; font-size: 14px; }
+.pl-stage-editor { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pl-stage-edit { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; gap: 8px; }
+.pl-option-edit { margin-left: 30px; display: flex; flex-direction: column; gap: 6px; padding-left: 10px; border-left: 2px solid var(--border); }
+.pill-waiting { background: rgba(242, 177, 60, 0.15); color: var(--amber); }
+.pill-cancelled { background: rgba(169, 176, 187, 0.12); color: var(--muted); }
+.msg.system.pipeline-signal { color: var(--muted); font-size: 12px; }

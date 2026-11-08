@@ -193,3 +193,25 @@ test('conversa apagada: o histórico sai do arquivo do Flue na partida seguinte,
   after.close();
   assert.deepEqual(purgeDeletedTranscripts(orbiFile, flueFile), [], 'cada uma é apagada uma vez');
 });
+
+test('procedimento: declara o que entrega e a execução guarda o que recebeu e entregou', () => {
+  const b = new BrainStore(':memory:');
+  const steps = [{ id: 'run', label: 'Rodar o workflow de {{repo}}', how: 'gh run watch' }, { id: 'fim', label: 'Conferir', how: '' }];
+  assert.throws(() => b.savePlaybook({ name: 'workflow-dev', description: 'd', trigger: '', appliesTo: null, autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, outputs: [{ name: 'PR URL', description: '' }] }), /dado de entrega inválido/);
+  b.savePlaybook({ name: 'workflow-dev', description: 'd', trigger: '', appliesTo: null, autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, outputs: [{ name: 'versao', description: 'tag' }, { name: 'pr_url', description: 'PR' }] });
+  assert.deepEqual(b.playbook('workflow-dev')?.outputs.map((o) => o.name), ['versao', 'pr_url']);
+
+  const run = b.startRun('workflow-dev', 'chat:1', { repo: 'acme/portal' });
+  assert.deepEqual(b.run(run.id)?.params, { repo: 'acme/portal' });
+  b.updateRunStep(run.id, 'run', 'done', undefined, { versao: '2.5.0' });
+  assert.throws(() => b.updateRunStep(run.id, 'fim', 'done', undefined, { senha: 'x' }), /não entrega senha; entrega: versao, pr_url/);
+  const done = b.updateRunStep(run.id, 'fim', 'done', undefined, { pr_url: 'https://github.com/acme/portal/pull/412' });
+  assert.equal(done.status, 'done');
+  assert.deepEqual(b.run(run.id)?.outputs, { versao: '2.5.0', pr_url: 'https://github.com/acme/portal/pull/412' }, 'os valores se somam entre os passos');
+
+  // Learned with outputs; edited keeps them unless changed.
+  b.learn([{ kind: 'playbook', payload: { name: 'abrir-gmud', description: 'd', steps: [{ id: 'a', label: 'Abrir', how: '' }], outputs: [{ name: 'numero_gmud', description: 'número' }] } }], 'r', 'chat:1');
+  assert.equal(b.playbook('abrir-gmud')?.outputs[0].name, 'numero_gmud');
+  b.editPlaybook('abrir-gmud', { description: 'outra' });
+  assert.equal(b.playbook('abrir-gmud')?.outputs.length, 1);
+});

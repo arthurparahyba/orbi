@@ -1,7 +1,7 @@
 import type { InboxItem } from '../../api';
 import { AlertIcon, BulbIcon, KeyIcon } from '../../components/Icons';
 
-const KIND_LABEL: Record<InboxItem['kind'], string> = { approval: 'Aprovação', learning: 'Aprendizado', question: 'Pergunta', secret: 'Credencial' };
+const KIND_LABEL: Record<InboxItem['kind'], string> = { approval: 'Aprovação', learning: 'Aprendizado', question: 'Pergunta', secret: 'Credencial', pipeline: 'Esteira' };
 
 /** Approvals, questions, learning and credentials waiting for the developer; a click opens their conversation. */
 export function InboxPanel({ items, onOpen }: { items: InboxItem[]; onOpen(id: string): void }) {

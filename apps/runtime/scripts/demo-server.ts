@@ -126,6 +126,50 @@ function seed() {
 }
 seed();
 seedAgents();
+seedPipeline();
+
+/** Procedures that hand data to each other, and an esteira linking them (with a branch). */
+function seedPipeline() {
+  if (brain.pipeline('entrega-do-portal')) return;
+  const pb = (name: string, description: string, steps: Array<[string, string, string]>, outputs: Array<[string, string]>) =>
+    brain.savePlaybook({
+      name, description, trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
+      steps: steps.map(([id, label, how]) => ({ id, label, how })),
+      outputs: outputs.map(([n, d]) => ({ name: n, description: d })),
+    });
+  pb('acompanhar-workflow-dev', 'Acompanha o workflow de dev e pede correção ao Claude Code quando falha.', [
+    ['abrir', 'Abrir o workflow de {{repo}}', 'gh run list --repo {{repo}}'],
+    ['acompanhar', 'Acompanhar até terminar', 'gh run watch; se falhar, claude_code_prepare_fix'],
+  ], [['versao', 'tag gerada pelo workflow'], ['pr_url', 'PR que entrou na develop']]);
+  pb('promover-front-hml', 'Promove a versão do front para homologação.', [
+    ['deploy', 'Disparar o deploy de homologação da {{versao}}', 'gh workflow run deploy-hml.yml -f versao={{versao}}'],
+    ['conferir', 'Conferir a URL de homologação', 'browser_act navigate'],
+  ], [['url_hml', 'URL de homologação'], ['evidencia', 'print da tela em HML']]);
+  pb('promover-api-hml', 'Promove a API para homologação pelo ArgoCD.', [
+    ['sync', 'Sincronizar a imagem {{imagem}} no ArgoCD', 'argocd app set --image {{imagem}}'],
+  ], [['url_hml', 'URL de homologação']]);
+  pb('abrir-gmud', 'Abre a GMUD no portal de mudanças.', [
+    ['abrir', 'Abrir a GMUD da versão {{versao}}', 'browser_act no portal de mudanças'],
+    ['anexar', 'Anexar a evidência {{evidencia}}', 'browser_act upload'],
+  ], [['numero_gmud', 'número da GMUD aberta']]);
+  pb('preencher-gmud', 'Preenche a GMUD aberta.', [
+    ['preencher', 'Preencher a GMUD {{numero}}', 'browser_act no formulário'],
+  ], []);
+  brain.savePipeline({
+    name: 'entrega-do-portal',
+    description: 'Leva uma mudança do workflow de dev até a GMUD preenchida.',
+    inputs: [{ name: 'repo', description: 'repositório' }, { name: 'tipo', description: 'front ou backend', options: ['front', 'backend'] }],
+    stages: [
+      { id: 'dev', label: 'Workflow dev', passage: 'auto', options: [{ playbook: 'acompanhar-workflow-dev' }] },
+      { id: 'hml', label: 'Homologação', passage: 'auto', options: [
+        { playbook: 'promover-front-hml', when: { field: 'tipo', equals: 'front' } },
+        { playbook: 'promover-api-hml', when: { field: 'tipo', equals: 'backend' } },
+      ] },
+      { id: 'gmud', label: 'Abrir GMUD', passage: 'ask', options: [{ playbook: 'abrir-gmud' }] },
+      { id: 'preencher', label: 'Preencher GMUD', passage: 'auto', options: [{ playbook: 'preencher-gmud', map: { numero: 'gmud.numero_gmud' } }] },
+    ],
+  });
+}
 
 /** A connected coding agent, one finished request and one suggestion, so the Agentes screen has something. */
 function seedAgents() {
@@ -165,7 +209,7 @@ const respond = async (context: { messages: Msg[] }) => {
   // The runtime also injects plumbing signals (MCP availability, new skills…); skip them.
   for (let i = msgs.length - 1; i >= 0; i--) {
     const t = textOf(msgs[i]);
-    const plumbing = t.startsWith('<signal') && !/tool-approval|followup|agent-request|secret-saved/.test(t.slice(0, 200));
+    const plumbing = t.startsWith('<signal') && !/tool-approval|followup|agent-request|secret-saved|pipeline/.test(t.slice(0, 200));
     if (msgs[i].role === 'user' && !plumbing) { lastUser = i; break; }
   }
   const said = lastUser >= 0 ? textOf(msgs[lastUser]).toLowerCase() : '';
@@ -174,6 +218,8 @@ const respond = async (context: { messages: Msg[] }) => {
   await sleep(600);
 
   if (said.includes('<demonstracao')) return fromDemonstration(textOf(msgs[lastUser]), toolsSince);
+  const pipeline = pipelineScenario(msgs, said, lastUser);
+  if (pipeline) return pipeline;
   const fromAgent = msgs.some((m) => textOf(m).includes('<agent-request'));
   if (fromAgent) return agentScenario(said, toolsSince);
   const secret = secretScenario(said);
@@ -387,5 +433,45 @@ function secretScenario(said: string) {
     return call('ask_secret', { name: 'github/senha', description: 'Senha do GitHub', reason: 'Para entrar no GitHub pelo navegador antes de apagar o repositório.' },
       'Para entrar no GitHub preciso da sua senha. Não cole aqui na conversa: digite no cartão abaixo, que guarda direto no cofre.');
   }
+  return undefined;
+}
+
+/**
+ * Plays the agent in an esteira the way the prompt asks: start it when asked
+ * for a delivery, run exactly what the engine says (playbook_start with its
+ * JSON), mark each step done handing over fake outputs, and stop when told.
+ */
+function pipelineScenario(msgs: Msg[], said: string, lastUser: number) {
+  // The last thing that matters: a tool result, or what was said (skipping notices like "System instructions updated").
+  let tail = msgs.length - 1;
+  while (tail > 0 && msgs[tail].role !== 'toolResult' && tail > lastUser) tail--;
+  const last = msgs[tail]?.role === 'toolResult' ? msgs[tail] : msgs[lastUser];
+  const lastText = last ? textOf(last) : '';
+  const fakeValue = (name: string) =>
+    ({ versao: '2.5.0', pr_url: 'https://github.com/acme/portal/pull/412', url_hml: 'https://hml.acme.internal/portal', evidencia: 'evidencia-hml.png', numero_gmud: 'CHG0041877' })[name] ?? `${name}-demo`;
+  if (last?.role === 'user' && /entreg/.test(said) && /portal/.test(said) && !said.includes('<')) {
+    const destination = /gmud/.test(said) ? (/(preench)/.test(said) ? 'preencher' : 'gmud') : undefined;
+    return call('pipeline_start', { name: 'entrega-do-portal', inputs: { repo: 'acme/portal', tipo: /backend|api/.test(said) ? 'backend' : 'front' }, ...(destination ? { destination } : {}) },
+      `Vou levar o acme/portal pela esteira **entrega-do-portal**${destination ? ` até ${destination === 'gmud' ? 'abrir a GMUD' : 'preencher a GMUD'}` : ''}.`);
+  }
+  const start = lastText.match(/rode agora o procedimento [\w-]+ com playbook_start (\{.*?\})\./);
+  if (start) return call('playbook_start', JSON.parse(start[1].replace(/\\"/g, '"')));
+  if (last?.role !== 'toolResult') {
+    if (/<pipeline/.test(lastText) && /encerrou|pare/.test(lastText)) return fauxAssistantMessage(fauxText('Combinado, parei aqui.'));
+    return undefined;
+  }
+  // After playbook_start: walk its steps; after the last, hand over the outputs.
+  let startIdx = -1;
+  for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].role === 'toolResult' && textOf(msgs[i]).includes('"runId"')) { startIdx = i; break; }
+  if (startIdx < 0 || !msgs.some((m) => /Começou a esteira|<pipeline/.test(textOf(m)))) return undefined;
+  const started = JSON.parse(textOf(msgs[startIdx]).slice(textOf(msgs[startIdx]).indexOf('{'))) as { steps: Array<{ id: string }>; outputs?: Array<{ name: string }> };
+  const done = msgs.slice(startIdx + 1).filter((m) => m.role === 'toolResult').length;
+  if (done < started.steps.length) {
+    const lastStep = done === started.steps.length - 1;
+    const outputs = lastStep && started.outputs?.length ? Object.fromEntries(started.outputs.map((o) => [o.name, fakeValue(o.name)])) : undefined;
+    return call('playbook_step', { stepId: started.steps[done].id, status: 'done', ...(outputs ? { outputs } : {}) });
+  }
+  if (/Resuma|chegou/.test(lastText)) return fauxAssistantMessage(fauxText('Pronto: a entrega chegou onde você pediu. Os dados estão na faixa no topo da conversa.'));
+  if (/autorização|faltam|parou/.test(lastText)) return fauxAssistantMessage(fauxText('Parei aqui: a próxima etapa espera você na faixa no topo da conversa.'));
   return undefined;
 }

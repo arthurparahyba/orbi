@@ -6,7 +6,7 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 15). A visão geral está em `docs/arquitetura.md`.
+`docs/funcionalidades/` (01 a 16). A visão geral está em `docs/arquitetura.md`.
 
 ## Estrutura
 
@@ -22,12 +22,13 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
+  src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
   src/prompts/*.md    textos que o modelo lê
   src/{autonomy,browser,code,conversations,llm,observability,terminal,vault,voice}/
   test/               node:test (+ fixtures/search-eval.json)
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
-  src/views/{conversation,brain,agents,autonomy}/   telas
+  src/views/{conversation,pipelines,brain,agents,autonomy}/   telas
   src/components/     cartões do canal ui, gravação, confirmação
   src/live.ts, hooks.ts   feed de eventos (SSE) e useLive
   test/               Vitest
@@ -103,7 +104,11 @@ cofre ou ponte MCP, `npm run e2e`.
   digitado pelo usuário para a conversa.
 - **Agentes de código (MCP)** entram por `/mcp` com token próprio (só o hash fica no banco).
   Eles nunca aprovam, nunca veem credenciais e nunca gravam no cérebro: `orbi_teach` vira
-  sugestão, e só o desenvolvedor aceita (`/api/agents/suggestions/:id/accept`).
+  sugestão, e só o desenvolvedor aceita (`/api/agents/suggestions/:id/accept`). Rodar
+  esteiras e pular perguntas de passagem são permissões desligadas por padrão.
+- **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
+  modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
+  ou com a permissão do agente.
 
 ## Armadilhas conhecidas
 

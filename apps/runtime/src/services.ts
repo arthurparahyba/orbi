@@ -14,6 +14,8 @@ import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
 import type { AgentClients } from './mcp/clients.ts';
 import type { VoiceModel } from './voice/model.ts';
+import type { PipelineRuns } from './pipelines/runs.ts';
+import type { PipelineEngine } from './pipelines/engine.ts';
 import type { AgentRequests } from './mcp/requests.ts';
 import type { AgentSuggestions } from './mcp/suggestions.ts';
 
@@ -47,6 +49,8 @@ export interface OrbiServices {
   /** Coding agents that call Orbi over MCP: who they are, what they asked, what they suggested. */
   /** The local transcription model: which, where its files are, download and change. */
   voice: VoiceModel;
+  /** Esteiras running: their state and the engine that decides each passage. */
+  pipelines: { runs: PipelineRuns; engine: PipelineEngine };
   agents: { clients: AgentClients; requests: AgentRequests; suggestions: AgentSuggestions };
 }
 

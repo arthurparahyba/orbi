@@ -1,11 +1,19 @@
-import type { Playbook, PlaybookRun, StepStatus } from './types.ts';
+import type { Playbook, PlaybookOutput, PlaybookRun, StepStatus } from './types.ts';
 
 /** Playbook rules: what a valid one looks like and how a run's status follows its steps. */
 
 const PLAYBOOK_NAME = /^[a-z0-9][a-z0-9-]{1,63}$/;
+/** Output and parameter names: what {{name}} accepts, kept simple (versao, pr_url). */
+export const DATA_NAME = /^[a-z_][a-z0-9_]{0,39}$/;
 
-export function playbookProblems(pb: Pick<Playbook, 'name' | 'steps'>): string[] {
+export function playbookProblems(pb: Pick<Playbook, 'name' | 'steps'> & { outputs?: PlaybookOutput[] }): string[] {
   const problems: string[] = [];
+  const outs = new Set<string>();
+  for (const o of pb.outputs ?? []) {
+    if (!DATA_NAME.test(o.name ?? '')) problems.push(`nome de dado de entrega inválido: ${o.name} (use letras minúsculas, números e _)`);
+    else if (outs.has(o.name)) problems.push(`dado de entrega repetido: ${o.name}`);
+    outs.add(o.name);
+  }
   if (!PLAYBOOK_NAME.test(pb.name)) problems.push(`nome de playbook inválido: ${pb.name}`);
   if (!Array.isArray(pb.steps) || pb.steps.length === 0) return [...problems, 'playbook sem passos'];
   const ids = new Set<string>();
@@ -48,6 +56,8 @@ export function newRun(pb: Playbook, id: string, conversationId: string, params:
     playbook: pb.name,
     conversationId,
     status: 'running',
+    params,
+    outputs: {},
     steps: pb.steps.map((s) => ({ ...s, label: fillParams(s.label, params), how: fillParams(s.how, params), status: 'pending' as StepStatus })),
     startedAt,
     finishedAt: null,
@@ -63,4 +73,22 @@ export function advanceRun(run: PlaybookRun, stepId: string, status: StepStatus,
   const anyWaiting = steps.some((s) => s.status === 'waiting');
   const next: PlaybookRun['status'] = anyFailed ? 'failed' : allDone ? 'done' : anyWaiting ? 'waiting' : 'running';
   return { ...run, steps, status: next, finishedAt: next === 'done' || next === 'failed' ? at : null };
+}
+
+/**
+ * What a run hands over: only the outputs the playbook declares, as text.
+ * Recorded values add up across steps (a later step may hand over more).
+ */
+export function recordOutputs(run: PlaybookRun, declared: PlaybookOutput[], values: Record<string, string>): PlaybookRun {
+  const names = new Set(declared.map((o) => o.name));
+  const unknown = Object.keys(values).filter((k) => !names.has(k));
+  if (unknown.length) {
+    throw new Error(
+      names.size
+        ? `${run.playbook} não entrega ${unknown.join(', ')}; entrega: ${[...names].join(', ')}`
+        : `${run.playbook} não declara o que entrega; proponha as entregas ao desenvolvedor antes de registrar (${unknown.join(', ')})`,
+    );
+  }
+  const clean = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, String(v).slice(0, 2000)]));
+  return { ...run, outputs: { ...run.outputs, ...clean } };
 }

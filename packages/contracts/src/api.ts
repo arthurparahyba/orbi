@@ -10,7 +10,7 @@ export interface ConversationInfo {
 }
 export interface ConversationOrigin { agent: string; requestId: string; procedure: string | null; repo?: string; branch?: string; session?: string }
 export interface InboxItem {
-  id: string; kind: 'approval' | 'question' | 'learning' | 'secret'; conversationId: string; title: string; detail: string;
+  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline'; conversationId: string; title: string; detail: string;
   approvalId?: string; routine?: string; createdAt: string; status: 'open' | 'approved' | 'denied' | 'answered';
   /** What the developer answered, for answered questions. */
   answer?: string;
@@ -25,10 +25,14 @@ export interface Playbook {
   steps: Array<{ id: string; label: string; how: string }>; instructions: string;
   /** The playbook this one was made from ("variação de"). */
   variationOf: string | null; uses: number; successes: number; updatedAt: string;
+  /** What it hands over when it finishes, for the next stage of an esteira or an agent. */
+  outputs: PlaybookOutput[];
 }
+export interface PlaybookOutput { name: string; description: string }
 export interface PlaybookRun {
   id: string; playbook: string; conversationId: string; status: 'running' | 'done' | 'failed' | 'waiting';
   steps: Array<{ id: string; label: string; status: string; note?: string }>; startedAt: string; finishedAt: string | null;
+  params: Record<string, string>; outputs: Record<string, string>;
 }
 export interface BrainSnapshot {
   stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };
@@ -98,6 +102,10 @@ export interface EntityDetail {
 /** A coding agent allowed to call Orbi's MCP server (one token each). */
 export interface AgentClient {
   id: string; name: string; canDelegate: boolean; canTeach: boolean;
+  /** May start esteiras; off by default. */
+  canRunPipelines: boolean;
+  /** Its destination also authorizes passages that ask; off by default. */
+  canSkipPassages: boolean;
   createdAt: string; lastSeenAt: string | null; revokedAt: string | null;
 }
 /** POST /api/agents/clients answers with the token once; only its hash is kept. */
@@ -107,7 +115,7 @@ export type AgentRequestStatus = 'running' | 'waiting' | 'done' | 'failed';
 /** A task a coding agent delegated with orbi_delegate. */
 export interface AgentRequest {
   id: string; clientId: string; agent: string; conversationId: string; task: string; procedure: string | null;
-  context: AgentRequestContext; status: AgentRequestStatus; summary: string | null; links: string[];
+  pipeline: string | null; context: AgentRequestContext; status: AgentRequestStatus; summary: string | null; links: string[];
   createdAt: string; finishedAt: string | null;
 }
 /** A procedure a coding agent suggested with orbi_teach; it waits for the developer. */
@@ -135,4 +143,28 @@ export interface VoiceStatus {
     | { state: 'downloading'; file?: string; progress?: number }
     | { state: 'ready' }
     | { state: 'error'; message: string };
+}
+
+/** Esteira: procedures in sequence (GET /api/pipelines). */
+export interface PipelineInput { name: string; description: string; options?: string[] }
+export interface PipelineOption { playbook: string; when?: { field: string; equals: string }; map?: Record<string, string> }
+export interface PipelineStage { id: string; label: string; options: PipelineOption[]; passage: 'ask' | 'auto' }
+export interface Pipeline {
+  name: string; description: string; inputs: PipelineInput[]; stages: PipelineStage[]; uses: number; updatedAt: string;
+  /** Parameters nothing hands over: the Orbi will ask at that stage. */
+  gaps?: Array<{ stage: string; playbook: string; param: string }>;
+}
+export interface PipelineRunStage {
+  id: string; label: string; playbook: string | null; runId: string | null;
+  status: 'pending' | 'running' | 'done' | 'failed' | 'skipped';
+  params: Record<string, string>; from: Record<string, string>; outputs: Record<string, string>;
+  startedAt: string | null; finishedAt: string | null;
+}
+/** One delivery: an esteira running in a conversation. */
+export interface PipelineRun {
+  id: string; pipeline: string; conversationId: string; status: 'running' | 'waiting' | 'done' | 'cancelled';
+  destination: string | null; inputs: Record<string, string>; stages: PipelineRunStage[]; current: number;
+  requestedBy: string; skipQuestions: boolean;
+  waiting: { kind: 'passage' | 'failure' | 'params'; stage: string; missing?: string[]; message?: string; inboxId?: string } | null;
+  createdAt: string; updatedAt: string; finishedAt: string | null;
 }
