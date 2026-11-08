@@ -12,9 +12,11 @@ export interface TelemetryDeps {
   log: Logger;
   /** Every tool call's outcome, per conversation (failed steps, deviations of a run). */
   onTool?: (conversationId: string, outcome: { tool: string; failed: boolean; error?: string }) => void;
+  /** A conversation's turn ended (every tool outcome of it has been reported). */
+  onSettled?: (conversationId: string, outcome: 'completed' | 'failed' | 'aborted') => void;
 }
 
-export function handleObservation(event: FlueObservation, { usage, log, onTool }: TelemetryDeps): void {
+export function handleObservation(event: FlueObservation, { usage, log, onTool, onSettled }: TelemetryDeps): void {
   // Orbi's conversations are Flue agent instances (`chat:…`); Flue's own conversationId is an
   // internal stream id. Subagent work carries the parent's instance, so it counts there too.
   const conversation = event.instanceId ?? event.conversationId;
@@ -45,6 +47,7 @@ export function handleObservation(event: FlueObservation, { usage, log, onTool }
       return;
     }
     case 'submission_settled':
+      if (conversation) onSettled?.(conversation, event.outcome);
       if (event.outcome === 'failed') log.error('execução falhou', { agent: event.agentName, submission: event.submissionId, error: event.error?.message });
       else if (event.outcome === 'aborted') log.info('execução interrompida', { agent: event.agentName, submission: event.submissionId });
       return;

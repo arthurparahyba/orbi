@@ -21,6 +21,7 @@ import { createEvents } from './events.ts';
 import { tellAgent } from './conversations/tell.ts';
 import { UsageStore } from './observability/usage.ts';
 import { watchAgents } from './observability/telemetry.ts';
+import { hasProblems, reviewConversation, reviewInstruction } from './review/review.ts';
 import { ToolOutcomes, type ToolOutcome } from './observability/tool-outcomes.ts';
 import { log } from './observability/log.ts';
 import type { InboxItem } from './conversations/inbox.ts';
@@ -104,15 +105,34 @@ export async function createOrbi(
 export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'>, conversationId: string, outcome: ToolOutcome): void {
   s.toolOutcomes.record(conversationId, outcome);
   if (!outcome.failed || outcome.tool === 'playbook_step' || outcome.tool === 'playbook_start') return;
-  const run = s.brain.openRunIn(conversationId);
+  const run = s.brain.runForFailureIn(conversationId);
   if (!run) return;
-  const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending');
+  // A run that already ended (the failing call ran alongside the last step): the last step it closed.
+  const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? run.steps.at(-1);
   s.brain.addRunDeviation(run.id, {
     kind: 'falha',
     detail: `${outcome.tool} falhou${outcome.error ? `: ${outcome.error.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,
     tool: outcome.tool,
     step: step?.id ?? null,
   });
+}
+
+/**
+ * Reviews what ended in a conversation's turn and, when there is something to show (a problem,
+ * a level change), tells the conversation: the card comes from the signal's data, and the Orbi
+ * proposes the fixes. A clean run with no level change passes quietly.
+ */
+export async function sendReview(s: OrbiServices, agent: Agent, conversationId: string): Promise<void> {
+  try {
+    const review = reviewConversation(s, conversationId);
+    if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
+    await tellAgent(s.events, agent, {
+      id: conversationId,
+      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review), attributes: { review: JSON.stringify(review) } },
+    });
+  } catch (error) {
+    log.error('revisão da execução falhou', { conversation: conversationId, error: error instanceof Error ? error.message : String(error) });
+  }
 }
 
 /** State kept in JSON files before the single database: imported once. */
@@ -140,7 +160,13 @@ type Agent = Parameters<typeof dispatch>[0];
 export function startBackground(s: OrbiServices, agent: Agent): Background {
   logStartup(s);
   // Every model and tool call: counted per conversation and logged.
-  const unwatch = watchAgents({ usage: s.usage, log, onTool: (conversationId, outcome) => recordToolOutcome(s, conversationId, outcome) });
+  const unwatch = watchAgents({
+    usage: s.usage,
+    log,
+    onTool: (conversationId, outcome) => recordToolOutcome(s, conversationId, outcome),
+    // When a turn ends: review the runs that ended in it (problems, level, configuration).
+    onSettled: (conversationId) => void sendReview(s, agent, conversationId),
+  });
   const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   const timers = [startFollowups(s, agent), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();

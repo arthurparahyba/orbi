@@ -83,6 +83,8 @@ export const api = {
   pipelines: () => request<Pipeline[]>('/api/pipelines'),
   savePipeline: (name: string, def: SavePipeline) => request<Pipeline>(`/api/pipelines/${name}`, { method: 'PUT', body: JSON.stringify(def) }),
   deletePipeline: (name: string) => request<{ deleted: true }>(`/api/pipelines/${name}`, { method: 'DELETE' }),
+  /** A conversation where the Orbi proposes fixes for the esteira's configuration problems. */
+  fixPipeline: (name: string) => request<{ conversationId: string }>(`/api/pipelines/${encodeURIComponent(name)}/fix`, { method: 'POST' }),
   startPipeline: (name: string, inputs: Record<string, string>, destination: string | null) =>
     request<{ run: PipelineRun; conversationId: string }>(`/api/pipelines/${name}/start`, { method: 'POST', body: JSON.stringify({ inputs, destination }) }),
   pipelineRuns: (active = false) => request<PipelineRun[]>(`/api/pipeline-runs${active ? '?active=1' : ''}`),

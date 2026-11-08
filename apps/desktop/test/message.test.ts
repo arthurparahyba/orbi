@@ -58,3 +58,20 @@ describe('pendências', async () => {
     expect(since(new Date(Date.now() - 2 * 60_000).toISOString())).toBe('há 2 min');
   });
 });
+
+describe('revisão e saída em arquivo', async () => {
+  const { reviewOf } = await import('../src/components/ReviewCard');
+  const { toolResult, toolCommand } = await import('../src/views/conversation/tools');
+  it('lê a revisão do sinal', () => {
+    const r = { runs: [{ runId: 'r', playbook: 'p', status: 'done', problems: ['x'] }], config: [] };
+    expect(reviewOf({ review: JSON.stringify(r) })?.runs[0].problems).toEqual(['x']);
+    expect(reviewOf({ review: '{' })).toBeUndefined();
+    expect(reviewOf(undefined)).toBeUndefined();
+  });
+  it('comando com saveTo mostra onde salvou', () => {
+    const c = { toolName: 'run_command', state: 'output-available', input: { binary: 'gh', args: ['api', 'x'], saveTo: '~/p/top.tsv' },
+      output: { status: 'executed', result: JSON.stringify({ exitCode: 0, savedTo: '/u/p/top.tsv', lines: 100, head: ['a\tb'], stderr: '' }) } };
+    expect(toolCommand(c)).toBe('gh api x > ~/p/top.tsv');
+    expect(toolResult(c)).toBe('salvo em /u/p/top.tsv (100 linhas)\na\tb\n(saída 0)');
+  });
+});

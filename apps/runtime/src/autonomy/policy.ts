@@ -101,7 +101,13 @@ const READ_ONLY: Record<string, (args: readonly string[]) => boolean> = {
     && !(a[0] === 'remote' && a[1] !== undefined && a[1] !== '-v' && a[1] !== 'show' && a[1] !== 'get-url'); },
   gh: (a) => {
     const [group, verb] = a;
-    if (group === 'api') return !a.some((x) => ['-X', '--method', '-f', '-F', '--field', '--raw-field', '--input'].includes(x));
+    if (group === 'api') {
+      // An explicit GET is a read even with -f/-F (they become query parameters).
+      const m = a.findIndex((x) => x === '-X' || x === '--method');
+      const method = m >= 0 ? (a[m + 1] ?? '').toUpperCase() : a.find((x) => x.startsWith('--method='))?.slice(9).toUpperCase();
+      if (method) return method === 'GET' && !a.includes('--input');
+      return !a.some((x) => ['-f', '-F', '--field', '--raw-field', '--input'].includes(x));
+    }
     return ['list', 'view', 'watch', 'status', 'checks', 'diff', 'download'].includes(verb ?? '') || group === 'search';
   },
   aws: (a) => {

@@ -111,6 +111,10 @@ cofre ou ponte MCP, `npm run e2e`.
   `brain/domain/levels.ts`) e pela ação já ser conhecida. Apagar nunca roda sozinho, a não
   ser no N3 posto pelo desenvolvedor com a ação conhecida. Subir e descer é do runtime
   (`settleRun`), nunca do modelo, e sempre avisa (cartão e Pendências, com Manter).
+- **Revisão no fim da execução** (`review/review.ts`): o nível só muda quando o turno
+  termina (todas as falhas já chegaram, inclusive de chamadas em paralelo). Problemas e
+  configuração da esteira viram o cartão de revisão e um pedido de correção ao modelo, que
+  passa pelo cartão de aprendizado.
 - **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
   modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
   ou com a permissão do agente.

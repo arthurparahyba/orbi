@@ -37,6 +37,12 @@ flowchart LR
   direto ao sistema. Não há como encadear com `;`, `|` ou `$(...)`.
 - **Lista de binários permitidos**: `git`, `gh`, `aws`, `python3`, `cp` e `mkdir`,
   a menos que você configure outros. Qualquer outro é recusado.
+- **`saveTo`**: a saída inteira do comando vai para um arquivo (caminho absoluto,
+  `~/…` ou relativo ao workspace) e o modelo recebe só o caminho, o número de linhas
+  e as primeiras linhas. É como uma lista ou um JSON grande passa de um passo para
+  outro sem o modelo copiar à mão. Grava um arquivo: conta como escrita (efeito
+  "nesta máquina"); o subagente de leitura não pode usar.
+- **`gh api -X GET`** é leitura mesmo com `-f`/`-F` (viram parâmetros da consulta).
 - **`git -C pasta …`** é classificado pelo verbo que vem depois (`git -C x status`
   é leitura). Cada comando também tem um efeito (nesta máquina, publica, apaga),
   usado pelos níveis de autonomia (documento 3) e mostrado no cartão.

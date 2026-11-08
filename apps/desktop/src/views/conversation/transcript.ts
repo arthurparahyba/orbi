@@ -1,5 +1,6 @@
 import type { FlueConversationMessage, FlueConversationPart } from '@flue/react';
 import type { UiComponent } from '../../components/UiComponents';
+import { reviewOf } from '../../components/ReviewCard';
 
 /** Long tool inputs and outputs are cut so a copied conversation stays pasteable. */
 const MAX_BLOCK = 4_000;
@@ -69,6 +70,15 @@ function message(m: FlueConversationMessage): string | undefined {
     if (m.signal?.tagName === 'followup' || m.signal?.attributes?.type === 'followup') return '_— retorno agendado —_';
     if (m.signal?.tagName === 'pipeline' || m.signal?.attributes?.type === 'pipeline') return `_— esteira: ${m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('').split('. ')[0]} —_`;
     if (m.signal?.tagName === 'secret-saved' || m.signal?.attributes?.type === 'secret-saved') return '_— credencial guardada no cofre —_';
+    if (m.signal?.tagName === 'review' || m.signal?.attributes?.type === 'review') {
+      const r = reviewOf(m.signal?.attributes as Record<string, unknown> | undefined);
+      if (!r) return undefined;
+      return [
+        '**Revisão da execução**' + (r.pipeline ? ` (esteira ${r.pipeline})` : ''),
+        ...r.runs.map((x) => `- ${x.playbook}: ${x.problems.length ? x.problems.join('; ') : 'sem problemas'}${x.level ? ` · N${x.level.from} → N${x.level.to}` : ''}`),
+        ...r.config.map((c) => `- configuração (${c.stage}): ${c.text}`),
+      ].join('\n');
+    }
     if (m.signal?.tagName === 'agent-request' || m.signal?.attributes?.type === 'agent-request') {
       return `> ${m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('').split('\n').join('\n> ')}`;
     }

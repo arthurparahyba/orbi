@@ -105,9 +105,19 @@ sequenceDiagram
 - **Passo com ferramenta falhada não fecha**: `playbook_step` com `done` logo
   depois de uma ferramenta que falhou é recusado; o Orbi corrige ou marca o passo
   como falhou ou pulado (`observability/tool-outcomes.ts`).
-- **Fim da execução**: o cérebro acerta o nível (`settleRun`). Se mudou, aparece o
-  cartão de nível. Se houve falha, a saída pede ao Orbi que proponha a correção
-  do procedimento com `brain_learn` (o cartão de aprendizado espera você).
+- **Revisão no fim da execução** (`review/review.ts`): quando o turno da conversa
+  termina, o runtime revisa as execuções que acabaram nele. Esperar o fim do turno
+  garante que todas as falhas já chegaram, inclusive de ferramentas chamadas na
+  mesma leva do passo que encerrou a execução (o modelo faz isso). Para cada uma:
+  - os problemas: ferramenta que falhou, ação negada, passo que falhou ou foi
+    pulado, e **passo dado como feito cuja ferramenta falhou**;
+  - o nível, acertado com base nisso (execução com problema não sobe);
+  - numa esteira, a configuração dela (documento 16).
+  Se há algo a mostrar (problema ou mudança de nível), um sinal `review` leva à
+  conversa o cartão **Revisão da execução** e, havendo problema, pede ao Orbi as
+  correções num único `brain_learn` (o cartão de aprendizado espera você). Execução
+  limpa sem mudança de nível passa em silêncio. Cada execução é revisada uma vez
+  (`playbook_runs.reviewed_at`).
 - **Passo que pergunta algo que já veio**: quando o valor chegou como parâmetro
   (da esteira, do padrão), o Orbi usa e não pergunta (regra no prompt).
 - **Estados de um passo**: pendente, em andamento, concluído, falhou, esperando
@@ -164,8 +174,10 @@ procedimentos.
 ## Limites conhecidos
 
 - Um procedimento roda por vez em cada conversa.
-- A correção sugerida depende do modelo propor bem; o runtime só garante que ele
-  é avisado do que falhou e que nada muda no cérebro sem você.
+- A correção sugerida depende do modelo propor bem; o runtime garante que ele é
+  avisado do que falhou e que nada muda no cérebro sem você.
+- A revisão chega depois da última mensagem do Orbi naquele turno, como uma nova
+  mensagem: conta como mais um turno do modelo.
 - Editar um procedimento não muda uma execução já em andamento: ela segue com os
   passos que tinha quando começou.
 - Pela tela não dá para renomear um procedimento; peça na conversa.

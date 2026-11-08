@@ -4,6 +4,7 @@ import type { OrbiServices } from '../../services.ts';
 import { tellAgent } from '../../conversations/tell.ts';
 import { HttpError, body, notFound } from '../errors.ts';
 import type { Agent } from './types.ts';
+import { reviewInstruction } from '../../review/review.ts';
 
 /**
  * Esteiras: the definitions (Esteiras › Minhas esteiras) and the deliveries
@@ -21,17 +22,34 @@ export function pipelineRoutes({ brain, pipelines, conversations, events }: Orbi
   const tell = (conversationId: string, text: string) =>
     tellAgent(events, agent, { id: conversationId, message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', body: text } });
 
+  // What the screen shows with each esteira: data nobody hands over, and configuration problems.
+  const withChecks = (p: NonNullable<ReturnType<typeof brain.pipeline>>) => ({ ...p, gaps: brain.pipelineGaps(p), warnings: brain.pipelineWarnings(p) });
+
   return new Hono()
-    .get('/', (c) => c.json(brain.pipelines().map((p) => ({ ...p, gaps: brain.pipelineGaps(p) }))))
+    .get('/', (c) => c.json(brain.pipelines().map(withChecks)))
     .get('/:name', (c) => {
       const p = brain.pipeline(c.req.param('name'));
       if (!p) throw notFound('esteira');
-      return c.json({ ...p, gaps: brain.pipelineGaps(p) });
+      return c.json(withChecks(p));
     })
     .put('/:name', async (c) => {
       const def = await body(c, SavePipeline);
       const saved = invalid(() => brain.savePipeline({ name: c.req.param('name'), ...def }));
-      return c.json({ ...saved, gaps: brain.pipelineGaps(saved) });
+      return c.json(withChecks(saved));
+    })
+    // "Pedir correção ao Orbi": a conversation where he proposes the fixes (one learning card).
+    .post('/:name/fix', async (c) => {
+      const p = brain.pipeline(c.req.param('name'));
+      if (!p) throw notFound('esteira');
+      const config = brain.pipelineWarnings(p);
+      if (config.length === 0) throw new HttpError(409, 'conflict', 'esta esteira não tem problemas de configuração');
+      const review = { runs: [], config, pipeline: p.name };
+      const conversation = conversations.create(`Corrigir a esteira ${p.name}`);
+      await tellAgent(events, agent, {
+        id: conversation.id,
+        message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review), attributes: { review: JSON.stringify(review) } },
+      });
+      return c.json({ conversationId: conversation.id }, 201);
     })
     .delete('/:name', (c) => {
       if (!brain.deletePipeline(c.req.param('name'))) throw notFound('esteira');

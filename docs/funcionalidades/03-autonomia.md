@@ -49,6 +49,8 @@ repetitivas rodem sem você, e o Orbi só chame quando há uma decisão nova.
   `apaga` (`push --force`, `git push :branch`, `gh … delete`, `rm`).
 - **Apagar nunca roda sozinho**, a não ser que você tenha posto o procedimento no
   N3 e a ação já seja conhecida.
+- **Quando muda**: na revisão do fim da execução (documento 5), depois que todas
+  as falhas daquele turno chegaram, nunca no meio.
 - **Sobe sozinho**: N1 → N2 com uma execução de ponta a ponta sem desvio; N2 → N3
   com mais três seguidas. Nunca passa do **nível máximo** que você escolher.
 - **Desce um nível** quando a execução falha ou você nega uma ação. Editar os

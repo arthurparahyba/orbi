@@ -280,6 +280,7 @@ conversa, **Cérebro → Execuções**.
 | `outputs` | JSON: o que entregou (migração 10) |
 | `actions` | JSON: as ações que rodou, com impressão digital, efeito e passo (migração 13) |
 | `deviations` | JSON: o que saiu do caminho: ferramenta que falhou, ação negada (migração 13) |
+| `reviewed_at` | Quando a revisão do fim da execução passou por ela (migração 14); nulo = ainda não revisada |
 | `started_at`, `finished_at` | Duração |
 
 **`playbook_known_actions`** · o que cada procedimento já fez numa execução sem
@@ -403,8 +404,9 @@ editada, sempre se cria outra.
 | 11 | `pipelines`, `pipeline_runs` |
 | 12 | Permissões de esteira dos agentes e `agent_requests.pipeline` |
 | 13 | Autonomia que cresce: nível em `playbooks` (procedimentos `auto` viram N3 seu), `actions` e `deviations` em `playbook_runs`, `playbook_known_actions`, `autonomy_events`, `pipelines.passage_streaks` |
+| 14 | `playbook_runs.reviewed_at` (as execuções antigas contam como revisadas) |
 
-O número é o `user_version` depois que a migração roda (hoje 13). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 14). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos

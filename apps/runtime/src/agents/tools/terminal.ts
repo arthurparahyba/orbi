@@ -1,5 +1,5 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { defineTool, useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
@@ -19,16 +19,41 @@ function insideWorkspace(cwd?: string): string {
   return dir;
 }
 
-async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number }, signal?: AbortSignal) {
+/** Where `saveTo` writes: an absolute path, `~/…`, or a path relative to the workspace. */
+export function savePath(saveTo: string, workspace: string, home = homedir()): string {
+  if (saveTo.startsWith('~/')) return join(home, saveTo.slice(2));
+  return isAbsolute(saveTo) ? saveTo : resolve(workspace, saveTo);
+}
+
+async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, signal?: AbortSignal) {
   const { config } = services();
+  const save = args.saveTo ? savePath(args.saveTo, config.workspace) : undefined;
   const result = await runCommand(args.binary, args.args, {
     cwd: insideWorkspace(args.cwd),
     timeoutMs: Math.min(args.timeoutSeconds ?? 120, 1800) * 1000,
     env: config.cliEnv,
     allowed: config.allowedBinaries,
     signal,
+    // The whole output goes to the file; only a summary comes back to the model.
+    ...(save ? { maxOutput: 50_000_000 } : {}),
   });
-  return JSON.stringify(result);
+  if (!save) return JSON.stringify(result);
+  const ok = result.exitCode === 0 && !result.timedOut;
+  if (ok) {
+    mkdirSync(dirname(save), { recursive: true });
+    writeFileSync(save, result.stdout);
+  }
+  const lines = result.stdout.split('\n').filter((l) => l.length > 0);
+  return JSON.stringify({
+    command: result.command,
+    exitCode: result.exitCode,
+    savedTo: ok ? save : null,
+    lines: lines.length,
+    bytes: Buffer.byteLength(result.stdout),
+    head: lines.slice(0, 5),
+    stderr: result.stderr.slice(0, 2000),
+    timedOut: result.timedOut,
+  });
 }
 
 const commandInput = v.object({
@@ -36,6 +61,7 @@ const commandInput = v.object({
   args: v.array(v.string()),
   cwd: v.optional(v.pipe(v.string(), v.description('Folder relative to the workspace, e.g. the repo name'))),
   timeoutSeconds: v.optional(v.number()),
+  saveTo: v.optional(v.pipe(v.string(), v.description('Write the whole output to this file (absolute, ~/… or relative to the workspace) instead of returning it: you get the path, the line count and the first lines. Use it for lists and big outputs another step reads.'))),
   purpose: v.pipe(v.string(), v.description('One line: why you run this. Shown to the developer.')),
 });
 
@@ -46,7 +72,7 @@ export const runReadOnlyCommand = defineTool({
   input: commandInput,
   timeoutMs: 600_000,
   async run({ data, signal }) {
-    if (commandCategory(data.binary, data.args) !== 'comandos-leitura') {
+    if (data.saveTo || commandCategory(data.binary, data.args) !== 'comandos-leitura') {
       return { output: { refused: 'Comando de escrita. Devolva ao agente principal o que precisa ser feito.' } };
     }
     return { output: await execCommand(data, signal) };
@@ -99,12 +125,16 @@ export function useTerminal(ctx: AgentContext) {
     name: 'run_command',
     description: `Run a CLI command in the workspace — ${allowedBinaries.join(', ')} — without a shell (binary + args). Read-only commands usually run at once; writes (push, merge, workflow run, deploy) follow the autonomy rules.`,
     input: commandInput,
-    category: (a) => commandCategory(a.binary, a.args),
+    // Saving the output writes a file: never a plain read.
+    category: (a) => (a.saveTo ? 'comandos-escrita' : commandCategory(a.binary, a.args)),
     summary: (a) => `${a.purpose}: ${a.binary} ${a.args.join(' ')}`,
     title: (a) => a.purpose,
-    command: (a) => shortCommand(a.binary, a.args),
-    effect: (a) => commandEffect(a.binary, a.args),
-    fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}`,
+    command: (a) => `${shortCommand(a.binary, a.args)}${a.saveTo ? ` > ${shortCommand('', [a.saveTo]).trim()}` : ''}`,
+    effect: (a) => {
+      const e = commandEffect(a.binary, a.args);
+      return a.saveTo && e === 'leitura' ? 'local' : e;
+    },
+    fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: (a) => execCommand(a),
     timeoutMs: 1_800_000,
   });

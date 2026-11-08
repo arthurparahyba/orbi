@@ -278,6 +278,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `/api/pipelines/...` · `/api/pipeline-runs/...` | Esteiras e entregas (documento 16) |
 | `PATCH /api/brain/playbooks/:name` `{autonomy?, level?, levelMax?}` · `GET …/:name/autonomy` | Nível de autonomia, ações conhecidas e histórico (documento 3) |
 | `POST /api/inbox/:id/dismiss` · `POST /api/inbox/:id/keep` | Aviso de nível: visto, ou desfazer a mudança |
+| `POST /api/pipelines/:name/fix` | O Orbi propõe a correção da configuração de uma esteira (documento 16) |
 | `GET /api/health` | Modelo, chave, ponte do Chrome, cérebro, onde fica o `.env` |
 | `PATCH`/`DELETE /api/brain/entities/:id` | Editar ou apagar uma entidade (pela tela Cérebro) |
 | `PUT`/`DELETE /api/brain/playbooks/:name` | Editar ou apagar um procedimento |

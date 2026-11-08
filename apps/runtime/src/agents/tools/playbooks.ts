@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import { services } from '../../services.ts';
 import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
-import { LEVEL_NAMES, RUNS_FOR_N3 } from '../../brain/domain/levels.ts';
+import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
 
 /** The playbook running in this conversation, kept across turns. */
 export function useActiveRun() {
@@ -23,7 +23,7 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
 }
 
 export function usePlaybooks(ctx: AgentContext) {
-  const { brain, vault, pipelines, inbox, toolOutcomes } = services();
+  const { brain, vault, pipelines, toolOutcomes } = services();
 
   const showRun = (runId: string) => {
     const run = brain.run(runId);
@@ -56,40 +56,6 @@ export function usePlaybooks(ctx: AgentContext) {
       }),
     );
   }
-
-  /**
-   * After a run ends: the level moves (card in the conversation and a note in Pendências), and
-   * when something went off the path the model is asked to propose a fix to the playbook.
-   */
-  const settle = (runId: string): { nivel?: string; correcao?: string } => {
-    const run = brain.run(runId)!;
-    const result = brain.settleRun(runId);
-    const out: { nivel?: string; correcao?: string } = {};
-    if (result.change) {
-      const { from, to, reason } = result.change;
-      const up = to > from;
-      const next = to === 1 ? 'Uma execução de ponta a ponta sem correção e ele vai para o N2.' : to === 2 ? `Mais ${RUNS_FOR_N3} execuções sem desvio e ele vai para o N3.` : undefined;
-      const item = inbox.add({
-        kind: 'level',
-        conversationId: run.conversationId,
-        title: `${run.playbook} ${up ? 'subiu' : 'desceu'} para ${LEVEL_NAMES[to]}`,
-        detail: reason,
-        // For level notes: what changed (routine) and the value before (approvalId), for "Manter".
-        routine: `playbook:${run.playbook}`,
-        approvalId: String(from),
-      });
-      ctx.ui({ component: 'level', id: `level-${run.id}`, playbook: run.playbook, from, to, reason, alone: result.alone, asks: result.asks, inboxId: item.id, ...(next ? { next } : {}) });
-      out.nivel = `${run.playbook} ${up ? 'subiu' : 'desceu'} de N${from} para N${to} (${reason}). O cartão já está na conversa: não repita, só mencione em uma linha se fizer sentido.`;
-    }
-    const failures = run.deviations.filter((d) => d.kind === 'falha');
-    if (failures.length) {
-      out.correcao =
-        `Nesta execução: ${failures.map((d) => `${d.step ? `[${d.step}] ` : ''}${d.detail}`).join('; ')}. ` +
-        'Se dá para evitar da próxima vez (outro comando, outro jeito de mostrar, um dado em arquivo), proponha a correção do procedimento com brain_learn ' +
-        `(kind playbook, o mesmo nome ${run.playbook}, com os passos corrigidos). O desenvolvedor aprova antes de mudar.`;
-    }
-    return out;
-  };
 
   useTool({
     name: 'playbook_start',
@@ -149,10 +115,10 @@ export function usePlaybooks(ctx: AgentContext) {
       showRun(run.id);
       if (run.status !== 'done' && run.status !== 'failed') return { output: { runStatus: run.status } };
       ctx.setActiveRun(null);
-      const settled = settle(run.id);
+      // The level and the review come when the turn ends (review/review.ts), after every failure is in.
       // Part of an esteira: the engine says what comes next (the next stage, or wait for the developer).
       const next = pipelines.engine.runFinished(run);
-      return { output: { runStatus: run.status, ...settled, ...(next ? { esteira: next } : {}) } };
+      return { output: { runStatus: run.status, ...(next ? { esteira: next } : {}) } };
     },
   });
 }

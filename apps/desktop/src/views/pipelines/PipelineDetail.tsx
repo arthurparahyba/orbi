@@ -4,6 +4,7 @@ import { useLive } from '../../hooks';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { StageCard } from './StageCard';
 import { StartForm } from './StartForm';
+import { PipelineWarnings } from './PipelineWarnings';
 
 /** One esteira: what it starts with, its stages in order, and how each passage goes. */
 export function PipelineDetail({ p, onEdit, onStarted }: { p: Pipeline; onEdit(): void; onStarted(conversationId: string): void }) {
@@ -32,6 +33,7 @@ export function PipelineDetail({ p, onEdit, onStarted }: { p: Pipeline; onEdit()
         />
       )}
       {mode === 'start' && <StartForm p={p} onStarted={onStarted} onCancel={() => setMode(undefined)} />}
+      <PipelineWarnings p={p} onFixing={onStarted} />
       <ol className="pl-stages">
         {p.stages.map((s, i) => (
           <li key={s.id}>

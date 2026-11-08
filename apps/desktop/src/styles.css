@@ -585,3 +585,19 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .pb-known ul, .pb-history ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .pb-known li { display: flex; gap: 8px; align-items: center; }
 .pb-known summary, .pb-history summary { cursor: pointer; font-size: 13px; }
+
+/* Review at the end of an execution */
+.msg.system.review { display: block; max-width: 820px; width: 100%; margin: 0 auto; text-align: left; }
+.msg.system.review .ui-card { text-align: left; }
+.ui-card.review-card.has-problems { border-color: rgba(242, 177, 60, 0.45); }
+.ui-card.review-card.is-clean { border-color: #2f5a45; }
+.review-runs { list-style: none; margin: 4px 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.review-runs > li { display: flex; gap: 8px; align-items: flex-start; }
+.review-runs ul { margin: 2px 0 0; padding-left: 18px; }
+.review-mark { width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.review-mark.is-ok { background: rgba(127, 220, 174, 0.15); color: #7fdcae; }
+.review-mark.is-bad { background: rgba(242, 177, 60, 0.18); color: var(--amber); }
+.review-config ul { margin: 4px 0 8px; padding-left: 18px; }
+.review-card .level-card { margin-top: 8px; }
+.ui-card.pl-warnings { border-color: rgba(242, 177, 60, 0.45); margin: 12px 0; }
+.ui-card.pl-warnings ul { margin: 4px 0 10px; padding-left: 18px; }

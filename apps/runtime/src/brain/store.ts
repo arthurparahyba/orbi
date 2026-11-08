@@ -12,6 +12,7 @@ import { pipelineGaps, pipelineProblems, type Pipeline, type PipelineInputDef } 
 import { playbookParams } from './domain/playbooks.ts';
 import { GraphRepo } from './repo/graph.ts';
 import { PlaybookRepo } from './repo/playbooks.ts';
+import { pipelineConfigProblems } from './domain/review.ts';
 import { LevelRepo, type AutonomyEvent, type KnownAction } from './repo/levels.ts';
 import {
   decideAction, levelAfterEdit, runDeviations, settleLevel, PASSAGE_STREAK,
@@ -225,6 +226,19 @@ export class BrainStore {
     return run && (run.status === 'running' || run.status === 'waiting') ? run : undefined;
   }
   /**
+   * Where a tool failure belongs: the run going on, or the one that just ended and was not
+   * reviewed yet (tools called in parallel report after the step that closed the run).
+   */
+  runForFailureIn(conversationId: string): PlaybookRun | undefined {
+    return this.openRunIn(conversationId) ?? this.playbookRepo.unreviewedIn(conversationId).at(-1);
+  }
+  unreviewedRunsIn(conversationId: string): PlaybookRun[] {
+    return this.playbookRepo.unreviewedIn(conversationId);
+  }
+  markReviewed(runId: string): void {
+    this.playbookRepo.markReviewed(runId);
+  }
+  /**
    * After a run ends: a clean run teaches its actions and may raise the level; a failure or a
    * denial lowers it. Returns the change (if any), what kept it from counting, and what the
    * playbook now does alone or still asks.
@@ -358,6 +372,10 @@ export class BrainStore {
     return this.pipelineRepo.passageStreaks(name);
   }
 
+  /** Configuration problems of an esteira (data that does not flow, steps that ask, fixed values). */
+  pipelineWarnings(p: PipelineInputDef, delivered: Record<string, Record<string, string>> = {}) {
+    return pipelineConfigProblems(p, (name) => this.playbookRepo.get(name), delivered);
+  }
   /** Esteiras that use a playbook. */
   pipelinesUsing(playbook: string): string[] {
     return this.pipelineRepo.using(playbook);

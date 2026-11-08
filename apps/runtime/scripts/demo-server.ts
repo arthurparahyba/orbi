@@ -209,7 +209,7 @@ const respond = async (context: { messages: Msg[] }) => {
   // The runtime also injects plumbing signals (MCP availability, new skills…); skip them.
   for (let i = msgs.length - 1; i >= 0; i--) {
     const t = textOf(msgs[i]);
-    const plumbing = t.startsWith('<signal') && !/tool-approval|followup|agent-request|secret-saved|pipeline/.test(t.slice(0, 200));
+    const plumbing = t.startsWith('<signal') && !/tool-approval|followup|agent-request|secret-saved|pipeline|review/.test(t.slice(0, 200));
     if (msgs[i].role === 'user' && !plumbing) { lastUser = i; break; }
   }
   const said = lastUser >= 0 ? textOf(msgs[lastUser]).toLowerCase() : '';
@@ -218,6 +218,10 @@ const respond = async (context: { messages: Msg[] }) => {
   await sleep(600);
 
   if (said.includes('<demonstracao')) return fromDemonstration(textOf(msgs[lastUser]), toolsSince);
+  // The review at the end of an execution: a line, or (with problems) what would be fixed.
+  if (said.includes('revisão da execução')) {
+    return fauxAssistantMessage(fauxText(said.includes('brain_learn') ? 'Revisei: vou propor as correções num cartão para você aprovar.' : 'Revisão: tudo certo.'));
+  }
   const pipeline = pipelineScenario(msgs, said, lastUser);
   if (pipeline) return pipeline;
   const fromAgent = msgs.some((m) => textOf(m).includes('<agent-request'));

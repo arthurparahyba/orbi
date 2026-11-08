@@ -28,19 +28,12 @@ const { brain, inbox } = (await import('../src/services.ts')).services();
 const faux = fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }] });
 setProvider(faux.provider);
 
-const { watchAgents } = await import('../src/observability/telemetry.ts');
-const { recordToolOutcome } = await import('../src/compose.ts');
-const s = (await import('../src/services.ts')).services();
-
+// app.ts runs startBackground: tool outcomes and the review at the end of each turn are wired.
 let flue: { [Symbol.asyncDispose](): Promise<void> };
-let unwatch: () => void;
 before(async () => {
   flue = (await start({ agents: [Orbi] })) as never;
-  // Tool outcomes, as startBackground wires them: failed steps and deviations of a run.
-  unwatch = watchAgents({ usage: s.usage, log: { info() {}, warn() {}, error() {}, debug() {} } as never, onTool: (c, o) => recordToolOutcome(s, c, o) });
 });
 after(async () => {
-  unwatch();
   await flue[Symbol.asyncDispose]();
 });
 
@@ -356,51 +349,58 @@ test('esteira pedida por agente (MCP): roda a etapa, para na passagem que pergun
   await client.close();
 });
 
-test('autonomia que cresce: passo com ferramenta falhada não fecha, a falha pede correção, a execução limpa sobe de nível', async () => {
+test('revisão no fim: falha em paralelo com o passo é pega, pede correção e não sobe; execução limpa sobe; Manter desfaz', async () => {
   brain.savePlaybook({
     name: 'mostrar-top', description: 'Mostra o top', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'mostrar', label: 'Mostrar no chat', how: 'show_ui table' }],
   });
   const card = { component: { component: 'status', id: 's1', title: 'Top 10', state: 'info', text: '10 de 100' } };
+  const until = async (ok: () => boolean, what: string) => {
+    for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 50));
+    assert.ok(ok(), what);
+  };
+
+  // As the real model did: the failing show_ui and the step's "done" in the same batch.
+  let review = '';
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'mostrar-top' }), { stopReason: 'toolUse' }),
-    fauxAssistantMessage(fauxToolCall('show_ui', {}), { stopReason: 'toolUse' }),
-    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'mostrar', status: 'done', note: 'Tabela exibida' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage([fauxToolCall('show_ui', {}), fauxToolCall('playbook_step', { stepId: 'mostrar', status: 'done', note: 'Tabela exibida' })], { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Mostrei o top.')),
     (context) => {
-      assert.match(JSON.stringify(context), /não pode ser dado como feito: a última ferramenta \(show_ui\) falhou/);
-      return fauxAssistantMessage(fauxToolCall('show_ui', card), { stopReason: 'toolUse' });
-    },
-    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'mostrar', status: 'done', note: 'Top 10 mostrado' }), { stopReason: 'toolUse' }),
-    (context) => {
-      assert.match(JSON.stringify(context), /correcao.*show_ui falhou.*brain_learn/);
-      return fauxAssistantMessage(fauxText('Mostrei o top 10. Proponho ajustar o passo.'));
+      review = JSON.stringify(context);
+      return fauxAssistantMessage(fauxText('Proponho corrigir o passo de mostrar.'));
     },
   ]);
-  const first = init(Orbi, { id: 'chat:teste-nivel-1' });
+  const first = init(Orbi, { id: 'chat:teste-revisao-1' });
   await first.read(await first.dispatch('mostra o top'));
-  const run1 = brain.lastRunIn('chat:teste-nivel-1')!;
-  assert.equal(run1.status, 'done');
+  await until(() => review !== '', 'a revisão chega à conversa');
+  assert.match(review, /Revisão da execução, feita pelo runtime/);
+  assert.match(review, /passo mostrar foi dado como feito.*mas show_ui falhou/);
+  assert.match(review, /UM brain_learn/);
+  const run1 = brain.lastRunIn('chat:teste-revisao-1')!;
   assert.deepEqual(run1.deviations.map((d) => [d.kind, d.tool, d.step]), [['falha', 'show_ui', 'mostrar']]);
-  assert.equal(brain.playbook('mostrar-top')!.level, 1, 'com desvio não sobe');
+  assert.equal(brain.playbook('mostrar-top')!.level, 1, 'com problema não sobe');
+  assert.equal(brain.unreviewedRunsIn('chat:teste-revisao-1').length, 0);
 
+  // A clean run: the review brings the level change (card data in the signal) and a note in Pendências.
+  let clean = '';
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'mostrar-top' }), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxToolCall('show_ui', card), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'mostrar', status: 'done' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Pronto.')),
     (context) => {
-      assert.match(JSON.stringify(context), /subiu de N1 para N2/);
-      assert.doesNotMatch(JSON.stringify(context), /Nesta execução: /);
-      return fauxAssistantMessage(fauxText('Pronto.'));
+      clean = JSON.stringify(context);
+      return fauxAssistantMessage(fauxText('Subiu para N2.'));
     },
   ]);
-  const second = init(Orbi, { id: 'chat:teste-nivel-2' });
-  const reply = await second.read(await second.dispatch('mostra o top de novo'));
+  const second = init(Orbi, { id: 'chat:teste-revisao-2' });
+  await second.read(await second.dispatch('mostra o top de novo'));
+  await until(() => clean !== '', 'a revisão da execução limpa chega');
+  assert.match(clean, /mostrar-top sem problemas/);
   assert.equal(brain.playbook('mostrar-top')!.level, 2);
-  const level = components(reply).find((c: any) => c.component === 'level');
-  assert.deepEqual([level.from, level.to, level.reason], [1, 2, 'rodou de ponta a ponta sem correção']);
   const note = inbox.list({ status: 'open' }).find((i) => i.kind === 'level' && i.routine === 'playbook:mostrar-top')!;
   assert.equal(note.title, 'mostrar-top subiu para N2 · Assistido');
-  // "Manter em N1" undoes it, as a choice of the developer.
   const kept = await app.request(`/api/inbox/${note.id}/keep`, { method: 'POST' });
   assert.equal(kept.status, 200);
   assert.deepEqual([brain.playbook('mostrar-top')!.level, brain.playbook('mostrar-top')!.levelBy], [1, 'user']);

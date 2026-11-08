@@ -45,7 +45,7 @@ export function toolLabel(t: ToolCall): string {
 /** The command line, for tools that run one. */
 export function toolCommand(t: ToolCall): string | undefined {
   const i = inputOf(t);
-  if (typeof i.binary === 'string') return [i.binary, ...((i.args as string[] | undefined) ?? [])].join(' ');
+  if (typeof i.binary === 'string') return [i.binary, ...((i.args as string[] | undefined) ?? [])].join(' ') + (typeof i.saveTo === 'string' ? ` > ${i.saveTo}` : '');
   if (t.toolName === 'browser_act' || t.toolName === 'browser_read') return `navegador: ${String(i.tool ?? '')}`;
   return undefined;
 }
@@ -59,7 +59,10 @@ export function toolResult(t: ToolCall): string | undefined {
   const raw = out?.status === 'executed' ? out.result : t.output;
   if (typeof raw === 'string') {
     try {
-      const r = JSON.parse(raw) as { exitCode?: number; stdout?: string; stderr?: string };
+      const r = JSON.parse(raw) as { exitCode?: number; stdout?: string; stderr?: string; savedTo?: string | null; lines?: number; head?: string[] };
+      if ('savedTo' in r) {
+        return [r.savedTo ? `salvo em ${r.savedTo} (${r.lines ?? 0} linhas)` : 'não salvou (o comando falhou)', ...(r.head ?? []), r.stderr?.trim() && `stderr: ${r.stderr.trim()}`, `(saída ${r.exitCode})`].filter(Boolean).join('\n');
+      }
       if ('exitCode' in r) return [r.stdout?.trim(), r.stderr?.trim() && `stderr: ${r.stderr.trim()}`, `(saída ${r.exitCode})`].filter(Boolean).join('\n');
     } catch { /* plain text */ }
     return raw;

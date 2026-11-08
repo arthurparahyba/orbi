@@ -78,6 +78,19 @@ export class PlaybookRepo {
       .run(state.level, state.levelMax, state.levelBy, state.cleanStreak, state.level, name);
   }
 
+  markReviewed(id: string): void {
+    this.db.prepare('UPDATE playbook_runs SET reviewed_at = ? WHERE id = ?').run(now(), id);
+  }
+
+  /** Runs of a conversation that ended and were not reviewed yet, oldest first. */
+  unreviewedIn(conversationId: string): PlaybookRun[] {
+    return (
+      this.db
+        .prepare("SELECT * FROM playbook_runs WHERE conversation_id = ? AND status IN ('done', 'failed') AND reviewed_at IS NULL ORDER BY started_at, id")
+        .all(conversationId) as Row[]
+    ).map(toRun);
+  }
+
   setRunTrail(id: string, actions: RunAction[], deviations: Deviation[]): void {
     this.db.prepare('UPDATE playbook_runs SET actions = ?, deviations = ? WHERE id = ?').run(json(actions), json(deviations), id);
   }

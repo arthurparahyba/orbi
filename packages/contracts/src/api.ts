@@ -35,6 +35,19 @@ export type ActionEffect = 'leitura' | 'local' | 'publica' | 'apaga';
 export interface KnownAction { playbook: string; fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null; count: number; firstAt: string; lastAt: string }
 export interface AutonomyEvent { id: string; subjectKind: 'playbook' | 'passage'; subject: string; from: string; to: string; reason: string; conversationId: string | null; createdAt: string }
 /** GET /api/brain/playbooks/:name/autonomy */
+/**
+ * What the runtime found at the end of an execution (signal `review` in the conversation,
+ * attribute `review` as JSON): each procedure that ran, its problems and level change,
+ * and the esteira's configuration problems.
+ */
+export interface ExecutionReview {
+  runs: Array<{
+    runId: string; playbook: string; status: 'done' | 'failed'; problems: string[];
+    level?: { from: number; to: number; reason: string; inboxId?: string; alone: string[]; asks: string[] };
+  }>;
+  config: Array<{ stage: string; playbook: string; text: string }>;
+  pipeline?: string;
+}
 export interface PlaybookAutonomy { knownActions: KnownAction[]; events: AutonomyEvent[]; runsForN3: number }
 export interface PlaybookOutput { name: string; description: string }
 export interface PlaybookRun {
@@ -161,6 +174,8 @@ export interface PipelineOption { playbook: string; when?: { field: string; equa
 export interface PipelineStage { id: string; label: string; options: PipelineOption[]; passage: 'ask' | 'auto' }
 export interface Pipeline {
   name: string; description: string; inputs: PipelineInput[]; stages: PipelineStage[]; uses: number; updatedAt: string;
+  /** Configuration problems: data that does not reach a stage, steps that ask what comes from before. */
+  warnings?: Array<{ stage: string; playbook: string; text: string }>;
   /** Parameters nothing hands over: the Orbi will ask at that stage. */
   gaps?: Array<{ stage: string; playbook: string; param: string }>;
 }

@@ -179,4 +179,10 @@ CREATE TABLE autonomy_events (
 CREATE INDEX autonomy_events_subject ON autonomy_events(subject_kind, subject, created_at);
 ALTER TABLE pipelines ADD COLUMN passage_streaks TEXT NOT NULL DEFAULT '{}';`,
   },
+  {
+    name: 'revisão no fim da execução: quando cada execução foi revisada (as antigas contam como revisadas)',
+    sql: `
+ALTER TABLE playbook_runs ADD COLUMN reviewed_at TEXT;
+UPDATE playbook_runs SET reviewed_at = COALESCE(finished_at, started_at) WHERE status IN ('done', 'failed');`,
+  },
 ];

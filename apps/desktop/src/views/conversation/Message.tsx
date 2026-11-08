@@ -4,6 +4,7 @@ import { UiComponentView, type UiComponent } from '../../components/UiComponents
 import { Markdown } from '../../components/Markdown';
 import { DemonstrationCard } from '../../components/Demonstration';
 import { groupSummary, isSilent, toolCommand, toolLabel, toolResult } from './tools';
+import { ReviewCard, reviewOf } from '../../components/ReviewCard';
 
 /** One message of the conversation, as the developer should see it. */
 export function Message({ m }: { m: FlueConversationMessage }) {
@@ -17,6 +18,10 @@ export function Message({ m }: { m: FlueConversationMessage }) {
     if (m.signal?.tagName === 'pipeline' || m.signal?.attributes?.type === 'pipeline') {
       const text = m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('');
       return <div className="msg system pipeline-signal">⚑ {text.split('. ')[0]}.</div>;
+    }
+    if (m.signal?.tagName === 'review' || m.signal?.attributes?.type === 'review') {
+      const r = reviewOf(m.signal?.attributes as Record<string, unknown> | undefined);
+      return r ? <div className="msg system review"><ReviewCard r={r} /></div> : null;
     }
     if (m.signal?.tagName === 'secret-saved' || m.signal?.attributes?.type === 'secret-saved') {
       return <div className="msg system"><KeyIcon size={12} /> Credencial guardada no cofre</div>;

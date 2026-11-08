@@ -34,6 +34,11 @@ modelo: qual ramo, com quais dados, se precisa perguntar.
 - **Criar pela conversa**: "quando o workflow de dev terminar, já promove para
   homologação e depois abre a GMUD" vira um cartão de aprendizado com a prévia da
   esteira (`brain_learn` com tipo `pipeline`), aprovado como qualquer aprendizado.
+- **Problemas de configuração** no detalhe da esteira ("Os dados não passam direito
+  entre as etapas"), com **Pedir correção ao Orbi**: abre uma conversa em que ele
+  propõe as correções num cartão de aprendizado.
+- **Revisão da execução** na conversa, ao fim de cada turno em que etapas terminaram
+  (documento 5), com os problemas de configuração da esteira.
 - **Valor padrão** nas entradas (editor da esteira, coluna "padrão"): com ele, o
   Orbi começa sem perguntar e mostra o valor usado; **Começar uma entrega** já vem
   preenchido. Se você responder a mesma coisa duas vezes, o Orbi propõe guardar como padrão.
@@ -76,6 +81,16 @@ sequenceDiagram
 - **Ramos**: uma etapa pode ter várias opções, cada uma com uma condição
   `campo = valor` sobre uma entrada ou uma entrega anterior. Nenhuma condição bate:
   a esteira para e explica.
+- **Conferência da configuração** (`pipelineConfigProblems` em `brain/domain/review.ts`):
+  - o mapa de uma etapa aponta para um parâmetro que o procedimento não tem
+    (`{{nome}}` nos passos): o dado não chega;
+  - etapa depois da primeira cujo procedimento não recebe nada: os dados só
+    passariam pela memória do modelo;
+  - passo que pergunta ao desenvolvedor (`ask_developer`, "não assumir") o que a
+    esteira já dá;
+  - na revisão, com os dados da entrega: passo que escreve fixo um valor que uma
+    etapa anterior entrega (um caminho), em vez de `{{nome}}`.
+  São avisos, não impedem salvar. `GET /api/pipelines` traz `warnings`.
 - **Padrão**: `withDefaults` completa as entradas que o pedido deixou de fora antes
   de validar.
 - **Passagem que vira automática**: numa passagem `ask` em que você clicou
@@ -130,6 +145,7 @@ sequenceDiagram
 | `POST /api/pipelines/:name/start` `{inputs, destination?}` | Começar uma entrega numa conversa nova |
 | `GET /api/pipeline-runs?active=1` · `GET /api/pipeline-runs/conversation/:id` | Entregas |
 | `POST /api/pipeline-runs/:id/decide` `{decision, values?}` | `continue`, `retry`, `skip` ou `stop` |
+| `POST /api/pipelines/:name/fix` | Conversa nova em que o Orbi propõe a correção dos problemas de configuração |
 
 ## Limites conhecidos
 
@@ -145,6 +161,11 @@ sequenceDiagram
   ramo, passagem que pergunta, destino, regras para agentes, falha (tentar, pular,
   encerrar), dados que faltam, procedimento em uso não se apaga.
 - `apps/runtime/test/levels.test.ts`: padrão nas entradas e passagem que vira automática.
+- `apps/runtime/test/review.test.ts`: a esteira top-repos como estava (mapa sem
+  parâmetro, passo que pergunta, caminho fixo), corrigida sem avisos, e a revisão
+  que pega a falha que chega depois do passo.
+- `apps/runtime/test/agent-flow.test.ts` ("revisão no fim"): `show_ui` falhando na
+  mesma leva do `playbook_step`, pego pela revisão, pede correção e não sobe.
 - `apps/runtime/test/agent-flow.test.ts` ("esteira pedida por agente"): pelo MCP,
   com o modelo roteirizado: roda a etapa, para na passagem, segue com a decisão,
   passa os dados e responde ao agente.
