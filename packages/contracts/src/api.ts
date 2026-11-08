@@ -117,3 +117,22 @@ export interface AgentSuggestion {
   agents: string[]; count: number; similarTo: string[];
   status: 'open' | 'accepted' | 'rejected'; createdAt: string; updatedAt: string;
 }
+
+/** GET /api/voice — the local transcription model: which, where, what is missing, state. */
+export interface VoiceStatus {
+  backend: 'local' | 'http' | 'off';
+  url?: string;
+  model: string;
+  defaultModel: string;
+  dir: string;
+  host: string;
+  offline: boolean;
+  files: Array<{ path: string; present: boolean; bytes: number; url: string }>;
+  complete: boolean;
+  known: Array<{ id: string; size: string; note: string }>;
+  status:
+    | { state: 'idle' }
+    | { state: 'downloading'; file?: string; progress?: number }
+    | { state: 'ready' }
+    | { state: 'error'; message: string };
+}

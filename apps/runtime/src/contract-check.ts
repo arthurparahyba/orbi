@@ -14,6 +14,7 @@ import type { InboxItem } from './conversations/inbox.ts';
 import type { AutonomyLevel, Category } from './autonomy/policy.ts';
 import type { SecretInfo } from './vault/vault.ts';
 import type { AgentClient } from './mcp/clients.ts';
+import type { VoiceStatus } from './voice/model.ts';
 import type { AgentRequest } from './mcp/requests.ts';
 import type { AgentSuggestion } from './mcp/suggestions.ts';
 
@@ -36,6 +37,7 @@ export type ContractChecks = [
   Check<Fits<Recording, C.Recording>>,
   Check<Fits<SecretInfo, C.SecretInfo>>,
   Check<Fits<AgentClient, C.AgentClient>>,
+  Check<Fits<VoiceStatus, C.VoiceStatus>>,
   Check<Fits<AgentRequest, C.AgentRequest>>,
   Check<Fits<AgentSuggestion, C.AgentSuggestion>>,
   // Enumerations must match exactly: the app offers every value as a choice.

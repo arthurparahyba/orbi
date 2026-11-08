@@ -1,5 +1,5 @@
 import type {
-  AgentClient, AgentClientCreated, ProvideSecret, AgentRequest, AgentSuggestion, EditAgentClient,
+  AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, AgentRequest, AgentSuggestion, EditAgentClient,
   ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
@@ -74,6 +74,9 @@ export const api = {
     });
     if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   },
+  voice: () => request<VoiceStatus>('/api/voice'),
+  prepareVoice: () => request<VoiceStatus>('/api/voice/prepare', { method: 'POST' }),
+  chooseVoiceModel: (model: string | null) => request<VoiceStatus>('/api/voice/model', { method: 'PUT', body: JSON.stringify({ model }) }),
   async transcribe(wav: Blob): Promise<string> {
     const res = await fetch(`${RUNTIME_URL}/api/transcribe`, { method: 'POST', headers: { 'content-type': 'audio/wav' }, body: wav });
     const json = (await res.json().catch(() => ({}))) as { text?: string } & Partial<ApiError>;

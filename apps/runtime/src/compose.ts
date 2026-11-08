@@ -7,6 +7,7 @@ import { PolicyStore } from './autonomy/policy.ts';
 import { Conversations } from './conversations/conversations.ts';
 import { Vault } from './vault/vault.ts';
 import { createStt } from './voice/stt.ts';
+import { VoiceModel } from './voice/model.ts';
 import { createChrome } from './browser/chrome.ts';
 import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
@@ -49,13 +50,15 @@ export async function createOrbi(
 
   const events = overrides.events ?? createEvents();
   const vault = overrides.vault ?? new Vault(config.vault.indexFile, config.vault.dataFile, config.vault.keyFile, config.vault.prefer);
-  const stt = overrides.stt ?? createStt(config.stt);
   const chrome = overrides.chrome ?? createChrome(config.chrome);
 
   // One database for the brain and the app state, brought up to date by its migrations.
   adoptLegacyBrain(config.dbFile, config.legacyBrainFile);
   const db = openDatabase(config.dbFile);
   watchTables(db, events);
+  // The transcription model: chosen in .env or on the Autonomia screen, its files and their state.
+  const voice = overrides.voice ?? new VoiceModel(db, config.stt, () => events.emit('voice'));
+  const stt = overrides.stt ?? createStt(() => voice.config(), (ok, message) => voice.report(ok ? { state: 'ready' } : { state: 'error', message: message ?? '' }));
   vault.onChange = () => events.emit('vault');
   const inbox = overrides.inbox ?? new Inbox(db);
   const conversations = overrides.conversations ?? new Conversations(db);
@@ -74,6 +77,7 @@ export async function createOrbi(
     conversations,
     vault,
     stt,
+    voice,
     chrome,
     browser: overrides.browser ?? createBrowserMcp({ port: config.chrome.port, token: config.chrome.token }),
     recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt, onChange: (id) => events.emit('recording', id) }),

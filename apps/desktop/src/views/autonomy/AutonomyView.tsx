@@ -3,6 +3,7 @@ import { useLive } from '../../hooks';
 import { Segmented } from '../../components/Segmented';
 import { Usage } from './Usage';
 import { Vault } from './Vault';
+import { Voice } from './Voice';
 import { Capabilities } from './Capabilities';
 
 const CATEGORIES: Array<{ key: Category; title: string; hint: string; locked?: Autonomy[] }> = [
@@ -50,6 +51,7 @@ export function AutonomyView({ health }: { health?: Health }) {
       </section>
       <Usage />
       <Vault />
+      <Voice />
       <Capabilities health={health} />
     </div>
   );

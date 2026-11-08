@@ -12,9 +12,10 @@
  *   recording      gravação no navegador (id = gravação)
  *   dispatched     o runtime mandou uma mensagem a uma conversa (id = conversa)
  *   usage          uso do modelo e das ferramentas (id = conversa)
+ *   voice          modelo de transcrição: baixando, pronto, erro, trocado
  *   agents         agentes conectados, pedidos e sugestões que chegaram pelo MCP
  */
-export const TOPICS = ['inbox', 'conversations', 'brain', 'runs', 'autonomy', 'vault', 'recording', 'dispatched', 'usage', 'agents'] as const;
+export const TOPICS = ['inbox', 'conversations', 'brain', 'runs', 'autonomy', 'vault', 'recording', 'dispatched', 'usage', 'agents', 'voice'] as const;
 export type Topic = (typeof TOPICS)[number];
 
 export interface ChangeEvent {

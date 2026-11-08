@@ -455,3 +455,13 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .secret-form > .row, .secret-form > p { grid-column: 1 / -1; margin: 0; }
 .agents-table td:last-child { white-space: nowrap; }
 .chat-confirm { padding: 10px 24px; border-bottom: 1px solid var(--border); }
+
+/* ── transcrição de voz ───────────────────────────────── */
+.voice-dir { min-width: 0; }
+.voice-dir code { word-break: break-all; }
+.voice-model fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.voice-model legend { margin-bottom: 4px; }
+.voice-model input[type=text], .voice-model input:not([type]) { width: 280px; }
+.voice-files { display: block; }
+.voice-files summary { cursor: pointer; }
+.voice-file-list { margin: 6px 0 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }

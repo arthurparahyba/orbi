@@ -79,7 +79,7 @@ cofre ou ponte MCP, `npm run e2e`.
   cartões (histórico, contadores) vêm do banco, preenchidos pelo runtime, nunca do modelo.
 - **Banco**: um arquivo `data/orbi.db`. Migrações em `db/migrations.ts` são só de acréscimo,
   nunca edite uma que já existe. Toda tabela que a tela mostra precisa estar em `db/changes.ts`
-  para virar evento; o app não consulta de tempos em tempos (só o health).
+  para virar evento; o app não consulta de tempos em tempos (só o health, e o `live.ts` quando o feed cai).
 - **Busca** passa pelo índice FTS5 (mantido por gatilhos SQLite). Mudou a busca: rode
   `eval:search`; o teste em `brain-domain.test.ts` trava o mínimo, e esse mínimo não pode baixar.
 - **Prompts** ficam em `src/prompts/*.md`, importados com `?raw`. Regra de comportamento do

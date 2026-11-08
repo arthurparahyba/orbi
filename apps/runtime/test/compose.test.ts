@@ -54,7 +54,7 @@ test('createOrbi monta as peças e aceita substitutas', async () => {
   const { createOrbi } = await import('../src/compose.ts');
   const cwd = mkdtempSync(join(tmpdir(), 'orbi-compose-'));
   const config = loadConfig({ ORBI_VAULT: 'file', CHROME_MCP_AUTOSTART: 'false' }, cwd);
-  const fakeStt = { get: () => ({ name: 'falsa', transcribe: async () => 'oi' }), set() {}, name: () => 'falsa' };
+  const fakeStt = { get: () => ({ name: 'falsa', transcribe: async () => 'oi' }), set() {}, reset() {}, name: () => 'falsa' };
   const orbi = await createOrbi(config, { stt: fakeStt }, {});
   assert.equal(orbi.stt.name(), 'falsa');
   assert.equal(orbi.config.model, 'anthropic/claude-haiku-5-5');

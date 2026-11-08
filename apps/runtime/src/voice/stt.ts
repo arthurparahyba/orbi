@@ -80,10 +80,11 @@ export async function loadWhisper(stt: SttConfig, onProgress?: (p: ModelProgress
     return res instanceof Response ? res : new Response(res.body, { status: res.status, statusText: res.statusText, headers: res.headers });
   };
   if (stt.modelHost) t.env.remoteHost = stt.modelHost.endsWith('/') ? stt.modelHost : `${stt.modelHost}/`;
-  if (stt.offline) {
-    t.env.allowRemoteModels = false;
-    t.env.localModelPath = stt.modelsDir;
-  }
+  // Files already in the folder (downloaded before, or put there by hand) are used without
+  // going to the internet: transformers.js looks in localModelPath first.
+  t.env.allowLocalModels = true;
+  t.env.localModelPath = stt.modelsDir;
+  if (stt.offline) t.env.allowRemoteModels = false;
   let lastFile = '';
   try {
     return (await t.pipeline('automatic-speech-recognition', stt.localModel, {
@@ -107,10 +108,10 @@ export function modelLoadError(stt: Pick<SttConfig, 'localModel' | 'modelHost' |
   }
   const where = stt.offline ? `em ${stt.modelsDir}` : `de ${stt.modelHost ?? 'huggingface.co'}`;
   return `não consegui carregar o modelo de transcrição ${stt.localModel} ${where}${file ? ` (arquivo ${file})` : ''}: ${causes.join(' ← ')}. ` +
-    'Teste com `npm run stt:testar -w @orbi/runtime`; veja docs/funcionalidades/06-ensinar-pelo-navegador.md.';
+    'Veja em Autonomia → Transcrição de voz: dá para baixar de novo ou colocar os arquivos à mão.';
 }
 
-function localWhisper(stt: SttConfig): Transcriber {
+function localWhisper(stt: SttConfig, report?: (ok: boolean, message?: string) => void): Transcriber {
   let asr: Promise<Asr> | undefined;
   const load = () =>
     (asr ??= (async () => {
@@ -122,11 +123,15 @@ function localWhisper(stt: SttConfig): Transcriber {
           log.info('baixando arquivo do modelo de transcrição', { file: p.file });
         }
       });
-    })().catch((error) => {
-      asr = undefined;
-      log.error('modelo de transcrição não carregou', { error });
-      throw error;
-    }));
+    })().then(
+      (loaded) => { report?.(true); return loaded; },
+      (error) => {
+        asr = undefined;
+        log.error('modelo de transcrição não carregou', { error });
+        report?.(false, error instanceof Error ? error.message : String(error));
+        throw error;
+      },
+    ));
   return {
     name: `local:${stt.localModel}`,
     async transcribe(wav) {
@@ -172,17 +177,25 @@ function httpWhisper(stt: SttConfig): Transcriber {
 export interface SttSlot {
   get(): Transcriber | null;
   set(t: Transcriber | null): void;
+  /** Forget the current one (the model changed): the next use builds it again. */
+  reset(): void;
   /** Name for /api/health, without loading anything heavy. */
   name(): string;
 }
 
-export function createStt(stt: SttConfig): SttSlot {
+export function createStt(config: SttConfig | (() => SttConfig), report?: (ok: boolean, message?: string) => void): SttSlot {
   let current: Transcriber | null | undefined;
-  const build = () => (stt.backend === 'off' ? null : stt.backend === 'http' ? httpWhisper(stt) : localWhisper(stt));
+  const build = () => {
+    const stt = typeof config === 'function' ? config() : config;
+    return stt.backend === 'off' ? null : stt.backend === 'http' ? httpWhisper(stt) : localWhisper(stt, report);
+  };
   return {
     get: () => (current === undefined ? (current = build()) : current),
     set: (t) => {
       current = t;
+    },
+    reset: () => {
+      current = undefined;
     },
     name() {
       try {

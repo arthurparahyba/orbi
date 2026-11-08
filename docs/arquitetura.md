@@ -271,6 +271,10 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `GET/PATCH /api/autonomy` | Níveis globais por categoria |
 | `POST /api/recordings` · `GET /api/recordings/:id` · `POST …/audio` · `POST …/stop` | Demonstração no navegador |
 | `GET /api/vault` · `PUT/DELETE /api/vault/:name` | Cofre (só nomes e descrições, nunca valores) |
+| `POST /api/transcribe` | Ditado: áudio WAV vira texto (nada é guardado) |
+| `GET /api/voice` · `POST /api/voice/prepare` · `PUT /api/voice/model` | Modelo de transcrição: pasta, arquivos, baixar e testar, trocar |
+| `DELETE /api/conversations/:id` | Apagar conversa |
+| `/api/agents/...` · `POST /mcp` | Agentes de código (documento 15) |
 | `GET /api/health` | Modelo, chave, ponte do Chrome, cérebro, onde fica o `.env` |
 | `PATCH`/`DELETE /api/brain/entities/:id` | Editar ou apagar uma entidade (pela tela Cérebro) |
 | `PUT`/`DELETE /api/brain/playbooks/:name` | Editar ou apagar um procedimento |

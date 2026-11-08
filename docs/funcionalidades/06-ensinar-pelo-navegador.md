@@ -160,6 +160,38 @@ vez. As saídas são `ORBI_STT_MODEL_HOST` (espelho interno), `ORBI_STT_OFFLINE`
 (modelo copiado à mão) ou `ORBI_STT=http` (serviço da empresa). Sem nenhuma, a
 demonstração funciona sem a narração, só com os cliques.
 
+### O modelo: quando baixa, onde fica, como trocar
+
+- **Quando**: não no build nem na instalação. Na primeira transcrição (ditado na
+  conversa ou narração), ou quando você clica em **Baixar agora** em
+  **Autonomia → Transcrição de voz**. Depois disso, não usa mais a internet.
+- **Onde** (`<pasta de dados>/models/<modelo>/`):
+
+  | Como roda | Pasta |
+  | --- | --- |
+  | `npm run dev` / `npm start` | `apps/runtime/data/models/` |
+  | App instalado no macOS | `~/Library/Application Support/br.com.zup.orbi/data/models/` |
+  | App instalado no Windows | `%APPDATA%\br.com.zup.orbi\data\models\` |
+  | App instalado no Linux | `~/.local/share/br.com.zup.orbi/data/models/` |
+
+  `ORBI_DATA_DIR` muda a pasta de dados. A tela mostra o caminho exato desta máquina.
+- **O que baixa** (Whisper do onnx-community em 8 bits): `config.json`,
+  `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`,
+  `tokenizer_config.json`, `onnx/encoder_model_quantized.onnx` e
+  `onnx/decoder_model_merged_quantized.onnx`.
+- **Se o download falhar** (proxy da empresa): a tela lista os arquivos que faltam,
+  com o link de cada um. Baixe pelo navegador, salve na pasta mantendo a subpasta
+  `onnx/` e clique em **Testar**. Arquivos já na pasta são usados sem internet; copiar
+  a pasta de outro computador também funciona.
+- **Trocar de modelo**: na mesma tela, `whisper-base` (~80 MB, rápido, erra mais),
+  `whisper-small` (padrão, ~250 MB) ou `whisper-large-v3-turbo` (~1,1 GB, o melhor
+  em português). Outro modelo do onnx-community com os mesmos arquivos funciona em
+  **Outro**. A escolha fica no banco (`settings`, chave `stt`) e vale sobre o
+  `ORBI_STT_LOCAL_MODEL`; vale na próxima transcrição.
+- Peças: `voice/model.ts` (arquivos, estado, troca), `http/routes/voice.ts`
+  (`GET /api/voice`, `POST /api/voice/prepare`, `PUT /api/voice/model`), tela
+  `views/autonomy/Voice.tsx`. O andamento chega pelo evento `voice`.
+
 ### Quando a narração sai "não transcrito"
 
 Rode `npm run stt:testar -w @orbi/runtime`. Ele carrega o modelo como o runtime

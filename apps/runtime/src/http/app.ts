@@ -17,6 +17,7 @@ import { usageRoutes } from './routes/usage.ts';
 import { agentRoutes } from './routes/agents.ts';
 import { mcpRoutes } from './routes/mcp.ts';
 import { transcribeRoutes } from './routes/transcribe.ts';
+import { voiceRoutes } from './routes/voice.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.
@@ -66,6 +67,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/usage', usageRoutes(s));
   app.route('/api/agents', agentRoutes(s));
   app.route('/api/transcribe', transcribeRoutes(s));
+  app.route('/api/voice', voiceRoutes(s));
   app.route('/mcp', mcpRoutes(s, agent));
   return app;
 }

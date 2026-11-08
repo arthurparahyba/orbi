@@ -13,6 +13,7 @@ import type { ActiveLlm } from './llm/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
 import type { AgentClients } from './mcp/clients.ts';
+import type { VoiceModel } from './voice/model.ts';
 import type { AgentRequests } from './mcp/requests.ts';
 import type { AgentSuggestions } from './mcp/suggestions.ts';
 
@@ -44,6 +45,8 @@ export interface OrbiServices {
   /** Model and tool usage per conversation (fed by telemetry.ts). */
   usage: UsageStore;
   /** Coding agents that call Orbi over MCP: who they are, what they asked, what they suggested. */
+  /** The local transcription model: which, where its files are, download and change. */
+  voice: VoiceModel;
   agents: { clients: AgentClients; requests: AgentRequests; suggestions: AgentSuggestions };
 }
 

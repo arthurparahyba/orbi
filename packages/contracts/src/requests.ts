@@ -66,6 +66,11 @@ export const ProvideSecret = v.object({
   description: v.optional(v.pipe(v.string(), v.maxLength(200))),
 });
 
+/** PUT /api/voice/model — another transcription model (null goes back to the default). */
+export const ChooseVoiceModel = v.object({
+  model: v.nullable(v.pipe(v.string(), v.trim(), v.regex(/^[\w.-]+\/[\w.-]+$/, 'use o formato dono/modelo, ex.: onnx-community/whisper-base'))),
+});
+
 /** POST /api/agents/clients — connect a coding agent. */
 export const CreateAgentClient = v.object({ name: v.pipe(v.string(), v.trim(), v.minLength(1, 'dê um nome ao agente'), v.maxLength(80)) });
 /** PATCH /api/agents/clients/:id — what the agent may do besides searching. */
@@ -100,3 +105,4 @@ export type CreateAgentClient = v.InferOutput<typeof CreateAgentClient>;
 export type EditAgentClient = v.InferOutput<typeof EditAgentClient>;
 export type AcceptSuggestion = v.InferOutput<typeof AcceptSuggestion>;
 export type ProvideSecret = v.InferOutput<typeof ProvideSecret>;
+export type ChooseVoiceModel = v.InferOutput<typeof ChooseVoiceModel>;
