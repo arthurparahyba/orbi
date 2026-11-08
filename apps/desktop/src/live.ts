@@ -26,12 +26,17 @@ export interface Live {
 
 export function createLive(
   open: () => EventSourceLike,
-  fallback: { everyMs: number; setInterval: typeof setInterval; clearInterval: typeof clearInterval } = { everyMs: 5_000, setInterval, clearInterval },
+  // Wrapped: browsers throw "Illegal invocation" when setInterval is called as a method of another object.
+  fallback: { everyMs: number; setInterval(fn: () => void, ms: number): unknown; clearInterval(id: unknown): void } = {
+    everyMs: 5_000,
+    setInterval: (fn, ms) => globalThis.setInterval(fn, ms),
+    clearInterval: (id) => globalThis.clearInterval(id as number),
+  },
 ): Live {
   const listeners = new Set<Listener>();
   let source: EventSourceLike | undefined;
   let up = false;
-  let timer: ReturnType<typeof setInterval> | undefined;
+  let timer: unknown;
 
   const send = (change: Change) => {
     for (const listener of listeners) listener(change);
