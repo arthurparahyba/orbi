@@ -155,7 +155,7 @@ claude mcp add --scope user --transport http orbi http://127.0.0.1:3000/mcp --he
 - `apps/runtime/test/mcp.test.ts`: tokens, revogação, Host, separação do token do
   app, permissões, busca, leitura, sugestão repetida, aceitar como variação, conflito
   de nome, estado; esteiras: listar, detalhar, permissões e entradas inválidas.
-- `apps/runtime/test/agent-flow.test.ts` ("pedido de agente"): delegar pelo MCP, o
+- `apps/runtime/test/flow-*.test.ts` ("pedido de agente"): delegar pelo MCP, o
   Orbi roda o procedimento, responde com `agent_reply` e a conversa sai marcada;
   e "esteira pedida por agente": para na passagem, segue com a decisão, responde.
 - `apps/desktop/test/agents.test.ts`: comando de conexão, estado "esperando",

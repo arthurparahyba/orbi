@@ -223,12 +223,12 @@ procedimentos.
 
 ## Testes
 
-- `apps/runtime/test/agent-flow.test.ts`: aprender, aprovar, ver como skill,
+- `apps/runtime/test/flow-*.test.ts`: aprender, aprovar, ver como skill,
   executar com checklist e contar o sucesso.
 - `apps/runtime/test/demonstration.test.ts`: parâmetros preenchidos, segredos
   continuam referência.
 - `apps/runtime/test/units.test.ts`: catálogo de skills só com os mais usados.
-- `apps/runtime/test/agent-flow.test.ts` ("script do procedimento"): fora de um
+- `apps/runtime/test/flow-*.test.ts` ("script do procedimento"): fora de um
   procedimento é recusado; a primeira vez pede, aprovado roda o código guardado;
   com outros dados, no N2, roda sozinho.
 - `apps/runtime/test/review.test.ts` ("scripts do procedimento"): validação,

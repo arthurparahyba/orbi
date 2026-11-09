@@ -79,4 +79,4 @@ Tabela `followups` em `data/orbi.db`: conversa, horário, nota, estado
 
 ## Testes
 
-- `apps/runtime/test/agent-flow.test.ts`: o Orbi agenda, encerra o turno, e cada retorno vencido é pego uma vez só.
+- `apps/runtime/test/flow-*.test.ts`: o Orbi agenda, encerra o turno, e cada retorno vencido é pego uma vez só.

@@ -157,6 +157,6 @@ pode desfazer.
 - `apps/runtime/test/levels.test.ts`: `git -C`, efeito dos comandos, leitura no N1,
   o que cada nível faz sozinho, subida e descida, teto, impressão digital, ações
   conhecidas, `auto` como N3, passagem de esteira que vira automática.
-- `apps/runtime/test/agent-flow.test.ts` ("autonomia que cresce"): passo com
+- `apps/runtime/test/flow-*.test.ts` ("autonomia que cresce"): passo com
   ferramenta falhada não fecha, a falha pede correção, a execução limpa sobe, Manter desfaz.
 - `apps/runtime/test/http.test.ts`: validação do `PATCH /api/autonomy`.

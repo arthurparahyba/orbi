@@ -154,7 +154,7 @@ e as mensagens aparecem.
 
 ## Testes
 
-- `apps/runtime/test/agent-flow.test.ts`: o ciclo inteiro pelo Flue real, com
+- `apps/runtime/test/flow-*.test.ts`: o ciclo inteiro pelo Flue real, com
   um modelo roteirizado (aprender, aprovar, executar, agendar, "já sei algo parecido").
 - `apps/desktop/test/message.test.ts` e `transcript.test.ts`: agrupamento das
   ferramentas e o Markdown copiado.

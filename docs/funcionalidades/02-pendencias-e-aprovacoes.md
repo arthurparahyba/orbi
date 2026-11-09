@@ -116,7 +116,7 @@ Pontos que importam:
 
 ## Testes
 
-- `apps/runtime/test/agent-flow.test.ts`: aprendizado fica pendente até aprovar;
+- `apps/runtime/test/flow-*.test.ts`: aprendizado fica pendente até aprovar;
   pergunta "parecido" vira pendência e a escolha chega ao agente.
 - `apps/runtime/test/http.test.ts`: validação, `404`, `409` (já decidido, tipo errado).
 - `apps/desktop/test/message.test.ts`: grupos do painel, avisos fora da contagem,

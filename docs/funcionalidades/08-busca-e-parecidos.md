@@ -159,7 +159,7 @@ para nenhuma mudança piorar a busca sem ninguém ver.
 
 - `apps/runtime/test/brain-domain.test.ts`: radicais, consulta, índice
   atualizado a cada escrita, ordem, mínimo da medição, variações.
-- `apps/runtime/test/agent-flow.test.ts`: igual não interrompe; parecido mostra
+- `apps/runtime/test/flow-*.test.ts`: igual não interrompe; parecido mostra
   o cartão, a escolha chega e vira variação aprovada, sem mudar a base.
 - `apps/desktop/test/stepDiff.test.ts`: igual, muda, novo e sai; variações abaixo da base.
 - No `npm run demo`: peça "Deleta o repositório teste-orbi" (parecido) ou

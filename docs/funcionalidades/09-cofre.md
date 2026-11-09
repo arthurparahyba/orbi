@@ -134,5 +134,5 @@ nunca o valor.
 - `npm run e2e:demo -w @orbi/runtime`: a senha digitada na demonstração vai ao
   cofre e é usada na reexecução sem aparecer em lugar nenhum.
 - `apps/runtime/test/http.test.ts`: a API nunca devolve o valor; nome inválido é recusado.
-- `apps/runtime/test/agent-flow.test.ts` ("credencial pela conversa"): o cartão grava no
+- `apps/runtime/test/flow-*.test.ts` ("credencial pela conversa"): o cartão grava no
   cofre, a pendência guarda só a referência e o valor nunca aparece no que o modelo recebe.

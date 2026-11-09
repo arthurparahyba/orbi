@@ -54,6 +54,9 @@ npm run build             # instalador da plataforma atual (gere na plataforma d
 ```
 
 Um teste só: `cd apps/runtime && node --import tsx --import ./scripts/register-raw.mjs --test test/<arquivo>.test.ts`
+Testes de fluxo (o Flue real com o modelo roteirizado): `test/flow-*.test.ts`, um processo por arquivo,
+com a montagem em `test/support/flow.ts`. Cenário novo = arquivo novo; um cenário que deixa revisão
+em segundo plano espera por ela (`waitFor`) antes de terminar.
 (o `register-raw` é obrigatório: os prompts são importados com `?raw`).
 
 Antes de dar uma mudança por pronta: `npm test` e, se tocou em navegador, gravação,

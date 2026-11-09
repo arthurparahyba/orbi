@@ -282,6 +282,6 @@ Tudo em `data/orbi.db`. A exportação Markdown vai para `data/brain-md/`.
 - `apps/desktop/test/layout.test.ts`: layout do grafo.
 - `apps/runtime/test/review.test.ts` ("problemas conhecidos"): forma, quando um erro
   bate, o que vira conhecimento.
-- `apps/runtime/test/agent-flow.test.ts` ("problema conhecido"): o quality gate
+- `apps/runtime/test/flow-*.test.ts` ("problema conhecido"): o quality gate
   reprova e depois passa, a revisão pede para aprender; aprovado, a próxima falha
   já vem com a solução e não pede de novo.

@@ -174,9 +174,9 @@ sequenceDiagram
 - `apps/runtime/test/review.test.ts`: a esteira top-repos como estava (mapa sem
   parâmetro, passo que pergunta, caminho fixo), corrigida sem avisos, e a revisão
   que pega a falha que chega depois do passo.
-- `apps/runtime/test/agent-flow.test.ts` ("revisão no fim"): `show_ui` falhando na
+- `apps/runtime/test/flow-*.test.ts` ("revisão no fim"): `show_ui` falhando na
   mesma leva do `playbook_step`, pego pela revisão, pede correção e não sobe.
-- `apps/runtime/test/agent-flow.test.ts` ("esteira pedida por agente"): pelo MCP,
+- `apps/runtime/test/flow-*.test.ts` ("esteira pedida por agente"): pelo MCP,
   com o modelo roteirizado: roda a etapa, para na passagem, segue com a decisão,
   passa os dados e responde ao agente.
 - `apps/desktop/test/pipelines.test.ts`: estado, linha de espera, origem dos dados,
