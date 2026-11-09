@@ -650,3 +650,6 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .code-agents .ca-editor input { color: var(--text); font: inherit; font-size: 13px; }
 .code-agents .ca-editor input.mono { font-family: var(--mono); font-size: 12.5px; }
 @media (max-width: 1100px) { .code-agents .ca-layout { flex-direction: column; } .code-agents .ca-side { width: auto; border-left: 0; border-top: 1px solid var(--border); } }
+.code-agents .config-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; background: transparent; border: 0; }
+.code-agents .config-chat .chat-head h2 { font-size: 14px; margin: 0; }
+.code-agents .config-chat .messages { font-size: 13.5px; }

@@ -31,12 +31,13 @@ const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\
  * against @orbi/contracts and every error answers as ApiError.
  *
  *   /agents/orbi/:id   Flue conversation: POST a message, GET the event stream
+ *   /agents/configurador/:id   the configuration chat (config:…), its own agent
  *   /api/...            one router per resource (routes/)
  *   /api/events         what changed, as server-sent events (the app refetches)
  *   /api/code-agents    coding agents of this machine and which does each task
  *   /mcp                Orbi as an MCP server for coding agents (own token per agent)
  */
-export function createHttpApp(s: OrbiServices, background: Background, agent: Agent): Hono {
+export function createHttpApp(s: OrbiServices, background: Background, agent: Agent, others: { configurador?: Agent } = {}): Hono {
   const app = new Hono();
   installErrorHandling(app);
 
@@ -59,6 +60,8 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   });
 
   app.route('/agents/orbi', createAgentRouter(agent));
+  // The configuration chat beside Autonomia › Agentes de código (agents/configurador.ts).
+  if (others.configurador) app.route('/agents/configurador', createAgentRouter(others.configurador));
   app.route('/api/conversations', conversationRoutes(s));
   app.route('/api/inbox', inboxRoutes(s, agent));
   app.route('/api/recordings', recordingRoutes(s, agent));

@@ -18,7 +18,8 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/compose.ts      raiz de composição: createOrbi(config) monta todas as peças; startBackground
   src/services.ts     services(): o agente (orbi.ts) e as rotas pegam as peças; ferramentas não
   src/config.ts       loadConfig(env, cwd) puro + validateConfig
-  src/agents/         o agente Orbi; tools/ uma capacidade por arquivo (defineCapability); gate.ts é o portão;
+  src/agents/         um agente por contexto de chat (orbi.ts, configurador.ts; directory.ts roteia por prefixo);
+                      tools/ uma capacidade por arquivo (defineCapability); gate.ts é o portão;
                       runtime-port.ts é a única porta para o Flue
   src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
@@ -32,7 +33,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
   src/views/{conversation,pipelines,brain,agents,autonomy}/   telas
-  src/components/     cartões do canal ui, gravação, confirmação
+  src/components/     cartões do canal ui, gravação, confirmação; chat/ é o chat comum (ChatPanel) a todas as telas
   src/live.ts, hooks.ts   feed de eventos (SSE) e useLive
   test/               Vitest
 packages/contracts/ tipos e esquemas valibot compartilhados pelo app e pelo runtime
@@ -79,6 +80,9 @@ cofre ou ponte MCP, `npm run e2e`.
   e uma linha em `agents/capabilities.ts`. Ferramentas não chamam `services()`; recebem `deps`.
 - **Regra nova no prompt vai na parte da situação** (`prompts/orbi/*.md` + `PROMPT_PARTS`), não na base;
   se o runtime consegue checar, cheque no runtime em vez de pedir ao modelo.
+- **Chat novo = agente novo.** Um `'use agent'` com a sua lista de capacidades e o seu prompt, rota e
+  prefixo de conversa em `app.ts` (`routeConversations`). Não ponha `if` de contexto no Orbi das conversas.
+  No app, use `components/chat/ChatPanel` e ponha em volta só o que é da tela.
 - **Flue só por `agents/runtime-port.ts`.** Nada de `import … from '@flue/runtime'` fora dele (teste acusa).
 - **Sem efeito colateral ao importar um módulo.** Tudo é criado em `createOrbi`; o que roda
   em segundo plano, em `startBackground`. Configuração só por `loadConfig`.

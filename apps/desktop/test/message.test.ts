@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FlueConversationPart } from '@flue/react';
-import { groupParts } from '../src/views/conversation/Message';
+import { groupParts } from '../src/components/chat/Message';
 
 const tool = (toolName: string, state = 'output-available') => ({ type: 'dynamic-tool', toolName, state, input: {} }) as unknown as FlueConversationPart;
 const text = (t: string) => ({ type: 'text', text: t }) as FlueConversationPart;
@@ -21,7 +21,7 @@ describe('groupParts', () => {
 });
 
 describe('ferramentas legíveis', async () => {
-  const { isSilent, toolLabel, toolCommand, toolResult, groupSummary } = await import('../src/views/conversation/tools');
+  const { isSilent, toolLabel, toolCommand, toolResult, groupSummary } = await import('../src/components/chat/tools');
   const call = (toolName: string, input: unknown, output?: unknown, state = 'output-available') => ({ toolName, state, input, output });
 
   it('pedido de aprovação some: o cartão mostra', () => {
@@ -61,7 +61,7 @@ describe('pendências', async () => {
 
 describe('revisão e saída em arquivo', async () => {
   const { reviewOf } = await import('../src/components/ReviewCard');
-  const { toolResult, toolCommand } = await import('../src/views/conversation/tools');
+  const { toolResult, toolCommand } = await import('../src/components/chat/tools');
   it('lê a revisão do sinal', () => {
     const r = { runs: [{ runId: 'r', playbook: 'p', status: 'done', problems: ['x'] }], config: [] };
     expect(reviewOf({ review: JSON.stringify(r) })?.runs[0].findings).toEqual([{ kind: 'problema', text: 'x', analyzer: 'antigo' }]);
@@ -88,7 +88,7 @@ describe('scripts do procedimento no cartão', () => {
 
 describe('comando que falhou', () => {
   it('saída diferente de zero conta como falha, e o problema conhecido vem junto', async () => {
-    const { commandFailed, knownProblemsOf } = await import('../src/views/conversation/tools');
+    const { commandFailed, knownProblemsOf } = await import('../src/components/chat/tools');
     const call = (result: object) => ({ type: 'dynamic-tool', toolName: 'run_command', toolCallId: 'x', state: 'output-available', input: {}, output: { status: 'executed', category: 'comandos-escrita', result: JSON.stringify(result) } }) as never;
     const known = [{ id: 'sonar', sintoma: 'Quality Gate failed', solucao: 'testes' }];
     expect(commandFailed(call({ exitCode: 1, stdout: '', stderr: 'Quality Gate failed', knownProblems: known }))).toBe(true);
@@ -100,7 +100,7 @@ describe('comando que falhou', () => {
 
 describe('ferramenta que se descreve', () => {
   it('título e comando vêm do resultado: ferramenta nova não precisa de mapa no app', async () => {
-    const { toolLabel, toolCommand } = await import('../src/views/conversation/tools');
+    const { toolLabel, toolCommand } = await import('../src/components/chat/tools');
     const t = { type: 'dynamic-tool', toolName: 'ferramenta_nova', toolCallId: 'x', state: 'output-available', input: {}, output: { status: 'executed', category: 'comandos-escrita', title: 'Gerar o relatório', command: 'relatorio --mes 10', result: 'ok' } } as never;
     expect(toolLabel(t)).toBe('Gerar o relatório');
     expect(toolCommand(t)).toBe('relatorio --mes 10');

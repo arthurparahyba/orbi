@@ -1,23 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useFlueAgent } from '@flue/react';
 import { agentUrl, api, type Recording } from '../../api';
-import { useChanges, usePoll } from '../../hooks';
+import { usePoll } from '../../hooks';
 import { CheckIcon, CopyIcon, RecordIcon, TrashIcon } from '../../components/Icons';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { OriginBanner } from './OriginBanner';
 import { PipelineBar } from './PipelineBar';
-import { Composer } from './Composer';
 import type { ConversationOrigin } from '../../api';
 import { StartDemonstration } from '../../components/Demonstration';
 import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
-import { Message } from './Message';
-import { contentKey } from './scroll';
-import { useFollowBottom } from './useFollowBottom';
-import { useGoTo } from './useGoTo';
-import { conversationMarkdown } from './transcript';
-import { ChatContext } from '../../components/ChatContext';
-import { useCatchUp } from './catchUp';
+import { conversationMarkdown } from '../../components/chat/transcript';
+import { ChatPanel, chatPill } from '../../components/chat/ChatPanel';
 
 const SUGGESTIONS = [
   'Ensinar pelo navegador',
@@ -28,112 +21,74 @@ const SUGGESTIONS = [
 
 type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator };
 
-/** One conversation with Orbi: messages, the browser-teaching dock and the composer. */
+/** One conversation with Orbi: the shared chat plus what only conversations have (delivery bar, teaching, delete). */
 export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: string; title: string; origin?: ConversationOrigin; target?: { inboxId: string; n: number }; onTitled(): void; onDeleted(): void }) {
   const [deleting, setDeleting] = useState(false);
-  const agent = useFlueAgent({ url: agentUrl(id) });
   const [demo, setDemo] = useState<Demo | undefined>();
-  const busy = agent.status === 'submitted' || agent.status === 'streaming';
-  const visible = agent.messages.filter((m) => m.display !== 'hidden');
 
   // Back to a conversation with a recording still running (e.g. after a reload).
   useEffect(() => {
     api.activeRecording().then((r) => { if (r && r.conversationId === id) setDemo({ mode: 'live', rec: r }); }, () => {});
   }, [id]);
-  // Only follow new messages while the reader is at the bottom: refreshes bring the same list
-  // every few seconds, and reading older messages must not be interrupted.
-  const follow = useFollowBottom(id, contentKey(visible));
-  useGoTo(follow.box, target, visible.length);
 
-  // The runtime can write to this conversation out-of-band (a finished demonstration, an approval,
-  // a follow-up, an agent's request): when it says so, catch up and resume live updates.
-  // A refresh reloads the whole history, so only then, or when the feed came back after a drop.
-  // Not on focus nor on the fallback's ticks: the live stream reconnects by itself, and
-  // reloading everything at every click into the window made the screen blink.
-  const { refresh } = agent;
-  // What changes when the conversation does (a new message, a message that grew).
-  const lastMsg = visible.at(-1);
-  const signature = `${visible.length}:${lastMsg?.parts.length ?? 0}:${JSON.stringify(lastMsg?.parts.at(-1) ?? '').length}`;
-  // An answer, an approval or a message from the runtime starts a turn this screen did not:
-  // follow it even if the live stream is held back (catchUp.ts).
-  const catchUp = useCatchUp({ id, refresh, busy, signature });
-  useChanges((c) => {
-    if (c.topic === 'dispatched' && c.id === id) { void refresh(); catchUp.start(); }
-    else if (c.topic === 'hello' && c.why === 'reconnect') void refresh();
-  });
-  // Back to the front with the stream broken: recover (the only case focus matters).
-  const broken = agent.status === 'error';
-  useEffect(() => {
-    if (!broken) return;
-    const back = () => { if (document.visibilityState === 'visible') refresh(); };
-    document.addEventListener('visibilitychange', back);
-    window.addEventListener('focus', back);
-    return () => { document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
-  }, [refresh, broken]);
-
-  const send = async (text: string) => {
-    const t = text.trim();
-    if (!t) return;
-    if (t === 'Ensinar pelo navegador') { setDemo({ mode: 'start' }); return; }
-    if (title === 'Nova conversa' || !visible.some((m) => m.role === 'user')) {
+  const beforeSend = (t: string, first: boolean) => {
+    if (t === 'Ensinar pelo navegador') { setDemo({ mode: 'start' }); return false; }
+    if (title === 'Nova conversa' || first) {
       void api.renameConversation(id, t.length > 60 ? `${t.slice(0, 57)}…` : t).then(onTitled, () => {});
     }
-    follow.toBottom();
-    await agent.sendMessage(t);
+    return true;
   };
 
   return (
-    <section className="chat" aria-label="Conversa com o Orbi">
-      <header className="chat-head">
-        <h1>{title || 'Conversa'}</h1>
-        <CopyButton disabled={visible.length === 0} text={() => conversationMarkdown({ id, title }, agent.messages)} />
-        <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
-          <RecordIcon size={13} /> Ensinar pelo navegador
-        </button>
-        <button type="button" className="icon-btn" onClick={() => setDeleting(true)} title="Apagar conversa" aria-label="Apagar conversa"><TrashIcon size={15} /></button>
-        <span className={`pill pill-${busy ? 'running' : agent.status === 'error' ? 'failed' : 'idle'}`}>
-          {busy || catchUp.catchingUp ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : !agent.historyReady ? 'Carregando…' : 'Pronto'}
-        </span>
-      </header>
-      {deleting && (
-        <div className="chat-confirm">
-          <ConfirmDelete
-            what="esta conversa"
-            consequences={[
-              'As mensagens somem agora; o histórico interno é apagado na próxima vez que o Orbi iniciar.',
-              'Pendências desta conversa saem do painel.',
-              'O que o Orbi aprendeu e as execuções continuam no Cérebro.',
-              ...(origin ? [`${origin.agent} vê o pedido como encerrado.`] : []),
-            ]}
-            onConfirm={async () => { await api.deleteConversation(id); onDeleted(); }}
-            onCancel={() => setDeleting(false)}
-          />
+    <ChatPanel
+      url={agentUrl(id)}
+      id={id}
+      label="Conversa com o Orbi"
+      target={target}
+      beforeSend={beforeSend}
+      header={(c) => {
+        const pill = chatPill(c);
+        return (
+          <header className="chat-head">
+            <h1>{title || 'Conversa'}</h1>
+            <CopyButton disabled={c.visible.length === 0} text={() => conversationMarkdown({ id, title }, c.messages)} />
+            <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
+              <RecordIcon size={13} /> Ensinar pelo navegador
+            </button>
+            <button type="button" className="icon-btn" onClick={() => setDeleting(true)} title="Apagar conversa" aria-label="Apagar conversa"><TrashIcon size={15} /></button>
+            <span className={`pill pill-${pill.tone}`}>{pill.text}</span>
+          </header>
+        );
+      }}
+      above={(
+        <>
+          {deleting && (
+            <div className="chat-confirm">
+              <ConfirmDelete
+                what="esta conversa"
+                consequences={[
+                  'As mensagens somem agora; o histórico interno é apagado na próxima vez que o Orbi iniciar.',
+                  'Pendências desta conversa saem do painel.',
+                  'O que o Orbi aprendeu e as execuções continuam no Cérebro.',
+                  ...(origin ? [`${origin.agent} vê o pedido como encerrado.`] : []),
+                ]}
+                onConfirm={async () => { await api.deleteConversation(id); onDeleted(); }}
+                onCancel={() => setDeleting(false)}
+              />
+            </div>
+          )}
+          {origin && <OriginBanner origin={origin} />}
+          <PipelineBar conversationId={id} />
+        </>
+      )}
+      empty={(send) => (
+        <div className="suggest">
+          <p className="muted">O Orbi não vem sabendo fazer nada específico: ele aprende com você e guarda no cérebro. Tente:</p>
+          {SUGGESTIONS.map((s) => <button key={s} type="button" className="chip" onClick={() => send(s)}>{s}</button>)}
         </div>
       )}
-      {origin && <OriginBanner origin={origin} />}
-      <PipelineBar conversationId={id} />
-      <ChatContext.Provider value={{ send: (t) => void send(t) }}>
-      <div className="messages-wrap">
-      <div className="messages" aria-live="polite" ref={follow.box} onScroll={follow.onScroll}>
-        {!agent.historyReady && visible.length === 0 && <p className="muted pad loading">Carregando a conversa…</p>}
-        {agent.historyReady && visible.length === 0 && (
-          <div className="suggest">
-            <p className="muted">O Orbi não vem sabendo fazer nada específico: ele aprende com você e guarda no cérebro. Tente:</p>
-            {SUGGESTIONS.map((s) => <button key={s} type="button" className="chip" onClick={() => send(s)}>{s}</button>)}
-          </div>
-        )}
-        {visible.map((m) => <Message key={m.id} m={m} />)}
-        {agent.status === 'submitted' && <div className="msg assistant"><span className="typing"><i /><i /><i /></span></div>}
-        {agent.error && <div className="banner small" role="alert">{agent.error.message}</div>}
-      </div>
-      {follow.unread && (
-        <button type="button" className="btn small new-msgs" onClick={follow.toBottom}>Novas mensagens ↓</button>
-      )}
-      </div>
-      </ChatContext.Provider>
-      {demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}
-      <Composer onSend={send} />
-    </section>
+      dock={demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}
+    />
   );
 }
 

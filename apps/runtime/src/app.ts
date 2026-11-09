@@ -3,6 +3,8 @@ import { createOrbi, startBackground } from './compose.ts';
 import { provideServices } from './services.ts';
 import { createHttpApp } from './http/app.ts';
 import { Orbi } from './agents/orbi.ts';
+import { CONFIG_PREFIX, Configurador } from './agents/configurador.ts';
+import { routeConversations } from './agents/directory.ts';
 import { createLogger, logOptionsFromEnv, setLogger } from './observability/log.ts';
 
 /**
@@ -14,6 +16,8 @@ loadDotEnv();
 setLogger(createLogger(logOptionsFromEnv())); // ORBI_LOG_* may come from the .env
 const orbi = await createOrbi(loadConfig());
 provideServices(orbi);
+// Configuration chats (config:…) are answered by their own agent; everything else by the Orbi.
+routeConversations(CONFIG_PREFIX, Configurador);
 const background = startBackground(orbi, Orbi);
 
-export default createHttpApp(orbi, background, Orbi);
+export default createHttpApp(orbi, background, Orbi, { configurador: Configurador });

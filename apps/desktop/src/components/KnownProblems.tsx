@@ -1,4 +1,4 @@
-import type { KnownProblemView } from '../views/conversation/tools';
+import type { KnownProblemView } from './chat/tools';
 
 /**
  * Under a failed command: the brain already knows this error. Shown open, so the developer

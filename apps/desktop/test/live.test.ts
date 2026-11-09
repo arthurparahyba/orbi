@@ -99,7 +99,7 @@ describe('abertura do app', () => {
   });
 });
 
-import { checkStep, nextDelay } from '../src/views/conversation/catchUp';
+import { checkStep, nextDelay } from '../src/components/chat/catchUp';
 describe('acompanhar o turno depois de responder ou aprovar', () => {
   it('não recarrega se a tela já está mudando; recarrega se nada chegou; termina quando chegou e parou', () => {
     expect(checkStep({ moved: true, busy: true, arrived: true, reloadedLast: false })).toBe('watch');

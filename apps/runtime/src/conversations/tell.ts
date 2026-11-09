@@ -1,4 +1,5 @@
 import { deliver, type Agent, type AgentMessage as Message, type Receipt } from '../agents/runtime-port.ts';
+import { agentFor } from '../agents/directory.ts';
 import type { Events } from '../events.ts';
 import { log } from '../observability/log.ts';
 
@@ -11,7 +12,7 @@ import { log } from '../observability/log.ts';
 export async function tellAgent(events: Pick<Events, 'emit'>, agent: Agent, message: Message) {
   let receipt: Receipt;
   try {
-    receipt = await deliver(agent, message);
+    receipt = await deliver(agentFor(message.id, agent), message);
   } catch (error) {
     // An answer or approval that cannot reach the conversation must say so (in the log too).
     log.error('mensagem para a conversa não foi entregue', { conversation: message.id, error: String(error) });

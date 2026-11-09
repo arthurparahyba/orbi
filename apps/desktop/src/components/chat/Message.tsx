@@ -1,11 +1,11 @@
 import type { FlueConversationMessage, FlueConversationPart } from '@flue/react';
-import { ClockIcon, KeyIcon, ToolIcon } from '../../components/Icons';
-import { UiComponentView, type UiComponent } from '../../components/UiComponents';
-import { Markdown } from '../../components/Markdown';
-import { DemonstrationCard } from '../../components/Demonstration';
+import { ClockIcon, KeyIcon, ToolIcon } from '../Icons';
+import { UiComponentView, type UiComponent } from '../UiComponents';
+import { Markdown } from '../Markdown';
+import { DemonstrationCard } from '../Demonstration';
 import { commandFailed, groupSummary, isSilent, knownProblemsOf, toolCommand, toolLabel, toolResult } from './tools';
-import { KnownProblems } from '../../components/KnownProblems';
-import { ReviewCard, reviewOf } from '../../components/ReviewCard';
+import { KnownProblems } from '../KnownProblems';
+import { ReviewCard, reviewOf } from '../ReviewCard';
 
 /** One message of the conversation, as the developer should see it. */
 export function Message({ m }: { m: FlueConversationMessage }) {

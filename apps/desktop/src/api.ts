@@ -15,6 +15,10 @@ const inTauri = typeof location !== 'undefined' && (location.protocol === 'tauri
 export const RUNTIME_URL: string = import.meta.env.VITE_RUNTIME_URL ?? (inTauri ? 'http://127.0.0.1:3000' : '');
 
 export const agentUrl = (conversationId: string) => `${RUNTIME_URL}/agents/orbi/${encodeURIComponent(conversationId)}`;
+/** Configuration chats (`config:…`) have their own agent in the runtime (agents/configurador.ts). */
+export const configAgentUrl = (conversationId: string) => `${RUNTIME_URL}/agents/configurador/${encodeURIComponent(conversationId)}`;
+export const CODE_AGENTS_CHAT = 'config:agentes-de-codigo';
+export const isConfigChat = (conversationId: string) => conversationId.startsWith('config:');
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${RUNTIME_URL}${path}`, {

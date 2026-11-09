@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FlueConversationMessage } from '@flue/react';
-import { conversationMarkdown } from '../src/views/conversation/transcript';
+import { conversationMarkdown } from '../src/components/chat/transcript';
 
 const msg = (m: Partial<FlueConversationMessage> & Pick<FlueConversationMessage, 'role'>) =>
   ({ id: Math.random().toString(36), parts: [], ...m }) as unknown as FlueConversationMessage;

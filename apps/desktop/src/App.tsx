@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { announceSent } from './views/conversation/catchUp';
+import { announceSent } from './components/chat/catchUp';
 import { api, type InboxItem } from './api';
 import { useLive, usePoll } from './hooks';
 import { BrainIcon, ChatIcon, DialIcon, OrbiIcon, PipelineIcon, PlugIcon } from './components/Icons';
@@ -74,7 +74,7 @@ export function App() {
               Ainda sem resposta do runtime em 127.0.0.1:3000. O app inicia o runtime sozinho; se isso não passar em alguns segundos, veja o log em <code>~/Library/Application Support/br.com.zup.orbi/logs/runtime.log</code> (no desenvolvimento, rode <code>npm run demo</code> na raiz).
             </div>
           )}
-          {screen === 'conversa' && <ConversationView openInbox={open} focus={focus} />}
+          {screen === 'conversa' && <ConversationView openInbox={open} focus={focus} onOpenConfig={() => setScreen('autonomia')} />}
           {screen === 'esteiras' && <PipelinesView onOpenConversation={openConversation} />}
           {screen === 'cerebro' && <BrainView />}
           {screen === 'agentes' && <AgentsView openInbox={waiting} health={health.data} onOpenConversation={openConversation} />}

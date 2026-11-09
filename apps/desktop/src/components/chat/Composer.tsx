@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { MicIcon, SendIcon } from '../../components/Icons';
-import { appendDictation } from '../../components/dictation';
-import { useDictation } from '../../components/useDictation';
+import { MicIcon, SendIcon } from '../Icons';
+import { appendDictation } from '../dictation';
+import { useDictation } from '../useDictation';
 
 /**
  * The message box: Enter sends, Shift+Enter breaks the line. The microphone

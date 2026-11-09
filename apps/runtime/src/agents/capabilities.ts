@@ -36,12 +36,21 @@ export const CAPABILITIES: readonly Capability[] = [
   agentRequest,
 ];
 
-/** `all` comes from the agent (agents/orbi.ts), the one place inside a conversation that reads the global parts. */
-export function useOrbi(conversationId: string, all: OrbiServices) {
+/**
+ * Registers a list of capabilities for one conversation, with the UI channel and the gate every
+ * agent shares. Each agent (the Orbi, the configuration chat…) passes its own list. `all` comes
+ * from the agent, the one place inside a conversation that reads the global parts.
+ */
+export function useCapabilities(conversationId: string, all: OrbiServices, list: readonly Capability[]) {
   const [activeRun, setActiveRun] = useActiveRun();
   const ui = useUiChannel(conversationId);
   const gated = useGate(conversationId, ui, () => activeRun, all);
   const ctx: AgentContext = { conversationId, ui, gated, activeRun, setActiveRun };
-  registerCapabilities(CAPABILITIES, ctx, all);
+  registerCapabilities(list, ctx, all);
   return { activeRun };
+}
+
+/** The Orbi of the conversations, with every capability. */
+export function useOrbi(conversationId: string, all: OrbiServices) {
+  return useCapabilities(conversationId, all, CAPABILITIES);
 }

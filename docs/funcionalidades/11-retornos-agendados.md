@@ -54,7 +54,7 @@ sequenceDiagram
 | `apps/runtime/src/brain/repo/followups.ts` | Agendar e pegar os vencidos uma vez só |
 | `apps/runtime/src/compose.ts` | `startFollowups`: o relógio |
 | `apps/runtime/src/conversations/tell.ts` | Entrega na conversa e avisa o app |
-| `apps/desktop/src/views/conversation/Message.tsx` | A marca "Retorno agendado" |
+| `apps/desktop/src/components/chat/Message.tsx` | A marca "Retorno agendado" |
 
 ## Tecnologias
 

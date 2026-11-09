@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, type ConversationInfo, type InboxItem } from '../../api';
+import { api, isConfigChat, type ConversationInfo, type InboxItem } from '../../api';
 import { useLive } from '../../hooks';
 import { PlusIcon } from '../../components/Icons';
 import { Segmented } from '../../components/Segmented';
@@ -10,13 +10,15 @@ import { needsYou } from './inbox';
 /** The Conversa screen: conversation list, the open conversation and what waits for the developer. */
 type Filter = 'todas' | 'minhas' | 'agentes';
 
-export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[]; focus?: { id: string } }) {
+export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox: InboxItem[]; focus?: { id: string }; onOpenConfig(): void }) {
   const list = useLive(api.conversations, ['conversations', 'agents']);
   const [current, setCurrent] = useState<string | undefined>(focus?.id);
   const [filter, setFilter] = useState<Filter>('todas');
   // "Ir até": the card to scroll to, once the conversation is open (n makes a repeated click count).
   const [target, setTarget] = useState<{ conversationId: string; inboxId: string; n: number }>();
   const goTo = (item: InboxItem) => {
+    // A configuration chat lives on its own screen, not in this list.
+    if (isConfigChat(item.conversationId)) return onOpenConfig();
     setCurrent(item.conversationId);
     setTarget((t) => ({ conversationId: item.conversationId, inboxId: item.id, n: (t?.n ?? 0) + 1 }));
   };
@@ -78,7 +80,7 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
           <button type="button" className="btn primary" onClick={newConversation}><PlusIcon size={14} /> Nova conversa</button>
         </div>
       )}
-      <InboxPanel items={openInbox} current={current} onOpen={setCurrent} onGoTo={goTo} />
+      <InboxPanel items={openInbox} current={current} onOpen={(id) => (isConfigChat(id) ? onOpenConfig() : setCurrent(id))} onGoTo={goTo} />
     </div>
   );
 }

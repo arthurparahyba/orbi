@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contentKey, isNearBottom } from '../src/views/conversation/scroll';
+import { contentKey, isNearBottom } from '../src/components/chat/scroll';
 
 describe('rolagem da conversa', () => {
   it('perto do fim conta como acompanhando', () => {

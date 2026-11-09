@@ -17,9 +17,9 @@ test('capacidades têm nomes únicos e declaram o que usam', () => {
   for (const c of CAPABILITIES) assert.ok(c.needs.length > 0, c.name);
 });
 
-test('dentro de agents/ e terminal/, só o agente lê services()', () => {
+test('dentro de agents/ e terminal/, só os agentes leem services()', () => {
   const src = join(import.meta.dirname, '..', 'src');
   const files = (readdirSync(src, { recursive: true }) as string[]).map((f) => f.replaceAll('\\', '/')).filter((f) => /^(agents|terminal|subagents)\/.*\.ts$/.test(f));
   const readers = files.filter((f) => /services\(\)/.test(readFileSync(join(src, f), 'utf8')));
-  assert.deepEqual(readers, ['agents/orbi.ts']);
+  assert.deepEqual(readers.sort(), ['agents/configurador.ts', 'agents/orbi.ts']);
 });

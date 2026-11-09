@@ -39,13 +39,17 @@ src/
   events.ts                 o que mudou (createEvents), para o app acompanhar
   contract-check.ts         garante em tempo de compilação que o runtime cumpre o contrato
 
-  agents/                   o agente Orbi (Flue 'use agent')
-    orbi.ts                 instruções (prompt.ts: partes de prompts/orbi/ por situação) + estado atual
-    capabilities.ts         monta as capacidades do agente (useOrbi)
+  agents/                   os agentes (Flue 'use agent'), um por contexto de chat
+    orbi.ts                 o Orbi das conversas: instruções (prompt.ts: partes de prompts/orbi/) + estado atual
+    configurador.ts         o chat de configuração (config:…): só cadastra agentes de código
+    directory.ts            qual agente responde cada conversa (prefixo config: → configurador)
+    capabilities.ts         CAPABILITIES do Orbi e useCapabilities(id, peças, lista)
+    configurador-capabilities.ts  a lista do chat de configuração
+    capability.ts           defineCapability: o que cada capacidade usa
     gate.ts                 portão de autonomia: roda, só relata ou pede aprovação
     ui-channel.ts           canal `ui` da conversa (componentes atualizados no lugar)
     tools/                  uma ferramenta por capacidade: terminal, browser, code,
-                            brain, playbooks, voice, clock
+                            brain, playbooks, voice, clock, code-agent-setup
   subagents/investigador.ts investigação só-leitura em paralelo
   skills/                   a única skill de fábrica: como aprender
   prompts/*.md              os textos que o modelo lê (Orbi, investigador, skill)
@@ -54,7 +58,7 @@ src/
   conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
   autonomy/policy.ts        observar · perguntar · automático, por categoria e por playbook
   terminal/exec.ts          execução sem shell, com allowlist
-  code/code-agent.ts        correção em worktree pelo agente de código da máquina
+  code-agents/              agentes de código da máquina: cadastro, catálogo, tarefas, descoberta, executor em worktree
   browser/                  Chrome compartilhado, gravador de demonstrações e
     mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
   voice/stt.ts              transcrição da narração (Whisper local ou HTTP)
@@ -158,6 +162,21 @@ servidor. Como o Flue chama os agentes só com `{ id }`, o agente (`agents/orbi.
 pega as peças uma vez com `services()` e entrega a cada capacidade só o que ela
 declarou em `defineCapability({ needs })`. Ferramentas não chamam `services()`:
 um teste dá a elas só as peças que usam (ex.: `runPython({ scratchDir })`).
+
+### Um agente por contexto de chat
+
+O Orbi das conversas e o chat de configuração (ao lado de **Autonomia → Agentes
+de código**) são agentes diferentes no runtime, com listas de capacidades e
+instruções próprias, e dividem o que é comum: o portão (`gate.ts`), o canal `ui`,
+`defineCapability` e o `runtime-port`. Cada um tem a sua rota
+(`/agents/orbi/:id`, `/agents/configurador/:id`), e `agents/directory.ts` diz qual
+responde cada conversa pelo prefixo do id (`config:` → configurador). Assim uma
+aprovação, uma resposta ou um sinal (`tellAgent`) chega ao agente certo.
+
+Chat novo = agente novo (`'use agent'`), com a sua lista de capacidades e o seu
+prompt, registrado em `app.ts` (rota e prefixo). O Orbi das conversas não muda.
+No app, os dois usam o mesmo componente `components/chat/ChatPanel.tsx`; cada
+tela põe em volta só o que é dela.
 
 Tudo que o Orbi usa do Flue passa por `agents/runtime-port.ts` (definir
 ferramenta, entregar mensagem, observar turnos, roteador HTTP, SQLite). Atualizar
@@ -267,6 +286,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | Rota | O quê |
 | --- | --- |
 | `POST /agents/orbi/:id` · `GET /agents/orbi/:id` | Conversa Flue: enviar mensagem, ler stream |
+| `POST /agents/configurador/:id` · `GET /agents/configurador/:id` | Chat de configuração (`config:…`, documento 17) |
 | `GET/POST/PATCH /api/conversations` | Lista, cria e renomeia conversas |
 | `GET /api/inbox` | Aprovações, perguntas e aprendizados pendentes |
 | `POST /api/inbox/:id/decision` `{decision}` | Aprovar/negar (vira sinal na conversa) |

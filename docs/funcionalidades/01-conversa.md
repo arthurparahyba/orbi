@@ -104,9 +104,10 @@ e as mensagens aparecem.
 | Onde | O quê |
 | --- | --- |
 | `apps/desktop/src/views/conversation/ConversationView.tsx` | Tela: lista, conversa aberta, pendências |
-| `apps/desktop/src/views/conversation/Chat.tsx` | Mensagens, compositor, botão copiar, painel de demonstração |
-| `apps/desktop/src/views/conversation/Message.tsx` | Como cada mensagem e ferramenta é desenhada |
-| `apps/desktop/src/views/conversation/transcript.ts` | Markdown do "Copiar conversa" |
+| `apps/desktop/src/components/chat/ChatPanel.tsx` | O chat comum a todas as telas: mensagens, cartões, acompanhar turnos, compositor |
+| `apps/desktop/src/views/conversation/Chat.tsx` | O que só a conversa tem em volta do chat: botão copiar, ensinar pelo navegador, apagar, barra da esteira |
+| `apps/desktop/src/components/chat/Message.tsx` | Como cada mensagem e ferramenta é desenhada |
+| `apps/desktop/src/components/chat/transcript.ts` | Markdown do "Copiar conversa" |
 | `apps/desktop/src/components/UiComponents.tsx`, `SimilarCards.tsx` | Os cartões do canal `ui` |
 | `apps/runtime/src/agents/orbi.ts` | O agente: instruções, ferramentas, skills, subagente |
 | `apps/runtime/src/agents/capabilities.ts` | Liga as capacidades (mãos, memória, voz, relógio) |

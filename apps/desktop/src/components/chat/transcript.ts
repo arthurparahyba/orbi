@@ -1,7 +1,7 @@
 import type { FlueConversationMessage, FlueConversationPart } from '@flue/react';
-import { findingsOf } from '../../components/review';
-import type { UiComponent } from '../../components/UiComponents';
-import { reviewOf } from '../../components/ReviewCard';
+import { findingsOf } from '../review';
+import type { UiComponent } from '../UiComponents';
+import { reviewOf } from '../ReviewCard';
 
 /** Long tool inputs and outputs are cut so a copied conversation stays pasteable. */
 const MAX_BLOCK = 4_000;

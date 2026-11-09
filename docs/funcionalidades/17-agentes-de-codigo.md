@@ -23,6 +23,8 @@ pelo MCP. Aqui são os agentes que **o Orbi chama** para mexer em código.
 - **Autonomia → Agentes de código**: as duas tarefas com agente e modelo, a lista
   "Nesta máquina" (comando, modelos, situação do último teste, Testar, Editar,
   Remover) e botões para começar por um agente conhecido.
+- Ao lado da lista, o chat **Configurar com o Orbi**: peça para procurar os
+  agentes, explicar um deles ou mudar quem faz cada tarefa.
 - **Autonomia → Capacidades**: a linha "Agente de código" resume quem faz cada
   tarefa (`GET /api/health` → `codeAgent`).
 
@@ -51,6 +53,42 @@ chamar (Claude Code, Cursor, Devin). É dado, não código: aparece como sugest�
 resultado: confirma instalação, login e que o agente não fica esperando uma
 tecla. Gasta um pedido da conta do agente, por isso só roda quando você clica.
 
+### O chat de configuração
+
+É o mesmo chat das conversas (`components/chat/ChatPanel`), mas falando com
+**outro agente** do runtime, o configurador (`agents/configurador.ts`), na
+conversa fixa `config:agentes-de-codigo`. Ele não tem as ferramentas do Orbi das
+conversas (procedimentos, esteiras, navegador): só as de
+`agents/tools/code-agent-setup.ts`.
+
+```mermaid
+sequenceDiagram
+  participant D as Desenvolvedor
+  participant C as Configurador
+  participant T as Terminal (sem janela)
+  D->>C: vê quais agentes eu tenho
+  C->>T: command -v claude cursor-agent devin codex… e --version
+  C->>T: claude --help, devin --help
+  C->>D: cartão Cadastrar 3 agentes (comando, modelos, de onde veio)
+  D->>C: Aprovar
+  C->>C: salva em code_agents e code_agent_tasks
+```
+
+| Ferramenta | O que faz | Portão |
+| --- | --- | --- |
+| `code_agents_state` | O que está cadastrado e o catálogo | leitura |
+| `find_code_agents` | `command -v` dos agentes conhecidos (e de outros nomes) e `--version` | leitura |
+| `read_agent_help` | `--help` de um agente ou de um subcomando (`codex exec --help`) | leitura |
+| `code_agents_register` | Cadastra agentes e, se dito, as tarefas | `aprender`: sempre pede |
+| `code_agent_test` | Pedido curto ao agente (gasta da conta dele) | pede |
+
+As leituras só aceitam nomes de programa e um subcomando, e rodam sempre com
+`--version` ou `--help`. O comando cadastrado passa pela mesma validação da tela
+(um programa só). O chat nunca faz login: diz o comando que você roda.
+
+As pendências desta conversa aparecem em Pendências como as outras; **Ir até**
+abre a tela Autonomia.
+
 ### `ORBI_CODE_AGENT` (o jeito antigo)
 
 Continua valendo enquanto nenhuma tarefa tiver agente cadastrado: aparece na
@@ -74,8 +112,12 @@ remove a cópia.
 | Teste do agente | `apps/runtime/src/code-agents/tester.ts` |
 | Executor na cópia | `apps/runtime/src/code-agents/fixer.ts` |
 | Ferramentas do Orbi | `apps/runtime/src/agents/tools/code.ts` |
+| Agente do chat de configuração | `apps/runtime/src/agents/configurador.ts`, `configurador-capabilities.ts`, `prompts/configurador/agentes-de-codigo.md` |
+| Ferramentas do chat | `apps/runtime/src/agents/tools/code-agent-setup.ts`, `code-agents/discovery.ts` |
+| Qual agente responde a conversa | `apps/runtime/src/agents/directory.ts` |
 | API | `apps/runtime/src/http/routes/code-agents.ts` |
-| Tela | `apps/desktop/src/views/autonomy/codeAgents/` |
+| Tela | `apps/desktop/src/views/autonomy/codeAgents/` (lista, tarefas, editor e `ConfigChat`) |
+| Chat comum | `apps/desktop/src/components/chat/ChatPanel.tsx` |
 | Tabelas | `code_agents`, `code_agent_tasks` (migração 16, `docs/banco.md`) |
 
 ## API
@@ -88,7 +130,7 @@ remove a cópia.
 | `PUT /api/code-agents/tasks/:task` | Agente e modelo da tarefa (`agent: null` limpa) |
 | `POST /api/code-agents/:id/test` | Pedido curto ao agente; guarda o resultado |
 
-Mudanças viram o evento `code-agents`.
+Mudanças viram o evento `code-agents`. O chat fala com `/agents/configurador/config:agentes-de-codigo`.
 
 ## Limites
 
@@ -102,4 +144,7 @@ Mudanças viram o evento `code-agents`.
 - `apps/runtime/test/code-agents.test.ts`: linha de comando com pedido e modelo,
   validação do comando, catálogo, cadastro e tarefas, o `.env` como reserva, a
   API e um agente de verdade (um script) corrigindo numa cópia.
+- `apps/runtime/test/flow-config-agents.test.ts`: o chat é outro agente (prompt
+  e ferramentas próprios), o cadastro só vale depois do cartão, a aprovação volta
+  para ele, e um comando com dois programas volta como problema.
 - `apps/desktop/test/codeAgents.test.ts`: situação, tarefas, catálogo e modelos.
