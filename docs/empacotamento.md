@@ -47,3 +47,43 @@ Sem isso, quem recebe o app abre pelo clique direito → Abrir na primeira vez.
 
 O app pede permissão de microfone na primeira gravação narrada
 (`Info.plist` e `Entitlements.plist` em `apps/desktop/src-tauri/`).
+
+## Windows (.exe sem Rust na sua máquina)
+
+O instalador sai do GitHub Actions, num Windows com Rust:
+**Actions → App Windows → Run workflow**. Ao terminar, o `.exe` está em
+*Artifacts* (`Orbi-windows`). Uma tag `v*` (ex.: `v0.2.0`) também gera e anexa o
+`.exe` a uma release (`.github/workflows/app-windows.yml`).
+
+- Instala **por usuário** (`installMode: currentUser`): não precisa de administrador.
+  O programa vai para `%LOCALAPPDATA%\Orbi`.
+- Precisa do WebView2, que já vem no Windows 10 e 11. Se faltar, o instalador baixa.
+- O instalador não é assinado: o Windows pode mostrar "o Windows protegeu o
+  computador" na primeira vez (Mais informações → Executar assim mesmo). Política da
+  empresa pode bloquear instaladores sem assinatura.
+- Os testes rodam no Windows a cada build, como aviso (não impedem o `.exe`).
+
+## Onde ficam os seus dados (e por que a atualização não apaga)
+
+O app instalado separa o programa dos seus dados. O programa é substituído na
+atualização; os dados ficam em:
+
+| Sistema | Pasta |
+| --- | --- |
+| Windows | `%APPDATA%\br.com.zup.orbi` |
+| macOS | `~/Library/Application Support/br.com.zup.orbi` |
+
+| Dentro dela | O quê |
+| --- | --- |
+| `.env` | A configuração (chave do modelo, binários permitidos, transcrição…) |
+| `data/` | Cérebro, conversas, pendências, esteiras (`orbi.db`, `flue.db`) e os modelos baixados (`data/models`, ex.: transcrição) |
+| `plugins/` | Plugins de modelo |
+| `workspace/` | Pasta de trabalho dos comandos |
+| `logs/` | `runtime.log` |
+
+Credenciais não ficam aí: vão para o cofre do sistema (Gerenciador de Credenciais
+no Windows, Keychain no macOS).
+
+Com `npm start`, tudo isso fica dentro do clone (`apps/runtime/.env` e
+`apps/runtime/data/`). Para levar para o app instalado, feche os dois e copie
+`.env` e o conteúdo de `data/` para a pasta da tabela acima.

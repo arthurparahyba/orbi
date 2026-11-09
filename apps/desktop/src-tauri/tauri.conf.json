@@ -37,6 +37,15 @@
     ],
     "macOS": {
       "entitlements": "Entitlements.plist"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ]
+      }
     }
   }
 }
