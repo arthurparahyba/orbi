@@ -7,7 +7,7 @@ import { useDictation } from '../useDictation';
  * The message box: Enter sends, Shift+Enter breaks the line. The microphone
  * dictates into the box (it does not send): speak, stop, read, send.
  */
-export function Composer({ onSend }: { onSend(text: string): Promise<void> }) {
+export function Composer({ onSend, placeholder = 'Peça algo ou ensine um procedimento…' }: { onSend(text: string): Promise<void>; placeholder?: string }) {
   const [draft, setDraft] = useState('');
   const dictation = useDictation((text) => setDraft((d) => appendDictation(d, text)));
   const listening = dictation.state === 'listening';
@@ -28,7 +28,7 @@ export function Composer({ onSend }: { onSend(text: string): Promise<void> }) {
           id="composer"
           rows={2}
           value={draft}
-          placeholder={listening ? 'Pode falar… clique no microfone de novo para terminar.' : 'Peça algo ou ensine um procedimento…'}
+          placeholder={listening ? 'Pode falar… clique no microfone de novo para terminar.' : placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
         />

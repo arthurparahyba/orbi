@@ -20,11 +20,12 @@ pelo MCP. Aqui são os agentes que **o Orbi chama** para mexer em código.
 
 ## Onde aparece
 
-- **Autonomia → Agentes de código**: as duas tarefas com agente e modelo, a lista
-  "Nesta máquina" (comando, modelos, situação do último teste, Testar, Editar,
-  Remover) e botões para começar por um agente conhecido.
-- Ao lado da lista, o chat **Configurar com o Orbi**: peça para procurar os
-  agentes, explicar um deles ou mudar quem faz cada tarefa.
+- **Autonomia → Agentes de código** (no submenu da tela Autonomia): à esquerda,
+  **Quem faz o quê** (as duas tarefas com agente e modelo) e **Nesta máquina**
+  (comando, modelos, situação do último teste, Testar, Editar, Remover, e botões
+  para começar por um agente conhecido); à direita, numa coluna da altura da
+  tela, o chat **Configurar com o Orbi**: peça para procurar os agentes, explicar
+  um deles ou mudar quem faz cada tarefa.
 - **Autonomia → Capacidades**: a linha "Agente de código" resume quem faz cada
   tarefa (`GET /api/health` → `codeAgent`).
 
@@ -141,7 +142,8 @@ na próxima vez é o caminho do problema conhecido.
 | Ferramentas do chat | `apps/runtime/src/agents/tools/code-agent-setup.ts`, `code-agents/discovery.ts` |
 | Qual agente responde a conversa | `apps/runtime/src/agents/directory.ts` |
 | API | `apps/runtime/src/http/routes/code-agents.ts` |
-| Tela | `apps/desktop/src/views/autonomy/codeAgents/` (lista, tarefas, editor e `ConfigChat`) |
+| Tela | `apps/desktop/src/views/autonomy/codeAgents/` (`CodeAgentsPage`: lista e tarefas à esquerda, `ConfigChat` à direita) |
+| Submenu da Autonomia | `apps/desktop/src/views/autonomy/AutonomyView.tsx` (Regras, Agentes de código, Cofre, Uso, Voz, Capacidades) |
 | Chat comum | `apps/desktop/src/components/chat/ChatPanel.tsx` |
 | Tabelas | `code_agents`, `code_agent_tasks` (migração 16, `docs/banco.md`) |
 

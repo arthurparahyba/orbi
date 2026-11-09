@@ -18,6 +18,7 @@ export function ConfigChat() {
       id={CODE_AGENTS_CHAT}
       label="Configurar agentes de código com o Orbi"
       className="chat config-chat"
+      placeholder="Pergunte ou peça um ajuste nos agentes…"
       header={(c) => {
         const pill = chatPill(c);
         return (

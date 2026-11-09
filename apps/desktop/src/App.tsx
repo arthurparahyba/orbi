@@ -7,7 +7,7 @@ import { InboxContext, type InboxActions } from './components/UiComponents';
 import { needsYou } from './views/conversation/inbox';
 import { ConversationView } from './views/conversation/ConversationView';
 import { BrainView } from './views/brain/BrainView';
-import { AutonomyView } from './views/autonomy/AutonomyView';
+import { AutonomyView, type AutonomySection } from './views/autonomy/AutonomyView';
 import { AgentsView } from './views/agents/AgentsView';
 import { PipelinesView } from './views/pipelines/PipelinesView';
 import { Splash, booted } from './components/Splash';
@@ -24,6 +24,9 @@ export function App() {
   // "Abrir conversa" on the Agentes screen jumps to Conversa with that one open.
   const [focus, setFocus] = useState<{ id: string } | undefined>();
   const openConversation = (id: string) => { setFocus({ id }); setScreen('conversa'); };
+  // A configuration chat (config:…) lives on its Autonomia page.
+  const [autonomyFocus, setAutonomyFocus] = useState<{ section: AutonomySection }>();
+  const openCodeAgents = () => { setAutonomyFocus({ section: 'agentes-de-codigo' }); setScreen('autonomia'); };
 
   // The conversation the answer or decision went to follows the turn it starts (catchUp.ts).
   const conversationOf = (id: string) => inbox.data?.find((i) => i.id === id)?.conversationId;
@@ -74,11 +77,11 @@ export function App() {
               Ainda sem resposta do runtime em 127.0.0.1:3000. O app inicia o runtime sozinho; se isso não passar em alguns segundos, veja o log em <code>~/Library/Application Support/br.com.zup.orbi/logs/runtime.log</code> (no desenvolvimento, rode <code>npm run demo</code> na raiz).
             </div>
           )}
-          {screen === 'conversa' && <ConversationView openInbox={open} focus={focus} onOpenConfig={() => setScreen('autonomia')} />}
+          {screen === 'conversa' && <ConversationView openInbox={open} focus={focus} onOpenConfig={openCodeAgents} />}
           {screen === 'esteiras' && <PipelinesView onOpenConversation={openConversation} />}
           {screen === 'cerebro' && <BrainView />}
           {screen === 'agentes' && <AgentsView openInbox={waiting} health={health.data} onOpenConversation={openConversation} />}
-          {screen === 'autonomia' && <AutonomyView health={health.data} />}
+          {screen === 'autonomia' && <AutonomyView health={health.data} focus={autonomyFocus} />}
         </main>
       </div>
     </InboxContext.Provider>

@@ -23,3 +23,11 @@ describe('agentes de código', () => {
     expect(parseModels('a, b , ,a')).toEqual(['a', 'b']);
   });
 });
+
+describe('erro do chat', () => {
+  it('sem chave do modelo, diz o que fazer', async () => {
+    const { friendlyError } = await import('../src/components/chat/ChatPanel');
+    expect(friendlyError('direct(sub_x) failed: Provider is not configured: anthropic')).toMatch(/ANTHROPIC_API_KEY/);
+    expect(friendlyError('outro erro')).toBe('outro erro');
+  });
+});

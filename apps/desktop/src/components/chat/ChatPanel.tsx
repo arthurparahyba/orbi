@@ -39,6 +39,8 @@ export function ChatPanel(props: {
   dock?: ReactNode;
   /** "Ir até" a card of Pendências. */
   target?: { inboxId: string; n: number };
+  /** What the message box says when empty. */
+  placeholder?: string;
   /** Runs before a message is sent: return false to keep it (e.g. a chip that opens a panel). */
   beforeSend?(text: string, firstMessage: boolean): boolean;
 }) {
@@ -89,15 +91,23 @@ export function ChatPanel(props: {
             {agent.historyReady && visible.length === 0 && props.empty?.((t) => void send(t))}
             {visible.map((m) => <Message key={m.id} m={m} />)}
             {agent.status === 'submitted' && <div className="msg assistant"><span className="typing"><i /><i /><i /></span></div>}
-            {agent.error && <div className="banner small" role="alert">{agent.error.message}</div>}
+            {agent.error && <div className="banner small" role="alert">{friendlyError(agent.error.message)}</div>}
           </div>
           {follow.unread && <button type="button" className="btn small new-msgs" onClick={follow.toBottom}>Novas mensagens ↓</button>}
         </div>
       </ChatContext.Provider>
       {props.dock}
-      <Composer onSend={send} />
+      <Composer onSend={send} placeholder={props.placeholder} />
     </section>
   );
+}
+
+/** Errors the developer can act on, said in words (the raw message stays at the end). */
+export function friendlyError(message: string): string {
+  if (/Provider is not configured|api[_ -]?key/i.test(message)) {
+    return `O modelo não tem chave: falta ANTHROPIC_API_KEY no apps/runtime/.env (ou no .env da pasta de dados do app). Crie o arquivo a partir do .env.example, ponha a chave e reinicie o Orbi. (${message})`;
+  }
+  return message;
 }
 
 /** The pill most chat headers show. */
