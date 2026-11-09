@@ -69,3 +69,14 @@ test('.env: troca a linha ativa, aproveita o exemplo comentado, ou acrescenta', 
   assert.equal(withEnvValue('# ORBI_SHELL=C:\\\\algo\nB=2\n', 'ORBI_SHELL', path), `ORBI_SHELL='${path}'\nB=2\n`);
   assert.equal(withEnvValue('B=2', 'ORBI_SHELL', path), `B=2\nORBI_SHELL='${path}'\n`);
 });
+
+test('agente duas vezes no build (Windows): a entrega usa a cópia registrada', async () => {
+  const { registeredAgent } = await import('../src/conversations/tell.ts');
+  function Orbi() {}
+  const copy = { Orbi() {} }.Orbi; // same name, another function value
+  const other = function Outro() {};
+  const reg = [{ identity: 'orbi', agent: Orbi }];
+  assert.equal(registeredAgent(Orbi as never, reg), Orbi);
+  assert.equal(registeredAgent(copy as never, reg), Orbi, 'a cópia vira a registrada');
+  assert.equal(registeredAgent(other as never, reg), other, 'outro agente não é trocado');
+});
