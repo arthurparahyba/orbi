@@ -75,3 +75,13 @@ describe('revisão e saída em arquivo', async () => {
     expect(toolResult(c)).toBe('salvo em /u/p/top.tsv (100 linhas)\na\tb\n(saída 0)');
   });
 });
+
+import { scriptDiff } from '../src/components/stepDiff';
+describe('scripts do procedimento no cartão', () => {
+  const a = { name: 'a.py', code: 'print(1)' };
+  it('marca novo, muda e sai contra a base; sem o campo, ficam os da base', () => {
+    const d = scriptDiff([a, { name: 'b.py', code: 'x' }], [{ ...a, code: 'print(2)' }, { name: 'c.py', code: 'y' }], true);
+    expect(d.map((x) => `${x.script.name}:${x.change}`)).toEqual(['a.py:changed', 'c.py:new', 'b.py:removed']);
+    expect(scriptDiff([a], undefined, true).map((x) => x.change)).toEqual(['same']);
+  });
+});

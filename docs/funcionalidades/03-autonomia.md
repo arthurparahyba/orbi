@@ -143,7 +143,9 @@ pode desfazer.
 ## Limites conhecidos
 
 - Um script `python3 -c` muda de texto a cada vez: raramente vira ação conhecida.
-  Guarde o script num arquivo no procedimento para ele ganhar autonomia.
+  Por isso o procedimento tem **scripts próprios** (documento 5), rodados com
+  `run_script`: o mesmo script com outros dados é a mesma ação. A revisão sugere
+  a troca quando vê `python3 -c` num passo.
 - A ação conhecida vale para o procedimento inteiro, não para um passo só.
 - A lista de verbos de leitura cobre `git`, `gh` e `aws`. Outra CLI
   liberada em `ORBI_ALLOWED_BINARIES` tem todos os comandos tratados como escrita.

@@ -12,7 +12,7 @@ export interface ToolCall {
 }
 
 const LABEL: Record<string, string> = {
-  run_command: 'Comando', run_readonly_command: 'Comando (leitura)', run_python: 'Script Python', brain_query: 'Consulta ao cérebro',
+  run_command: 'Comando', run_readonly_command: 'Comando (leitura)', run_python: 'Script Python', run_script: 'Script do procedimento', brain_query: 'Consulta ao cérebro',
   brain_learn: 'Aprender', browser_read: 'Navegador (leitura)', browser_act: 'Ação no navegador', playbook_start: 'Iniciar procedimento',
   playbook_step: 'Passo do procedimento', claude_code_prepare_fix: 'Claude Code: preparar correção', claude_code_push_fix: 'Claude Code: enviar correção',
   show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente', playbook_similar: 'Procurar o que já sei',
@@ -46,6 +46,7 @@ export function toolLabel(t: ToolCall): string {
 export function toolCommand(t: ToolCall): string | undefined {
   const i = inputOf(t);
   if (typeof i.binary === 'string') return [i.binary, ...((i.args as string[] | undefined) ?? [])].join(' ') + (typeof i.saveTo === 'string' ? ` > ${i.saveTo}` : '');
+  if (t.toolName === 'run_script' && typeof i.script === 'string') return [i.script, ...((i.args as string[] | undefined) ?? [])].join(' ') + (typeof i.saveTo === 'string' ? ` > ${i.saveTo}` : '');
   if (t.toolName === 'browser_act' || t.toolName === 'browser_read') return `navegador: ${String(i.tool ?? '')}`;
   return undefined;
 }
@@ -71,7 +72,7 @@ export function toolResult(t: ToolCall): string | undefined {
 }
 
 const KIND: Record<string, [string, string]> = {
-  run_command: ['comando', 'comandos'], run_readonly_command: ['comando', 'comandos'], run_python: ['script', 'scripts'],
+  run_command: ['comando', 'comandos'], run_readonly_command: ['comando', 'comandos'], run_python: ['script', 'scripts'], run_script: ['script', 'scripts'],
   browser_read: ['leitura no navegador', 'leituras no navegador'], browser_act: ['ação no navegador', 'ações no navegador'],
   task: ['subagente', 'subagentes'],
 };

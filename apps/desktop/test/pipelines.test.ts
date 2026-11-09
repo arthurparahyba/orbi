@@ -12,7 +12,7 @@ const run = (over: Partial<PipelineRun> = {}): PipelineRun => ({
 });
 const pb = (name: string, how: string, outputs: string[] = []): Playbook => ({
   name, description: '', appliesTo: null, trigger: '', autonomy: 'ask', steps: [{ id: 'a', label: 'A', how }], instructions: '',
-  variationOf: null, uses: 0, successes: 0, updatedAt: '', level: 1, levelMax: 3, levelBy: 'learned', cleanStreak: 0, outputs: outputs.map((o) => ({ name: o, description: '' })),
+  variationOf: null, uses: 0, successes: 0, updatedAt: '', level: 1, levelMax: 3, levelBy: 'learned', cleanStreak: 0, scripts: [], outputs: outputs.map((o) => ({ name: o, description: '' })),
 });
 
 describe('esteiras na tela', () => {

@@ -52,6 +52,9 @@ export function usePlaybooks(ctx: AgentContext) {
           ...(pb.outputs.length
             ? ['', '## Entrega (registre com outputs no playbook_step do último passo)', ...pb.outputs.map((o) => `- ${o.name}: ${o.description}`)]
             : []),
+          ...(pb.scripts.length
+            ? ['', '## Scripts (rode com run_script {"script", "args"}; não reescreva com python3 -c)', ...pb.scripts.map((s) => `- ${s.name}: ${s.description}`)]
+            : []),
         ].join('\n'),
       }),
     );

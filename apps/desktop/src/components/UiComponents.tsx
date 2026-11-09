@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react';
+import { ScriptsPreview } from './ScriptsPreview';
 import type { InboxItem, UiComponent } from '@orbi/contracts';
 import { AlertIcon, BulbIcon, CheckIcon, ClockIcon, LinkIcon, XIcon } from './Icons';
 import { KnownLine, SimilarCard } from './SimilarCards';
@@ -80,7 +81,8 @@ export function LearningPreview({ detail }: { detail: string }) {
   return (
     <div className="learn-preview">
       {playbooks.map((pb) => {
-        const all = placeholders(JSON.stringify(pb));
+        // Script code is Python: its braces are not parameters.
+        const all = placeholders(JSON.stringify({ ...pb, scripts: undefined }));
         const params = all.filter((x) => !x.startsWith('segredo:'));
         const secrets = all.filter((x) => x.startsWith('segredo:')).map((x) => x.slice(8));
         const baseName: string | undefined = pb.variationOf ?? known.data?.find((k) => k.name === pb.name)?.name;
@@ -114,6 +116,7 @@ export function LearningPreview({ detail }: { detail: string }) {
                 ))}
               </ol>
             )}
+            <ScriptsPreview base={base?.scripts} next={pb.scripts} hasBase={!!base && !pb.variationOf} />
           </div>
         );
       })}

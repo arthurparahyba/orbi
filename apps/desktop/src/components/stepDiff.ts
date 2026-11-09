@@ -32,3 +32,20 @@ export function stepDiff(base: Step[], next: Step[]): DiffedStep[] {
 }
 
 export const CHANGE_LABEL: Record<StepChange, string> = { same: 'igual', changed: 'muda', new: 'novo', removed: 'sai' };
+
+/** A procedure's scripts against the base: matched by name, changed when the code or effect differs. */
+export interface Script { name: string; description?: string; code: string; effect?: string }
+export interface DiffedScript { script: Script; change: StepChange }
+export function scriptDiff(base: Script[] | undefined, next: Script[] | undefined, hasBase: boolean): DiffedScript[] {
+  const byName = new Map((base ?? []).map((s) => [s.name, s]));
+  // Left out of the proposal: the base keeps its scripts.
+  if (next === undefined) return (base ?? []).map((script) => ({ script, change: 'same' }));
+  const out: DiffedScript[] = next.map((script) => {
+    const before = byName.get(script.name);
+    if (!before) return { script, change: hasBase ? 'new' : 'same' };
+    return { script, change: before.code === script.code && (before.effect ?? 'local') === (script.effect ?? 'local') ? 'same' : 'changed' };
+  });
+  const kept = new Set(next.map((s) => s.name));
+  for (const script of base ?? []) if (!kept.has(script.name)) out.push({ script, change: 'removed' });
+  return out;
+}

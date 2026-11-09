@@ -601,3 +601,13 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .review-card .level-card { margin-top: 8px; }
 .ui-card.pl-warnings { border-color: rgba(242, 177, 60, 0.45); margin: 12px 0; }
 .ui-card.pl-warnings ul { margin: 4px 0 10px; padding-left: 18px; }
+
+/* Scripts of a procedure (learning card and brain) */
+.learn-scripts { margin-top: 8px; }
+.learn-scripts ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.script-item summary { cursor: pointer; }
+.script-item.removed code { text-decoration: line-through; opacity: 0.7; }
+.script-code { margin: 4px 0 0; padding: 8px; max-height: 260px; overflow: auto; font-size: 11.5px; line-height: 1.4; background: var(--surface-2, rgba(127,127,127,0.08)); border-radius: 6px; white-space: pre; text-align: left; }
+.diff-tag.script-changed { color: var(--amber); margin-left: 6px; }
+.diff-tag.script-new { color: #9cc4ff; margin-left: 6px; }
+.diff-tag.script-removed { margin-left: 6px; }

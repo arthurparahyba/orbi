@@ -19,6 +19,21 @@ export function PlaybookData({ p }: { p: Playbook }) {
           ? <ul className="small">{p.outputs.map((o) => <li key={o.name}><code className="out-name">{o.name}</code> <span className="muted">{o.description}</span></li>)}</ul>
           : <p className="muted small">nada declarado. Para usar numa esteira, diga o que ele entrega (Editar).</p>}
       </div>
+      {p.scripts.length > 0 && (
+        <div>
+          <h4>Scripts</h4>
+          <ul className="small">
+            {p.scripts.map((s) => (
+              <li key={s.name}>
+                <details>
+                  <summary><code>{s.name}</code> <span className="muted">{s.description}</span>{s.effect === 'publica' && <span className="pill tiny">publica</span>}</summary>
+                  <pre className="script-code">{s.code}</pre>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

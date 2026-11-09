@@ -42,6 +42,14 @@ flowchart LR
   e as primeiras linhas. É como uma lista ou um JSON grande passa de um passo para
   outro sem o modelo copiar à mão. Grava um arquivo: conta como escrita (efeito
   "nesta máquina"); o subagente de leitura não pode usar.
+- **`run_script`**: roda um script **do procedimento em andamento** pelo nome,
+  com argumentos (documento 5). O código vem do cérebro (aprovado com o
+  procedimento) e é gravado em `<scratch>/scripts/<procedimento>/<hash>-<nome>`;
+  roda com `python3` no workspace, com o mesmo ambiente do `run_command` (para
+  ler e gravar arquivos seus) e aceita `saveTo`. A impressão digital é
+  `run_script <procedimento>/<nome>@<versão> <argumentos>`, com os parâmetros da
+  execução no lugar dos valores: com outros dados é a mesma ação. Fora de um
+  procedimento, ou com um script que ele não tem, é recusado sem pedir nada.
 - **`gh api -X GET`** é leitura mesmo com `-f`/`-F` (viram parâmetros da consulta).
 - **`git -C pasta …`** é classificado pelo verbo que vem depois (`git -C x status`
   é leitura). Cada comando também tem um efeito (nesta máquina, publica, apaga),
@@ -112,6 +120,7 @@ sequenceDiagram
 | --- | --- |
 | `apps/runtime/src/terminal/exec.ts` | `runCommand`: sem shell, lista de binários, ambiente, erros |
 | `apps/runtime/src/agents/tools/terminal.ts` | `run_command` (portão), `run_readonly_command`, `run_python` |
+| `apps/runtime/src/agents/tools/scripts.ts` | `run_script` (portão): scripts do procedimento |
 | `apps/runtime/src/subagents/investigador.ts` + `prompts/investigador.md` | O investigador |
 | `apps/runtime/src/code/claude-code.ts` | Preparar (worktree + Agent SDK) e subir a correção |
 | `apps/runtime/src/agents/tools/code.ts` | As duas ferramentas de correção |
@@ -143,6 +152,9 @@ sequenceDiagram
 - O `run_python` isola o ambiente e a pasta, mas não é uma sandbox do sistema
   operacional: um script ainda poderia ler um caminho absoluto. Por isso só
   investigação de dados passados no próprio código.
+- O `run_script` também não é sandbox: roda com o seu ambiente, como o
+  `run_command`. A proteção é você ler e aprovar o código, e qualquer mudança
+  nele pedir aprovação de novo.
 - No app aberto pelo Finder, o PATH vem do seu shell de login (documento 14).
 
 ## Testes

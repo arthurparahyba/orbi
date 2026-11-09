@@ -131,3 +131,40 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
   assert.match(review.runs[0].problems[0], /ficou aberto: o passo buscar não foi fechado/);
   assert.equal(reviewConversation(s, 'c2'), null, 'uma vez só');
 });
+
+test('scripts do procedimento: validados, guardados, mantidos quando a mudança não fala deles; Python na hora vira sugestão', async () => {
+  const { scriptProblems, scriptVersion } = await import('../src/brain/domain/scripts.ts');
+  const { changeFromProposal } = await import('../src/brain/domain/learning.ts');
+  const { inlineScriptSuggestions } = await import('../src/brain/domain/review.ts');
+  const steps = [{ id: 'gerar', how: 'run_script gerar_html.py {{pasta}}' }, { id: 'outro', how: 'run_script falta.py' }];
+  assert.deepEqual(scriptProblems([
+    { name: 'gerar_html.py', description: '', code: 'print(1)' },
+    { name: 'Ruim.sh', description: '', code: '' },
+    { name: 'senha.py', description: '', code: 'print("{{segredo:token}}")' },
+  ], steps), [
+    'nome de script inválido: Ruim.sh (ex.: gerar_html.py)',
+    'script Ruim.sh sem código',
+    'script senha.py cita uma credencial: credenciais não entram em scripts',
+    'passo outro usa o script falta.py, que não está no procedimento',
+  ]);
+  assert.notEqual(scriptVersion('a'), scriptVersion('b'));
+
+  const b = new BrainStore(':memory:');
+  const learned = changeFromProposal('playbook', { name: 'gerar', steps: [{ id: 'gerar', label: 'G', how: 'run_script gerar_html.py' }], scripts: [{ name: 'gerar_html.py', description: 'html', code: 'print(1)', effect: 'publica' }] }, 'chat:1');
+  assert.ok(learned.kind === 'playbook');
+  b.savePlaybook(learned.playbook);
+  assert.deepEqual(b.playbook('gerar')!.scripts, [{ name: 'gerar_html.py', description: 'html', code: 'print(1)', effect: 'publica' }]);
+  // A fix that only touches the steps keeps the scripts.
+  const fix = changeFromProposal('playbook', { name: 'gerar', steps: [{ id: 'gerar', label: 'Gerar', how: 'run_script gerar_html.py {{pasta}}' }] }, 'chat:2');
+  assert.ok(fix.kind === 'playbook');
+  b.savePlaybook(fix.playbook);
+  assert.equal(b.playbook('gerar')!.scripts.length, 1);
+  assert.throws(() => b.editPlaybook('gerar', { steps: [{ id: 'x', label: 'X', how: 'run_script nao_tem.py' }] }), /nao_tem\.py/);
+
+  assert.deepEqual(inlineScriptSuggestions({ actions: [
+    { fingerprint: 'run_command python3 -c import json…', tool: 'run_command', effect: 'local', summary: '', step: 'gerar' },
+    { fingerprint: 'run_command python3 -c print(2)', tool: 'run_command', effect: 'local', summary: '', step: 'gerar' },
+    { fingerprint: 'run_script gerar/gerar_html.py@abcd1234 {{pasta}}', tool: 'run_script', effect: 'local', summary: '', step: 'gerar' },
+    { fingerprint: 'run_command gh pr list', tool: 'run_command', effect: 'leitura', summary: '', step: 'listar' },
+  ] }).map((x) => x.slice(0, 64)), ['o passo gerar rodou Python escrito na hora (python3 -c, 2 vezes)']);
+});

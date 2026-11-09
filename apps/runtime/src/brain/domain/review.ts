@@ -19,6 +19,23 @@ export function stepClaimProblems(run: Pick<PlaybookRun, 'steps' | 'deviations'>
   return out;
 }
 
+/**
+ * Inline Python (`python3 -c`) is rewritten every run, so it never becomes a known action and
+ * always asks: each step that used it should keep the code as a procedure script (run_script).
+ */
+export function inlineScriptSuggestions(run: Pick<PlaybookRun, 'actions'>): string[] {
+  const steps = new Map<string, number>();
+  for (const a of run.actions) {
+    if (a.tool !== 'run_command' || !/^run_command python3 (?:-\S+ )*-c /.test(a.fingerprint)) continue;
+    const key = a.step ?? '';
+    steps.set(key, (steps.get(key) ?? 0) + 1);
+  }
+  return [...steps].map(([step, n]) =>
+    `${step ? `o passo ${step}` : 'a execução'} rodou Python escrito na hora (python3 -c${n > 1 ? `, ${n} vezes` : ''}), que pede aprovação toda vez: ` +
+    'guarde esse código como script do procedimento (scripts, lendo os dados de sys.argv) e faça o passo usar run_script.',
+  );
+}
+
 export interface ConfigProblem {
   stage: string;
   playbook: string;

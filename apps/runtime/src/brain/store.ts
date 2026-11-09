@@ -134,17 +134,20 @@ export class BrainStore {
 
   // ── playbooks ───────────────────────────────────────────────────────────
   savePlaybook(pb: PlaybookInput): Playbook {
-    const problems = playbookProblems(pb);
+    // Scripts left out of a change stay as they were (and the steps are checked against them).
+    const before = this.playbookRepo.get(pb.name);
+    const scripts = pb.scripts ?? before?.scripts ?? [];
+    const problems = playbookProblems({ ...pb, scripts });
     if (pb.variationOf && (pb.variationOf === pb.name || !this.playbookRepo.get(pb.variationOf))) {
       problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
     }
     if (problems.length) throw new Error(problems.join('; '));
     // Editing the steps keeps the level: a changed step runs other actions, and new actions ask anyway.
-    this.playbookRepo.save(pb);
+    this.playbookRepo.save({ ...pb, scripts });
     return this.playbookRepo.get(pb.name)!;
   }
   /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
-  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions' | 'outputs'>>): Playbook {
+  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions' | 'outputs' | 'scripts'>>): Playbook {
     const current = this.playbookRepo.get(name);
     if (!current) throw new Error(`playbook não encontrado: ${name}`);
     const { uses: _u, successes: _s, updatedAt: _t, ...rest } = current;

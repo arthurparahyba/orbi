@@ -79,6 +79,7 @@ erDiagram
     json steps
     text instructions
     json outputs
+    json scripts
     text variation_of
     text learned_from
     int level
@@ -262,6 +263,7 @@ a antiga (`valid_to`) e abrindo outra; o passado continua consultável.
 | `steps` | JSON `[{ id, label, how }]`, com `{{parametro}}` e `{{segredo:nome}}` |
 | `instructions` | Texto que vale para o procedimento todo |
 | `outputs` | JSON `[{ name, description }]`: o que ele **entrega** (migração 10) |
+| `scripts` | JSON `[{ name, description, code, effect? }]`: scripts Python do procedimento, rodados com `run_script` (migração 15) |
 | `variation_of` | De qual procedimento foi derivado (migração 5) |
 | `learned_from` | De onde veio ("conversa …", "agente: Claude Code") |
 | `uses`, `successes` | Contadores; os mais usados entram como skills |
@@ -405,8 +407,9 @@ editada, sempre se cria outra.
 | 12 | Permissões de esteira dos agentes e `agent_requests.pipeline` |
 | 13 | Autonomia que cresce: nível em `playbooks` (procedimentos `auto` viram N3 seu), `actions` e `deviations` em `playbook_runs`, `playbook_known_actions`, `autonomy_events`, `pipelines.passage_streaks` |
 | 14 | `playbook_runs.reviewed_at` (as execuções antigas contam como revisadas) |
+| 15 | `playbooks.scripts` (scripts do procedimento) |
 
-O número é o `user_version` depois que a migração roda (hoje 14). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 15). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos

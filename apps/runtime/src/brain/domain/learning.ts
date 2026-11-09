@@ -1,4 +1,5 @@
 import { entityProblems, isTypeName } from './ontology.ts';
+import { scriptProblems, type PlaybookScript } from './scripts.ts';
 import { pipelineProblems, type PipelineInputDef } from './pipelines.ts';
 import type { Autonomy, Edge, Entity, OntologyType, Playbook, PlaybookInput, PlaybookOutput, PlaybookStep, ProposalKind } from './types.ts';
 
@@ -27,7 +28,12 @@ export function proposalProblems(kind: ProposalKind, payload: Record<string, unk
       return ctx.typeOf(from.type)?.relations[String(payload.rel)] ? [] : [`ligação "${payload.rel}" não existe para ${from.type}`];
     }
     case 'playbook':
-      return Array.isArray(payload.steps) && payload.steps.length > 0 ? [] : ['playbook sem passos'];
+    {
+      if (!Array.isArray(payload.steps) || payload.steps.length === 0) return ['playbook sem passos'];
+      // Left out, the scripts it has stay: the steps are checked against those.
+      const scripts = Array.isArray(payload.scripts) ? (payload.scripts as PlaybookScript[]) : ctx.playbook(String(payload.name))?.scripts;
+      return scriptProblems(scripts, (payload.steps as PlaybookStep[]).map((st) => ({ id: String(st.id), how: String(st.how ?? '') })));
+    }
     case 'pipeline':
       return pipelineProblems(pipelineFromPayload(payload), ctx.playbook);
   }
@@ -97,6 +103,17 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
           outputs: Array.isArray(p.outputs)
             ? (p.outputs as Array<Partial<PlaybookOutput>>).map((o) => ({ name: String(o.name ?? ''), description: String(o.description ?? '') }))
             : [],
+          // Left out: the scripts the playbook already has stay (store.savePlaybook).
+          ...(Array.isArray(p.scripts)
+            ? {
+                scripts: (p.scripts as Array<Partial<PlaybookScript>>).map((s) => ({
+                  name: String(s.name ?? ''),
+                  description: String(s.description ?? ''),
+                  code: String(s.code ?? ''),
+                  ...(s.effect === 'publica' ? { effect: 'publica' as const } : {}),
+                })),
+              }
+            : {}),
         },
       };
     case 'pipeline':

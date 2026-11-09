@@ -60,6 +60,17 @@ repetitivo depois do commit em algo que o Orbi faz sozinho.
   valores no último `playbook_step`; nomes não declarados são recusados e valores
   do cofre são limpos. É assim que uma esteira passa dados de uma etapa para a
   próxima (documento 16). Na tela: **Recebe** (os parâmetros) e **Entrega**.
+- **`scripts`** (opcional): os scripts Python **do procedimento**, cada um com
+  nome (`gerar_html.py`: minúsculas, números, `_` ou `-`), uma linha do que faz e
+  dos argumentos, o código (até 50 KB, sem `{{segredo:…}}`) e o efeito (`local`,
+  o padrão, ou `publica`). Você aprova o código uma vez, no cartão de aprendizado
+  (cada script aberto para ler; numa correção, marcado como novo, muda ou sai). Na
+  execução o Orbi chama `run_script` com o nome e os argumentos (os dados, de
+  `sys.argv`): é sempre o mesmo código, então vira **ação conhecida** e roda
+  sozinho conforme o nível, em vez de um `python3 -c` reescrito a cada vez, que
+  pede aprovação sempre. Mudou o código, muda a versão (hash) e a ação é nova:
+  pede de novo. Uma mudança que não traz `scripts` mantém os que existem; um passo
+  que cita `run_script x.py` sem esse script é recusado. Na tela: **Scripts**.
 
 ## Como é aprendido
 
@@ -115,7 +126,10 @@ sequenceDiagram
   - os problemas: ferramenta que falhou, ação negada, passo que falhou ou foi
     pulado, e **passo dado como feito cuja ferramenta falhou**;
   - o nível, acertado com base nisso (execução com problema não sobe);
-  - numa esteira, a configuração dela (documento 16).
+  - numa esteira, a configuração dela (documento 16);
+  - o que pode melhorar: passo que rodou Python escrito na hora (`python3 -c`)
+    vira a sugestão de guardar o código como script do procedimento ("Pode
+    melhorar" no cartão), e o Orbi propõe isso no mesmo `brain_learn`.
   Se há algo a mostrar (problema ou mudança de nível), um sinal `review` leva à
   conversa o cartão **Revisão da execução** e, havendo problema, pede ao Orbi as
   correções num único `brain_learn` (o cartão de aprendizado espera você). Execução
@@ -152,6 +166,9 @@ procedimentos.
 | --- | --- |
 | `apps/runtime/src/agents/tools/playbooks.ts` | Catálogo de skills, `playbook_start`, `playbook_step`, checklist |
 | `apps/runtime/src/brain/domain/playbooks.ts` | Validação, parâmetros, avanço de uma execução |
+| `apps/runtime/src/brain/domain/scripts.ts` | Regras dos scripts do procedimento (nome, tamanho, credenciais, versão) |
+| `apps/runtime/src/agents/tools/scripts.ts` | `run_script` (portão): roda o script do procedimento em andamento |
+| `apps/desktop/src/components/ScriptsPreview.tsx` | Scripts no cartão de aprendizado, contra a versão atual |
 | `apps/runtime/src/brain/repo/playbooks.ts` | SQL de procedimentos, execuções e busca |
 | `apps/runtime/src/skills/aprender-procedimento.ts` + `prompts/aprender-procedimento.md` | Como aprender |
 | `apps/desktop/src/components/UiComponents.tsx` | Checklist (`stepper`) e prévia do aprendizado |
@@ -198,3 +215,8 @@ procedimentos.
 - `apps/runtime/test/demonstration.test.ts`: parâmetros preenchidos, segredos
   continuam referência.
 - `apps/runtime/test/units.test.ts`: catálogo de skills só com os mais usados.
+- `apps/runtime/test/agent-flow.test.ts` ("script do procedimento"): fora de um
+  procedimento é recusado; a primeira vez pede, aprovado roda o código guardado;
+  com outros dados, no N2, roda sozinho.
+- `apps/runtime/test/review.test.ts` ("scripts do procedimento"): validação,
+  scripts mantidos numa correção só de passos, sugestão para `python3 -c`.

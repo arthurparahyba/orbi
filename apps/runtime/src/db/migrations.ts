@@ -185,4 +185,8 @@ ALTER TABLE pipelines ADD COLUMN passage_streaks TEXT NOT NULL DEFAULT '{}';`,
 ALTER TABLE playbook_runs ADD COLUMN reviewed_at TEXT;
 UPDATE playbook_runs SET reviewed_at = COALESCE(finished_at, started_at) WHERE status IN ('done', 'failed');`,
   },
+  {
+    name: 'scripts do procedimento: Python aprovado uma vez e rodado pelo nome',
+    sql: `ALTER TABLE playbooks ADD COLUMN scripts TEXT NOT NULL DEFAULT '[]';`,
+  },
 ];

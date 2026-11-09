@@ -1,4 +1,5 @@
 import type { Playbook, PlaybookOutput, PlaybookRun, StepStatus } from './types.ts';
+import { scriptProblems, type PlaybookScript } from './scripts.ts';
 
 /** Playbook rules: what a valid one looks like and how a run's status follows its steps. */
 
@@ -6,8 +7,9 @@ const PLAYBOOK_NAME = /^[a-z0-9][a-z0-9-]{1,63}$/;
 /** Output and parameter names: what {{name}} accepts, kept simple (versao, pr_url). */
 export const DATA_NAME = /^[a-z_][a-z0-9_]{0,39}$/;
 
-export function playbookProblems(pb: Pick<Playbook, 'name' | 'steps'> & { outputs?: PlaybookOutput[] }): string[] {
+export function playbookProblems(pb: Pick<Playbook, 'name' | 'steps'> & { outputs?: PlaybookOutput[]; scripts?: PlaybookScript[] }): string[] {
   const problems: string[] = [];
+  if (Array.isArray(pb.steps)) problems.push(...scriptProblems(pb.scripts, pb.steps));
   const outs = new Set<string>();
   for (const o of pb.outputs ?? []) {
     if (!DATA_NAME.test(o.name ?? '')) problems.push(`nome de dado de entrega inválido: ${o.name} (use letras minúsculas, números e _)`);

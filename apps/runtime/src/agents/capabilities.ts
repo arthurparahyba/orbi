@@ -2,6 +2,7 @@ import { useUiChannel } from './ui-channel.ts';
 import { useGate } from './gate.ts';
 import type { AgentContext } from './context.ts';
 import { useTerminal } from './tools/terminal.ts';
+import { useScripts } from './tools/scripts.ts';
 import { useBrowser } from './tools/browser.ts';
 import { useCode } from './tools/code.ts';
 import { useBrain } from './tools/brain.ts';
@@ -28,6 +29,7 @@ export function useOrbi(conversationId: string) {
 
   // hands
   useTerminal(ctx);
+  useScripts(ctx);
   useBrowser(ctx);
   useCode(ctx);
   // memory

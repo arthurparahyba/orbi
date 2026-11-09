@@ -1,7 +1,7 @@
 import type { ExecutionReview } from '@orbi/contracts';
 import type { OrbiServices } from '../services.ts';
 import { LEVEL_NAMES } from '../brain/domain/levels.ts';
-import { defaultSuggestions, pipelineConfigProblems, stepClaimProblems, type ConfigProblem } from '../brain/domain/review.ts';
+import { defaultSuggestions, inlineScriptSuggestions, pipelineConfigProblems, stepClaimProblems, type ConfigProblem } from '../brain/domain/review.ts';
 import { collected } from '../pipelines/engine.ts';
 import { tellAgent } from '../conversations/tell.ts';
 import { log } from '../observability/log.ts';
@@ -42,6 +42,8 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     const problems = [...new Set([...claims, ...settled.deviations.filter((d) => !claimed.has(d))])];
     s.brain.markReviewed(run.id);
     const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', problems };
+    const suggestions = inlineScriptSuggestions(run);
+    if (suggestions.length) entry.suggestions = suggestions;
     if (settled.change) {
       const { from, to, reason } = settled.change;
       const item = s.inbox.add({
@@ -74,7 +76,7 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
   return out;
 }
 
-export const hasProblems = (r: ExecutionReview) => r.config.length > 0 || r.runs.some((x) => x.problems.length > 0);
+export const hasProblems = (r: ExecutionReview) => r.config.length > 0 || r.runs.some((x) => x.problems.length > 0 || (x.suggestions?.length ?? 0) > 0);
 
 /** What the model reads with the review: what went wrong, and to propose the fixes in one batch. */
 export function reviewInstruction(r: ExecutionReview): string {
@@ -84,9 +86,10 @@ export function reviewInstruction(r: ExecutionReview): string {
   const lines = [
     'Revisão da execução, feita pelo runtime (o cartão já está na conversa):',
     ...r.runs.filter((x) => x.problems.length).map((x) => `- ${x.playbook}: ${x.problems.join('; ')}`),
+    ...r.runs.filter((x) => x.suggestions?.length).map((x) => `- melhoria em ${x.playbook}: ${x.suggestions!.join('; ')}`),
     ...groupConfig(r.config).map(([pb, texts]) => `- configuração de ${pb}: ${texts.join(' ')}`),
     'Proponha as correções com UM brain_learn: para cada procedimento com problema, o mesmo nome com os passos corrigidos ' +
-      '(o que vem da esteira entra como {{parâmetro}} nos passos; dado grande vai para arquivo com saveTo; tabela no show_ui com até 20 linhas). ' +
+      '(o que vem da esteira entra como {{parâmetro}} nos passos; dado grande vai para arquivo com saveTo; tabela no show_ui com até 20 linhas; Python que se repete vira script do procedimento, em scripts, chamado com run_script). ' +
       `${r.pipeline ? `Se precisar, inclua a esteira ${r.pipeline} ajustada no mesmo lote. ` : ''}` +
       'Diga em até três linhas o que muda. Não rode nada de novo: o desenvolvedor aprova antes.',
   ];

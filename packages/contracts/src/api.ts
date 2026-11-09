@@ -27,6 +27,8 @@ export interface Playbook {
   variationOf: string | null; uses: number; successes: number; updatedAt: string;
   /** What it hands over when it finishes, for the next stage of an esteira or an agent. */
   outputs: PlaybookOutput[];
+  /** Its own Python scripts, approved with it and run by name (run_script). */
+  scripts: PlaybookScript[];
   /** Autonomy that grows with use: 1 Aprendendo, 2 Assistido, 3 Autônomo; the ceiling; who set it. */
   level: 1 | 2 | 3; levelMax: 1 | 2 | 3; levelBy: 'learned' | 'promoted' | 'demoted' | 'user'; cleanStreak: number;
 }
@@ -43,6 +45,8 @@ export interface AutonomyEvent { id: string; subjectKind: 'playbook' | 'passage'
 export interface ExecutionReview {
   runs: Array<{
     runId: string; playbook: string; status: 'done' | 'failed' | 'open'; problems: string[];
+    /** What would make it run alone next time (e.g. inline Python → a procedure script). */
+    suggestions?: string[];
     level?: { from: number; to: number; reason: string; inboxId?: string; alone: string[]; asks: string[] };
   }>;
   config: Array<{ stage: string; playbook: string; text: string }>;
@@ -50,6 +54,7 @@ export interface ExecutionReview {
 }
 export interface PlaybookAutonomy { knownActions: KnownAction[]; events: AutonomyEvent[]; runsForN3: number }
 export interface PlaybookOutput { name: string; description: string }
+export interface PlaybookScript { name: string; description: string; code: string; effect?: 'local' | 'publica' }
 export interface PlaybookRun {
   id: string; playbook: string; conversationId: string; status: 'running' | 'done' | 'failed' | 'waiting';
   steps: Array<{ id: string; label: string; status: string; note?: string }>; startedAt: string; finishedAt: string | null;

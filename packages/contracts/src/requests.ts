@@ -48,6 +48,12 @@ export const EditPlaybook = v.object({
     name: v.pipe(v.string(), v.regex(/^[a-z_][a-z0-9_]{0,39}$/, 'nome do dado: letras minúsculas, números e _ (ex.: pr_url)')),
     description: v.string(),
   }))),
+  scripts: v.optional(v.array(v.object({
+    name: v.pipe(v.string(), v.regex(/^[a-z0-9][a-z0-9_-]{0,47}\.py$/, 'nome do script: minúsculas, números, _ ou -, terminando em .py')),
+    description: v.string(),
+    code: v.pipe(v.string(), v.maxLength(50_000, 'script grande demais (máximo 50 KB)')),
+    effect: v.optional(v.picklist(['local', 'publica'])),
+  }))),
 });
 export const SetAutonomy = v.object({
   category: v.picklist(['comandos-leitura', 'comandos-escrita', 'navegador-leitura', 'navegador-escrita', 'codigo-teste', 'codigo-producao', 'aprender']),

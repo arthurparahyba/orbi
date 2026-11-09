@@ -50,6 +50,12 @@ const learnItem = v.variant('kind', [
           v.description('What it hands over when it finishes (snake_case names, e.g. versao, pr_url): the next stage of an esteira uses them'),
         ),
       ),
+      scripts: v.optional(
+        v.pipe(
+          v.array(v.object({ name: v.string(), description: v.string(), code: v.string(), effect: v.optional(v.picklist(['local', 'publica'])) })),
+          v.description('Its own Python scripts (name like gerar_html.py), run with run_script and reading data from sys.argv. The complete list: scripts left out are removed. Leave the field out to keep the current ones.'),
+        ),
+      ),
     }),
   }),
   v.object({
