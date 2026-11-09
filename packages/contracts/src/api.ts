@@ -42,13 +42,15 @@ export interface AutonomyEvent { id: string; subjectKind: 'playbook' | 'passage'
  * attribute `review` as JSON): each procedure that ran, its problems and level change,
  * and the esteira's configuration problems.
  */
+/**
+ * What one check of the review found in a run (apps/runtime/src/review/analyzers): a problem,
+ * something that would make it run alone next time, or something to keep in the brain.
+ */
+export interface Finding { kind: 'problema' | 'melhoria' | 'aprender'; text: string; analyzer: string }
 export interface ExecutionReview {
   runs: Array<{
-    runId: string; playbook: string; status: 'done' | 'failed' | 'open'; problems: string[];
-    /** What would make it run alone next time (e.g. inline Python → a procedure script). */
-    suggestions?: string[];
-    /** Problems it ran into and got past (or not): to keep as known problems in the brain. */
-    learned?: string[];
+    runId: string; playbook: string; status: 'done' | 'failed' | 'open';
+    findings: Finding[];
     level?: { from: number; to: number; reason: string; inboxId?: string; alone: string[]; asks: string[] };
   }>;
   config: Array<{ stage: string; playbook: string; text: string }>;

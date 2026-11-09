@@ -64,7 +64,7 @@ describe('revisão e saída em arquivo', async () => {
   const { toolResult, toolCommand } = await import('../src/views/conversation/tools');
   it('lê a revisão do sinal', () => {
     const r = { runs: [{ runId: 'r', playbook: 'p', status: 'done', problems: ['x'] }], config: [] };
-    expect(reviewOf({ review: JSON.stringify(r) })?.runs[0].problems).toEqual(['x']);
+    expect(reviewOf({ review: JSON.stringify(r) })?.runs[0].findings).toEqual([{ kind: 'problema', text: 'x', analyzer: 'antigo' }]);
     expect(reviewOf({ review: '{' })).toBeUndefined();
     expect(reviewOf(undefined)).toBeUndefined();
   });

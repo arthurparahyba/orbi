@@ -1,4 +1,5 @@
 import type { FlueConversationMessage, FlueConversationPart } from '@flue/react';
+import { findingsOf } from '../../components/review';
 import type { UiComponent } from '../../components/UiComponents';
 import { reviewOf } from '../../components/ReviewCard';
 
@@ -75,7 +76,7 @@ function message(m: FlueConversationMessage): string | undefined {
       if (!r) return undefined;
       return [
         '**Revisão da execução**' + (r.pipeline ? ` (esteira ${r.pipeline})` : ''),
-        ...r.runs.map((x) => `- ${x.playbook}: ${x.problems.length ? x.problems.join('; ') : 'sem problemas'}${x.level ? ` · N${x.level.from} → N${x.level.to}` : ''}`),
+        ...r.runs.map((x) => { const bad = findingsOf(x, 'problema'); return `- ${x.playbook}: ${bad.length ? bad.join('; ') : 'sem problemas'}${x.level ? ` · N${x.level.from} → N${x.level.to}` : ''}`; }),
         ...r.config.map((c) => `- configuração (${c.stage}): ${c.text}`),
       ].join('\n');
     }

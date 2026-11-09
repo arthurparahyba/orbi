@@ -178,6 +178,7 @@ procedimentos.
 | --- | --- |
 | `apps/runtime/src/agents/tools/playbooks.ts` | Catálogo de skills, `playbook_start`, `playbook_step`, checklist |
 | `apps/runtime/src/brain/domain/playbooks.ts` | Validação, parâmetros, avanço de uma execução |
+| `apps/runtime/src/review/analyzers/` | As verificações da revisão, uma por arquivo (`RunAnalyzer`): o que cada uma acha vira um achado do seu tipo (problema, melhoria, aprender) e diz como corrigir. Verificação nova = arquivo novo + uma linha em `index.ts` |
 | `apps/runtime/src/brain/domain/scripts.ts` | Regras dos scripts do procedimento (nome, tamanho, credenciais, versão) |
 | `apps/runtime/src/agents/tools/scripts.ts` | `run_script` (portão): roda o script do procedimento em andamento |
 | `apps/desktop/src/components/ScriptsPreview.tsx` | Scripts no cartão de aprendizado, contra a versão atual |

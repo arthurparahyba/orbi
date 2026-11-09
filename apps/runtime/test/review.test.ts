@@ -75,7 +75,7 @@ test('revisão: execuções terminadas, uma vez só, com problemas e configuraç
   assert.equal(reviewConversation(s, 'c1'), null, 'a entrega ainda roda: a revisão espera');
   engine.cancel(delivery.id);
   const review = reviewConversation(s, 'c1')!;
-  assert.deepEqual(review.runs.map((r) => [r.playbook, r.problems]), [['consultar', ['passo entregar foi dado como feito ("Tabela exibida"), mas show_ui falhou']]]);
+  assert.deepEqual(review.runs.map((r) => [r.playbook, r.findings.filter((f) => f.kind === 'problema').map((f) => f.text)]), [['consultar', ['passo entregar foi dado como feito ("Tabela exibida"), mas show_ui falhou']]]);
   assert.equal(review.runs[0].level, undefined, 'com problema não sobe');
   assert.equal(review.pipeline, 'top-repos');
   assert.ok(review.config.length >= 3);
@@ -129,7 +129,7 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
   assert.throws(() => engine.cancel(delivery.id), /encerrada/);
   const review = reviewConversation(s, 'c2')!;
   assert.equal(review.runs[0].status, 'open');
-  assert.match(review.runs[0].problems[0], /ficou aberto: o passo buscar não foi fechado/);
+  assert.match(review.runs[0].findings[0].text, /ficou aberto: o passo buscar não foi fechado/);
   assert.equal(reviewConversation(s, 'c2'), null, 'uma vez só');
 });
 
@@ -199,4 +199,14 @@ test('problemas conhecidos: forma, quando um erro bate, e o que vira conheciment
     'o passo acompanhar (Acompanhar o workflow) esbarrou',
     'o passo deploy (Deploy) falhou em `gh workflow run ',
   ]);
+});
+
+test('revisão: cada analisador registrado vira achados do seu tipo, e só os que acharam algo explicam como corrigir', async () => {
+  const { analyzeRun, howToFix } = await import('../src/review/analyzers/index.ts');
+  const custom = { id: 'teste', kind: 'melhoria' as const, analyze: () => ['algo a melhorar'], howToFix: 'faça assim.' };
+  const quiet = { id: 'calado', kind: 'problema' as const, analyze: () => [], howToFix: 'nunca aparece.' };
+  const run = { id: 'r', playbook: 'p', conversationId: 'c', status: 'done', steps: [], startedAt: '', finishedAt: null, params: {}, outputs: {}, actions: [], deviations: [] } as never;
+  const findings = analyzeRun(run, { open: false }, [custom, quiet, custom]);
+  assert.deepEqual(findings, [{ kind: 'melhoria', text: 'algo a melhorar', analyzer: 'teste' }], 'mesmo texto uma vez só');
+  assert.deepEqual(howToFix(findings, [custom, quiet]), ['faça assim.']);
 });

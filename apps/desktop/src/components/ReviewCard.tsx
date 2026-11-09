@@ -1,6 +1,9 @@
 import type { ExecutionReview } from '@orbi/contracts';
 import { CheckIcon, AlertIcon } from './Icons';
 import { LevelCard } from './LevelCard';
+import { FINDING_SECTIONS, findingsOf } from './review';
+
+export { reviewOf } from './review';
 
 /**
  * The review at the end of an execution, as the runtime found it (signal `review`): each
@@ -8,9 +11,8 @@ import { LevelCard } from './LevelCard';
  * configuration problems. The Orbi's proposed fixes come right after, as a learning card.
  */
 export function ReviewCard({ r }: { r: ExecutionReview }) {
-  const problems = r.runs.some((x) => x.problems.length) || r.config.length > 0;
-  const better = r.runs.filter((x) => x.suggestions?.length);
-  const learned = r.runs.filter((x) => x.learned?.length);
+  const problems = r.runs.some((x) => findingsOf(x, 'problema').length) || r.config.length > 0;
+  const others = FINDING_SECTIONS.map((s) => ({ ...s, items: r.runs.flatMap((x) => findingsOf(x, s.kind).map((text) => ({ run: x, text }))) })).filter((s) => s.items.length);
   return (
     <section className={`ui-card review-card ${problems ? 'has-problems' : 'is-clean'}`} aria-label="Revisão da execução">
       <header className="ui-card-head">
@@ -19,15 +21,18 @@ export function ReviewCard({ r }: { r: ExecutionReview }) {
         {r.pipeline && <span className="muted small">esteira {r.pipeline}</span>}
       </header>
       <ul className="review-runs">
-        {r.runs.map((x) => (
-          <li key={x.runId}>
-            <span className={`review-mark ${x.problems.length ? 'is-bad' : 'is-ok'}`} aria-hidden="true">{x.problems.length ? '!' : '✓'}</span>
-            <span className="review-body">
-              <strong>{x.playbook}</strong>
-              {x.problems.length === 0 ? <span className="muted small"> sem problemas</span> : <ul className="small">{x.problems.map((p) => <li key={p}>{p}</li>)}</ul>}
-            </span>
-          </li>
-        ))}
+        {r.runs.map((x) => {
+          const bad = findingsOf(x, 'problema');
+          return (
+            <li key={x.runId}>
+              <span className={`review-mark ${bad.length ? 'is-bad' : 'is-ok'}`} aria-hidden="true">{bad.length ? '!' : '✓'}</span>
+              <span className="review-body">
+                <strong>{x.playbook}</strong>
+                {bad.length === 0 ? <span className="muted small"> sem problemas</span> : <ul className="small">{bad.map((p) => <li key={p}>{p}</li>)}</ul>}
+              </span>
+            </li>
+          );
+        })}
       </ul>
       {r.config.length > 0 && (
         <div className="review-config small">
@@ -35,33 +40,16 @@ export function ReviewCard({ r }: { r: ExecutionReview }) {
           <ul>{r.config.map((c, i) => <li key={i}><span className="muted">{c.stage}:</span> {c.text}</li>)}</ul>
         </div>
       )}
-      {better.length > 0 && (
-        <div className="review-config small">
-          <strong>Pode melhorar</strong>
-          <ul>{better.flatMap((x) => x.suggestions!.map((t) => <li key={`${x.runId}-${t}`}><span className="muted">{x.playbook}:</span> {t}</li>))}</ul>
+      {others.map((sec) => (
+        <div key={sec.kind} className="review-config small">
+          <strong>{sec.title}</strong>
+          <ul>{sec.items.map(({ run, text }) => <li key={`${run.runId}-${text}`}><span className="muted">{run.playbook}:</span> {text}</li>)}</ul>
         </div>
-      )}
-      {learned.length > 0 && (
-        <div className="review-config small">
-          <strong>Aprendeu na execução</strong>
-          <ul>{learned.flatMap((x) => x.learned!.map((t) => <li key={`${x.runId}-${t}`}><span className="muted">{x.playbook}:</span> {t}</li>))}</ul>
-        </div>
-      )}
-      {(problems || better.length > 0 || learned.length > 0) && <p className="muted small">O Orbi propõe as correções logo abaixo; nada muda sem você aprovar.</p>}
+      ))}
+      {(problems || others.length > 0) && <p className="muted small">O Orbi propõe as correções logo abaixo; nada muda sem você aprovar.</p>}
       {r.runs.filter((x) => x.level).map((x) => (
         <LevelCard key={`l-${x.runId}`} c={{ component: 'level', id: `level-${x.runId}`, playbook: x.playbook, ...x.level! }} />
       ))}
     </section>
   );
-}
-
-/** The review carried by a signal's attributes, if it is one. */
-export function reviewOf(attributes: Record<string, unknown> | undefined): ExecutionReview | undefined {
-  const raw = attributes?.review;
-  if (typeof raw !== 'string') return undefined;
-  try {
-    return JSON.parse(raw) as ExecutionReview;
-  } catch {
-    return undefined;
-  }
 }
