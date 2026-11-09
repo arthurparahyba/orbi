@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { decideAction, type Effect, type Level, type LevelBy } from '../brain/domain/levels.ts';
+import { commandEffectOf, commandReads } from '../commands/index.ts';
 
 /**
  * Autonomy levels, the same three the Rotinas screen shows:
@@ -81,77 +82,17 @@ export function effectOfCategory(category: Category): Effect {
 }
 
 // ── command classification ────────────────────────────────────────────────
+// What each CLI does lives in src/commands/ (one profile per CLI): the policy only looks it up.
 
-/** Read-only verbs by CLI. Anything else counts as a write and follows `comandos-escrita`. */
-/** git's global options come before the verb (`git -C dir status`): skip them to find the verb. */
-export function gitVerbArgs(args: readonly string[]): readonly string[] {
-  let i = 0;
-  while (i < args.length) {
-    const a = args[i]!;
-    if (a === '-C' || a === '-c' || a === '--git-dir' || a === '--work-tree' || a === '--namespace') i += 2;
-    else if (a.startsWith('--git-dir=') || a.startsWith('--work-tree=') || a.startsWith('--namespace=') || a === '--no-pager' || a === '-P' || a === '--bare') i += 1;
-    else break;
-  }
-  return args.slice(i);
-}
+export { gitVerbArgs } from '../commands/index.ts';
 
-const READ_ONLY: Record<string, (args: readonly string[]) => boolean> = {
-  git: (all) => { const a = gitVerbArgs(all); return ['status', 'log', 'diff', 'show', 'fetch', 'branch', 'rev-parse', 'ls-files', 'blame', 'remote'].includes(a[0] ?? '')
-    && !(a[0] === 'branch' && a.some((x) => ['-d', '-D', '-m', '-M', '--delete', '--move'].includes(x)))
-    && !(a[0] === 'remote' && a[1] !== undefined && a[1] !== '-v' && a[1] !== 'show' && a[1] !== 'get-url'); },
-  gh: (a) => {
-    const [group, verb] = a;
-    if (group === 'api') {
-      // An explicit GET is a read even with -f/-F (they become query parameters).
-      const m = a.findIndex((x) => x === '-X' || x === '--method');
-      const method = m >= 0 ? (a[m + 1] ?? '').toUpperCase() : a.find((x) => x.startsWith('--method='))?.slice(9).toUpperCase();
-      if (method) return method === 'GET' && !a.includes('--input');
-      return !a.some((x) => ['-f', '-F', '--field', '--raw-field', '--input'].includes(x));
-    }
-    return ['list', 'view', 'watch', 'status', 'checks', 'diff', 'download'].includes(verb ?? '') || group === 'search';
-  },
-  aws: (a) => {
-    const verb = a.find((x, i) => i > 0 && !x.startsWith('-')) ?? '';
-    return a[0] === 'sts' || (a[0] === 'logs' && ['tail', 'filter-log-events', 'get-log-events', 'start-query', 'get-query-results'].includes(verb))
-      || /^(describe|get|list)-/.test(verb);
-  },
-  python3: () => false, // scripts can do anything: governed by its own tool
-  cat: () => true,
-};
-
-/**
- * What a command does to the world, beyond read/write: `publica` reaches outside this machine
- * (push, PR, release, deploy, cloud writes), `apaga` removes something hard to get back.
- * Everything else that writes is `local`. Generic CLI knowledge, not the user's domain.
- */
+/** What a command does to the world (commands/<cli>.ts): `publica` reaches outside this machine, `apaga` removes. */
 export function commandEffect(binary: string, args: readonly string[]): 'leitura' | 'local' | 'publica' | 'apaga' {
-  if (commandCategory(binary, args) === 'comandos-leitura') return 'leitura';
-  if (binary === 'git') {
-    const a = gitVerbArgs(args);
-    const verb = a[0] ?? '';
-    if (verb === 'push') {
-      return a.some((x) => ['-f', '--force', '--force-with-lease', '-d', '--delete', '--mirror', '--prune'].includes(x) || /^:/.test(x) || x.startsWith('--force'))
-        ? 'apaga'
-        : 'publica';
-    }
-    if (verb === 'clean' || (verb === 'reset' && a.includes('--hard')) || (verb === 'branch' && a.some((x) => x === '-D' || x === '--delete' || x === '-d'))) return 'apaga';
-    return 'local';
-  }
-  if (binary === 'gh') {
-    if (args.includes('delete') || (args.some((x) => /^(-X|--method)$/.test(x)) && args.some((x) => x.toUpperCase() === 'DELETE'))) return 'apaga';
-    if (args[0] === 'repo' && ['clone', 'set-default'].includes(args[1] ?? '')) return 'local';
-    return 'publica';
-  }
-  if (binary === 'aws') return args.some((x) => /^(delete|terminate|remove|deregister)-|^(rm|rb)$/.test(x)) ? 'apaga' : 'publica';
-  if (binary === 'rm' || binary === 'rmdir') return 'apaga';
-  if (binary === 'npm') return args[0] === 'unpublish' ? 'apaga' : args[0] === 'publish' ? 'publica' : 'local';
-  if (binary === 'mvn') return args.some((x) => x === 'deploy' || x.endsWith(':deploy')) ? 'publica' : 'local';
-  return 'local';
+  return commandEffectOf(binary, args);
 }
 
 export function commandCategory(binary: string, args: readonly string[]): Category {
-  const check = READ_ONLY[binary];
-  return check && check(args) ? 'comandos-leitura' : 'comandos-escrita';
+  return commandReads(binary, args) ? 'comandos-leitura' : 'comandos-escrita';
 }
 
 // ── code fixes ────────────────────────────────────────────────────────────

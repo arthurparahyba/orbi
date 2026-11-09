@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { gitToolDirs, shellLine } from './shell.ts';
+import { installHint } from '../commands/index.ts';
 
 /**
  * The only way Orbi runs programs. No shell is involved: arguments go straight
@@ -49,20 +50,7 @@ export class CommandNotFoundError extends Error {}
 /** The program needs the developer's shell (a .cmd on Windows) and none was found. */
 export class ShellNeededError extends CommandNotFoundError {}
 
-const INSTALL_HINT: Record<string, string> = {
-  gh: 'instale com `brew install gh` e rode `gh auth login`',
-  aws: 'instale com `brew install awscli` e configure com `aws configure` ou `aws sso login`',
-  git: 'no macOS vem com `xcode-select --install`',
-  python3: 'no macOS vem com `xcode-select --install` (ou `brew install python`)',
-};
-const INSTALL_HINT_WINDOWS: Record<string, string> = {
-  gh: 'instale com `winget install GitHub.cli` e rode `gh auth login`',
-  aws: 'instale com `winget install Amazon.AWSCLI` e configure com `aws configure` ou `aws sso login`',
-  git: 'instale com `winget install Git.Git`',
-  python3: 'instale com `winget install Python.Python.3.12` (o Orbi usa `python` ou `py` no Windows)',
-};
-export const installHint = (binary: string, platform: string = process.platform) =>
-  (platform === 'win32' ? INSTALL_HINT_WINDOWS : INSTALL_HINT)[binary];
+export { installHint } from '../commands/index.ts';
 
 /**
  * The program that runs `binary`. On Windows `python3` usually does not exist (it is
