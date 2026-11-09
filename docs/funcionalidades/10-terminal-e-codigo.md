@@ -50,6 +50,10 @@ flowchart LR
   `run_script <procedimento>/<nome>@<versão> <argumentos>`, com os parâmetros da
   execução no lugar dos valores: com outros dados é a mesma ação. Fora de um
   procedimento, ou com um script que ele não tem, é recusado sem pedir nada.
+  Com **`show: true`**, o script imprime um componente (tabela, status, link ou
+  código, em JSON): o runtime valida e mostra direto na conversa, e o modelo
+  recebe só o resumo (`shown`, linhas). Saída que não é componente vira erro com
+  o motivo.
 - **`gh api -X GET`** é leitura mesmo com `-f`/`-F` (viram parâmetros da consulta).
 - **`git -C pasta …`** é classificado pelo verbo que vem depois (`git -C x status`
   é leitura). Cada comando também tem um efeito (nesta máquina, publica, apaga),

@@ -35,7 +35,12 @@ export interface Deviation {
   tool?: string;
   step?: string | null;
   at: string;
+  /** A failure the same step got past right away (the same tool worked next): not a problem. */
+  recovered?: boolean;
 }
+
+/** The deviations that count: a slip fixed on the spot does not. */
+export const activeDeviations = (deviations: Deviation[]) => deviations.filter((d) => !d.recovered);
 
 export interface LevelState {
   level: Level;
@@ -77,7 +82,7 @@ export function askReason(pb: { level: Level; name: string }, action: { known: b
 
 /** A run's problems that keep it from counting toward the next level. */
 export function runDeviations(run: { status: string; steps: Array<{ id: string; status: string }>; deviations: Deviation[] }): string[] {
-  const out = run.deviations.map((d) => d.detail);
+  const out = activeDeviations(run.deviations).map((d) => d.detail);
   if (run.status === 'failed') out.push('a execução falhou');
   for (const s of run.steps) if (s.status === 'failed' || s.status === 'skipped') out.push(`passo ${s.id} ${s.status === 'failed' ? 'falhou' : 'foi pulado'}`);
   return out;

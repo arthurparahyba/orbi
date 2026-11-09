@@ -104,11 +104,13 @@ export async function createOrbi(
  */
 export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'>, conversationId: string, outcome: ToolOutcome): void {
   s.toolOutcomes.record(conversationId, outcome);
-  if (!outcome.failed || outcome.tool === 'playbook_step' || outcome.tool === 'playbook_start') return;
+  if (outcome.tool === 'playbook_step' || outcome.tool === 'playbook_start') return;
   const run = s.brain.runForFailureIn(conversationId);
   if (!run) return;
   // A run that already ended (the failing call ran alongside the last step): the last step it closed.
   const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? run.steps.at(-1);
+  // Worked this time: an earlier failure of the same tool in this step was fixed on the spot.
+  if (!outcome.failed) return s.brain.recoverRunDeviation(run.id, outcome.tool, step?.id ?? null);
   s.brain.addRunDeviation(run.id, {
     kind: 'falha',
     detail: `${outcome.tool} falhou${outcome.error ? `: ${outcome.error.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,

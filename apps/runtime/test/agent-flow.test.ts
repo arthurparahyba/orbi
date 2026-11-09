@@ -24,6 +24,7 @@ const { start } = await import('@flue/runtime/node');
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { default: app } = await import('../src/app.ts');
 const { brain, inbox } = (await import('../src/services.ts')).services();
+const { stepClaimProblems: stepClaimProblemsOf } = await import('../src/brain/domain/review.ts');
 
 const faux = fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }] });
 setProvider(faux.provider);
@@ -493,6 +494,46 @@ test('script do procedimento: aprovado uma vez, a mesma ação com outros dados 
   await second.read(await second.dispatch('gera o relatório em relatorios/fev'));
   assert.match(alone, /executed.*ok relatorios\/fev/);
   assert.equal(inbox.list({ status: 'open' }).filter((i) => i.kind === 'approval' && i.conversationId === 'chat:teste-script-2').length, 0);
+});
+
+test('esperar só o que existe; falha corrigida na hora não é problema; tabela do script vai direto para a conversa', async () => {
+  brain.savePlaybook({
+    name: 'mostrar-lista', description: 'Mostra a lista', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
+    steps: [{ id: 'mostrar', label: 'Mostrar', how: 'run_script tabela.py show: true' }, { id: 'publicar', label: 'Publicar', how: 'run_command git push' }],
+    scripts: [{ name: 'tabela.py', description: 'imprime a tabela', code: 'import json\nprint(json.dumps({"component": "table", "id": "t1", "title": "Lista", "columns": ["a"], "rows": [["1"], ["2"]]}))\n' }],
+  });
+  brain.setPlaybookLevel('mostrar-lista', { level: 3 }); // set by the developer: new actions run alone
+  const card = { component: { component: 'status', id: 's1', title: 'Lista', state: 'info', text: 'ok' } };
+  let refused = '';
+  let shownResult = '';
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'mostrar-lista' }), { stopReason: 'toolUse' }),
+    // As the real model did: an empty show_ui, then the same call right, in the same step.
+    fauxAssistantMessage(fauxToolCall('show_ui', {}), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('show_ui', card), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('run_script', { script: 'tabela.py', args: [], purpose: 'Mostrar a lista', show: true }), { stopReason: 'toolUse' }),
+    (context) => { shownResult = JSON.stringify(context); return fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'mostrar', status: 'done' }), { stopReason: 'toolUse' }); },
+    // "Waiting for approval" without having called the tool: refused, nothing to press.
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'publicar', status: 'waiting', note: 'aguardando aprovação' }), { stopReason: 'toolUse' }),
+    (context) => { refused = JSON.stringify(context); return fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'publicar', status: 'done', note: 'nada novo a publicar' }), { stopReason: 'toolUse' }); },
+    fauxAssistantMessage(fauxText('Pronto.')),
+    (context) => { review = JSON.stringify(context); return fauxAssistantMessage(fauxText('Proponho o script com show.')); },
+  ]);
+  let review = '';
+  const orbi = init(Orbi, { id: 'chat:teste-esperar' });
+  const reply = await orbi.read(await orbi.dispatch('mostra a lista'));
+  assert.match(shownResult, /shown.*table.*rows.*2/);
+  const table = components(reply).find((c: any) => c.component === 'table');
+  assert.deepEqual(table?.rows, [['1'], ['2']], 'a tabela veio do script, sem o modelo copiar');
+  assert.match(refused, /nada está esperando nesta conversa/);
+  const run = brain.lastRunIn('chat:teste-esperar')!;
+  assert.equal(run.status, 'done');
+  // The slip is not a problem, but copying the table by hand is worth changing once: a suggestion.
+  for (let i = 0; i < 100 && !review; i++) await new Promise((r) => setTimeout(r, 50));
+  assert.match(review, /melhoria em mostrar-lista: o passo mostrar mostrou a tabela copiando/);
+  assert.doesNotMatch(review, /mostrar-lista: show_ui falhou/);
+  assert.deepEqual(run.deviations.map((d) => [d.tool, d.recovered]), [['show_ui', true]], 'a falha ficou marcada como corrigida na hora');
+  assert.deepEqual(stepClaimProblemsOf(run), []);
 });
 
 test('credencial pela conversa: o cartão guarda no cofre e o Orbi só recebe a referência', async () => {

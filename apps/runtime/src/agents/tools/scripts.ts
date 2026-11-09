@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import * as v from 'valibot';
+import { UiComponent } from '@orbi/contracts';
 import { services } from '../../services.ts';
 import { runCommand } from '../../terminal/exec.ts';
 import { scriptVersion, type PlaybookScript } from '../../brain/domain/scripts.ts';
@@ -34,6 +35,7 @@ const input = v.object({
   args: v.pipe(v.array(v.string()), v.description('Arguments the script reads from sys.argv (data, paths)')),
   purpose: v.pipe(v.string(), v.description('One line: why you run this. Shown to the developer.')),
   saveTo: v.optional(v.pipe(v.string(), v.description('Write the whole output to this file instead of returning it'))),
+  show: v.optional(v.pipe(v.boolean(), v.description('The script prints one component (JSON: table, status, link or code): it goes straight to the conversation, without you copying it. Use it to show tables.'))),
   timeoutSeconds: v.optional(v.number()),
 });
 
@@ -83,6 +85,7 @@ export function useScripts(ctx: AgentContext) {
         ...(save ? { maxOutput: 50_000_000 } : {}),
       });
       const shown = { ...result, command: shortCommand(a.script, a.args) };
+      if (a.show) return showOutput(ctx, result, shown.command);
       if (!save) return JSON.stringify(shown);
       const ok = result.exitCode === 0 && !result.timedOut;
       if (ok) {
@@ -94,4 +97,25 @@ export function useScripts(ctx: AgentContext) {
     },
     timeoutMs: 1_800_000,
   });
+}
+
+/**
+ * `show`: the script's output is a component, shown as it is. The data never passes through
+ * the model (copying a 20-row table by hand is where it slipped: show_ui with empty arguments).
+ */
+export function showOutput(ctx: Pick<AgentContext, 'ui'>, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }, command: string): string {
+  if (result.exitCode !== 0 || result.timedOut) return JSON.stringify({ command, exitCode: result.exitCode, stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut });
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    throw new Error(`${command}: a saída não é JSON; com show, o script imprime um componente (ex.: {"component":"table","id":"…","title":"…","columns":[…],"rows":[[…]]})`);
+  }
+  const component = v.safeParse(UiComponent, parsed);
+  if (!component.success) {
+    throw new Error(`${command}: a saída não é um componente válido: ${component.issues.slice(0, 3).map((i) => `${i.path?.map((p) => p.key).join('.') ?? ''} ${i.message}`).join('; ')}`);
+  }
+  ctx.ui(component.output);
+  const c = component.output;
+  return JSON.stringify({ command, shown: c.component, id: c.id, ...(c.component === 'table' ? { rows: c.rows.length } : {}) });
 }

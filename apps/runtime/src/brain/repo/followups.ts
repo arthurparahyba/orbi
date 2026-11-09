@@ -16,6 +16,11 @@ export class FollowupRepo {
     this.db.prepare('INSERT INTO followups (id, conversation_id, due_at, note) VALUES (?, ?, ?, ?)').run(id, conversationId, dueAt, note);
   }
 
+  /** Whether a follow-up is still scheduled in a conversation (something it waits for). */
+  scheduledIn(conversationId: string): boolean {
+    return !!this.db.prepare("SELECT 1 FROM followups WHERE status = 'scheduled' AND conversation_id = ?").get(conversationId);
+  }
+
   /** Follow-ups due at `at`; each is claimed (returned) once. */
   claimDue(at: string): DueFollowup[] {
     const rows = this.db.prepare("SELECT * FROM followups WHERE status = 'scheduled' AND due_at <= ? ORDER BY due_at").all(at) as Row[];

@@ -13,7 +13,7 @@ export function stepClaimProblems(run: Pick<PlaybookRun, 'steps' | 'deviations'>
   const out: string[] = [];
   for (const s of run.steps) {
     if (s.status !== 'done') continue;
-    const failed = [...new Set(run.deviations.filter((d) => d.kind === 'falha' && d.step === s.id).map((d) => d.tool ?? 'uma ferramenta'))];
+    const failed = [...new Set(run.deviations.filter((d) => d.kind === 'falha' && !d.recovered && d.step === s.id).map((d) => d.tool ?? 'uma ferramenta'))];
     if (failed.length) out.push(`passo ${s.id} foi dado como feito${s.note ? ` ("${s.note.slice(0, 80)}")` : ''}, mas ${failed.join(' e ')} falhou`);
   }
   return out;
@@ -34,6 +34,20 @@ export function inlineScriptSuggestions(run: Pick<PlaybookRun, 'actions'>): stri
     `${step ? `o passo ${step}` : 'a execução'} rodou Python escrito na hora (python3 -c${n > 1 ? `, ${n} vezes` : ''}), que pede aprovação toda vez: ` +
     'guarde esse código como script do procedimento (scripts, lendo os dados de sys.argv) e faça o passo usar run_script.',
   );
+}
+
+/**
+ * show_ui that failed (even if fixed right after) in a step that ran a script: the model copied
+ * the component by hand. The script should print it and run with show: true.
+ */
+export function showSuggestions(run: Pick<PlaybookRun, 'actions' | 'deviations'>): string[] {
+  const steps = new Set(run.deviations.filter((d) => d.kind === 'falha' && d.tool === 'show_ui').map((d) => d.step ?? ''));
+  return [...steps]
+    .filter((step) => run.actions.some((a) => a.tool === 'run_script' && (a.step ?? '') === step))
+    .map((step) =>
+      `${step ? `o passo ${step}` : 'a execução'} mostrou a tabela copiando à mão a saída do script para o show_ui, que falhou: ` +
+      'faça o script imprimir o componente inteiro e o passo usar run_script com show: true (vai direto para a conversa).',
+    );
 }
 
 export interface ConfigProblem {

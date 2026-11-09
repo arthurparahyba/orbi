@@ -216,6 +216,21 @@ export class BrainStore {
     if (last && last.detail === deviation.detail && last.step === (deviation.step ?? null)) return; // the same failure, reported twice
     this.playbookRepo.setRunTrail(runId, run.actions, [...run.deviations, { ...deviation, step: deviation.step ?? null, at: now() }]);
   }
+  /**
+   * A tool that failed in a step and then worked in the same step: the slip was fixed on the
+   * spot. It stays in the trail, marked, but is not a problem of the procedure (domain/levels.ts).
+   */
+  recoverRunDeviation(runId: string, tool: string, step: string | null): void {
+    const run = this.playbookRepo.run(runId);
+    if (!run) return;
+    let changed = false;
+    const deviations = run.deviations.map((d) => {
+      if (d.kind !== 'falha' || d.recovered || d.tool !== tool || (d.step ?? null) !== step) return d;
+      changed = true;
+      return { ...d, recovered: true };
+    });
+    if (changed) this.playbookRepo.setRunTrail(runId, run.actions, deviations);
+  }
   /** The run still going on in a conversation, if any. */
   openRunIn(conversationId: string): PlaybookRun | undefined {
     const run = this.playbookRepo.lastRunIn(conversationId);
@@ -446,6 +461,9 @@ export class BrainStore {
   }
 
   // ── follow-ups ──────────────────────────────────────────────────────────
+  hasScheduledFollowup(conversationId: string): boolean {
+    return this.followups.scheduledIn(conversationId);
+  }
   scheduleFollowup(conversationId: string, dueAt: string, note: string): string {
     const id = ulid();
     this.followups.schedule(id, conversationId, dueAt, note);

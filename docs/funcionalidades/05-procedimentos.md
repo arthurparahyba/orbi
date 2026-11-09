@@ -128,8 +128,14 @@ sequenceDiagram
   - o nível, acertado com base nisso (execução com problema não sobe);
   - numa esteira, a configuração dela (documento 16);
   - o que pode melhorar: passo que rodou Python escrito na hora (`python3 -c`)
-    vira a sugestão de guardar o código como script do procedimento ("Pode
-    melhorar" no cartão), e o Orbi propõe isso no mesmo `brain_learn`.
+    vira a sugestão de guardar o código como script do procedimento, e passo que
+    copiou à mão a saída de um script para o `show_ui` (e o `show_ui` falhou) vira a
+    sugestão de o script imprimir o componente e rodar com `show: true` ("Pode
+    melhorar" no cartão); o Orbi propõe isso no mesmo `brain_learn`.
+  Uma ferramenta que falhou e **deu certo logo depois, no mesmo passo**, foi
+  corrigida na hora: fica no histórico marcada (`recovered`), mas não é problema,
+  não impede subir de nível e não pede correção. Antes, cada escorregão desses
+  virava uma "correção" do procedimento que não mudava nada.
   Se há algo a mostrar (problema ou mudança de nível), um sinal `review` leva à
   conversa o cartão **Revisão da execução** e, havendo problema, pede ao Orbi as
   correções num único `brain_learn` (o cartão de aprendizado espera você). Execução
@@ -144,7 +150,10 @@ sequenceDiagram
 - **Passo que pergunta algo que já veio**: quando o valor chegou como parâmetro
   (da esteira, do padrão), o Orbi usa e não pergunta (regra no prompt).
 - **Estados de um passo**: pendente, em andamento, concluído, falhou, esperando
-  (CI, aprovação, retorno agendado) e pulado. Qualquer falha marca a execução
+  (CI, aprovação, retorno agendado) e pulado. **Esperando** só é aceito quando há
+  algo de fato esperando na conversa (um cartão aberto em Pendências ou um retorno
+  agendado): dizer "aguardando aprovação" antes de chamar a ferramenta deixava você
+  sem botão. O Orbi é mandado chamar a ferramenta, e o portão pede se precisar. Qualquer falha marca a execução
   como falha; tudo concluído ou pulado a encerra.
 - **Contadores**: cada início soma um uso; cada execução concluída soma um
   sucesso. É o "4 de 4 deram certo" que aparece nos cartões.

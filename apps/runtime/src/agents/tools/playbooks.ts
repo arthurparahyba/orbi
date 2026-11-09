@@ -106,6 +106,16 @@ export function usePlaybooks(ctx: AgentContext) {
           },
         };
       }
+      // "Waiting" must be for something real: an approval card, a question or a scheduled follow-up.
+      // Saying it before calling the tool left the developer with no button to press.
+      if (data.status === 'waiting' && !(await somethingWaits(ctx.conversationId))) {
+        return {
+          output: {
+            error: `nada está esperando nesta conversa: não há aprovação, pergunta nem retorno agendado para o passo ${data.stepId}.`,
+            hint: 'Chame a ferramenta do passo (run_command, run_script…): se ela precisar de aprovação, o portão pede e o cartão aparece. Para esperar CI ou deploy, use schedule_followup. Só então marque waiting.',
+          },
+        };
+      }
       let outputs = data.outputs;
       if (outputs && Object.keys(outputs).length) {
         // A value that happens to be a credential never gets stored as a result.
@@ -141,4 +151,18 @@ export function usePlaybooks(ctx: AgentContext) {
       return { output: { runStatus: run.status, ...(next ? { esteira: next } : {}) } };
     },
   });
+}
+
+/**
+ * Whether the conversation waits for something: an open card (approval, question, learning,
+ * passage) or a scheduled follow-up. Tools of the same batch may still be starting: a short look again.
+ */
+async function somethingWaits(conversationId: string, tries = 4): Promise<boolean> {
+  const { inbox, brain } = services();
+  for (let i = 0; i < tries; i++) {
+    const open = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversationId && x.kind !== 'level');
+    if (open || brain.hasScheduledFollowup(conversationId)) return true;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return false;
 }

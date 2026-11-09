@@ -60,7 +60,8 @@ export interface PlaybookRun {
   steps: Array<{ id: string; label: string; status: string; note?: string }>; startedAt: string; finishedAt: string | null;
   params: Record<string, string>; outputs: Record<string, string>;
   actions: Array<{ fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null }>;
-  deviations: Array<{ kind: 'falha' | 'negado' | 'passo'; detail: string; tool?: string; step?: string | null; at: string }>;
+  /** `recovered`: the same step got past it right away (the tool worked next), not a problem. */
+  deviations: Array<{ kind: 'falha' | 'negado' | 'passo'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean }>;
 }
 export interface BrainSnapshot {
   stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };
