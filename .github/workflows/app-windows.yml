@@ -1,11 +1,13 @@
 # Gera o instalador do Orbi para Windows (.exe), sem precisar de Rust na sua máquina.
 # Rode em Actions → "App Windows" → Run workflow; o .exe sai em Artifacts.
-# Uma tag v* (ex.: v0.2.0) também gera e anexa o .exe a uma release.
+# Uma tag v* (ex.: v0.2.0) também gera e anexa o .exe a uma release, e um commit
+# na main com [build-windows] na mensagem também gera (os outros commits não rodam).
 name: App Windows
 
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['v*']
 
 permissions:
@@ -13,6 +15,7 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/v') || contains(github.event.head_commit.message, '[build-windows]')
     runs-on: windows-latest
     timeout-minutes: 60
     steps:

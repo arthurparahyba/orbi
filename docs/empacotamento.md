@@ -53,7 +53,8 @@ O app pede permissão de microfone na primeira gravação narrada
 O instalador sai do GitHub Actions, num Windows com Rust:
 **Actions → App Windows → Run workflow**. Ao terminar, o `.exe` está em
 *Artifacts* (`Orbi-windows`). Uma tag `v*` (ex.: `v0.2.0`) também gera e anexa o
-`.exe` a uma release (`.github/workflows/app-windows.yml`).
+`.exe` a uma release, e um commit na `main` com `[build-windows]` na mensagem
+também gera (`.github/workflows/app-windows.yml`); os outros commits não rodam.
 
 - Instala **por usuário** (`installMode: currentUser`): não precisa de administrador.
   O programa vai para `%LOCALAPPDATA%\Orbi`.
