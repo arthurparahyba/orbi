@@ -5,7 +5,7 @@ import { UiComponent } from '@orbi/contracts';
 import { services } from '../../services.ts';
 import { runCommand } from '../../terminal/exec.ts';
 import { scriptVersion, type PlaybookScript } from '../../brain/domain/scripts.ts';
-import { savePath, shortCommand } from './terminal.ts';
+import { afterCommand, savePath, shortCommand } from './terminal.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -85,15 +85,16 @@ export function useScripts(ctx: AgentContext) {
         ...(save ? { maxOutput: 50_000_000 } : {}),
       });
       const shown = { ...result, command: shortCommand(a.script, a.args) };
-      if (a.show) return showOutput(ctx, result, shown.command);
-      if (!save) return JSON.stringify(shown);
+      const extra = afterCommand(ctx.conversationId, shown.command, result);
+      if (a.show) return showOutput(ctx, result, shown.command, extra);
+      if (!save) return JSON.stringify({ ...shown, ...extra });
       const ok = result.exitCode === 0 && !result.timedOut;
       if (ok) {
         mkdirSync(dirname(save), { recursive: true });
         writeFileSync(save, result.stdout);
       }
       const lines = result.stdout.split('\n').filter((l) => l.length > 0);
-      return JSON.stringify({ command: shown.command, exitCode: result.exitCode, savedTo: ok ? save : null, lines: lines.length, head: lines.slice(0, 5), stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut });
+      return JSON.stringify({ command: shown.command, exitCode: result.exitCode, savedTo: ok ? save : null, lines: lines.length, head: lines.slice(0, 5), stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut, ...extra });
     },
     timeoutMs: 1_800_000,
   });
@@ -103,8 +104,8 @@ export function useScripts(ctx: AgentContext) {
  * `show`: the script's output is a component, shown as it is. The data never passes through
  * the model (copying a 20-row table by hand is where it slipped: show_ui with empty arguments).
  */
-export function showOutput(ctx: Pick<AgentContext, 'ui'>, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }, command: string): string {
-  if (result.exitCode !== 0 || result.timedOut) return JSON.stringify({ command, exitCode: result.exitCode, stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut });
+export function showOutput(ctx: Pick<AgentContext, 'ui'>, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }, command: string, extra: object = {}): string {
+  if (result.exitCode !== 0 || result.timedOut) return JSON.stringify({ command, exitCode: result.exitCode, stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut, ...extra });
   let parsed: unknown;
   try {
     parsed = JSON.parse(result.stdout);

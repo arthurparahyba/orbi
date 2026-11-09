@@ -52,6 +52,29 @@ export function toolCommand(t: ToolCall): string | undefined {
 }
 
 /** What it printed, when it ran a command; else the result as text. */
+/** The command's parsed result (run_command, run_script), when it is one. */
+function commandResult(t: ToolCall): { exitCode?: number | null; timedOut?: boolean; knownProblems?: KnownProblemView[] } | undefined {
+  const out = outputOf(t);
+  const raw = out?.status === 'executed' ? out.result : t.output;
+  if (typeof raw !== 'string') return undefined;
+  try {
+    const r = JSON.parse(raw) as Record<string, unknown>;
+    return r && typeof r === 'object' && 'exitCode' in r ? (r as never) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A command that ran but exited with an error: not "ok" for the developer. */
+export const commandFailed = (t: ToolCall) => {
+  const r = commandResult(t);
+  return !!r && (r.timedOut === true || (r.exitCode !== 0 && r.exitCode !== undefined));
+};
+
+export interface KnownProblemView { id: string; sintoma: string; causa?: string; solucao: string; onde?: string }
+/** Known problems of the brain the runtime found for a failed command. */
+export const knownProblemsOf = (t: ToolCall): KnownProblemView[] => commandResult(t)?.knownProblems ?? [];
+
 export function toolResult(t: ToolCall): string | undefined {
   if (t.state === 'output-error') return t.errorText;
   const out = outputOf(t);

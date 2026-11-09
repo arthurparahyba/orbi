@@ -176,3 +176,26 @@ test('pergunta condicional ("se der problema, perguntar") não é passo que perg
   assert.equal(asksAlways('Só perguntar ao desenvolvedor se vier vazio.'), true, 'esse pergunta sem condição antes do verbo; o {{parâmetro}} no passo é o que o libera');
   assert.equal(asksAlways('ask_developer pedindo o caminho da pasta. Não assumir.'), true);
 });
+
+test('problemas conhecidos: forma, quando um erro bate, e o que vira conhecimento', async () => {
+  const { asKnownProblem, matchesProblem, knowledgeSuggestions } = await import('../src/brain/domain/knowledge.ts');
+  const sonar = { id: 'sonar-cobertura', type: 'Problema', body: '', updatedAt: '', props: { sintoma: 'Quality Gate failed: coverage on new code', causa: 'cobertura de código novo abaixo de 80%', Solução: 'o agente de código adiciona testes nos arquivos alterados' } };
+  const p = asKnownProblem(sonar)!;
+  assert.equal(p.solucao, 'o agente de código adiciona testes nos arquivos alterados', 'chave com acento e maiúscula vale');
+  assert.equal(asKnownProblem({ ...sonar, props: { url: 'x' } }), undefined, 'entidade sem sintoma e solução não é problema');
+  assert.equal(matchesProblem(p, 'ERROR: Quality Gate failed\nCoverage on New Code 62.1% is less than 80%'), true);
+  assert.equal(matchesProblem(p, 'fatal: not a git repository'), false);
+  assert.equal(matchesProblem(p, 'build failed'), false, 'uma palavra solta em comum não basta');
+
+  const steps = [{ id: 'acompanhar', label: 'Acompanhar o workflow', status: 'done' }, { id: 'checar', label: 'Checar a pasta', status: 'done' }, { id: 'deploy', label: 'Deploy', status: 'failed' }];
+  const dev = (x: object) => ({ kind: 'comando' as const, detail: 'saiu com 1: erro', at: '', ...x });
+  assert.deepEqual(knowledgeSuggestions({ steps, deviations: [
+    dev({ command: 'gh run watch 1', step: 'acompanhar', recovered: true }),
+    dev({ command: 'test -d /x', step: 'checar' }), // a check that exits 1 on purpose, never retried
+    dev({ command: 'gh workflow run deploy', step: 'deploy' }),
+    dev({ command: 'gh run view 2', step: 'deploy', known: true }), // already known
+  ] }).map((t) => t.slice(0, 51)), [
+    'o passo acompanhar (Acompanhar o workflow) esbarrou',
+    'o passo deploy (Deploy) falhou em `gh workflow run ',
+  ]);
+});

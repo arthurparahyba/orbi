@@ -30,8 +30,14 @@ export interface RunAction {
 }
 
 export interface Deviation {
-  kind: 'falha' | 'negado' | 'passo';
+  /** `comando`: a command that exited with an error. Not a problem by itself (a check may exit 1
+   * on purpose): it only feeds what the Orbi learns (domain/knowledge.ts), never the level. */
+  kind: 'falha' | 'negado' | 'passo' | 'comando';
   detail: string;
+  /** For `comando`: the command as run, to tell when the same one worked later. */
+  command?: string;
+  /** For `comando`: the error matched a known problem of the brain. */
+  known?: boolean;
   tool?: string;
   step?: string | null;
   at: string;
@@ -40,7 +46,7 @@ export interface Deviation {
 }
 
 /** The deviations that count: a slip fixed on the spot does not. */
-export const activeDeviations = (deviations: Deviation[]) => deviations.filter((d) => !d.recovered);
+export const activeDeviations = (deviations: Deviation[]) => deviations.filter((d) => !d.recovered && d.kind !== 'comando');
 
 export interface LevelState {
   level: Level;

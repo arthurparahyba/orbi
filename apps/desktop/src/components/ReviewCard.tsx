@@ -10,6 +10,7 @@ import { LevelCard } from './LevelCard';
 export function ReviewCard({ r }: { r: ExecutionReview }) {
   const problems = r.runs.some((x) => x.problems.length) || r.config.length > 0;
   const better = r.runs.filter((x) => x.suggestions?.length);
+  const learned = r.runs.filter((x) => x.learned?.length);
   return (
     <section className={`ui-card review-card ${problems ? 'has-problems' : 'is-clean'}`} aria-label="Revisão da execução">
       <header className="ui-card-head">
@@ -40,7 +41,13 @@ export function ReviewCard({ r }: { r: ExecutionReview }) {
           <ul>{better.flatMap((x) => x.suggestions!.map((t) => <li key={`${x.runId}-${t}`}><span className="muted">{x.playbook}:</span> {t}</li>))}</ul>
         </div>
       )}
-      {(problems || better.length > 0) && <p className="muted small">O Orbi propõe as correções logo abaixo; nada muda sem você aprovar.</p>}
+      {learned.length > 0 && (
+        <div className="review-config small">
+          <strong>Aprendeu na execução</strong>
+          <ul>{learned.flatMap((x) => x.learned!.map((t) => <li key={`${x.runId}-${t}`}><span className="muted">{x.playbook}:</span> {t}</li>))}</ul>
+        </div>
+      )}
+      {(problems || better.length > 0 || learned.length > 0) && <p className="muted small">O Orbi propõe as correções logo abaixo; nada muda sem você aprovar.</p>}
       {r.runs.filter((x) => x.level).map((x) => (
         <LevelCard key={`l-${x.runId}`} c={{ component: 'level', id: `level-${x.runId}`, playbook: x.playbook, ...x.level! }} />
       ))}

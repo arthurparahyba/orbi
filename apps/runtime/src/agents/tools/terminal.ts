@@ -8,6 +8,7 @@ import { runCommand } from '../../terminal/exec.ts';
 import { commandCategory, commandEffect } from '../../autonomy/policy.ts';
 import { homedir } from 'node:os';
 import type { AgentContext } from '../context.ts';
+import { errorTail } from '../../brain/domain/knowledge.ts';
 
 /** Terminal: git, gh, aws and python3, without a shell, inside the workspace. */
 
@@ -25,7 +26,25 @@ export function savePath(saveTo: string, workspace: string, home = homedir()): s
   return isAbsolute(saveTo) ? saveTo : resolve(workspace, saveTo);
 }
 
-async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, signal?: AbortSignal) {
+/**
+ * After a command ran inside a procedure: the attempt goes to the run's trail (what fails and
+ * later passes becomes knowledge), and a failure brings the known problems it looks like, so
+ * the Orbi knows what to do without remembering to look (domain/knowledge.ts).
+ */
+export function afterCommand(conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
+  const { brain } = services();
+  const failed = result.exitCode !== 0 || !!result.timedOut;
+  const error = failed ? errorTail(result) : '';
+  const known = failed ? brain.knownProblems(`${command}\n${error}`) : [];
+  brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0 });
+  if (!known.length) return {};
+  return {
+    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}) })),
+    hint: 'Problema conhecido no cérebro: siga a solução dele antes de investigar do zero.',
+  };
+}
+
+async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
   const { config } = services();
   const save = args.saveTo ? savePath(args.saveTo, config.workspace) : undefined;
   const result = await runCommand(args.binary, args.args, {
@@ -37,7 +56,8 @@ async function execCommand(args: { binary: string; args: string[]; cwd?: string;
     // The whole output goes to the file; only a summary comes back to the model.
     ...(save ? { maxOutput: 50_000_000 } : {}),
   });
-  if (!save) return JSON.stringify(result);
+  const extra = afterCommand(conversationId, shortCommand(args.binary, args.args), result);
+  if (!save) return JSON.stringify({ ...result, ...extra });
   const ok = result.exitCode === 0 && !result.timedOut;
   if (ok) {
     mkdirSync(dirname(save), { recursive: true });
@@ -53,6 +73,7 @@ async function execCommand(args: { binary: string; args: string[]; cwd?: string;
     head: lines.slice(0, 5),
     stderr: result.stderr.slice(0, 2000),
     timedOut: result.timedOut,
+    ...extra,
   });
 }
 
@@ -75,7 +96,8 @@ export const runReadOnlyCommand = defineTool({
     if (data.saveTo || commandCategory(data.binary, data.args) !== 'comandos-leitura') {
       return { output: { refused: 'Comando de escrita. Devolva ao agente principal o que precisa ser feito.' } };
     }
-    return { output: await execCommand(data, signal) };
+    // Subagents have no procedure of their own: no trail, but the known problems still come.
+    return { output: await execCommand(data, '', signal) };
   },
 });
 
@@ -135,7 +157,7 @@ export function useTerminal(ctx: AgentContext) {
       return a.saveTo && e === 'leitura' ? 'local' : e;
     },
     fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
-    execute: (a) => execCommand(a),
+    execute: (a) => execCommand(a, ctx.conversationId),
     timeoutMs: 1_800_000,
   });
   useTool(runPython);

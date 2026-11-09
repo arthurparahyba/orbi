@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { knownProblemsFor, type KnownProblem } from './domain/knowledge.ts';
 import { ulid } from 'ulidx';
 import { openDatabase, transaction } from '../db/database.ts';
 import { edgeProblems, entityProblems, findGaps } from './domain/ontology.ts';
@@ -230,6 +231,32 @@ export class BrainStore {
       return { ...d, recovered: true };
     });
     if (changed) this.playbookRepo.setRunTrail(runId, run.actions, deviations);
+  }
+  /**
+   * A command that ran inside a procedure: failed (it goes to the trail as `comando`) or worked
+   * (an earlier failure of the same command in this step was got past: it becomes knowledge).
+   */
+  noteCommand(conversationId: string, c: { command: string; exitCode: number | null; error: string; known: boolean }): void {
+    const run = this.openRunIn(conversationId);
+    if (!run) return;
+    const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? null;
+    const stepId = step?.id ?? null;
+    if (c.exitCode !== 0) {
+      this.addRunDeviation(run.id, { kind: 'comando', command: c.command, known: c.known, detail: `saiu com ${c.exitCode ?? 'tempo esgotado'}: ${c.error.slice(-300)}`, tool: 'comando', step: stepId });
+      return;
+    }
+    let changed = false;
+    const deviations = run.deviations.map((d) => {
+      if (d.kind !== 'comando' || d.recovered || d.command !== c.command || (d.step ?? null) !== stepId) return d;
+      changed = true;
+      return { ...d, recovered: true };
+    });
+    if (changed) this.playbookRepo.setRunTrail(run.id, run.actions, deviations);
+  }
+  /** Known problems of the brain that an error looks like (domain/knowledge.ts). */
+  knownProblems(errorText: string, limit = 3): KnownProblem[] {
+    if (!errorText.trim()) return [];
+    return knownProblemsFor(errorText, this.search(errorText, 20), limit);
   }
   /** The run still going on in a conversation, if any. */
   openRunIn(conversationId: string): PlaybookRun | undefined {

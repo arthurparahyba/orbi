@@ -157,6 +157,39 @@ sequenceDiagram
 - **Como o Orbi consulta**: `brain_query` por id (a entidade, as ligações e a
   vizinhança no grafo), por tipo ou por texto (índice de busca, documento 8).
 
+## Problemas conhecidos: o que o Orbi aprende executando
+
+O desenvolvedor (ou o agente de código, pelo `orbi_teach`) ensina o **passo a
+passo**. Os **problemas que podem dar** (o quality gate que reprova por cobertura,
+a esteira que trava) o Orbi aprende sozinho, quando acontecem, com a mensagem real.
+
+- **O que é um problema conhecido**: uma entidade de qualquer tipo (o Orbi cria o
+  tipo na primeira vez, ex.: `Problema`) com as propriedades `sintoma` (o trecho da
+  mensagem que identifica o erro) e `solucao` (o que fazer, e quem faz), e quando
+  souber `causa` e `onde` (procedimento e passo). Ligações para o que ele afeta (o
+  repositório, o sistema) entram como em qualquer entidade. Assim um problema serve
+  a todos os procedimentos que passam por ali. O código não conhece tipo nenhum:
+  reconhece a forma (`domain/knowledge.ts`).
+- **Na falha, o runtime procura**: comando (`run_command`, `run_script`) que sai
+  com erro tem a mensagem buscada no cérebro; se bater com o sintoma de um problema
+  (a maior parte das palavras do sintoma aparece no erro), o resultado já vem com
+  `knownProblems` (sintoma, causa, solução). Não depende de o modelo lembrar de
+  procurar. Na conversa, aparece embaixo do comando a faixa **Problema conhecido**.
+- **Investigar antes de repetir**: sem problema conhecido, o Orbi entende a causa
+  (mensagem, log do que falhou, status) antes de tentar de novo. O que ele resolve
+  (rodar de novo, esperar, destravar), resolve. O que é código, não muda: o passo
+  falha com o diagnóstico, e num pedido de agente o `agent_reply` diz o que o
+  agente precisa fazer.
+- **Vira conhecimento na revisão do fim**: cada comando de um procedimento fica no
+  histórico da execução (`comando`). Comando que falhou e, depois, no mesmo passo,
+  deu certo (algo no meio resolveu) e comando que falhou num passo que terminou
+  falhando entram em **Aprendeu na execução** no cartão de revisão, e o Orbi propõe
+  o problema conhecido no cartão de aprendizado. Uma verificação que sai com erro
+  de propósito (`test -d`) e não é repetida não conta; um erro que já era conhecido
+  também não.
+- **Não mexe no nível**: falha de comando não sobe nem desce o procedimento sozinha
+  (o modelo decide se o passo falhou). Só alimenta o que se aprende.
+
 ## Camadas no código
 
 ```mermaid
@@ -204,6 +237,8 @@ numa transação.
 | --- | --- |
 | `apps/runtime/src/brain/` | Domínio, repositórios, fachada e exportação Markdown |
 | `apps/runtime/src/agents/tools/brain.ts` | `brain_query` (livre) e `brain_learn` (pelo portão) |
+| `apps/runtime/src/brain/domain/knowledge.ts` | Problema conhecido (forma), quando um erro bate, o que vira conhecimento |
+| `apps/desktop/src/components/KnownProblems.tsx` | A faixa "Problema conhecido" embaixo do comando que falhou |
 | `apps/runtime/src/db/migrations.ts` | Esquema e migrações versionadas |
 | `apps/runtime/src/http/routes/brain.ts` | `GET /api/brain`, entidades, procedimentos, execuções, exportação |
 | `apps/desktop/src/views/brain/` | A tela: grafo e layout, detalhe, editores, playbooks, execuções, ontologia |
@@ -235,6 +270,9 @@ Tudo em `data/orbi.db`. A exportação Markdown vai para `data/brain-md/`.
 - Pela tela não dá para mudar o id nem o tipo de uma entidade, nem criar ou
   encerrar uma ligação; isso passa pela conversa.
 - Apagar uma entidade não mexe em procedimentos que a citam no texto.
+- O problema conhecido é achado pela mensagem de **comandos**. Falha no navegador
+  ainda não é buscada no cérebro.
+- O sintoma bate por palavras: mensagem reescrita com outras palavras não acha.
 
 ## Testes
 
@@ -242,3 +280,8 @@ Tudo em `data/orbi.db`. A exportação Markdown vai para `data/brain-md/`.
 - `apps/runtime/test/units.test.ts`: cérebro vazio, ontologia, ligações com
   validade, propostas, migração que remove tipos de fábrica não usados.
 - `apps/desktop/test/layout.test.ts`: layout do grafo.
+- `apps/runtime/test/review.test.ts` ("problemas conhecidos"): forma, quando um erro
+  bate, o que vira conhecimento.
+- `apps/runtime/test/agent-flow.test.ts` ("problema conhecido"): o quality gate
+  reprova e depois passa, a revisão pede para aprender; aprovado, a próxima falha
+  já vem com a solução e não pede de novo.

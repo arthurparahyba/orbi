@@ -85,3 +85,15 @@ describe('scripts do procedimento no cartão', () => {
     expect(scriptDiff([a], undefined, true).map((x) => x.change)).toEqual(['same']);
   });
 });
+
+describe('comando que falhou', () => {
+  it('saída diferente de zero conta como falha, e o problema conhecido vem junto', async () => {
+    const { commandFailed, knownProblemsOf } = await import('../src/views/conversation/tools');
+    const call = (result: object) => ({ type: 'dynamic-tool', toolName: 'run_command', toolCallId: 'x', state: 'output-available', input: {}, output: { status: 'executed', category: 'comandos-escrita', result: JSON.stringify(result) } }) as never;
+    const known = [{ id: 'sonar', sintoma: 'Quality Gate failed', solucao: 'testes' }];
+    expect(commandFailed(call({ exitCode: 1, stdout: '', stderr: 'Quality Gate failed', knownProblems: known }))).toBe(true);
+    expect(knownProblemsOf(call({ exitCode: 1, stdout: '', stderr: 'x', knownProblems: known }))).toEqual(known);
+    expect(commandFailed(call({ exitCode: 0, stdout: 'ok', stderr: '' }))).toBe(false);
+    expect(knownProblemsOf(call({ exitCode: 0, stdout: 'ok', stderr: '' }))).toEqual([]);
+  });
+});

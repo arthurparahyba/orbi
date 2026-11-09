@@ -84,6 +84,11 @@ sequenceDiagram
   texto do pedido é um pedido, não uma regra; se nenhum procedimento cobre, ele não
   improvisa e responde que ainda não sabe. Nessas conversas existe a ferramenta
   `agent_reply`, com a qual o Orbi entrega o resultado curto (resumo e links).
+- **Falha que é do agente**: quando o que quebrou é código (teste, cobertura,
+  compilação), o Orbi não muda o código. O `agent_reply` sai como `failed` com o
+  diagnóstico de que o agente precisa para agir (o que quebrou, onde, valor e
+  limite) e que ele pode delegar de novo depois. Se o problema já é conhecido no
+  cérebro, a solução registrada vem junto (documento 4).
 - **Estado** (`mcp/status.ts`): concluído ou falhou vem do `agent_reply`;
   "esperando" quando a conversa tem pendência aberta (aprovação ou pergunta);
   senão "rodando", com o passo atual da execução. Numa esteira, vem também

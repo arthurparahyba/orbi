@@ -47,6 +47,8 @@ export interface ExecutionReview {
     runId: string; playbook: string; status: 'done' | 'failed' | 'open'; problems: string[];
     /** What would make it run alone next time (e.g. inline Python → a procedure script). */
     suggestions?: string[];
+    /** Problems it ran into and got past (or not): to keep as known problems in the brain. */
+    learned?: string[];
     level?: { from: number; to: number; reason: string; inboxId?: string; alone: string[]; asks: string[] };
   }>;
   config: Array<{ stage: string; playbook: string; text: string }>;
@@ -61,7 +63,7 @@ export interface PlaybookRun {
   params: Record<string, string>; outputs: Record<string, string>;
   actions: Array<{ fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null }>;
   /** `recovered`: the same step got past it right away (the tool worked next), not a problem. */
-  deviations: Array<{ kind: 'falha' | 'negado' | 'passo'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean }>;
+  deviations: Array<{ kind: 'falha' | 'negado' | 'passo' | 'comando'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean; command?: string; known?: boolean }>;
 }
 export interface BrainSnapshot {
   stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };

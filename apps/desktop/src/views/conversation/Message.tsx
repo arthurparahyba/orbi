@@ -3,7 +3,8 @@ import { ClockIcon, KeyIcon, ToolIcon } from '../../components/Icons';
 import { UiComponentView, type UiComponent } from '../../components/UiComponents';
 import { Markdown } from '../../components/Markdown';
 import { DemonstrationCard } from '../../components/Demonstration';
-import { groupSummary, isSilent, toolCommand, toolLabel, toolResult } from './tools';
+import { commandFailed, groupSummary, isSilent, knownProblemsOf, toolCommand, toolLabel, toolResult } from './tools';
+import { KnownProblems } from '../../components/KnownProblems';
 import { ReviewCard, reviewOf } from '../../components/ReviewCard';
 
 /** One message of the conversation, as the developer should see it. */
@@ -81,16 +82,20 @@ function ToolGroup({ tools }: { tools: ToolPart[] }) {
 function ToolRow({ t }: { t: ToolPart }) {
   const command = toolCommand(t);
   const result = toolResult(t);
+  const failed = t.state === 'output-error' || commandFailed(t);
   return (
-    <details className={`tool is-${t.state}`}>
-      <summary>
-        <ToolIcon size={13} />
-        <span>{toolLabel(t)}</span>
-        <span className="tool-state">{t.state === 'input-available' ? 'executando' : t.state === 'output-error' ? 'erro' : 'ok'}</span>
-      </summary>
-      {command ? <pre className="code small">$ {command}</pre> : <pre className="code small">{JSON.stringify(t.input, null, 2)}</pre>}
-      {result && <pre className={`code small ${t.state === 'output-error' ? 'err' : ''}`}>{result.length > 4000 ? `${result.slice(0, 4000)}\n…` : result}</pre>}
-    </details>
+    <>
+      <details className={`tool is-${failed ? 'output-error' : t.state}`}>
+        <summary>
+          <ToolIcon size={13} />
+          <span>{toolLabel(t)}</span>
+          <span className="tool-state">{t.state === 'input-available' ? 'executando' : t.state === 'output-error' ? 'erro' : failed ? 'falhou' : 'ok'}</span>
+        </summary>
+        {command ? <pre className="code small">$ {command}</pre> : <pre className="code small">{JSON.stringify(t.input, null, 2)}</pre>}
+        {result && <pre className={`code small ${failed ? 'err' : ''}`}>{result.length > 4000 ? `${result.slice(0, 4000)}\n…` : result}</pre>}
+      </details>
+      <KnownProblems problems={knownProblemsOf(t)} />
+    </>
   );
 }
 

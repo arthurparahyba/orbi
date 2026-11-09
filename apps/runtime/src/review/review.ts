@@ -1,6 +1,7 @@
 import type { ExecutionReview } from '@orbi/contracts';
 import type { OrbiServices } from '../services.ts';
-import { LEVEL_NAMES } from '../brain/domain/levels.ts';
+import { LEVEL_NAMES, activeDeviations } from '../brain/domain/levels.ts';
+import { knowledgeSuggestions } from '../brain/domain/knowledge.ts';
 import { defaultSuggestions, inlineScriptSuggestions, showSuggestions, pipelineConfigProblems, stepClaimProblems, type ConfigProblem } from '../brain/domain/review.ts';
 import { collected } from '../pipelines/engine.ts';
 import { tellAgent } from '../conversations/tell.ts';
@@ -30,7 +31,8 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     const pending = run.steps.filter((x) => x.status !== 'done' && x.status !== 'skipped').map((x) => x.id);
     out.runs.push({
       runId: run.id, playbook: run.playbook, status: 'open',
-      problems: [`ficou aberto: ${pending.length === 1 ? 'o passo' : 'os passos'} ${pending.join(', ')} não ${pending.length === 1 ? 'foi fechado' : 'foram fechados'}, então a esteira não seguiu por ele`, ...stepClaimProblems(run), ...run.deviations.filter((d) => !d.recovered).map((d) => d.detail)],
+      problems: [`ficou aberto: ${pending.length === 1 ? 'o passo' : 'os passos'} ${pending.join(', ')} não ${pending.length === 1 ? 'foi fechado' : 'foram fechados'}, então a esteira não seguiu por ele`, ...stepClaimProblems(run), ...activeDeviations(run.deviations).map((d) => d.detail)],
+      ...(knowledgeSuggestions(run).length ? { learned: knowledgeSuggestions(run) } : {}),
     });
     s.brain.markReviewed(run.id);
   }
@@ -44,6 +46,8 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', problems };
     const suggestions = [...inlineScriptSuggestions(run), ...showSuggestions(run)];
     if (suggestions.length) entry.suggestions = suggestions;
+    const learned = knowledgeSuggestions(run);
+    if (learned.length) entry.learned = learned;
     if (settled.change) {
       const { from, to, reason } = settled.change;
       const item = s.inbox.add({
@@ -76,7 +80,7 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
   return out;
 }
 
-export const hasProblems = (r: ExecutionReview) => r.config.length > 0 || r.runs.some((x) => x.problems.length > 0 || (x.suggestions?.length ?? 0) > 0);
+export const hasProblems = (r: ExecutionReview) => r.config.length > 0 || r.runs.some((x) => x.problems.length > 0 || (x.suggestions?.length ?? 0) > 0 || (x.learned?.length ?? 0) > 0);
 
 /** What the model reads with the review: what went wrong, and to propose the fixes in one batch. */
 export function reviewInstruction(r: ExecutionReview): string {
@@ -87,10 +91,17 @@ export function reviewInstruction(r: ExecutionReview): string {
     'Revisão da execução, feita pelo runtime (o cartão já está na conversa):',
     ...r.runs.filter((x) => x.problems.length).map((x) => `- ${x.playbook}: ${x.problems.join('; ')}`),
     ...r.runs.filter((x) => x.suggestions?.length).map((x) => `- melhoria em ${x.playbook}: ${x.suggestions!.join('; ')}`),
+    ...r.runs.filter((x) => x.learned?.length).map((x) => `- aprender com ${x.playbook}: ${x.learned!.join('; ')}`),
     ...groupConfig(r.config).map(([pb, texts]) => `- configuração de ${pb}: ${texts.join(' ')}`),
     'Proponha as correções com UM brain_learn: para cada procedimento com problema, o mesmo nome com os passos corrigidos ' +
       '(o que vem da esteira entra como {{parâmetro}} nos passos; dado grande vai para arquivo com saveTo; tabela de arquivo: script que imprime o componente, rodado com run_script e show: true; Python que se repete vira script do procedimento, em scripts, chamado com run_script). ' +
       `${r.pipeline ? `Se precisar, inclua a esteira ${r.pipeline} ajustada no mesmo lote. ` : ''}` +
+      (r.runs.some((x) => x.learned?.length)
+        ? 'Cada problema a aprender vai no mesmo lote como fato do cérebro: uma entity de um tipo para problemas (crie o tipo se ainda não existir, ex.: Problema) ' +
+          'com props sintoma (o trecho da mensagem que identifica o erro, curto), causa, solucao (o que fazer, e quem faz) e onde (procedimento e passo), ' +
+          'e edges para o que ele afeta, se já estiver no cérebro (ex.: o repositório). Antes, veja com brain_query se já existe um parecido: corrija em vez de duplicar. ' +
+          'Se não souber a causa, investigue primeiro (logs, status); o que não descobrir, deixe claro como não confirmado. '
+        : '') +
       'Diga em até três linhas o que muda. Não rode nada de novo: o desenvolvedor aprova antes.',
   ];
   return lines.join('\n');

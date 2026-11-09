@@ -1,0 +1,98 @@
+/**
+ * Known problems: what the Orbi learned while running procedures (a check that fails, a stuck
+ * pipeline, coverage below the minimum) and how it was solved. They live in the brain as facts,
+ * of whatever type the Orbi created for them, so the same problem serves every procedure that
+ * runs into it. What makes an entity a known problem is its shape: a `sintoma` (what shows up)
+ * and a `solucao` (what solves it), with `causa` and `onde` when known. Pure rules.
+ */
+import type { Entity } from './types.ts';
+import type { Deviation } from './levels.ts';
+import { stem, words } from './similarity.ts';
+
+export interface KnownProblem {
+  id: string;
+  type: string;
+  sintoma: string;
+  causa?: string;
+  solucao: string;
+  onde?: string;
+}
+
+const prop = (props: Record<string, unknown>, ...names: string[]): string | undefined => {
+  for (const [k, v] of Object.entries(props)) {
+    const key = k.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    if (names.includes(key) && typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
+};
+
+/** The entity as a known problem, if it is one (it has a symptom and a solution). */
+export function asKnownProblem(e: Entity): KnownProblem | undefined {
+  const sintoma = prop(e.props, 'sintoma', 'symptom', 'erro', 'mensagem');
+  const solucao = prop(e.props, 'solucao', 'solution', 'correcao');
+  if (!sintoma || !solucao) return undefined;
+  const causa = prop(e.props, 'causa', 'cause');
+  const onde = prop(e.props, 'onde', 'where', 'passo');
+  return { id: e.id, type: e.type, sintoma, solucao, ...(causa ? { causa } : {}), ...(onde ? { onde } : {}) };
+}
+
+const stems = (text: string) => new Set(words(text).map(stem));
+
+/**
+ * Whether an error is this problem: most of the symptom's words show up in the error. The error
+ * is long (a log) and the symptom short, so the measure is how much of the symptom it covers.
+ */
+export function matchesProblem(problem: Pick<KnownProblem, 'sintoma'>, errorText: string): boolean {
+  const want = stems(problem.sintoma);
+  if (want.size === 0) return false;
+  const have = stems(errorText);
+  const found = [...want].filter((s) => [...have].some((h) => h === s || (s.length >= 4 && h.startsWith(s)))).length;
+  return found >= Math.min(2, want.size) && found / want.size >= 0.6;
+}
+
+/** The known problems an error looks like, best first (candidates come from the full-text search). */
+export function knownProblemsFor(errorText: string, candidates: Entity[], limit = 3): KnownProblem[] {
+  return candidates
+    .map(asKnownProblem)
+    .filter((p): p is KnownProblem => !!p && matchesProblem(p, errorText))
+    .slice(0, limit);
+}
+
+/** What a failed command shows: the end of its error output, where the reason usually is. */
+export function errorTail(result: { stderr?: string; stdout?: string }, max = 600): string {
+  const text = (result.stderr?.trim() || result.stdout?.trim() || '').replace(/\s+\n/g, '\n');
+  return text.length > max ? `…${text.slice(-max)}` : text;
+}
+
+/**
+ * Problems worth keeping, from a run's command attempts:
+ * - a command that failed and, later in the same step, worked: something in between solved it;
+ * - a command that failed in a step that ended failed: a problem not solved yet.
+ * A failure that matched a known problem is already known. A command that failed once and was
+ * not tried again in a step that went on (a check like `test -d`) is not a problem.
+ */
+export function knowledgeSuggestions(run: { deviations: Deviation[]; steps: Array<{ id: string; label: string; status: string }> }): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const d of run.deviations) {
+    if (d.kind !== 'comando' || d.known) continue;
+    const step = run.steps.find((s) => s.id === d.step);
+    const key = `${d.step}|${d.command}`;
+    if (seen.has(key)) continue;
+    const where = step ? `o passo ${step.id} (${step.label})` : 'a execução';
+    if (d.recovered) {
+      seen.add(key);
+      out.push(
+        `${where} esbarrou em \`${d.command}\` (${d.detail}) e depois passou: registre como problema conhecido, ` +
+          'com o sintoma (a mensagem), a causa e o que você fez para passar.',
+      );
+    } else if (step?.status === 'failed') {
+      seen.add(key);
+      out.push(
+        `${where} falhou em \`${d.command}\` (${d.detail}): entenda a causa e registre como problema conhecido, ` +
+          'com a solução se você ou o desenvolvedor souberem (o que é código, o agente de código resolve).',
+      );
+    }
+  }
+  return out;
+}
