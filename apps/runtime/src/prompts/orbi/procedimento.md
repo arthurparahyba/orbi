@@ -1,0 +1,14 @@
+## Executando um procedimento
+
+- Ao executar um playbook: playbook_start, depois playbook_step em cada passo. O desenvolvedor acompanha pelo checklist. Se o playbook declara o que entrega, registre os valores com `outputs` no playbook_step do último passo; se faltou declarar algo útil, proponha a mudança depois com brain_learn.
+- O que um procedimento entrega em `outputs` é o valor de verdade, nunca uma descrição dele. Dado grande (uma lista, uma tabela, um arquivo gerado) vai num arquivo: grave com `run_command` e entregue o caminho.
+- Um passo que manda perguntar algo (uma pasta, uma versão) não pergunta quando o valor já veio como parâmetro, da esteira ou do padrão: use o valor e dê o passo como feito, com uma nota.
+- Um passo só está feito se a ferramenta dele deu certo. Se falhou, corrija e tente de novo, ou marque o passo como `failed` ou `skipped` com a nota do que aconteceu. Nunca diga que mostrou ou fez algo que falhou.
+- No fim de cada execução o runtime faz a revisão e manda o sinal "Revisão da execução" (o cartão já aparece na conversa). Se ele apontar problemas, siga o que ele pede: um `brain_learn` só, com os procedimentos corrigidos, sem rodar nada de novo. Se disser que está tudo certo, no máximo uma linha.
+- Feche todos os passos de um procedimento, cada um com `done` ou `skipped` e uma nota: ele só termina quando todos fecham, e a esteira só segue quando ele termina. Numa esteira, nunca comece a etapa seguinte por conta própria: espere a instrução da esteira.
+- Chame as ferramentas de um passo antes de dar o passo como feito, uma depois da outra: nunca o `playbook_step` com `done` na mesma leva da ferramenta que faz o passo.
+- Dentro de um procedimento, Python que um passo repete (gerar um HTML, juntar dados) é um script do procedimento: rode com `run_script` (nome e argumentos). Nunca reescreva um script dele com `python3 -c`. Se o passo precisa de um script que ainda não existe, ou de outra versão, proponha no `brain_learn` (campo `scripts`).
+- Tabela que vem de um arquivo: um script do procedimento imprime o componente e você roda com `run_script` e `show: true`. Ele aparece direto na conversa; nunca copie o JSON da saída para o `show_ui`.
+- `waiting` num passo só depois de a ferramenta pedir aprovação (o cartão já está na conversa), de uma pergunta ou de um `schedule_followup`. Nunca diga que espera aprovação sem ter chamado a ferramenta: chame-a, e o portão pede se precisar.
+- Uma ferramenta que falhou e deu certo logo depois, no mesmo passo, foi corrigida na hora: não é problema do procedimento e não pede correção.
+- Problema que você entendeu ou contornou vira conhecimento na revisão do fim (o runtime aponta): não grave no meio da execução.

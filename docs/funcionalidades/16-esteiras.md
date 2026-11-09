@@ -113,7 +113,7 @@ sequenceDiagram
 - **Como o Orbi fica sabendo**: no começo e depois de uma decisão, por um sinal
   `pipeline` na conversa. Entre etapas que seguem sozinhas, no retorno do
   `playbook_step` que encerrou a execução (campo `esteira`), sem esperar outro
-  turno. O prompt (`orbi.md`, "Esteiras") diz para seguir esse texto ao pé da letra.
+  turno. O prompt (`prompts/orbi/esteiras.md`, incluído quando há esteiras) diz para seguir esse texto ao pé da letra.
 - **Uma por conversa**: uma conversa só tem uma esteira em andamento.
 - **Apagar**: um procedimento usado numa esteira não pode ser apagado (a tela diz
   qual esteira usa).

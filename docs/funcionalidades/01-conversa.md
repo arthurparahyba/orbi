@@ -66,7 +66,7 @@ sequenceDiagram
 `agents/orbi.ts` é uma função que o Flue chama **antes de cada chamada ao
 modelo**. Ela monta, do zero:
 
-- as instruções fixas, de `apps/runtime/src/prompts/orbi.md`;
+- as instruções fixas, de `apps/runtime/src/prompts/orbi/`: a base sempre, e as partes de procedimento, falhas, esteiras e pedido de agente só quando a conversa está nessa situação (`agents/prompt.ts`);
 - uma linha com o estado atual ("Cérebro agora: 5 tipos, 12 entidades…") e o
   procedimento em execução, se houver;
 - as ferramentas (`agents/capabilities.ts` liga cada módulo de `agents/tools/`);
@@ -111,7 +111,7 @@ e as mensagens aparecem.
 | `apps/runtime/src/agents/orbi.ts` | O agente: instruções, ferramentas, skills, subagente |
 | `apps/runtime/src/agents/capabilities.ts` | Liga as capacidades (mãos, memória, voz, relógio) |
 | `apps/runtime/src/agents/ui-channel.ts` | O canal `ui` (componentes atualizados no lugar) |
-| `apps/runtime/src/prompts/orbi.md` | Instruções fixas do Orbi |
+| `apps/runtime/src/prompts/orbi/` + `agents/prompt.ts` | Instruções fixas do Orbi, em partes por situação |
 | `apps/runtime/src/conversations/` | Lista de conversas (títulos) e `tellAgent` |
 | `apps/runtime/src/http/routes/conversations.ts` | `GET/POST/PATCH /api/conversations` |
 | `packages/contracts/src/ui.ts` | Catálogo de componentes, validado nos dois lados |

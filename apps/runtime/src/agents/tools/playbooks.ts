@@ -6,6 +6,7 @@ import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
 import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
+import { RUN_RULES } from '../prompt.ts';
 
 /** The playbook running in this conversation, kept across turns. */
 export function useActiveRun() {
@@ -80,9 +81,10 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       showRun(run.id);
       const steps = run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how }));
       const level = pb.autonomy === 'observe' ? 'só observar' : LEVEL_NAMES[pb.level];
-      if (!pb.outputs.length) return { output: { runId: run.id, autonomy: level, steps } };
+      // This turn's prompt was built before the run existed: the rules for running come here.
+      if (!pb.outputs.length) return { output: { runId: run.id, autonomy: level, steps, regras: RUN_RULES } };
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
-      return { output: { runId: run.id, autonomy: level, steps, outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.' } };
+      return { output: { runId: run.id, autonomy: level, steps, outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.', regras: RUN_RULES } };
     },
   });
 

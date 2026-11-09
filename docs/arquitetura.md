@@ -40,7 +40,7 @@ src/
   contract-check.ts         garante em tempo de compilação que o runtime cumpre o contrato
 
   agents/                   o agente Orbi (Flue 'use agent')
-    orbi.ts                 instruções fixas em prompts/orbi.md + estado atual
+    orbi.ts                 instruções (prompt.ts: partes de prompts/orbi/ por situação) + estado atual
     capabilities.ts         monta as capacidades do agente (useOrbi)
     gate.ts                 portão de autonomia: roda, só relata ou pede aprovação
     ui-channel.ts           canal `ui` da conversa (componentes atualizados no lugar)
@@ -235,7 +235,7 @@ repositório.
 
 O que o modelo lê fica em `src/prompts/*.md`, fora do código: dá para revisar e
 ajustar o texto sem mexer em TypeScript. O código importa o arquivo como texto
-(`import instrucoes from '../prompts/orbi.md?raw'`); no build o Vite embute o
+(`import base from '../prompts/orbi/base.md?raw'`); no build o Vite embute o
 texto, e nos testes e scripts o `scripts/raw-hooks.mjs` faz o mesmo no Node.
 Só o que muda a cada conversa (estado do cérebro, playbook em execução) é
 montado em `agents/orbi.ts`.

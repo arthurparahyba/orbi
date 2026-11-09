@@ -57,7 +57,7 @@ flowchart LR
 ### 2. O julgamento (o modelo)
 
 A busca só traz candidatos; quem decide é o modelo, seguindo as regras em
-`prompts/orbi.md`:
+`prompts/orbi/base.md`:
 
 ```mermaid
 sequenceDiagram
@@ -117,7 +117,7 @@ ordem estável. Os outros ele acha com `playbook_similar` e roda pelo nome
 | `apps/runtime/src/brain/repo/playbooks.ts`, `graph.ts` | Consultas ao índice com BM25 |
 | `apps/runtime/src/db/migrations.ts` | Tabelas FTS5 e gatilhos (migração 7) |
 | `apps/runtime/src/agents/tools/similar.ts` | `playbook_similar` e `similar_found` |
-| `apps/runtime/src/prompts/orbi.md` | As regras de igual, parecido e distante |
+| `apps/runtime/src/prompts/orbi/base.md` | As regras de igual, parecido e distante |
 | `apps/desktop/src/components/SimilarCards.tsx` | Linha "Já sei fazer isso" e cartão "parecido" |
 | `apps/desktop/src/components/stepDiff.ts` | Comparação dos passos |
 | `apps/runtime/scripts/eval-search.ts` + `test/fixtures/search-eval.json` | Medição da busca |

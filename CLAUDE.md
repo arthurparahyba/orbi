@@ -25,7 +25,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
-  src/prompts/*.md    textos que o modelo lê
+  src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
   src/{autonomy,browser,code,conversations,llm,observability,terminal,vault,voice}/
   test/               node:test (+ fixtures/search-eval.json)
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
@@ -76,6 +76,8 @@ cofre ou ponte MCP, `npm run e2e`.
   Validação vale igual para o que o Orbi aprende e para o que o usuário edita na tela.
 - **Capacidade declara o que usa.** `defineCapability({ name, needs: ['brain', …], register(ctx, deps) })`
   e uma linha em `agents/capabilities.ts`. Ferramentas não chamam `services()`; recebem `deps`.
+- **Regra nova no prompt vai na parte da situação** (`prompts/orbi/*.md` + `PROMPT_PARTS`), não na base;
+  se o runtime consegue checar, cheque no runtime em vez de pedir ao modelo.
 - **Flue só por `agents/runtime-port.ts`.** Nada de `import … from '@flue/runtime'` fora dele (teste acusa).
 - **Sem efeito colateral ao importar um módulo.** Tudo é criado em `createOrbi`; o que roda
   em segundo plano, em `startBackground`. Configuração só por `loadConfig`.

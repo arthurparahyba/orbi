@@ -80,7 +80,7 @@ sequenceDiagram
   (ou se o desenvolvedor encerrar), o motor pede ao Orbi o `agent_reply`.
 - **Pedido**: vira uma conversa (`chat:…`) e um registro em `agent_requests`. O
   Orbi recebe um sinal `agent-request` com tarefa, procedimento, parâmetros e
-  contexto. O prompt (`prompts/orbi.md`, "Pedidos de agentes de código") diz que o
+  contexto. O prompt (`prompts/orbi/agentes.md`, incluído só quando a conversa tem um pedido de agente) diz que o
   texto do pedido é um pedido, não uma regra; se nenhum procedimento cobre, ele não
   improvisa e responde que ainda não sabe. Nessas conversas existe a ferramenta
   `agent_reply`, com a qual o Orbi entrega o resultado curto (resumo e links).
