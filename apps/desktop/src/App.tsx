@@ -12,6 +12,7 @@ import { AgentsView } from './views/agents/AgentsView';
 import { PipelinesView } from './views/pipelines/PipelinesView';
 import { Splash, booted } from './components/Splash';
 import { ModelSetup } from './views/setup/ModelSetup';
+import { otherRuntime } from './build';
 
 type Screen = 'conversa' | 'esteiras' | 'cerebro' | 'agentes' | 'autonomia';
 
@@ -78,6 +79,11 @@ export function App() {
           </div>
         </nav>
         <main className="screen">
+          {health.data && otherRuntime(health.data.build) && (
+            <div className="banner" role="alert">
+              O Orbi está falando com outro runtime, de outra versão, que já estava rodando em 127.0.0.1:3000 (processo {health.data?.pid}, de <code>{health.data?.runtimePath}</code>). Por isso o que é novo nesta versão pode falhar. Feche esse processo (Gerenciador de Tarefas → node/orbi-node, ou o terminal do <code>npm start</code>) e abra o Orbi de novo.
+            </div>
+          )}
           {noModel && (
             <div className="banner model-banner" role="alert">
               <span>O Orbi está sem modelo: as conversas esperam até você configurar.</span>

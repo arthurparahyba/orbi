@@ -93,6 +93,8 @@ export interface Health {
   brain: BrainSnapshot['stats'];
   /** Where coding agents connect to Orbi's MCP server. */
   mcpUrl?: string;
+  /** Which build the runtime is, its process and where it runs from: the app warns when it is another build. */
+  build?: string; pid?: number; runtimePath?: string;
 }
 export type Category = 'comandos-leitura' | 'comandos-escrita' | 'navegador-leitura' | 'navegador-escrita' | 'codigo-teste' | 'codigo-producao' | 'aprender';
 

@@ -5,6 +5,7 @@ import type { OrbiServices } from '../../services.ts';
 import type { Background } from '../../compose.ts';
 import { binaryStatus } from '../../terminal/exec.ts';
 import { describePlugins } from '../../llm/index.ts';
+import { BUILD } from '../../build.ts';
 
 /** What is connected and configured: the Autonomia screen's "Capacidades" and the offline banner. */
 export function healthRoutes(s: OrbiServices, background: Background) {
@@ -31,6 +32,9 @@ export function healthRoutes(s: OrbiServices, background: Background) {
       binaries: binaryStatus(config.allowedBinaries),
       stt: s.stt.name(),
       mcpUrl: `http://127.0.0.1:${config.port}/mcp`,
+      build: BUILD,
+      pid: process.pid,
+      runtimePath: process.argv[1],
     };
     return c.json(health);
   });

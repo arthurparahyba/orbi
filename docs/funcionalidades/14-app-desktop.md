@@ -39,6 +39,11 @@ flowchart TB
 `apps/desktop/src-tauri/src/main.rs`, ao abrir:
 
 1. Se algo já responde em `127.0.0.1:3000` (por exemplo `npm run demo`), usa esse runtime.
+   O app instalado e o runtime dele levam o mesmo carimbo de build (`ORBI_BUILD`,
+   posto por `scripts/build-app.mjs`; o runtime informa em `/api/health`). Se o
+   runtime que responde é de outro build (uma instalação antiga ainda aberta, um
+   `npm start` esquecido), o app mostra um aviso com o processo e a pasta dele:
+   o que é novo nesta versão (rotas, correções) não está naquele runtime.
 2. Senão, sobe o runtime como processo filho:
    - **app instalado**: o runtime está dentro do pacote (`Resources/runtime`) e o
      Node ao lado do executável (`orbi-node`). Os dados ficam na pasta de dados do

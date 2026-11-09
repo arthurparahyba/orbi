@@ -22,3 +22,13 @@ describe('configurar o modelo', () => {
     expect(chooseLabel(claude)).toBe('Usar o Claude');
   });
 });
+
+describe('outro runtime', async () => {
+  const { otherRuntime } = await import('../src/build');
+  it('avisa só quando o app instalado fala com um runtime de outro build', () => {
+    expect(otherRuntime('abc-1', 'abc-2')).toBe(true);
+    expect(otherRuntime('abc-1', 'abc-1')).toBe(false);
+    expect(otherRuntime('abc-1', 'dev')).toBe(false);
+    expect(otherRuntime(undefined, 'abc-2')).toBe(true);
+  });
+});

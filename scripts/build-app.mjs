@@ -40,6 +40,14 @@ const size = (p) => {
 };
 const mb = (b) => `${Math.round(b / 1024 / 1024)} MB`;
 
+// The same build stamp in the runtime and in the UI: the app warns when the runtime that answers
+// on 127.0.0.1:3000 is another one (an older install or an `npm start` left running).
+if (!process.env.ORBI_BUILD) {
+  let sha = 'local';
+  try { sha = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(); } catch {}
+  process.env.ORBI_BUILD = `${sha}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}`;
+}
+
 // ── 0. checks ───────────────────────────────────────────────────────────────
 const [major, minor] = process.versions.node.split('.').map(Number);
 if (major < 22 || (major === 22 && minor < 13)) {

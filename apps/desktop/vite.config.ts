@@ -15,4 +15,6 @@ export default defineConfig({
     proxy: { '/api': runtime, '/agents': runtime },
   },
   build: { target: 'es2022', outDir: 'dist' },
+  // Build stamp (scripts/build-app.mjs): the runtime that answers must be from the same build.
+  define: { __ORBI_BUILD__: JSON.stringify(process.env.ORBI_BUILD ?? 'dev') },
 });

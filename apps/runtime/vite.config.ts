@@ -8,6 +8,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   // Only the Anthropic provider ships in the build (Claude Haiku 5.5).
   plugins: [flue({ providers: ['anthropic'] })],
+  // Build stamp (scripts/build-app.mjs), compared by the app with its own: see /api/health.
+  define: { __ORBI_BUILD__: JSON.stringify(process.env.ORBI_BUILD ?? 'dev') },
   server: { host: '127.0.0.1' },
   preview: { host: '127.0.0.1' },
 });
