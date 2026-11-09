@@ -97,3 +97,12 @@ describe('comando que falhou', () => {
     expect(knownProblemsOf(call({ exitCode: 0, stdout: 'ok', stderr: '' }))).toEqual([]);
   });
 });
+
+describe('ferramenta que se descreve', () => {
+  it('título e comando vêm do resultado: ferramenta nova não precisa de mapa no app', async () => {
+    const { toolLabel, toolCommand } = await import('../src/views/conversation/tools');
+    const t = { type: 'dynamic-tool', toolName: 'ferramenta_nova', toolCallId: 'x', state: 'output-available', input: {}, output: { status: 'executed', category: 'comandos-escrita', title: 'Gerar o relatório', command: 'relatorio --mes 10', result: 'ok' } } as never;
+    expect(toolLabel(t)).toBe('Gerar o relatório');
+    expect(toolCommand(t)).toBe('relatorio --mes 10');
+  });
+});

@@ -5,7 +5,8 @@ import { UiComponent } from '@orbi/contracts';
 import { services } from '../../services.ts';
 import { runCommand } from '../../terminal/exec.ts';
 import { scriptVersion, type PlaybookScript } from '../../brain/domain/scripts.ts';
-import { afterCommand, savePath, shortCommand } from './terminal.ts';
+import { savePath, shortCommand } from './terminal.ts';
+import { runAndReport } from '../../terminal/runner.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -76,26 +77,15 @@ export function useScripts(ctx: AgentContext) {
         mkdirSync(dirname(file), { recursive: true });
         writeFileSync(file, found.script.code);
       }
-      const save = a.saveTo ? savePath(a.saveTo, config.workspace) : undefined;
-      const result = await runCommand('python3', [file, ...a.args], {
-        cwd: config.workspace,
-        timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000,
-        env: config.cliEnv,
-        allowed: ['python3'],
-        shell: config.shell,
-        ...(save ? { maxOutput: 50_000_000 } : {}),
+      const shown = shortCommand(a.script, a.args);
+      const { result, report, extra } = await runAndReport({
+        conversationId: ctx.conversationId,
+        shown,
+        // show: the output is the component itself, not a file.
+        saveTo: a.saveTo && !a.show ? savePath(a.saveTo, config.workspace) : undefined,
+        start: (o) => runCommand('python3', [file, ...a.args], { cwd: config.workspace, timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000, env: config.cliEnv, allowed: ['python3'], shell: config.shell, ...o }),
       });
-      const shown = { ...result, command: shortCommand(a.script, a.args) };
-      const extra = afterCommand(ctx.conversationId, shown.command, result);
-      if (a.show) return showOutput(ctx, result, shown.command, extra);
-      if (!save) return JSON.stringify({ ...shown, ...extra });
-      const ok = result.exitCode === 0 && !result.timedOut;
-      if (ok) {
-        mkdirSync(dirname(save), { recursive: true });
-        writeFileSync(save, result.stdout);
-      }
-      const lines = result.stdout.split('\n').filter((l) => l.length > 0);
-      return JSON.stringify({ command: shown.command, exitCode: result.exitCode, savedTo: ok ? save : null, lines: lines.length, head: lines.slice(0, 5), stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut, ...extra });
+      return a.show ? showOutput(ctx, result, shown, extra) : report;
     },
     timeoutMs: 1_800_000,
   });

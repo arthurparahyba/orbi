@@ -35,15 +35,27 @@ export function isSilent(t: ToolCall): boolean {
 
 const inputOf = (t: ToolCall) => (t.input && typeof t.input === 'object' ? (t.input as Record<string, unknown>) : {});
 
-/** The row's text: the purpose the Orbi gave, or what the tool is. */
+/**
+ * How a tool that went through the gate describes itself (title, command line): it comes with
+ * the result, so a new tool reads well with no change here. The maps above are the fallback
+ * for tools that do not say.
+ */
+const shownOf = (t: ToolCall) => {
+  const out = outputOf(t);
+  return out?.status === 'executed' ? { title: typeof out.title === 'string' ? out.title : undefined, command: typeof out.command === 'string' ? out.command : undefined } : {};
+};
+
+/** The row's text: the purpose the Orbi gave, the tool's own title, or what the tool is. */
 export function toolLabel(t: ToolCall): string {
   const purpose = inputOf(t).purpose;
   if (typeof purpose === 'string' && purpose.trim()) return purpose.trim();
-  return LABEL[t.toolName] ?? t.toolName;
+  return shownOf(t).title ?? LABEL[t.toolName] ?? t.toolName;
 }
 
 /** The command line, for tools that run one. */
 export function toolCommand(t: ToolCall): string | undefined {
+  const own = shownOf(t).command;
+  if (own) return own;
   const i = inputOf(t);
   if (typeof i.binary === 'string') return [i.binary, ...((i.args as string[] | undefined) ?? [])].join(' ') + (typeof i.saveTo === 'string' ? ` > ${i.saveTo}` : '');
   if (t.toolName === 'run_shell' && typeof i.line === 'string') return i.line + (typeof i.saveTo === 'string' ? ` > ${i.saveTo}` : '');

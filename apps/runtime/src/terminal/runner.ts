@@ -1,0 +1,67 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import type { RunResult } from './exec.ts';
+import { services } from '../services.ts';
+import { errorTail } from '../brain/domain/knowledge.ts';
+
+/**
+ * The one path every tool that runs something takes (run_command, run_script, run_shell…):
+ * run, record the attempt in the procedure's trail, look up known problems when it fails, save
+ * the whole output to a file when asked, and shape what the model reads. A new tool that runs
+ * a program says only how to start it.
+ */
+export interface RunSpec {
+  conversationId: string;
+  /** The command as the conversation shows it. */
+  shown: string;
+  /** Absolute path to write the whole output to, instead of returning it. */
+  saveTo?: string;
+  /** Starts the program; `maxOutput` is raised when the output goes to a file. */
+  start(opts: { maxOutput?: number }): Promise<RunResult>;
+}
+
+export async function runAndReport(spec: RunSpec): Promise<{ result: RunResult; report: string; extra: Record<string, unknown> }> {
+  const result = await spec.start(spec.saveTo ? { maxOutput: 50_000_000 } : {});
+  const extra = afterCommand(spec.conversationId, spec.shown, result);
+  if (!spec.saveTo) return { result, extra, report: JSON.stringify({ ...result, command: spec.shown, ...extra }) };
+  const ok = result.exitCode === 0 && !result.timedOut;
+  if (ok) {
+    mkdirSync(dirname(spec.saveTo), { recursive: true });
+    writeFileSync(spec.saveTo, result.stdout);
+  }
+  const lines = result.stdout.split('\n').filter((l) => l.length > 0);
+  return {
+    result,
+    extra,
+    report: JSON.stringify({
+      command: spec.shown,
+      exitCode: result.exitCode,
+      savedTo: ok ? spec.saveTo : null,
+      lines: lines.length,
+      bytes: Buffer.byteLength(result.stdout),
+      head: lines.slice(0, 5),
+      stderr: result.stderr.slice(0, 2000),
+      timedOut: result.timedOut,
+      ...extra,
+    }),
+  };
+}
+
+/**
+ * After a command ran inside a procedure: the attempt goes to the run's trail (what fails and
+ * later passes becomes knowledge), and a failure brings the known problems it looks like, so
+ * the Orbi knows what to do without remembering to look (domain/knowledge.ts).
+ */
+export function afterCommand(conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
+  const { brain } = services();
+  const failed = result.exitCode !== 0 || !!result.timedOut;
+  const error = failed ? errorTail(result) : '';
+  const known = failed ? brain.knownProblems(`${command}\n${error}`) : [];
+  brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0 });
+  if (!known.length) return {};
+  return {
+    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}) })),
+    hint: 'Problema conhecido no cérebro: siga a solução dele antes de investigar do zero.',
+  };
+}
+

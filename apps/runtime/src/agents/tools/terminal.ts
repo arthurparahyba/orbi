@@ -1,17 +1,16 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { defineTool, useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { services } from '../../services.ts';
 import { ShellNeededError, runCommand, runShell } from '../../terminal/exec.ts';
 import { askShellPath } from './shell-setup.ts';
-import type { UiComponent } from '@orbi/contracts';
 import { shellEffect } from '../../terminal/shell.ts';
 import { commandCategory, commandEffect } from '../../autonomy/policy.ts';
 import { homedir } from 'node:os';
 import type { AgentContext } from '../context.ts';
-import { errorTail } from '../../brain/domain/knowledge.ts';
+import { runAndReport } from '../../terminal/runner.ts';
 
 /** Terminal: git, gh, aws and python3, without a shell, inside the workspace. */
 
@@ -29,56 +28,25 @@ export function savePath(saveTo: string, workspace: string, home = homedir()): s
   return isAbsolute(saveTo) ? saveTo : resolve(workspace, saveTo);
 }
 
-/**
- * After a command ran inside a procedure: the attempt goes to the run's trail (what fails and
- * later passes becomes knowledge), and a failure brings the known problems it looks like, so
- * the Orbi knows what to do without remembering to look (domain/knowledge.ts).
- */
-export function afterCommand(conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
-  const { brain } = services();
-  const failed = result.exitCode !== 0 || !!result.timedOut;
-  const error = failed ? errorTail(result) : '';
-  const known = failed ? brain.knownProblems(`${command}\n${error}`) : [];
-  brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0 });
-  if (!known.length) return {};
-  return {
-    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}) })),
-    hint: 'Problema conhecido no cérebro: siga a solução dele antes de investigar do zero.',
-  };
-}
+export { afterCommand } from '../../terminal/runner.ts';
 
-async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal, ui?: (c: UiComponent) => void) {
+async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
   const { config } = services();
-  const save = args.saveTo ? savePath(args.saveTo, config.workspace) : undefined;
-  const result = await runCommand(args.binary, args.args, {
-    cwd: insideWorkspace(args.cwd),
-    timeoutMs: Math.min(args.timeoutSeconds ?? 120, 1800) * 1000,
-    env: config.cliEnv,
-    allowed: config.allowedBinaries,
-    shell: config.shell,
-    signal,
-    // The whole output goes to the file; only a summary comes back to the model.
-    ...(save ? { maxOutput: 50_000_000 } : {}),
+  const { report } = await runAndReport({
+    conversationId,
+    shown: shortCommand(args.binary, args.args),
+    saveTo: args.saveTo ? savePath(args.saveTo, config.workspace) : undefined,
+    start: (o) => runCommand(args.binary, args.args, {
+      cwd: insideWorkspace(args.cwd),
+      timeoutMs: Math.min(args.timeoutSeconds ?? 120, 1800) * 1000,
+      env: config.cliEnv,
+      allowed: config.allowedBinaries,
+      shell: config.shell,
+      signal,
+      ...o,
+    }),
   });
-  const extra = afterCommand(conversationId, shortCommand(args.binary, args.args), result);
-  if (!save) return JSON.stringify({ ...result, ...extra });
-  const ok = result.exitCode === 0 && !result.timedOut;
-  if (ok) {
-    mkdirSync(dirname(save), { recursive: true });
-    writeFileSync(save, result.stdout);
-  }
-  const lines = result.stdout.split('\n').filter((l) => l.length > 0);
-  return JSON.stringify({
-    command: result.command,
-    exitCode: result.exitCode,
-    savedTo: ok ? save : null,
-    lines: lines.length,
-    bytes: Buffer.byteLength(result.stdout),
-    head: lines.slice(0, 5),
-    stderr: result.stderr.slice(0, 2000),
-    timedOut: result.timedOut,
-    ...extra,
-  });
+  return report;
 }
 
 const commandInput = v.object({
@@ -163,7 +131,7 @@ export function useTerminal(ctx: AgentContext) {
     fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: async (a) => {
       try {
-        return await execCommand(a, ctx.conversationId, undefined, ctx.ui);
+        return await execCommand(a, ctx.conversationId);
       } catch (error) {
         // npm/mvn on Windows without Git Bash: ask where it is, right in the conversation.
         if (error instanceof ShellNeededError) throw new Error(`${error.message}. ${askShellPath(ctx.conversationId, ctx.ui)}`);
@@ -206,23 +174,13 @@ function useShell(ctx: AgentContext) {
       const { config } = services();
       const shell = config.shell;
       if (!shell) throw new Error(askShellPath(ctx.conversationId, ctx.ui));
-      const save = a.saveTo ? savePath(a.saveTo, config.workspace) : undefined;
-      const result = await runShell(shell, a.line, {
-        cwd: insideWorkspace(a.cwd),
-        timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000,
-        env: config.cliEnv,
-        shell,
-        ...(save ? { maxOutput: 50_000_000 } : {}),
+      const { report } = await runAndReport({
+        conversationId: ctx.conversationId,
+        shown: a.line,
+        saveTo: a.saveTo ? savePath(a.saveTo, config.workspace) : undefined,
+        start: (o) => runShell(shell, a.line, { cwd: insideWorkspace(a.cwd), timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000, env: config.cliEnv, shell, ...o }),
       });
-      const extra = afterCommand(ctx.conversationId, a.line, result);
-      if (!save) return JSON.stringify({ ...result, ...extra });
-      const ok = result.exitCode === 0 && !result.timedOut;
-      if (ok) {
-        mkdirSync(dirname(save), { recursive: true });
-        writeFileSync(save, result.stdout);
-      }
-      const lines = result.stdout.split('\n').filter((l) => l.length > 0);
-      return JSON.stringify({ command: a.line, exitCode: result.exitCode, savedTo: ok ? save : null, lines: lines.length, head: lines.slice(0, 5), stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut, ...extra });
+      return report;
     },
     timeoutMs: 1_800_000,
   });

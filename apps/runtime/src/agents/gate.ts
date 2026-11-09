@@ -64,7 +64,9 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         if (level === 'auto') {
           const result = await def.execute(data, toolCallId);
           if (run) brain.recordRunAction(run.id, action);
-          return { output: { status: 'executed', category, result } };
+          // How the call reads in the conversation travels with it: the app needs no list of tools.
+          const shown = { ...(def.title ? { title: def.title(data) } : {}), ...(def.command ? { command: def.command(data) } : {}) };
+          return { output: { status: 'executed', category, ...shown, result } };
         }
         if (level === 'observe') {
           return { output: { status: 'not_executed', category, reason: `"${category}" está em modo observar: relate o que faria e não tente de novo.` } };
