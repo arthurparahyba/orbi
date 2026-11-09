@@ -8,7 +8,7 @@ import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 import { createServer } from 'node:http';
 import { appDataHome, discoverPlugins, pluginDirs } from '../src/llm/plugins.ts';
 import { configureLlm } from '../src/llm/index.ts';
@@ -52,7 +52,7 @@ test('descobre plugins válidos e explica os que não servem', async () => {
 });
 
 test('ORBI_PLUGINS_DIR aceita várias pastas; sem ela, procura plugins/ perto do runtime', () => {
-  assert.deepEqual(pluginDirs({ ORBI_PLUGINS_DIR: '/a:/b' }, '/x'), ['/a', '/b']);
+  assert.deepEqual(pluginDirs({ ORBI_PLUGINS_DIR: ['/a', '/b'].join(delimiter) }, '/x'), [resolve('/x', '/a'), resolve('/x', '/b')]);
   const repo = mkdtempSync(join(tmpdir(), 'orbi-repo-'));
   mkdirSync(join(repo, 'plugins'));
   mkdirSync(join(repo, 'apps', 'runtime'), { recursive: true });
@@ -118,7 +118,8 @@ test('plugin:new gera um plugin que carrega, e plugin:test o testa contra o LLM'
   const port = (server.address() as { port: number }).port;
   try {
     // Async: the mock server lives in this process and must keep answering.
-    const { stdout: output } = await promisify(execFile)('npx', ['tsx', 'scripts/plugin-test.ts', 'gateway-teste'], {
+    const { stdout: output } = await promisify(execFile)(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['tsx', 'scripts/plugin-test.ts', 'gateway-teste'], {
+      shell: process.platform === 'win32',
       cwd: resolve(root, 'apps/runtime'),
       env: { ...env, ORBI_LLM_BASE_URL: `http://127.0.0.1:${port}`, ORBI_LLM_API_KEY: 'k', ORBI_LLM_MODEL: 'm1', NO_COLOR: '1' },
       encoding: 'utf8',

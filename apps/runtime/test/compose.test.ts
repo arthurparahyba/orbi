@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 test('importar os módulos não cria arquivos nem serviços', async () => {
   const cwd = mkdtempSync(join(tmpdir(), 'orbi-import-'));
@@ -28,8 +28,8 @@ test('loadConfig é pura: lê só o ambiente passado, resolve ~ e caminhos relat
   const { loadConfig } = await import('../src/config.ts');
   const c = loadConfig({ ORBI_WORKSPACE: '~/projetos', ORBI_DATA_DIR: 'dados', ORBI_ALLOWED_BINARIES: 'git, gh' }, '/base');
   assert.equal(c.workspace, join(homedir(), 'projetos'));
-  assert.equal(c.dataDir, '/base/dados');
-  assert.equal(c.dbFile, '/base/dados/orbi.db');
+  assert.equal(c.dataDir, resolve('/base', 'dados'));
+  assert.equal(c.dbFile, join(resolve('/base', 'dados'), 'orbi.db'));
   assert.deepEqual(c.allowedBinaries, ['git', 'gh']);
   assert.equal(c.llm, 'anthropic');
   assert.equal(c.codeFixer, true);

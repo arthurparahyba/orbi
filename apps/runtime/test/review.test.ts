@@ -4,6 +4,7 @@ import { BrainStore } from '../src/brain/store.ts';
 import { pipelineConfigProblems, stepClaimProblems } from '../src/brain/domain/review.ts';
 import { commandCategory } from '../src/autonomy/policy.ts';
 import { savePath } from '../src/agents/tools/terminal.ts';
+import { join, resolve } from 'node:path';
 import { reviewConversation, reviewInstruction } from '../src/review/review.ts';
 import { Inbox } from '../src/conversations/inbox.ts';
 import { PipelineRuns } from '../src/pipelines/runs.ts';
@@ -87,8 +88,8 @@ test('gh api -X GET é leitura; saveTo resolve o caminho', () => {
   assert.equal(commandCategory('gh', ['api', '--method=GET', 'x', '-f', 'a=1']), 'comandos-leitura');
   assert.equal(commandCategory('gh', ['api', '-X', 'POST', 'x']), 'comandos-escrita');
   assert.equal(commandCategory('gh', ['api', 'x', '-f', 'a=1']), 'comandos-escrita', 'sem método, -f é POST');
-  assert.equal(savePath('~/p/top.tsv', '/ws', '/home/a'), '/home/a/p/top.tsv');
-  assert.equal(savePath('dados/top.tsv', '/ws'), '/ws/dados/top.tsv');
+  assert.equal(savePath('~/p/top.tsv', '/ws', '/home/a'), join('/home/a', 'p/top.tsv'));
+  assert.equal(savePath('dados/top.tsv', '/ws'), resolve('/ws', 'dados/top.tsv'));
   assert.equal(savePath('/tmp/x.tsv', '/ws'), '/tmp/x.tsv');
 });
 

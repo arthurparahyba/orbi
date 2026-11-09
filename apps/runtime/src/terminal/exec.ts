@@ -47,6 +47,32 @@ const INSTALL_HINT: Record<string, string> = {
   git: 'no macOS vem com `xcode-select --install`',
   python3: 'no macOS vem com `xcode-select --install` (ou `brew install python`)',
 };
+const INSTALL_HINT_WINDOWS: Record<string, string> = {
+  gh: 'instale com `winget install GitHub.cli` e rode `gh auth login`',
+  aws: 'instale com `winget install Amazon.AWSCLI` e configure com `aws configure` ou `aws sso login`',
+  git: 'instale com `winget install Git.Git`',
+  python3: 'instale com `winget install Python.Python.3.12` (o Orbi usa `python` ou `py` no Windows)',
+};
+export const installHint = (binary: string, platform: string = process.platform) =>
+  (platform === 'win32' ? INSTALL_HINT_WINDOWS : INSTALL_HINT)[binary];
+
+/**
+ * The program that runs `binary`. On Windows `python3` usually does not exist (it is
+ * `python` or the `py` launcher), and the `python*.exe` in WindowsApps are Store shortcuts
+ * that open the Store instead of running: they are skipped.
+ */
+export function resolveBinary(binary: string, pathVar = process.env.PATH ?? '', platform: string = process.platform): { file: string; prefix: string[] } | null {
+  if (platform !== 'win32' || binary !== 'python3') {
+    const file = findBinary(binary, pathVar);
+    return file ? { file, prefix: [] } : null;
+  }
+  const real = pathVar.split(delimiter).filter((d) => d && !/WindowsApps/i.test(d)).join(delimiter);
+  for (const [name, prefix] of [['python', []], ['py', ['-3']], ['python3', []]] as const) {
+    const file = findBinary(name, real);
+    if (file) return { file, prefix: [...prefix] };
+  }
+  return null;
+}
 
 /** Where `binary` would be found on `pathVar`, or null. Mirrors what spawn() does. */
 export function findBinary(binary: string, pathVar = process.env.PATH ?? ''): string | null {
@@ -66,7 +92,7 @@ export function findBinary(binary: string, pathVar = process.env.PATH ?? ''): st
 }
 
 export function binaryStatus(binaries: readonly string[] = DEFAULT_BINARIES): Record<string, string | null> {
-  return Object.fromEntries(binaries.map((b) => [b, findBinary(b)]));
+  return Object.fromEntries(binaries.map((b) => [b, resolveBinary(b)?.file ?? null]));
 }
 
 export function assertAllowed(binary: string, args: readonly string[], allowed: readonly string[] = DEFAULT_BINARIES): void {
@@ -110,13 +136,14 @@ export function runCommand(binary: string, args: readonly string[], options: Run
   if (cwd && !existsSync(cwd)) {
     return Promise.reject(new Error(`a pasta onde o comando rodaria não existe: ${cwd} (confira ORBI_WORKSPACE no .env)`));
   }
-  if (!findBinary(binary, env.PATH)) {
-    const hint = INSTALL_HINT[binary] ? `; ${INSTALL_HINT[binary]}` : '';
+  const program = resolveBinary(binary, env.PATH);
+  if (!program) {
+    const hint = installHint(binary) ? `; ${installHint(binary)}` : '';
     return Promise.reject(new CommandNotFoundError(`\`${binary}\` não está instalado ou não está no PATH do Orbi${hint}`));
   }
 
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(binary, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(program.file, [...program.prefix, ...args], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     let timedOut = false;

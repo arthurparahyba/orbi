@@ -54,6 +54,10 @@ flowchart LR
   código, em JSON): o runtime valida e mostra direto na conversa, e o modelo
   recebe só o resumo (`shown`, linhas). Saída que não é componente vira erro com
   o motivo.
+- **Windows**: `python3` costuma não existir lá; o Orbi usa `python` ou o
+  lançador `py -3`, e ignora os atalhos da Microsoft Store (`WindowsApps`), que
+  abrem a loja em vez de rodar. As dicas de instalação usam `winget` no Windows e
+  `brew` no macOS (`resolveBinary` e `installHint` em `terminal/exec.ts`).
 - **`gh api -X GET`** é leitura mesmo com `-f`/`-F` (viram parâmetros da consulta).
 - **`git -C pasta …`** é classificado pelo verbo que vem depois (`git -C x status`
   é leitura). Cada comando também tem um efeito (nesta máquina, publica, apaga),
