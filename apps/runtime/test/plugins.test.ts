@@ -10,7 +10,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createServer } from 'node:http';
-import { discoverPlugins, pluginDirs } from '../src/llm/plugins.ts';
+import { appDataHome, discoverPlugins, pluginDirs } from '../src/llm/plugins.ts';
 import { configureLlm } from '../src/llm/index.ts';
 import { checkAdapter } from '../src/llm/plugin-check.ts';
 import type { LlmAdapter } from '../src/llm/types.ts';
@@ -56,7 +56,7 @@ test('ORBI_PLUGINS_DIR aceita várias pastas; sem ela, procura plugins/ perto do
   const repo = mkdtempSync(join(tmpdir(), 'orbi-repo-'));
   mkdirSync(join(repo, 'plugins'));
   mkdirSync(join(repo, 'apps', 'runtime'), { recursive: true });
-  assert.deepEqual(pluginDirs({}, join(repo, 'apps', 'runtime')), [join(repo, 'plugins')]);
+  assert.deepEqual(pluginDirs({}, join(repo, 'apps', 'runtime'), join(repo, 'sem-app')), [join(repo, 'plugins')]);
 });
 
 /** A model that behaves: answers text, calls the tool, reads its result. */
@@ -127,4 +127,16 @@ test('plugin:new gera um plugin que carrega, e plugin:test o testa contra o LLM'
   } finally {
     server.close();
   }
+});
+
+test('plugins: a pasta do app instalado vale também para o npm start, e vem primeiro', () => {
+  assert.equal(appDataHome({ APPDATA: 'C:\\Users\\a\\AppData\\Roaming' }, 'win32', 'C:\\Users\\a').endsWith('br.com.zup.orbi'), true);
+  assert.equal(appDataHome({}, 'darwin', '/Users/a'), '/Users/a/Library/Application Support/br.com.zup.orbi');
+  assert.equal(appDataHome({}, 'linux', '/home/a'), '/home/a/.local/share/br.com.zup.orbi');
+  const home = mkdtempSync(join(tmpdir(), 'orbi-home-'));
+  mkdirSync(join(home, 'plugins'));
+  const repo = mkdtempSync(join(tmpdir(), 'orbi-repo-'));
+  mkdirSync(join(repo, 'plugins'));
+  mkdirSync(join(repo, 'apps', 'runtime'), { recursive: true });
+  assert.deepEqual(pluginDirs({}, join(repo, 'apps', 'runtime'), home), [join(home, 'plugins'), join(repo, 'plugins')]);
 });

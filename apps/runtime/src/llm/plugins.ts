@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { delimiter, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { homedir } from 'node:os';
 import { PLUGIN_API_VERSION, type OrbiPlugin } from '@orbi/plugin-sdk';
 
 /**
@@ -24,12 +25,25 @@ export interface PluginInfo {
 }
 
 /**
- * Where plugins are looked for: ORBI_PLUGINS_DIR (one or more, separated like PATH),
- * else `plugins/` next to the working directory or at the repository root.
+ * The installed app's folder for the developer's own things (the same the desktop app uses:
+ * Tauri's app data dir). Updating the app never touches it.
  */
-export function pluginDirs(env: NodeJS.ProcessEnv = process.env, cwd = process.cwd()): string[] {
+export function appDataHome(env: NodeJS.ProcessEnv = process.env, platform: string = process.platform, home = homedir()): string {
+  const id = 'br.com.zup.orbi';
+  if (platform === 'win32') return join(env.APPDATA || join(home, 'AppData', 'Roaming'), id);
+  if (platform === 'darwin') return join(home, 'Library', 'Application Support', id);
+  return join(env.XDG_DATA_HOME || join(home, '.local', 'share'), id);
+}
+
+/**
+ * Where plugins are looked for: ORBI_PLUGINS_DIR (one or more, separated like PATH), else the
+ * installed app's plugins folder (so a plugin dropped there serves `npm start` too), then
+ * `plugins/` next to the working directory or at the repository root. With the same plugin
+ * in two places, the first one wins.
+ */
+export function pluginDirs(env: NodeJS.ProcessEnv = process.env, cwd = process.cwd(), appHome = appDataHome(env)): string[] {
   if (env.ORBI_PLUGINS_DIR) return env.ORBI_PLUGINS_DIR.split(delimiter).filter(Boolean).map((d) => resolve(cwd, d));
-  return [resolve(cwd, 'plugins'), resolve(cwd, '../../plugins')].filter((d, i, all) => all.indexOf(d) === i && existsSync(d));
+  return [join(appHome, 'plugins'), resolve(cwd, 'plugins'), resolve(cwd, '../../plugins')].filter((d, i, all) => all.indexOf(d) === i && existsSync(d));
 }
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;

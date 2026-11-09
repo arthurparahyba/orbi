@@ -29,12 +29,15 @@ Quando algo falha, ele mostra o erro e o que olhar no seu `chat()`.
 
 | Situação | Pasta de plugins | Configuração (`.env`) |
 | --- | --- | --- |
-| Rodando do repositório (`npm start`, `npm run dev`) | `plugins/` na raiz | `apps/runtime/.env` |
-| App instalado (`Orbi.app`) | `~/Library/Application Support/br.com.zup.orbi/plugins` | `~/Library/Application Support/br.com.zup.orbi/.env` |
-| Qualquer outra | `ORBI_PLUGINS_DIR` (uma ou mais pastas, separadas por `:`) | — |
+| App instalado no Windows | `%APPDATA%\br.com.zup.orbi\plugins` | `%APPDATA%\br.com.zup.orbi\.env` |
+| App instalado no macOS (`Orbi.app`) | `~/Library/Application Support/br.com.zup.orbi/plugins` | `~/Library/Application Support/br.com.zup.orbi/.env` |
+| Rodando do repositório (`npm start`, `npm run dev`) | a pasta do app instalado (acima) **e** `plugins/` na raiz | `apps/runtime/.env` |
+| Qualquer outra | `ORBI_PLUGINS_DIR` (uma ou mais pastas, separadas por `:`, ou `;` no Windows) | — |
 
-No app instalado, os plugins ficam fora do pacote: atualizar o Orbi não apaga
-o plugin. Basta copiar a pasta do plugin para lá e reabrir o app.
+O lugar recomendado é a **pasta do app instalado**: fica fora do pacote e do
+código, então atualizar o Orbi (ou clonar de novo) não apaga o plugin, e o mesmo
+plugin serve o app e o `npm start`. Basta copiar a pasta do plugin para lá e
+reabrir. Com o mesmo plugin nos dois lugares, vale o da pasta do app.
 
 `plugins/` não vai para o git do Orbi (só o README). O plugin da empresa pode
 ter um repositório privado próprio, clonado dentro de `plugins/`.
