@@ -1,5 +1,5 @@
 import type { ModelOption } from '../../api';
-import type { Draft } from './modelSetup';
+import type { Draft } from './choice';
 
 const ANTHROPIC_KEYS = 'https://console.anthropic.com/settings/keys';
 

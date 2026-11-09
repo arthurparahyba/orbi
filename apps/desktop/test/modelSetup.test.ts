@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { choiceOf, initialKind, initialModel, chooseLabel } from '../src/views/setup/modelSetup';
+import { choiceOf, initialKind, initialModel, chooseLabel } from '../src/views/setup/choice';
 import type { ModelOption, ModelStatus } from '../src/api';
 
 const yara: ModelOption = { kind: 'yara', label: 'yara', description: '', source: 'plugin', fields: ['model'], models: ['y1', 'y2'] };

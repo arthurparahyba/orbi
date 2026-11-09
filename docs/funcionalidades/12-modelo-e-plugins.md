@@ -163,7 +163,7 @@ e o log da partida registra `runtime iniciado` com o modelo e o adaptador.
 - `apps/runtime/test/model-setup.test.ts`: opções (plugin primeiro, sem chave),
   teste da chave e do plugin com as mensagens de erro, e escolher só salva e vale
   quando o teste passa.
-- `apps/desktop/test/modelSetup.test.ts`: qual opção vem escolhida, o que vai ao runtime.
+- `apps/desktop/test/modelSetup.test.ts` (regras de `views/setup/choice.ts`): qual opção vem escolhida, o que vai ao runtime.
 - `apps/runtime/test/llm-adapter.test.ts`: o agente inteiro sobre um adaptador
   escrito no próprio teste.
 - `apps/runtime/test/llm-openai-compatible.test.ts`: o mesmo contra um servidor
