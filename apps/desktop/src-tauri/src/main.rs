@@ -100,6 +100,13 @@ fn start_runtime(app: &App) -> Option<Child> {
     }
 
     let mut cmd = Command::new(&launch.node);
+    // Windows: the runtime is a console program; without this a console window flashes open.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
     cmd.arg(&entry)
         .env("PORT", "3000")
         .env("ORBI_PARENT_PID", std::process::id().to_string())
