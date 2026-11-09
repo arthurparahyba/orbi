@@ -24,12 +24,22 @@ import { FollowupRepo, type DueFollowup } from './repo/followups.ts';
 import { exportMarkdown } from './export.ts';
 import { now } from './repo/rows.ts';
 
+import type { BrainParts } from './services/parts.ts';
+import { Facts as FactsService } from './services/facts.ts';
+import { Procedures as ProceduresService } from './services/procedures.ts';
+import { Autonomy as AutonomyService } from './services/autonomy.ts';
+import { Execution as ExecutionService } from './services/execution.ts';
+import { PipelineDefs as PipelineDefsService } from './services/pipelineDefs.ts';
+import { Agenda as AgendaService } from './services/agenda.ts';
+
 export * from './domain/types.ts';
 export { EXAMPLE_TYPES } from './domain/ontology.ts';
 
 /**
- * The brain, as the rest of Orbi uses it: one object that applies the rules in
- * brain/domain (pure) and stores through the repositories in brain/repo (SQL).
+ * The brain, as the rest of Orbi uses it. The work is split by subject in brain/services/ (facts,
+ * procedures, autonomy, execution, esteiras, agenda); this class keeps learning (one batch in one
+ * transaction, across subjects) and one-line shortcuts to the services for the code written before
+ * the split. Rules stay pure in brain/domain, SQL in brain/repo.
  */
 export class BrainStore {
   readonly db: DatabaseSync;
@@ -40,6 +50,13 @@ export class BrainStore {
   private readonly proposalRepo: ProposalRepo;
   private readonly followups: FollowupRepo;
   private readonly levels: LevelRepo;
+  /** The brain by subject (brain/services/): new code uses these directly (brain.execution.startRun…). */
+  readonly facts: FactsService;
+  readonly procedures: ProceduresService;
+  readonly autonomy: AutonomyService;
+  readonly execution: ExecutionService;
+  readonly pipelineDefs: PipelineDefsService;
+  readonly agenda: AgendaService;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -51,380 +68,84 @@ export class BrainStore {
     this.proposalRepo = new ProposalRepo(this.db);
     this.followups = new FollowupRepo(this.db);
     this.levels = new LevelRepo(this.db);
+    const parts: BrainParts = { db: this.db, ontology: this.ontology, graphRepo: this.graphRepo, playbookRepo: this.playbookRepo, pipelineRepo: this.pipelineRepo, proposalRepo: this.proposalRepo, followups: this.followups, levels: this.levels };
+    this.facts = new FactsService(parts, this);
+    this.procedures = new ProceduresService(parts, this);
+    this.autonomy = new AutonomyService(parts, this);
+    this.execution = new ExecutionService(parts, this);
+    this.pipelineDefs = new PipelineDefsService(parts, this);
+    this.agenda = new AgendaService(parts, this);
   }
 
-  // ── ontology ────────────────────────────────────────────────────────────
-  upsertType(type: OntologyType): void {
-    this.ontology.upsert(type);
-  }
-  types(): OntologyType[] {
-    return this.ontology.all();
-  }
-  type(name: string): OntologyType | undefined {
-    return this.ontology.get(name);
-  }
-  private readonly typeOf = (name: string) => this.ontology.get(name);
-
-  // ── graph ───────────────────────────────────────────────────────────────
-  validateEntity(entity: Pick<Entity, 'id' | 'type'>): string[] {
-    return entityProblems(entity, this.typeOf);
-  }
-  validateEdge(edge: Pick<Edge, 'from' | 'rel' | 'to'>): string[] {
-    return edgeProblems(edge, this.get(edge.from), this.get(edge.to), this.typeOf);
-  }
-
-  upsertEntity(entity: Omit<Entity, 'updatedAt'>): Entity {
-    const problems = this.validateEntity(entity);
-    if (problems.length) throw new Error(problems.join('; '));
-    return this.graphRepo.upsertEntity(entity);
-  }
-
-  /** The developer edits an entity on the Cérebro screen: properties and text (type and id stay). */
-  editEntity(id: string, change: { props?: Record<string, unknown>; body?: string }): Entity {
-    const current = this.get(id);
-    if (!current) throw new Error(`entidade não encontrada: ${id}`);
-    return this.upsertEntity({ id, type: current.type, props: change.props ?? current.props, body: change.body ?? current.body });
-  }
-
-  /** What deleting an entity takes along: its relations, current and past. */
-  entityDependents(id: string): { relations: number } {
-    return { relations: this.graphRepo.edgeCount(id) };
-  }
-
-  deleteEntity(id: string): { relations: number } {
-    if (!this.get(id)) throw new Error(`entidade não encontrada: ${id}`);
-    let relations = 0;
-    transaction(this.db, () => {
-      relations = this.graphRepo.deleteEntity(id);
-    });
-    return { relations };
-  }
-
-  /** Add a fact. Edges are temporal: `validTo` lets "Marina approves until 31/12" expire by itself. */
-  addEdge(edge: { from: string; rel: string; to: string; attrs?: Record<string, unknown>; validFrom?: string; validTo?: string | null }): Edge {
-    const problems = this.validateEdge(edge);
-    if (problems.length) throw new Error(problems.join('; '));
-    const row: Edge = { from: edge.from, rel: edge.rel, to: edge.to, attrs: edge.attrs ?? {}, validFrom: edge.validFrom ?? now(), validTo: edge.validTo ?? null };
-    this.graphRepo.insertEdge(row);
-    return row;
-  }
-
-  get(id: string): Entity | undefined {
-    return this.graphRepo.entity(id);
-  }
-  byType(type: string): Entity[] {
-    return this.graphRepo.byType(type);
-  }
-  neighbors(id: string, options: { rel?: string; at?: string } = {}): { out: Edge[]; in: Edge[] } {
-    return this.graphRepo.neighbors(id, options.at ?? now(), options.rel);
-  }
-  reachable(id: string, depth = 2): Array<{ id: string; depth: number }> {
-    return this.graphRepo.reachable(id, depth, now());
-  }
-  /** Entities for a text, best first (full-text index; see domain/similarity.ts). */
-  search(text: string, limit = 10): Entity[] {
-    return this.graphRepo.search(ftsQuery(text), limit);
-  }
-  gaps(): Gap[] {
-    const at = now();
-    return findGaps(this.graphRepo.entities(), (id) => this.graphRepo.neighbors(id, at).out, this.typeOf);
-  }
-  graph(): { types: OntologyType[]; entities: Entity[]; edges: Edge[] } {
-    return { types: this.types(), entities: this.graphRepo.entities(), edges: this.graphRepo.edges() };
-  }
-
-  // ── playbooks ───────────────────────────────────────────────────────────
-  savePlaybook(pb: PlaybookInput): Playbook {
-    // Scripts left out of a change stay as they were (and the steps are checked against them).
-    const before = this.playbookRepo.get(pb.name);
-    const scripts = pb.scripts ?? before?.scripts ?? [];
-    const problems = playbookProblems({ ...pb, scripts });
-    if (pb.variationOf && (pb.variationOf === pb.name || !this.playbookRepo.get(pb.variationOf))) {
-      problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
-    }
-    if (problems.length) throw new Error(problems.join('; '));
-    // Editing the steps keeps the level: a changed step runs other actions, and new actions ask anyway.
-    this.playbookRepo.save({ ...pb, scripts });
-    return this.playbookRepo.get(pb.name)!;
-  }
-  /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
-  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions' | 'outputs' | 'scripts'>>): Playbook {
-    const current = this.playbookRepo.get(name);
-    if (!current) throw new Error(`playbook não encontrado: ${name}`);
-    const { uses: _u, successes: _s, updatedAt: _t, ...rest } = current;
-    return this.savePlaybook({ ...rest, ...change });
-  }
-
-  /** Deletes a playbook. Variations stay (unlinked); past runs stay in Execuções. */
-  deletePlaybook(name: string): { detachedVariations: string[] } {
-    if (!this.playbookRepo.get(name)) throw new Error(`playbook não encontrado: ${name}`);
-    const using = this.pipelineRepo.using(name);
-    if (using.length) throw new Error(`o procedimento ${name} está nas esteiras ${using.join(', ')}: tire-o delas antes de apagar`);
-    let detachedVariations: string[] = [];
-    transaction(this.db, () => {
-      detachedVariations = this.playbookRepo.delete(name);
-      this.levels.forget(name);
-    });
-    return { detachedVariations };
-  }
-
-  /** observe: only reports. ask and auto are shortcuts for N1 and N3, set by the developer. */
-  setPlaybookAutonomy(name: string, autonomy: Autonomy): Playbook {
-    const pb = this.playbookRepo.get(name);
-    if (!pb) throw new Error(`playbook não encontrado: ${name}`);
-    this.playbookRepo.setAutonomy(name, autonomy);
-    // Leaving "só observar" keeps the level it had; otherwise ask/auto choose N1/N3.
-    if (pb.autonomy === 'observe' && autonomy !== 'observe') this.playbookRepo.setLevel(name, levelState(pb));
-    else if (autonomy !== 'observe') this.setPlaybookLevel(name, { level: autonomy === 'auto' ? 3 : 1 });
-    return this.playbookRepo.get(name)!;
-  }
-
-  // ── autonomy that grows with use (domain/levels.ts) ──────────────────────
-  /** The developer sets the level or its ceiling (Cérebro, or "Manter em N1"). */
-  setPlaybookLevel(name: string, change: { level?: Level; levelMax?: Level }, conversationId: string | null = null): Playbook {
-    const pb = this.playbookRepo.get(name);
-    if (!pb) throw new Error(`playbook não encontrado: ${name}`);
-    const levelMax = change.levelMax ?? pb.levelMax;
-    const level = Math.min(change.level ?? pb.level, levelMax) as Level;
-    this.playbookRepo.setLevel(name, { level, levelMax, levelBy: change.level !== undefined || level !== pb.level ? 'user' : pb.levelBy, cleanStreak: level === pb.level ? pb.cleanStreak : 0 });
-    if (level !== pb.level) this.levels.addEvent({ subjectKind: 'playbook', subject: name, from: `N${pb.level}`, to: `N${level}`, reason: 'você mudou', conversationId });
-    if (levelMax !== pb.levelMax) this.levels.addEvent({ subjectKind: 'playbook', subject: name, from: `teto N${pb.levelMax}`, to: `teto N${levelMax}`, reason: 'você mudou', conversationId });
-    return this.playbookRepo.get(name)!;
-  }
-  isKnownAction(playbook: string, fingerprint: string): boolean {
-    return this.levels.isKnown(playbook, fingerprint);
-  }
-  knownActions(playbook: string): KnownAction[] {
-    return this.levels.known(playbook);
-  }
-  autonomyEvents(kind: AutonomyEvent['subjectKind'], subject: string): AutonomyEvent[] {
-    return this.levels.events(kind, subject);
-  }
-  addAutonomyEvent(e: Omit<AutonomyEvent, 'id' | 'createdAt'>): AutonomyEvent {
-    return this.levels.addEvent(e);
-  }
-  /** An action a run carried out (the gate calls it after running). */
-  recordRunAction(runId: string, action: RunAction): void {
-    const run = this.playbookRepo.run(runId);
-    if (!run || run.actions.some((a) => a.fingerprint === action.fingerprint)) return;
-    this.playbookRepo.setRunTrail(runId, [...run.actions, action], run.deviations);
-  }
-  /** Something went off the path in a run: a tool failed, an action was denied. */
-  addRunDeviation(runId: string, deviation: Omit<Deviation, 'at'>): void {
-    const run = this.playbookRepo.run(runId);
-    if (!run) return;
-    const last = run.deviations.at(-1);
-    if (last && last.detail === deviation.detail && last.step === (deviation.step ?? null)) return; // the same failure, reported twice
-    this.playbookRepo.setRunTrail(runId, run.actions, [...run.deviations, { ...deviation, step: deviation.step ?? null, at: now() }]);
-  }
-  /**
-   * A tool that failed in a step and then worked in the same step: the slip was fixed on the
-   * spot. It stays in the trail, marked, but is not a problem of the procedure (domain/levels.ts).
-   */
-  recoverRunDeviation(runId: string, tool: string, step: string | null): void {
-    const run = this.playbookRepo.run(runId);
-    if (!run) return;
-    let changed = false;
-    const deviations = run.deviations.map((d) => {
-      if (d.kind !== 'falha' || d.recovered || d.tool !== tool || (d.step ?? null) !== step) return d;
-      changed = true;
-      return { ...d, recovered: true };
-    });
-    if (changed) this.playbookRepo.setRunTrail(runId, run.actions, deviations);
-  }
-  /**
-   * A command that ran inside a procedure: failed (it goes to the trail as `comando`) or worked
-   * (an earlier failure of the same command in this step was got past: it becomes knowledge).
-   */
-  noteCommand(conversationId: string, c: { command: string; exitCode: number | null; error: string; known: boolean }): void {
-    const run = this.openRunIn(conversationId);
-    if (!run) return;
-    const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? null;
-    const stepId = step?.id ?? null;
-    if (c.exitCode !== 0) {
-      this.addRunDeviation(run.id, { kind: 'comando', command: c.command, known: c.known, detail: `saiu com ${c.exitCode ?? 'tempo esgotado'}: ${c.error.slice(-300)}`, tool: 'comando', step: stepId });
-      return;
-    }
-    let changed = false;
-    const deviations = run.deviations.map((d) => {
-      if (d.kind !== 'comando' || d.recovered || d.command !== c.command || (d.step ?? null) !== stepId) return d;
-      changed = true;
-      return { ...d, recovered: true };
-    });
-    if (changed) this.playbookRepo.setRunTrail(run.id, run.actions, deviations);
-  }
-  /** Known problems of the brain that an error looks like (domain/knowledge.ts). */
-  knownProblems(errorText: string, limit = 3): KnownProblem[] {
-    if (!errorText.trim()) return [];
-    return knownProblemsFor(errorText, this.search(errorText, 20), limit);
-  }
-  /** The run still going on in a conversation, if any. */
-  openRunIn(conversationId: string): PlaybookRun | undefined {
-    const run = this.playbookRepo.lastRunIn(conversationId);
-    return run && (run.status === 'running' || run.status === 'waiting') ? run : undefined;
-  }
-  /**
-   * Where a tool failure belongs: the run going on, or the one that just ended and was not
-   * reviewed yet (tools called in parallel report after the step that closed the run).
-   */
-  runForFailureIn(conversationId: string): PlaybookRun | undefined {
-    return this.openRunIn(conversationId) ?? this.playbookRepo.unreviewedIn(conversationId).at(-1);
-  }
-  openUnreviewedRunsIn(conversationId: string): PlaybookRun[] {
-    return this.playbookRepo.openUnreviewedIn(conversationId);
-  }
-  unreviewedRunsIn(conversationId: string): PlaybookRun[] {
-    return this.playbookRepo.unreviewedIn(conversationId);
-  }
-  markReviewed(runId: string): void {
-    this.playbookRepo.markReviewed(runId);
-  }
-  /**
-   * After a run ends: a clean run teaches its actions and may raise the level; a failure or a
-   * denial lowers it. Returns the change (if any), what kept it from counting, and what the
-   * playbook now does alone or still asks.
-   */
-  settleRun(runId: string): { change: LevelChange | null; deviations: string[]; level: Level; alone: string[]; asks: string[] } {
-    const run = this.playbookRepo.run(runId);
-    const pb = run && this.playbookRepo.get(run.playbook);
-    if (!run || !pb) throw new Error(`execução não encontrada: ${runId}`);
-    const deviations = runDeviations(run);
-    const clean = run.status === 'done' && deviations.length === 0;
-    const { state, change } = settleLevel(levelState(pb), {
-      clean,
-      denied: run.deviations.some((d) => d.kind === 'negado'),
-      failed: run.status === 'failed',
-    });
-    transaction(this.db, () => {
-      if (clean) this.levels.learn(pb.name, run.actions);
-      this.playbookRepo.setLevel(pb.name, state);
-      if (change) this.levels.addEvent({ subjectKind: 'playbook', subject: pb.name, from: `N${change.from}`, to: `N${change.to}`, reason: change.reason, conversationId: run.conversationId });
-    });
-    const alone: string[] = [];
-    const asks: string[] = [];
-    for (const k of this.levels.known(pb.name)) {
-      if (k.effect === 'leitura') continue;
-      (decideAction(state, { known: true, effect: k.effect }) === 'auto' ? alone : asks).push(k.summary);
-    }
-    return { change, deviations, level: state.level, alone, asks };
-  }
-  playbook(name: string): Playbook | undefined {
-    return this.playbookRepo.get(name);
-  }
-  playbooks(): Playbook[] {
-    return this.playbookRepo.all();
-  }
-  /** Playbooks for a request, best first, with the stems they share with it. */
-  searchPlaybooks(text: string, limit = 3): Array<{ playbook: Playbook; shared: string[] }> {
-    return this.playbookRepo.search(ftsQuery(text), limit).map((playbook) => ({
-      playbook,
-      shared: sharedStems(text, [playbook.name, playbook.description, playbook.trigger, ...playbook.steps.map((s) => `${s.label} ${s.how}`)].join(' ')),
-    }));
-  }
-
-  startRun(playbookName: string, conversationId: string, params: Record<string, string> = {}): PlaybookRun {
-    const pb = this.playbookRepo.get(playbookName);
-    if (!pb) throw new Error(`playbook não encontrado: ${playbookName}`);
-    const run = newRun(pb, ulid(), conversationId, params, now());
-    transaction(this.db, () => {
-      this.playbookRepo.insertRun(run);
-      this.playbookRepo.countUse(pb.name);
-    });
-    return run;
-  }
-
-  updateRunStep(runId: string, stepId: string, status: StepStatus, note?: string, outputs?: Record<string, string>): PlaybookRun {
-    const current = this.playbookRepo.run(runId);
-    if (!current) throw new Error(`execução não encontrada: ${runId}`);
-    let run = advanceRun(current, stepId, status, note, now());
-    if (outputs && Object.keys(outputs).length) run = recordOutputs(run, this.playbookRepo.get(run.playbook)?.outputs ?? [], outputs);
-    transaction(this.db, () => {
-      this.playbookRepo.updateRun(run);
-      if (run.status === 'done' && current.status !== 'done') this.playbookRepo.countSuccess(run.playbook);
-    });
-    return run;
-  }
-  run(id: string): PlaybookRun | undefined {
-    return this.playbookRepo.run(id);
-  }
-  runs(limit = 20): PlaybookRun[] {
-    return this.playbookRepo.runs(limit);
-  }
-  lastRunIn(conversationId: string): PlaybookRun | undefined {
-    return this.playbookRepo.lastRunIn(conversationId);
-  }
-
-  // ── esteiras (procedures in sequence) ─────────────────────────────────
-  savePipeline(p: PipelineInputDef): Pipeline {
-    const problems = pipelineProblems(p, (name) => this.playbookRepo.get(name));
-    if (problems.length) throw new Error(problems.join('; '));
-    this.pipelineRepo.save(p);
-    return this.pipelineRepo.get(p.name)!;
-  }
-  pipeline(name: string): Pipeline | undefined {
-    return this.pipelineRepo.get(name);
-  }
-  pipelines(): Pipeline[] {
-    return this.pipelineRepo.all();
-  }
-  deletePipeline(name: string): boolean {
-    return this.pipelineRepo.delete(name);
-  }
-  countPipelineUse(name: string): void {
-    this.pipelineRepo.countUse(name);
-  }
-  /** Parameters no stage hands over and no input gives: the Orbi will ask when it gets there. */
-  pipelineGaps(p: PipelineInputDef) {
-    return pipelineGaps(p, (name) => this.playbookRepo.get(name), (pb) => playbookParams(pb));
-  }
-  /**
-   * The developer decided on a passage that asks. After PASSAGE_STREAK times "go on" in a row,
-   * the passage goes on by itself; "stop" starts the count again. Returns the change, if any.
-   */
-  notePassage(name: string, stageId: string, continued: boolean, conversationId: string | null): { from: string; to: string; reason: string } | null {
-    const p = this.pipelineRepo.get(name);
-    const stage = p?.stages.find((s) => s.id === stageId);
-    if (!p || !stage || stage.passage !== 'ask') return null;
-    const streaks = this.pipelineRepo.passageStreaks(name);
-    const count = continued ? (streaks[stageId] ?? 0) + 1 : 0;
-    if (count < PASSAGE_STREAK) {
-      this.pipelineRepo.setPassageStreaks(name, { ...streaks, [stageId]: count });
-      return null;
-    }
-    const reason = `você seguiu ${PASSAGE_STREAK} vezes seguidas`;
-    transaction(this.db, () => {
-      this.pipelineRepo.save({ ...p, stages: p.stages.map((s) => (s.id === stageId ? { ...s, passage: 'auto' as const } : s)) });
-      this.pipelineRepo.setPassageStreaks(name, { ...streaks, [stageId]: 0 });
-      this.levels.addEvent({ subjectKind: 'passage', subject: `${name}/${stageId}`, from: 'pergunta', to: 'segue', reason, conversationId });
-    });
-    return { from: 'pergunta', to: 'segue', reason };
-  }
-  /** "Manter perguntando": the passage asks again, and the count starts over. */
-  keepPassageAsking(name: string, stageId: string, conversationId: string | null): void {
-    const p = this.pipelineRepo.get(name);
-    if (!p || !p.stages.some((s) => s.id === stageId)) throw new Error(`etapa não encontrada: ${name}/${stageId}`);
-    transaction(this.db, () => {
-      this.pipelineRepo.save({ ...p, stages: p.stages.map((s) => (s.id === stageId ? { ...s, passage: 'ask' as const } : s)) });
-      this.pipelineRepo.setPassageStreaks(name, { ...this.pipelineRepo.passageStreaks(name), [stageId]: 0 });
-      this.levels.addEvent({ subjectKind: 'passage', subject: `${name}/${stageId}`, from: 'segue', to: 'pergunta', reason: 'você mudou', conversationId });
-    });
-  }
-  passageStreaks(name: string): Record<string, number> {
-    return this.pipelineRepo.passageStreaks(name);
-  }
-
-  /** Configuration problems of an esteira (data that does not flow, steps that ask, fixed values). */
-  pipelineWarnings(p: PipelineInputDef, delivered: Record<string, Record<string, string>> = {}) {
-    return pipelineConfigProblems(p, (name) => this.playbookRepo.get(name), delivered);
-  }
-  /** Esteiras that use a playbook. */
-  pipelinesUsing(playbook: string): string[] {
-    return this.pipelineRepo.using(playbook);
-  }
+  // ── facts (services/facts.ts) ──
+  upsertType: FactsService['upsertType'] = (...a) => this.facts.upsertType(...a);
+  types: FactsService['types'] = (...a) => this.facts.types(...a);
+  type: FactsService['type'] = (...a) => this.facts.type(...a);
+  validateEntity: FactsService['validateEntity'] = (...a) => this.facts.validateEntity(...a);
+  validateEdge: FactsService['validateEdge'] = (...a) => this.facts.validateEdge(...a);
+  upsertEntity: FactsService['upsertEntity'] = (...a) => this.facts.upsertEntity(...a);
+  editEntity: FactsService['editEntity'] = (...a) => this.facts.editEntity(...a);
+  entityDependents: FactsService['entityDependents'] = (...a) => this.facts.entityDependents(...a);
+  deleteEntity: FactsService['deleteEntity'] = (...a) => this.facts.deleteEntity(...a);
+  addEdge: FactsService['addEdge'] = (...a) => this.facts.addEdge(...a);
+  get: FactsService['get'] = (...a) => this.facts.get(...a);
+  byType: FactsService['byType'] = (...a) => this.facts.byType(...a);
+  neighbors: FactsService['neighbors'] = (...a) => this.facts.neighbors(...a);
+  reachable: FactsService['reachable'] = (...a) => this.facts.reachable(...a);
+  search: FactsService['search'] = (...a) => this.facts.search(...a);
+  gaps: FactsService['gaps'] = (...a) => this.facts.gaps(...a);
+  graph: FactsService['graph'] = (...a) => this.facts.graph(...a);
+  // ── procedures (services/procedures.ts) ──
+  savePlaybook: ProceduresService['savePlaybook'] = (...a) => this.procedures.savePlaybook(...a);
+  editPlaybook: ProceduresService['editPlaybook'] = (...a) => this.procedures.editPlaybook(...a);
+  deletePlaybook: ProceduresService['deletePlaybook'] = (...a) => this.procedures.deletePlaybook(...a);
+  setPlaybookAutonomy: ProceduresService['setPlaybookAutonomy'] = (...a) => this.procedures.setPlaybookAutonomy(...a);
+  playbook: ProceduresService['playbook'] = (...a) => this.procedures.playbook(...a);
+  playbooks: ProceduresService['playbooks'] = (...a) => this.procedures.playbooks(...a);
+  searchPlaybooks: ProceduresService['searchPlaybooks'] = (...a) => this.procedures.searchPlaybooks(...a);
+  // ── autonomy (services/autonomy.ts) ──
+  setPlaybookLevel: AutonomyService['setPlaybookLevel'] = (...a) => this.autonomy.setPlaybookLevel(...a);
+  isKnownAction: AutonomyService['isKnownAction'] = (...a) => this.autonomy.isKnownAction(...a);
+  knownActions: AutonomyService['knownActions'] = (...a) => this.autonomy.knownActions(...a);
+  autonomyEvents: AutonomyService['autonomyEvents'] = (...a) => this.autonomy.autonomyEvents(...a);
+  addAutonomyEvent: AutonomyService['addAutonomyEvent'] = (...a) => this.autonomy.addAutonomyEvent(...a);
+  settleRun: AutonomyService['settleRun'] = (...a) => this.autonomy.settleRun(...a);
+  // ── execution (services/execution.ts) ──
+  recordRunAction: ExecutionService['recordRunAction'] = (...a) => this.execution.recordRunAction(...a);
+  addRunDeviation: ExecutionService['addRunDeviation'] = (...a) => this.execution.addRunDeviation(...a);
+  recoverRunDeviation: ExecutionService['recoverRunDeviation'] = (...a) => this.execution.recoverRunDeviation(...a);
+  noteCommand: ExecutionService['noteCommand'] = (...a) => this.execution.noteCommand(...a);
+  knownProblems: ExecutionService['knownProblems'] = (...a) => this.execution.knownProblems(...a);
+  openRunIn: ExecutionService['openRunIn'] = (...a) => this.execution.openRunIn(...a);
+  runForFailureIn: ExecutionService['runForFailureIn'] = (...a) => this.execution.runForFailureIn(...a);
+  openUnreviewedRunsIn: ExecutionService['openUnreviewedRunsIn'] = (...a) => this.execution.openUnreviewedRunsIn(...a);
+  unreviewedRunsIn: ExecutionService['unreviewedRunsIn'] = (...a) => this.execution.unreviewedRunsIn(...a);
+  markReviewed: ExecutionService['markReviewed'] = (...a) => this.execution.markReviewed(...a);
+  startRun: ExecutionService['startRun'] = (...a) => this.execution.startRun(...a);
+  updateRunStep: ExecutionService['updateRunStep'] = (...a) => this.execution.updateRunStep(...a);
+  run: ExecutionService['run'] = (...a) => this.execution.run(...a);
+  runs: ExecutionService['runs'] = (...a) => this.execution.runs(...a);
+  lastRunIn: ExecutionService['lastRunIn'] = (...a) => this.execution.lastRunIn(...a);
+  // ── pipelinedefs (services/pipelineDefs.ts) ──
+  savePipeline: PipelineDefsService['savePipeline'] = (...a) => this.pipelineDefs.savePipeline(...a);
+  pipeline: PipelineDefsService['pipeline'] = (...a) => this.pipelineDefs.pipeline(...a);
+  pipelines: PipelineDefsService['pipelines'] = (...a) => this.pipelineDefs.pipelines(...a);
+  deletePipeline: PipelineDefsService['deletePipeline'] = (...a) => this.pipelineDefs.deletePipeline(...a);
+  countPipelineUse: PipelineDefsService['countPipelineUse'] = (...a) => this.pipelineDefs.countPipelineUse(...a);
+  pipelineGaps: PipelineDefsService['pipelineGaps'] = (...a) => this.pipelineDefs.pipelineGaps(...a);
+  notePassage: PipelineDefsService['notePassage'] = (...a) => this.pipelineDefs.notePassage(...a);
+  keepPassageAsking: PipelineDefsService['keepPassageAsking'] = (...a) => this.pipelineDefs.keepPassageAsking(...a);
+  passageStreaks: PipelineDefsService['passageStreaks'] = (...a) => this.pipelineDefs.passageStreaks(...a);
+  pipelineWarnings: PipelineDefsService['pipelineWarnings'] = (...a) => this.pipelineDefs.pipelineWarnings(...a);
+  pipelinesUsing: PipelineDefsService['pipelinesUsing'] = (...a) => this.pipelineDefs.pipelinesUsing(...a);
+  // ── agenda (services/agenda.ts) ──
+  hasScheduledFollowup: AgendaService['hasScheduledFollowup'] = (...a) => this.agenda.hasScheduledFollowup(...a);
+  scheduleFollowup: AgendaService['scheduleFollowup'] = (...a) => this.agenda.scheduleFollowup(...a);
+  claimDueFollowups: AgendaService['claimDueFollowups'] = (...a) => this.agenda.claimDueFollowups(...a);
 
   // ── learning (waits for the developer) ─────────────────────────────────
   check(kind: ProposalKind, payload: Record<string, unknown>): string[] {
-    return proposalProblems(kind, payload, { typeOf: this.typeOf, entity: (id) => this.get(id), playbook: (name) => this.playbookRepo.get(name) });
+    return proposalProblems(kind, payload, { typeOf: this.facts.typeOf, entity: (id) => this.get(id), playbook: (name) => this.playbookRepo.get(name) });
   }
 
   propose(kind: ProposalKind, payload: Record<string, unknown>, reason: string, conversationId: string): Proposal {
@@ -487,19 +208,6 @@ export class BrainStore {
     this.proposalRepo.setStatus(proposalId, 'rejected');
   }
 
-  // ── follow-ups ──────────────────────────────────────────────────────────
-  hasScheduledFollowup(conversationId: string): boolean {
-    return this.followups.scheduledIn(conversationId);
-  }
-  scheduleFollowup(conversationId: string, dueAt: string, note: string): string {
-    const id = ulid();
-    this.followups.schedule(id, conversationId, dueAt, note);
-    return id;
-  }
-  claimDueFollowups(at = now()): DueFollowup[] {
-    return this.followups.claimDue(at);
-  }
-
   stats(): { entities: number; edges: number; playbooks: number; openProposals: number; types: number } {
     const { entities, currentEdges } = this.graphRepo.counts();
     return { entities, edges: currentEdges, playbooks: this.playbookRepo.count(), openProposals: this.proposalRepo.countOpen(), types: this.ontology.count() };
@@ -509,5 +217,3 @@ export class BrainStore {
     return exportMarkdown(dir, { entities: this.graphRepo.entities(), playbooks: this.playbooks(), outEdges: (id) => this.neighbors(id).out });
   }
 }
-
-const levelState = (pb: Playbook): LevelState => ({ level: pb.level, levelMax: pb.levelMax, levelBy: pb.levelBy, cleanStreak: pb.cleanStreak });

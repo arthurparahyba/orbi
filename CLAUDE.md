@@ -19,7 +19,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/services.ts     services(): como agentes e ferramentas pegam as peças (o Flue não injeta)
   src/config.ts       loadConfig(env, cwd) puro + validateConfig
   src/agents/         o agente Orbi; tools/ tem uma capacidade por arquivo; gate.ts é o portão
-  src/brain/          domain/ (regras puras) · repo/ (SQL) · store.ts (fachada BrainStore)
+  src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
@@ -71,7 +71,7 @@ cofre ou ponte MCP, `npm run e2e`.
   código: isso é aprendido e guardado no cérebro. O código dá capacidades genéricas.
 - **O cérebro começa vazio**, sem tipos. Não reintroduza tipos de fábrica; a demo usa
   `EXAMPLE_TYPES` explicitamente.
-- **Regras puras em `brain/domain/`**, SQL em `brain/repo/`, orquestração em `store.ts`.
+- **Regras puras em `brain/domain/`**, SQL em `brain/repo/`, orquestração por assunto em `brain/services/` (facts, procedures, autonomy, execution, pipelineDefs, agenda). Código novo usa `brain.execution.startRun(…)` etc.; os métodos diretos em `BrainStore` são atalhos de compatibilidade. Aprendizado (propose/apply/learn) fica no `store.ts`.
   Validação vale igual para o que o Orbi aprende e para o que o usuário edita na tela.
 - **Sem efeito colateral ao importar um módulo.** Tudo é criado em `createOrbi`; o que roda
   em segundo plano, em `startBackground`. Configuração só por `loadConfig`.

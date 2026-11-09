@@ -50,7 +50,7 @@ src/
   skills/                   a única skill de fábrica: como aprender
   prompts/*.md              os textos que o modelo lê (Orbi, investigador, skill)
 
-  brain/                    cérebro: store.ts (fachada), domain/ (regras puras), repo/ (SQL)
+  brain/                    cérebro: services/ (por assunto), store.ts (aprendizado + atalhos), domain/ (regras puras), repo/ (SQL)
   conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
   autonomy/policy.ts        observar · perguntar · automático, por categoria e por playbook
   terminal/exec.ts          execução sem shell, com allowlist
