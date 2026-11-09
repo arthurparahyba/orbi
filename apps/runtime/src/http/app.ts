@@ -20,6 +20,7 @@ import { transcribeRoutes } from './routes/transcribe.ts';
 import { voiceRoutes } from './routes/voice.ts';
 import { pipelineRoutes, pipelineRunRoutes } from './routes/pipelines.ts';
 import { codeAgentRoutes } from './routes/code-agents.ts';
+import { modelRoutes } from './routes/model.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.
@@ -35,6 +36,7 @@ const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\
  *   /api/...            one router per resource (routes/)
  *   /api/events         what changed, as server-sent events (the app refetches)
  *   /api/code-agents    coding agents of this machine and which does each task
+ *   /api/model          the model: status, test, choose (first opening, Autonomia › Modelo)
  *   /mcp                Orbi as an MCP server for coding agents (own token per agent)
  */
 export function createHttpApp(s: OrbiServices, background: Background, agent: Agent, others: { configurador?: Agent } = {}): Hono {
@@ -77,6 +79,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/pipelines', pipelineRoutes(s, agent));
   app.route('/api/pipeline-runs', pipelineRunRoutes(s, agent));
   app.route('/api/code-agents', codeAgentRoutes(s));
+  app.route('/api/model', modelRoutes(s));
   app.route('/mcp', mcpRoutes(s, agent));
   return app;
 }

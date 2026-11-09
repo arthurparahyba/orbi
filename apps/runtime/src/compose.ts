@@ -14,7 +14,7 @@ import { createChrome } from './browser/chrome.ts';
 import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
 import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
-import { configureLlm } from './llm/index.ts';
+import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './llm/index.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
 import { createEvents } from './events.ts';
@@ -49,7 +49,7 @@ export async function createOrbi(
   for (const dir of [config.dataDir, config.workspace, config.scratchDir]) mkdirSync(dir, { recursive: true });
 
   // The model first: an adapter or plugin must be registered before any conversation.
-  const llm = overrides.llm ?? (await configureLlm(env, config.cwd));
+  const llm = overrides.llm ?? (await configureLlmOrExplain(env, config.cwd));
   const finalConfig: OrbiConfig = { ...config, model: llm.model };
 
   const events = overrides.events ?? createEvents();
@@ -114,6 +114,21 @@ export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'
     tool: outcome.tool,
     step: step?.id ?? null,
   });
+}
+
+/**
+ * The model at start. A plugin that fails to load no longer stops the runtime: the app opens and
+ * asks to choose a model (Configurar o modelo), saying what went wrong.
+ */
+async function configureLlmOrExplain(env: NodeJS.ProcessEnv, cwd: string): Promise<ActiveLlm> {
+  try {
+    return await configureLlm(env, cwd);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.error('modelo não configurado na partida', { error: message });
+    const plugins = await discoverPlugins(pluginDirs(env, cwd)).catch(() => []);
+    return { ...llmChoice({ ...env, ORBI_LLM: 'anthropic' }), kind: llmChoice(env).kind, plugins, error: message };
+  }
 }
 
 /** State kept in JSON files before the single database: imported once. */

@@ -88,6 +88,8 @@ function assertAdapter(adapter: LlmAdapter, kind: string): void {
 
 export interface ActiveLlm extends LlmChoice {
   adapter?: LlmAdapter;
+  /** Why the chosen model could not be set up at start (a plugin that failed): the app asks to choose. */
+  error?: string;
   /** Plugins found at start (with load errors, if any). */
   plugins: PluginInfo[];
 }

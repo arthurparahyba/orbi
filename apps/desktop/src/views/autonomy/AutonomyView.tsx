@@ -6,11 +6,13 @@ import { Voice } from './Voice';
 import { Capabilities } from './Capabilities';
 import { Rules } from './Rules';
 import { CodeAgentsPage } from './codeAgents/CodeAgentsPage';
+import { ModelPage } from './ModelPage';
 
-export type AutonomySection = 'regras' | 'agentes-de-codigo' | 'cofre' | 'uso' | 'voz' | 'capacidades';
+export type AutonomySection = 'regras' | 'modelo' | 'agentes-de-codigo' | 'cofre' | 'uso' | 'voz' | 'capacidades';
 
 const SECTIONS: Array<{ id: AutonomySection; label: string; hint: string }> = [
   { id: 'regras', label: 'Regras', hint: 'Quanto o Orbi pode fazer sozinho, por tipo de ação. “Perguntar” cria um cartão de aprovação na conversa.' },
+  { id: 'modelo', label: 'Modelo', hint: 'O modelo com que o Orbi conversa e executa os procedimentos.' },
   { id: 'agentes-de-codigo', label: 'Agentes de código', hint: '' },
   { id: 'cofre', label: 'Cofre', hint: 'Credenciais que os procedimentos usam pela referência.' },
   { id: 'uso', label: 'Uso', hint: 'Quanto o modelo e as ferramentas foram usados.' },
@@ -19,7 +21,7 @@ const SECTIONS: Array<{ id: AutonomySection; label: string; hint: string }> = [
 ];
 
 /** The Autonomia screen: a sub-menu on the left, one page per part. */
-export function AutonomyView({ health, focus }: { health?: Health; focus?: { section: AutonomySection } }) {
+export function AutonomyView({ health, focus, onModelChanged }: { health?: Health; focus?: { section: AutonomySection }; onModelChanged(): void }) {
   const [section, setSection] = useState<AutonomySection>(focus?.section ?? 'regras');
   useEffect(() => { if (focus) setSection(focus.section); }, [focus]);
   const current = SECTIONS.find((s) => s.id === section)!;
@@ -42,6 +44,7 @@ export function AutonomyView({ health, focus }: { health?: Health; focus?: { sec
             </div>
           </header>
           {section === 'regras' && <Rules />}
+          {section === 'modelo' && <ModelPage onChanged={onModelChanged} />}
           {section === 'cofre' && <Vault />}
           {section === 'uso' && <Usage />}
           {section === 'voz' && <Voice />}

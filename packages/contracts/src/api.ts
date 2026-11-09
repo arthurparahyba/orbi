@@ -220,3 +220,22 @@ export interface CodeAgentAssignment { task: CodeAgentTask; agent: string; model
 export interface CodeAgentCatalogEntry { id: string; name: string; binary: string; command: string; models: string[]; note?: string }
 /** GET /api/code-agents */
 export interface CodeAgentsState { agents: CodeAgent[]; tasks: CodeAgentAssignment[]; catalog: CodeAgentCatalogEntry[] }
+
+/** The model the Orbi thinks with (first opening, Autonomia › Modelo). */
+export interface ModelOption {
+  kind: string; label: string; description: string;
+  source: 'plugin' | 'anthropic' | 'adapter';
+  fields: Array<'apiKey' | 'baseUrl' | 'model'>;
+  models: string[];
+  error?: string; dir?: string;
+}
+/** GET /api/model */
+export interface ModelStatus {
+  ready: boolean; kind: string; model: string; label: string;
+  problem?: string;
+  /** A key is set (never the key itself). */
+  keySet: boolean;
+  options: ModelOption[];
+}
+/** POST /api/model/test · PUT /api/model */
+export interface ModelTestResult { ok: boolean; detail: string; model?: string }

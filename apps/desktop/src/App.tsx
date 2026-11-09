@@ -11,6 +11,7 @@ import { AutonomyView, type AutonomySection } from './views/autonomy/AutonomyVie
 import { AgentsView } from './views/agents/AgentsView';
 import { PipelinesView } from './views/pipelines/PipelinesView';
 import { Splash, booted } from './components/Splash';
+import { ModelSetup } from './views/setup/ModelSetup';
 
 type Screen = 'conversa' | 'esteiras' | 'cerebro' | 'agentes' | 'autonomia';
 
@@ -27,6 +28,9 @@ export function App() {
   // A configuration chat (config:…) lives on its Autonomia page.
   const [autonomyFocus, setAutonomyFocus] = useState<{ section: AutonomySection }>();
   const openCodeAgents = () => { setAutonomyFocus({ section: 'agentes-de-codigo' }); setScreen('autonomia'); };
+  const openModel = () => { setAutonomyFocus({ section: 'modelo' }); setScreen('autonomia'); };
+  // No model yet (first opening, or the key stopped working): choose one before anything else.
+  const [later, setLater] = useState(false);
 
   // The conversation the answer or decision went to follows the turn it starts (catchUp.ts).
   const conversationOf = (id: string) => inbox.data?.find((i) => i.id === id)?.conversationId;
@@ -55,6 +59,8 @@ export function App() {
 
   // Until the runtime answers and the first data arrives: a loading screen, not empty screens.
   if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} />;
+  const noModel = health.data?.llmReady === false;
+  if (noModel && !later) return <ModelSetup onDone={() => void health.reload()} onLater={() => setLater(true)} />;
 
   return (
     <InboxContext.Provider value={actions}>
@@ -72,6 +78,12 @@ export function App() {
           </div>
         </nav>
         <main className="screen">
+          {noModel && (
+            <div className="banner model-banner" role="alert">
+              <span>O Orbi está sem modelo: as conversas esperam até você configurar.</span>
+              <button type="button" className="btn small primary" onClick={openModel}>Configurar o modelo</button>
+            </div>
+          )}
           {!online && health.error && (
             <div className="banner" role="alert">
               Ainda sem resposta do runtime em 127.0.0.1:3000. O app inicia o runtime sozinho; se isso não passar em alguns segundos, veja o log em <code>~/Library/Application Support/br.com.zup.orbi/logs/runtime.log</code> (no desenvolvimento, rode <code>npm run demo</code> na raiz).
@@ -81,7 +93,7 @@ export function App() {
           {screen === 'esteiras' && <PipelinesView onOpenConversation={openConversation} />}
           {screen === 'cerebro' && <BrainView />}
           {screen === 'agentes' && <AgentsView openInbox={waiting} health={health.data} onOpenConversation={openConversation} />}
-          {screen === 'autonomia' && <AutonomyView health={health.data} focus={autonomyFocus} />}
+          {screen === 'autonomia' && <AutonomyView health={health.data} focus={autonomyFocus} onModelChanged={() => void health.reload()} />}
         </main>
       </div>
     </InboxContext.Provider>

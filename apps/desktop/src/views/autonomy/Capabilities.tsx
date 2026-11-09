@@ -22,7 +22,7 @@ export function Capabilities({ health }: { health?: Health }) {
         </div>
       ))}
       {(!health?.llm || health.llm === 'anthropic') && (
-        <div className="auto-row"><div><strong>Chave da API Anthropic</strong>{!health?.anthropicKey && health?.envFile && <p className="muted small">Coloque <code>ANTHROPIC_API_KEY=…</code> em <code>{health.envFile}</code> e reabra o app.</p>}</div><span className={`pill ${health?.anthropicKey ? 'pill-done' : 'pill-failed'}`}>{health?.anthropicKey ? 'Configurada' : 'Ausente'}</span></div>
+        <div className="auto-row"><div><strong>Chave da API Anthropic</strong>{!health?.anthropicKey && <p className="muted small">Só para o Claude. Configure em Autonomia › Modelo.</p>}</div><span className={`pill ${health?.anthropicKey ? 'pill-done' : 'pill-failed'}`}>{health?.anthropicKey ? 'Configurada' : 'Ausente'}</span></div>
       )}
       <div className="auto-row"><div><strong>Pasta de trabalho</strong><p className="muted small">Onde os comandos rodam e os repositórios são clonados (ORBI_WORKSPACE)</p></div><code>{health?.workspace ?? '—'}</code></div>
       {Object.entries(health?.binaries ?? {}).map(([bin, at]) => (

@@ -126,6 +126,13 @@ export const EditAgentClient = v.object({
 export const AcceptSuggestion = v.object({ variationOf: v.optional(v.pipe(v.string(), v.minLength(1))) });
 export const SuggestionStatusQuery = v.optional(v.picklist(['open', 'accepted', 'rejected', '']));
 
+/** POST /api/model/test · PUT /api/model — the key goes to the .env of the data folder, never back. */
+export const ChooseModel = v.object({
+  kind: v.pipe(v.string(), v.minLength(1)),
+  model: v.optional(v.pipe(v.string(), v.maxLength(200))),
+  apiKey: v.optional(v.pipe(v.string(), v.maxLength(500))),
+  baseUrl: v.optional(v.pipe(v.string(), v.url('endereço inválido'), v.maxLength(500))),
+});
 /** PUT /api/code-agents/:id — register or change a coding agent of this machine. */
 export const SaveCodeAgent = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1, 'dê um nome ao agente'), v.maxLength(80)),
@@ -172,5 +179,6 @@ export type SavePipeline = v.InferOutput<typeof SavePipeline>;
 export type StartPipeline = v.InferOutput<typeof StartPipeline>;
 export type DecidePipeline = v.InferOutput<typeof DecidePipeline>;
 export type SaveCodeAgent = v.InferOutput<typeof SaveCodeAgent>;
+export type ChooseModel = v.InferOutput<typeof ChooseModel>;
 export type AssignCodeAgentTask = v.InferOutput<typeof AssignCodeAgentTask>;
 export type TestCodeAgent = v.InferOutput<typeof TestCodeAgent>;

@@ -10,6 +10,13 @@ SDK próprios. Por isso ele fala com o modelo por uma interface própria, o
 ## Onde aparece
 
 - Em tudo: cada resposta do Orbi passa pelo modelo.
+- **Na primeira abertura** (ou quando o modelo não está pronto): a tela **Com qual
+  modelo o Orbi vai pensar?** vem antes de tudo. Os plugins achados aparecem
+  primeiro e já escolhidos; depois Claude (chave da Anthropic) e um servidor
+  compatível com OpenAI. Testar, depois Usar. "Configurar depois" deixa um aviso
+  no topo de todas as telas até o modelo estar pronto.
+- **Tela Autonomia → Modelo**: o modelo em uso, Testar, Trocar o modelo (as
+  mesmas opções) e os plugins desta máquina, com Procurar de novo.
 - **Tela Autonomia → Capacidades**: o provedor ativo, os plugins encontrados
   (e o erro, se algum não carregou) e se a correção de código está ligada.
 - **Painel "Uso do modelo"** (documento 13): tokens e custo por conversa.
@@ -48,7 +55,22 @@ O contrato completo está em `packages/plugin-sdk/src/llm.ts`.
 
 ## Escolher o modelo
 
-No `.env` do runtime:
+Pelo app (o caminho normal):
+
+- **Plugin**: a tela pede só o modelo (da lista do plugin). O acesso, como chave
+  ou senha, vem na implementação do plugin; se faltar algo, o teste diz o quê.
+- **Claude**: a chave da Anthropic. O teste confere listando os modelos
+  (`GET /v1/models`), sem gastar.
+- **Servidor compatível com OpenAI**: endereço, chave e modelo.
+- **Testar** não salva nada. **Usar** testa de novo e, só se funcionar, grava a
+  escolha no `.env` da pasta de dados (no app instalado, `%APPDATA%\br.com.zup.orbi\.env`;
+  a chave também, e só ali), põe no ambiente do runtime e registra o modelo na
+  hora, sem reiniciar (`llm/setup.ts`, `applyModel`). A chave nunca volta para a
+  tela, nem vai ao modelo, à conversa ou aos logs.
+- Um plugin que não carrega na partida não derruba mais o runtime: o app abre e
+  pede para escolher, mostrando o erro.
+
+Ou no `.env` do runtime, à mão:
 
 | `ORBI_LLM` | Quando usar | Outras variáveis |
 | --- | --- | --- |
@@ -107,6 +129,9 @@ sequenceDiagram
 | `apps/runtime/src/llm/pi-bridge.ts` | Tradução entre o Pi e o adaptador |
 | `apps/runtime/src/llm/adapters/openai-compatible.ts` | Adaptador para `/chat/completions` |
 | `apps/runtime/src/llm/plugins.ts` | Achar, validar e descrever plugins |
+| `apps/runtime/src/llm/setup.ts` + `http/routes/model.ts` | Opções desta máquina, teste, escolher e aplicar sem reiniciar (`/api/model`) |
+| `apps/desktop/src/views/setup/` | A tela da primeira abertura e o formulário comum (`ModelChoice`) |
+| `apps/desktop/src/views/autonomy/ModelPage.tsx` | Autonomia → Modelo |
 | `apps/runtime/src/llm/plugin-check.ts` + `apps/runtime/scripts/plugin-test.ts` | O teste de plugin |
 | `scripts/plugin-new.mjs` | Cria um plugin a partir do modelo |
 
@@ -120,7 +145,7 @@ sequenceDiagram
 ## O que muda fora da Anthropic
 
 - **A correção de código não depende do modelo**: ela usa o agente de código
-  instalado na máquina (`ORBI_CODE_AGENT`, documento 10), com qualquer modelo.
+  instalado na máquina (documento 17), com qualquer modelo.
 - **O raciocínio estendido ("thinking") não é usado**; o adaptador recebe só o texto.
 - **Imagens viram o texto `[imagem]`.**
 - **Custo**: o painel de uso mostra tokens e custo se o adaptador informar o uso;
@@ -135,6 +160,10 @@ e o log da partida registra `runtime iniciado` com o modelo e o adaptador.
 
 ## Testes
 
+- `apps/runtime/test/model-setup.test.ts`: opções (plugin primeiro, sem chave),
+  teste da chave e do plugin com as mensagens de erro, e escolher só salva e vale
+  quando o teste passa.
+- `apps/desktop/test/modelSetup.test.ts`: qual opção vem escolhida, o que vai ao runtime.
 - `apps/runtime/test/llm-adapter.test.ts`: o agente inteiro sobre um adaptador
   escrito no próprio teste.
 - `apps/runtime/test/llm-openai-compatible.test.ts`: o mesmo contra um servidor

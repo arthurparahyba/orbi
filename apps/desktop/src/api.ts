@@ -1,5 +1,5 @@
 import type {
-  CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent,
+  CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
   ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
@@ -121,6 +121,16 @@ export const api = {
   acceptSuggestion: (id: string, variationOf?: string) =>
     request<Playbook>(`/api/agents/suggestions/${id}/accept`, { method: 'POST', body: JSON.stringify(variationOf ? { variationOf } : {}) }),
   rejectSuggestion: (id: string) => request<AgentSuggestion>(`/api/agents/suggestions/${id}/reject`, { method: 'POST' }),
+  model: () => request<ModelStatus>('/api/model'),
+  rescanPlugins: () => request<ModelStatus>('/api/model/plugins/rescan', { method: 'POST' }),
+  testModel: (choice: ChooseModel) => request<ModelTestResult>('/api/model/test', { method: 'POST', body: JSON.stringify(choice) }),
+  /** Tests and, only if it works, saves and applies (422 with the reason when the test fails). */
+  async chooseModel(choice: ChooseModel): Promise<ModelTestResult> {
+    const res = await fetch(`${RUNTIME_URL}/api/model`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(choice) });
+    const json = (await res.json().catch(() => ({}))) as ModelTestResult & Partial<ApiError>;
+    if (json.error) throw new Error(json.error.message);
+    return json;
+  },
   codeAgents: () => request<CodeAgentsState>('/api/code-agents'),
   saveCodeAgent: (id: string, agent: SaveCodeAgent) => request<CodeAgent>(`/api/code-agents/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(agent) }),
   removeCodeAgent: (id: string) => request<CodeAgentsState>(`/api/code-agents/${encodeURIComponent(id)}`, { method: 'DELETE' }),
