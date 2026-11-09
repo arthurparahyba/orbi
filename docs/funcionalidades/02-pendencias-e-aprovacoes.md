@@ -84,6 +84,8 @@ Pontos que importam:
 | `apps/runtime/src/agents/gate.ts` | O portão: decide, guarda, cria a pendência, executa ao aprovar |
 | `apps/runtime/src/agents/tools/voice.ts` | `ask_developer` e `show_ui` |
 | `apps/runtime/src/conversations/inbox.ts` | Pendências no banco (`add`, `resolve` com a resposta) |
+| `apps/runtime/src/inbox/` | Um handler por tipo de pendência (aprovação, pergunta, caminho do shell, credencial, aviso): o que cada ação faz. As rotas só acham o handler. Tipo novo = handler novo + uma linha em `index.ts` |
+| `apps/desktop/src/views/conversation/inbox.ts` | `INBOX_KINDS`: rótulo, grupo, ícone e ações de cada tipo no painel, num lugar só |
 | `apps/runtime/src/http/routes/inbox.ts` | `GET /api/inbox`, `POST /:id/decision`, `/answer`, `/secret`, `/dismiss`, `/keep` |
 | `apps/desktop/src/views/conversation/{InboxPanel,InboxEntry}.tsx`, `inbox.ts` | O painel em grupos e cada item com as ações |
 | `apps/desktop/src/views/conversation/useGoTo.ts` | Ir até: rola até o cartão (`data-inbox`) e destaca |

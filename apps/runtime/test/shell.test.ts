@@ -80,3 +80,15 @@ test('agente duas vezes no build (Windows): a entrega usa a cópia registrada', 
   assert.equal(registeredAgent(copy as never, reg), Orbi, 'a cópia vira a registrada');
   assert.equal(registeredAgent(other as never, reg), other, 'outro agente não é trocado');
 });
+
+test('pendências: cada tipo tem seu handler, o mais específico primeiro', async () => {
+  const { handlerFor } = await import('../src/inbox/index.ts');
+  const { noteSubject } = await import('../src/inbox/level.ts');
+  const item = (x: object) => ({ id: 'i', conversationId: 'c', title: '', detail: '', status: 'open', createdAt: '', ...x }) as never;
+  assert.equal(handlerFor(item({ kind: 'question', routine: 'config:shell' }))?.id, 'caminho-do-shell');
+  assert.equal(handlerFor(item({ kind: 'question' }))?.id, 'pergunta');
+  assert.equal(handlerFor(item({ kind: 'learning', approvalId: 'x' }))?.id, 'aprovação');
+  assert.equal(handlerFor(item({ kind: 'level', approvalId: '2' }))?.decide, undefined, 'aviso não se aprova');
+  assert.deepEqual(noteSubject({ routine: 'passage:top/publicar' }), { kind: 'passage', key: 'top/publicar' });
+  assert.deepEqual(noteSubject({ routine: 'playbook:a:b' }), { kind: 'playbook', name: 'a:b' });
+});

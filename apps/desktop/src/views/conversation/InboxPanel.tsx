@@ -1,5 +1,5 @@
 import type { InboxItem } from '../../api';
-import { groupInbox } from './inbox';
+import { groupInbox, needsYou } from './inbox';
 import { InboxEntry } from './InboxEntry';
 
 /**
@@ -8,7 +8,7 @@ import { InboxEntry } from './InboxEntry';
  */
 export function InboxPanel(props: { items: InboxItem[]; current?: string; onOpen(conversationId: string): void; onGoTo(item: InboxItem): void }) {
   const groups = groupInbox(props.items);
-  const waiting = props.items.filter((i) => i.kind !== 'level').length;
+  const waiting = props.items.filter(needsYou).length;
   return (
     <aside className="inbox" aria-label="Pendências">
       <h2>Pendências <span className="muted">{waiting}</span></h2>

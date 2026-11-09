@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
-import { tellAgent } from '../../conversations/tell.ts';
-import { SHELL_ROUTINE, saveShellPath } from '../../agents/tools/shell-setup.ts';
+import { NOT_THIS, handlerFor, type InboxAction, type InboxHandler } from '../../inbox/index.ts';
 import { Answer, Decision, InboxStatusQuery, ProvideSecret } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound, query } from '../errors.ts';
@@ -15,6 +14,16 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServ
     return item;
   };
 
+  const deps = { inbox, events, vault, brain, pipelines, agent };
+  /** The item's handler does the action (inbox/): the route knows no kind of item. */
+  const act = async <A extends InboxAction>(id: string, action: A, input?: Parameters<NonNullable<InboxHandler[A]>>[1]) => {
+    const item = open(id);
+    const handler = handlerFor(item);
+    const run = handler?.[action] as ((item: unknown, a: unknown, b?: unknown) => unknown) | undefined;
+    if (!run) throw new HttpError(409, 'conflict', NOT_THIS[action]);
+    return (await (action === 'keep' || action === 'dismiss' ? run.call(handler, item, deps) : run.call(handler, item, input, deps))) as { status: 200 | 202; body: unknown };
+  };
+
   return new Hono()
     .get('/', (c) => {
       const status = query(c, 'status', InboxStatusQuery);
@@ -23,72 +32,28 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServ
     })
     .post('/:id/decision', async (c) => {
       const { decision, approver = 'Desenvolvedor' } = await body(c, Decision);
-      const item = open(c.req.param('id'));
-      if (!item.approvalId || item.kind === 'level') throw new HttpError(409, 'conflict', 'este item não é uma aprovação');
-      // Delivered first, marked after: if the message cannot reach the conversation, the card
-      // stays open with the error instead of saying "decided" while nothing happens.
-      const receipt = await tellAgent(events, agent, {
-        id: item.conversationId,
-        message: {
-          kind: 'signal',
-          type: 'tool-approval',
-          body: `${approver} ${decision === 'approve' ? 'aprovou' : 'negou'}: ${item.title}`,
-          attributes: { approvalId: item.approvalId, decision, approver },
-        },
-      });
-      inbox.resolve(item.id, decision === 'approve' ? 'approved' : 'denied');
-      return c.json(receipt, 202);
+      const r = await act(c.req.param('id'), 'decide', { decision, approver });
+      return c.json(r.body, r.status);
     })
     // A note that only informs (a level or a passage changed): seen.
-    .post('/:id/dismiss', (c) => {
-      const item = open(c.req.param('id'));
-      if (item.kind !== 'level') throw new HttpError(409, 'conflict', 'só avisos podem ser dispensados');
-      return c.json(inbox.resolve(item.id, 'answered', 'ok'));
+    .post('/:id/dismiss', async (c) => {
+      const r = await act(c.req.param('id'), 'dismiss');
+      return c.json(r.body, r.status);
     })
     // "Manter": undo the automatic change the note is about.
-    .post('/:id/keep', (c) => {
-      const item = open(c.req.param('id'));
-      if (item.kind !== 'level' || !item.routine || !item.approvalId) throw new HttpError(409, 'conflict', 'este aviso não tem o que manter');
-      const [kind, subject] = [item.routine.slice(0, item.routine.indexOf(':')), item.routine.slice(item.routine.indexOf(':') + 1)];
-      if (kind === 'playbook') {
-        if (!brain.playbook(subject)) throw notFound('playbook');
-        brain.setPlaybookLevel(subject, { level: Number(item.approvalId) as 1 | 2 | 3 }, item.conversationId);
-      } else if (kind === 'passage') {
-        pipelines.engine.keepAsking(subject, item.conversationId);
-      } else throw new HttpError(409, 'conflict', 'aviso desconhecido');
-      return c.json(inbox.resolve(item.id, 'answered', 'mantido'));
+    .post('/:id/keep', async (c) => {
+      const r = await act(c.req.param('id'), 'keep');
+      return c.json(r.body, r.status);
     })
     .post('/:id/answer', async (c) => {
       const { text } = await body(c, Answer);
-      const item = open(c.req.param('id'));
-      if (item.kind !== 'question') throw new HttpError(409, 'conflict', 'este item não é uma pergunta');
-      // "Where is Git Bash?": checked and saved by the runtime; the Orbi only learns it is set.
-      if (item.routine === SHELL_ROUTINE) {
-        const saved = saveShellPath(text);
-        if ('problem' in saved) throw new HttpError(400, 'invalid_body', saved.problem);
-        const receipt = await tellAgent(events, agent, {
-          id: item.conversationId,
-          message: { kind: 'signal', type: 'shell-configured', tagName: 'shell-configured', body: `O desenvolvedor configurou o shell: ${saved.path} (salvo no .env como ORBI_SHELL). Rode de novo o comando que precisava dele.`, attributes: { path: saved.path } },
-        });
-        inbox.resolve(item.id, 'answered', saved.path);
-        return c.json(receipt, 202);
-      }
-      const receipt = await tellAgent(events, agent, { id: item.conversationId, message: { kind: 'user', body: text } });
-      inbox.resolve(item.id, 'answered', text);
-      return c.json(receipt, 202);
+      const r = await act(c.req.param('id'), 'answer', text);
+      return c.json(r.body, r.status);
     })
     .post('/:id/secret', async (c) => {
       // The value goes to the vault only. The conversation learns the reference, never the value.
-      const { name, value, description } = await body(c, ProvideSecret);
-      const item = open(c.req.param('id'));
-      if (item.kind !== 'secret') throw new HttpError(409, 'conflict', 'este item não pede credencial');
-      if (value) await vault.set(name, value, { description, origin: vault.has(name) ? undefined : 'adicionada por você na conversa' });
-      else if (!vault.has(name)) throw new HttpError(400, 'invalid_body', 'digite o valor: essa credencial ainda não está no cofre');
-      inbox.resolve(item.id, 'answered', `{{segredo:${name}}}`);
-      const receipt = await tellAgent(events, agent, {
-        id: item.conversationId,
-        message: { kind: 'signal', type: 'secret-saved', tagName: 'secret-saved', body: `O desenvolvedor guardou a credencial no cofre: {{segredo:${name}}}. Use essa referência; o valor você não vê.`, attributes: { name } },
-      });
-      return c.json(receipt, 202);
+      const input = await body(c, ProvideSecret);
+      const r = await act(c.req.param('id'), 'secret', input);
+      return c.json(r.body, r.status);
     });
 }
