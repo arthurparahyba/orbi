@@ -8,7 +8,7 @@ import type { SttSlot } from './voice/stt.ts';
 import type { SharedChrome } from './browser/chrome.ts';
 import type { BrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import type { Recorder } from './browser/recorder.ts';
-import type { CodeFixer } from './code/code-agent.ts';
+import type { CodeAgents, CodeFixer } from './code-agents/index.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
@@ -42,8 +42,10 @@ export interface OrbiServices {
   chrome: SharedChrome;
   browser: BrowserMcp;
   recorder: Recorder;
-  /** Fixes by the machine's coding agent (ORBI_CODE_AGENT); null when none is configured. */
-  codeFixer: CodeFixer | null;
+  /** Coding agents of this machine and which does each task (code-agents/). */
+  codeAgents: CodeAgents;
+  /** Investigations and fixes by those agents, in throwaway copies. */
+  codeFixer: CodeFixer;
   llm: ActiveLlm;
   /** What changed, for the app (GET /api/events). */
   events: Events;

@@ -5,6 +5,7 @@ import { Usage } from './Usage';
 import { Vault } from './Vault';
 import { Voice } from './Voice';
 import { Capabilities } from './Capabilities';
+import { CodeAgents } from './codeAgents/CodeAgents';
 
 const CATEGORIES: Array<{ key: Category; title: string; hint: string; locked?: Autonomy[] }> = [
   { key: 'comandos-leitura', title: 'Comandos de leitura', hint: 'git log, gh run view, aws logs… nada muda no mundo.' },
@@ -49,6 +50,7 @@ export function AutonomyView({ health }: { health?: Health }) {
           );
         })}
       </section>
+      <CodeAgents />
       <Usage />
       <Vault />
       <Voice />

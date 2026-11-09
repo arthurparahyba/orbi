@@ -58,7 +58,7 @@ test('createOrbi monta as peças e aceita substitutas', async () => {
   const orbi = await createOrbi(config, { stt: fakeStt }, {});
   assert.equal(orbi.stt.name(), 'falsa');
   assert.equal(orbi.config.model, 'anthropic/claude-haiku-5-5');
-  assert.equal(orbi.codeFixer, null, 'sem ORBI_CODE_AGENT, nenhum agente de código');
+  assert.equal(orbi.codeAgents.available(), false, 'sem ORBI_CODE_AGENT nem cadastro, nenhum agente de código');
   assert.ok(existsSync(join(cwd, 'data')), 'pastas criadas só por createOrbi');
   orbi.brain.upsertType({ name: 'Classe', description: '', relations: {}, requires: [] });
   orbi.brain.upsertEntity({ id: 'x', type: 'Classe', props: {}, body: '' });

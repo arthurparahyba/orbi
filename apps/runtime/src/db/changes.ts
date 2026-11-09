@@ -20,6 +20,8 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   agent_clients: { topic: 'agents', id: 'id' },
   agent_requests: { topic: 'agents', id: 'id' },
   agent_suggestions: { topic: 'agents', id: 'id' },
+  code_agents: { topic: 'code-agents', id: 'id' },
+  code_agent_tasks: { topic: 'code-agents' },
 };
 
 /**

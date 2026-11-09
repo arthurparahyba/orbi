@@ -636,3 +636,17 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .known-problems { margin: 4px 0 6px; display: flex; flex-direction: column; gap: 4px; }
 .known-problem { border-left: 3px solid var(--amber); background: rgba(255, 190, 80, 0.07); border-radius: 6px; padding: 6px 10px; text-align: left; }
 .known-problem p { margin: 3px 0 0; }
+
+/* Autonomia › Agentes de código: the list on the left, the configuration chat on the right */
+.code-agents .ca-layout { display: flex; align-items: stretch; border-top: 1px solid var(--border); }
+.code-agents .ca-main { flex: 1; min-width: 0; }
+.code-agents .ca-main h3 { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 14px 0 6px; }
+.code-agents .ca-side { width: 420px; flex: none; border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 520px; max-height: 720px; }
+.code-agents .ca-tasks .auto-row:first-child { border-top: 0; }
+.code-agents select { background: var(--bg); color: var(--text); border: 1px solid var(--border-2); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; max-width: 200px; }
+.code-agents .ca-row code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.code-agents .ca-editor { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.code-agents .ca-editor label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.code-agents .ca-editor input { color: var(--text); font: inherit; font-size: 13px; }
+.code-agents .ca-editor input.mono { font-family: var(--mono); font-size: 12.5px; }
+@media (max-width: 1100px) { .code-agents .ca-layout { flex-direction: column; } .code-agents .ca-side { width: auto; border-left: 0; border-top: 1px solid var(--border); } }

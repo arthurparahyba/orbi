@@ -1,4 +1,5 @@
 import type {
+  CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
   ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
@@ -116,4 +117,10 @@ export const api = {
   acceptSuggestion: (id: string, variationOf?: string) =>
     request<Playbook>(`/api/agents/suggestions/${id}/accept`, { method: 'POST', body: JSON.stringify(variationOf ? { variationOf } : {}) }),
   rejectSuggestion: (id: string) => request<AgentSuggestion>(`/api/agents/suggestions/${id}/reject`, { method: 'POST' }),
+  codeAgents: () => request<CodeAgentsState>('/api/code-agents'),
+  saveCodeAgent: (id: string, agent: SaveCodeAgent) => request<CodeAgent>(`/api/code-agents/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(agent) }),
+  removeCodeAgent: (id: string) => request<CodeAgentsState>(`/api/code-agents/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  assignCodeAgent: (task: CodeAgentTask, agent: string | null, model: string | null) =>
+    request<CodeAgentsState>(`/api/code-agents/tasks/${task}`, { method: 'PUT', body: JSON.stringify({ agent, model }) }),
+  testCodeAgent: (id: string, model?: string | null) => request<{ ok: boolean; detail: string }>(`/api/code-agents/${encodeURIComponent(id)}/test`, { method: 'POST', body: JSON.stringify({ model: model ?? null }) }),
 };

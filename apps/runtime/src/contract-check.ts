@@ -19,12 +19,16 @@ import type { PipelineRun } from './pipelines/runs.ts';
 import type { Pipeline } from './brain/domain/pipelines.ts';
 import type { AgentRequest } from './mcp/requests.ts';
 import type { AgentSuggestion } from './mcp/suggestions.ts';
+import type { CatalogEntry, CodeAgent, TaskAssignment } from './code-agents/index.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Check<T extends true> = T;
 
 export type ContractChecks = [
+  Check<Same<CodeAgent, C.CodeAgent>>,
+  Check<Fits<TaskAssignment, C.CodeAgentAssignment>>,
+  Check<Fits<CatalogEntry, C.CodeAgentCatalogEntry>>,
   Check<Fits<ConversationInfo, C.ConversationInfo>>,
   Check<Fits<InboxItem, C.InboxItem>>,
   Check<Fits<OntologyType, C.OntologyType>>,

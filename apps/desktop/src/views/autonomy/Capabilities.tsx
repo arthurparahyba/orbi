@@ -12,7 +12,7 @@ export function Capabilities({ health }: { health?: Health }) {
     <section className="auto-list">
       <h2>Capacidades conectadas</h2>
       <div className="auto-row"><div><strong>Modelo</strong><p className="muted small">Conversa e decisões</p></div><code>{health?.model ?? '—'}</code></div>
-      <div className="auto-row"><div><strong>Agente de código</strong><p className="muted small">{health?.codeAgent ? 'O agente instalado nesta máquina corrige código numa cópia descartável, pelo terminal' : 'Nenhum: o Orbi devolve o diagnóstico a quem pediu. Para ligar, ponha o comando em ORBI_CODE_AGENT (ex.: claude -p)'}</p></div>{health?.codeAgent ? <code>{health.codeAgent}</code> : <span className="pill pill-idle">Desligado</span>}</div>
+      <div className="auto-row"><div><strong>Agente de código</strong><p className="muted small">{health?.codeAgent ? 'Investiga e corrige código numa cópia descartável, pelo terminal (veja Agentes de código)' : 'Nenhum: o Orbi devolve o diagnóstico a quem pediu. Cadastre um em Agentes de código, acima'}</p></div>{health?.codeAgent ? <code>{health.codeAgent}</code> : <span className="pill pill-idle">Desligado</span>}</div>
       <div className="auto-row"><div><strong>Transcrição da narração</strong><p className="muted small">Áudio das demonstrações</p></div><code>{health?.stt ?? '—'}</code></div>
       <div className="auto-row"><div><strong>Provedor de LLM</strong><p className="muted small">{health?.llm && health.llm !== 'anthropic' ? 'Adaptador configurado em ORBI_LLM' : 'Anthropic (padrão). Para outro provedor, veja docs/funcionalidades/12-modelo-e-plugins.md'}</p></div><code>{health?.llm ?? '—'}</code></div>
       {(health?.plugins ?? []).map((p) => (

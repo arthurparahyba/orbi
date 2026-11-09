@@ -83,7 +83,7 @@ export interface Health {
   model: string; anthropicKey: boolean;
   /** 'anthropic' or the adapter's name; llmReady = has what it needs to answer. */
   llm?: string; llmReady?: boolean;
-  /** The coding agent's command (ORBI_CODE_AGENT), or null when the Orbi fixes no code. */
+  /** Which coding agent does each task ("investigar: Claude Code · …"), or null when none is set. */
   codeAgent?: string | null;
   /** Plugins found at start; `error` says why one can't be used. */
   plugins?: Array<{ name: string; kind: string; dir: string; description?: string; error?: string }>; envFile?: string; dataDir?: string; vault?: string; stt?: string; demoPortal?: string;
@@ -205,3 +205,18 @@ export interface PipelineRun {
   waiting: { kind: 'passage' | 'failure' | 'params'; stage: string; missing?: string[]; message?: string; inboxId?: string } | null;
   createdAt: string; updatedAt: string; finishedAt: string | null;
 }
+
+/** Coding agents of this machine (Autonomia › Agentes de código). */
+export type CodeAgentTask = 'investigar' | 'corrigir';
+export interface CodeAgent {
+  id: string; name: string; binary: string;
+  /** One-shot command: `{prompt}` is the request, `{modelo}` the task's model. */
+  command: string; models: string[];
+  source: 'catalogo' | 'ajuda' | 'manual' | 'env';
+  lastTest: { at: string; ok: boolean; detail: string } | null;
+  createdAt: string; updatedAt: string;
+}
+export interface CodeAgentAssignment { task: CodeAgentTask; agent: string; model: string | null }
+export interface CodeAgentCatalogEntry { id: string; name: string; binary: string; command: string; models: string[]; note?: string }
+/** GET /api/code-agents */
+export interface CodeAgentsState { agents: CodeAgent[]; tasks: CodeAgentAssignment[]; catalog: CodeAgentCatalogEntry[] }

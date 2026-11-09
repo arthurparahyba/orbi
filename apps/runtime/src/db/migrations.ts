@@ -189,4 +189,14 @@ UPDATE playbook_runs SET reviewed_at = COALESCE(finished_at, started_at) WHERE s
     name: 'scripts do procedimento: Python aprovado uma vez e rodado pelo nome',
     sql: `ALTER TABLE playbooks ADD COLUMN scripts TEXT NOT NULL DEFAULT '[]';`,
   },
+  {
+    name: 'agentes de código desta máquina e qual faz cada tarefa (investigar, corrigir), com qual modelo',
+    sql: `
+CREATE TABLE code_agents (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, binary TEXT NOT NULL, command TEXT NOT NULL,
+  models TEXT NOT NULL DEFAULT '[]', source TEXT NOT NULL DEFAULT 'manual',
+  test_at TEXT, test_ok INTEGER, test_detail TEXT,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE code_agent_tasks (task TEXT PRIMARY KEY, agent TEXT NOT NULL, model TEXT);`,
+  },
 ];

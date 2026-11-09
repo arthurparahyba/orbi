@@ -176,7 +176,9 @@ export function runCommand(binary: string, args: readonly string[], options: Run
 function collect(file: string, args: readonly string[], shown: string, env: Record<string, string>, options: RunOptions): Promise<RunResult> {
   const { cwd, timeoutMs = 120_000, signal, maxOutput = 20_000 } = options;
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(file, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    // In the background, never a window: on Windows a console program started by the app would
+    // otherwise flash a console (Git Bash, the coding agent). Its output comes back to the Orbi.
+    const child = spawn(file, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     let stdout = '';
     let stderr = '';
     let timedOut = false;

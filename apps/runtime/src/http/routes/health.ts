@@ -18,7 +18,7 @@ export function healthRoutes(s: OrbiServices, background: Background) {
       model: config.model,
       llm: s.llm.adapter ? s.llm.adapter.name : 'anthropic',
       llmReady: s.llm.adapter ? true : Boolean(process.env.ANTHROPIC_API_KEY),
-      codeAgent: config.codeAgent,
+      codeAgent: s.codeAgents.describe(),
       plugins: describePlugins(s.llm.plugins),
       anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       envFile: resolve(config.cwd, '.env'),

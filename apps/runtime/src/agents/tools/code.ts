@@ -5,15 +5,16 @@ import { askShellPath } from './shell-setup.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
- * Code fixes by the coding agent installed on this machine (ORBI_CODE_AGENT), in two steps:
- * prepare in a throwaway worktree, then push behind the gate. Off when no agent is configured:
+ * Code fixes by the coding agents registered on this machine (code-agents/), in two steps:
+ * prepare in a throwaway worktree, then push behind the gate. Off when no agent is registered:
  * the Orbi then hands the diagnosis to whoever asked.
  */
-export const code = defineCapability({ name: 'code', needs: ['codeFixer', 'config', 'inbox'], register: useCode });
+export const code = defineCapability({ name: 'code', needs: ['codeFixer', 'codeAgents', 'config', 'inbox'], register: useCode });
 
-function useCode(ctx: AgentContext, { codeFixer: fixer, config, inbox }: Deps<'codeFixer' | 'config' | 'inbox'>) {
-  if (!fixer) return;
-  const agent = config.codeAgent ?? 'agente de código';
+function useCode(ctx: AgentContext, { codeFixer: fixer, codeAgents, config, inbox }: Deps<'codeFixer' | 'codeAgents' | 'config' | 'inbox'>) {
+  const chosen = codeAgents.forTask('corrigir') ?? codeAgents.forTask('investigar');
+  if (!chosen) return;
+  const agent = `${chosen.agent.name}${chosen.model ? ` · ${chosen.model}` : ''}`;
 
   ctx.gated({
     name: 'code_agent_prepare_fix',

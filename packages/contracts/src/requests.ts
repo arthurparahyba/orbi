@@ -126,6 +126,21 @@ export const EditAgentClient = v.object({
 export const AcceptSuggestion = v.object({ variationOf: v.optional(v.pipe(v.string(), v.minLength(1))) });
 export const SuggestionStatusQuery = v.optional(v.picklist(['open', 'accepted', 'rejected', '']));
 
+/** PUT /api/code-agents/:id — register or change a coding agent of this machine. */
+export const SaveCodeAgent = v.object({
+  name: v.pipe(v.string(), v.trim(), v.minLength(1, 'dê um nome ao agente'), v.maxLength(80)),
+  command: v.pipe(v.string(), v.trim(), v.minLength(1, 'informe o comando'), v.maxLength(500)),
+  models: v.optional(v.array(v.pipe(v.string(), v.maxLength(120)))),
+  source: v.optional(v.picklist(['catalogo', 'ajuda', 'manual'])),
+});
+/** PUT /api/code-agents/tasks/:task — which agent (and model) does a task; agent null clears it. */
+export const AssignCodeAgentTask = v.object({
+  agent: v.nullable(v.pipe(v.string(), v.minLength(1))),
+  model: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(120)))),
+});
+/** POST /api/code-agents/:id/test — a short request to the agent (costs one request on its account). */
+export const TestCodeAgent = v.object({ model: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(120)))) });
+
 export interface ApiError {
   error: {
     /** Stable, for code: invalid_body, not_found, conflict, unauthorized, too_large, internal. */
@@ -156,3 +171,6 @@ export type ChooseVoiceModel = v.InferOutput<typeof ChooseVoiceModel>;
 export type SavePipeline = v.InferOutput<typeof SavePipeline>;
 export type StartPipeline = v.InferOutput<typeof StartPipeline>;
 export type DecidePipeline = v.InferOutput<typeof DecidePipeline>;
+export type SaveCodeAgent = v.InferOutput<typeof SaveCodeAgent>;
+export type AssignCodeAgentTask = v.InferOutput<typeof AssignCodeAgentTask>;
+export type TestCodeAgent = v.InferOutput<typeof TestCodeAgent>;

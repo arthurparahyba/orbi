@@ -13,7 +13,7 @@ import { PipelineEngine } from './pipelines/engine.ts';
 import { createChrome } from './browser/chrome.ts';
 import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
-import { createCodeFixer } from './code/code-agent.ts';
+import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
 import { configureLlm } from './llm/index.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
@@ -70,6 +70,7 @@ export async function createOrbi(
   importLegacyState(config, { inbox, conversations, policy });
   const brain = overrides.brain ?? new BrainStore(db);
   const pipelineRuns = new PipelineRuns(db);
+  const codeAgents = overrides.codeAgents ?? new CodeAgents(db, config.codeAgent);
 
   return {
     config: finalConfig,
@@ -89,12 +90,8 @@ export async function createOrbi(
     chrome,
     browser: overrides.browser ?? createBrowserMcp({ port: config.chrome.port, token: config.chrome.token }),
     recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt, onChange: (id) => events.emit('recording', id) }),
-    codeFixer:
-      overrides.codeFixer !== undefined
-        ? overrides.codeFixer
-        : config.codeAgent
-          ? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, command: config.codeAgent, shell: () => config.shell })
-          : null,
+    codeAgents,
+    codeFixer: overrides.codeFixer ?? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, agents: codeAgents, shell: () => config.shell }),
   };
 }
 

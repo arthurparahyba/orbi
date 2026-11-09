@@ -385,6 +385,18 @@ resposta.
 passos JSON, por que, quais agentes (`agents`) e quantas vezes (`count`),
 parecidos (`similar_to`) e `status` (`open`, `accepted`, `rejected`).
 
+### Agentes de código desta máquina (documento 17)
+
+**`code_agents`** · os agentes de código instalados que o Orbi chama para
+investigar ou corrigir (Claude Code, Cursor, Devin…): `id` (kebab-case), nome,
+programa (`binary`), comando de uso único (`command`, com `{prompt}` e
+`{modelo}`), modelos aceitos (`models`, JSON), de onde veio o cadastro
+(`source`: `catalogo`, `ajuda`, `manual`) e o último teste (`test_at`,
+`test_ok`, `test_detail`).
+
+**`code_agent_tasks`** · qual agente faz cada tarefa (`task`: `investigar` ou
+`corrigir`) e com qual `model` (nulo = o padrão do agente).
+
 ## Migrações
 
 Cada migração roda numa transação ao abrir o banco; a versão fica em
@@ -408,8 +420,9 @@ editada, sempre se cria outra.
 | 13 | Autonomia que cresce: nível em `playbooks` (procedimentos `auto` viram N3 seu), `actions` e `deviations` em `playbook_runs`, `playbook_known_actions`, `autonomy_events`, `pipelines.passage_streaks` |
 | 14 | `playbook_runs.reviewed_at` (as execuções antigas contam como revisadas) |
 | 15 | `playbooks.scripts` (scripts do procedimento) |
+| 16 | Agentes de código desta máquina: `code_agents`, `code_agent_tasks` |
 
-O número é o `user_version` depois que a migração roda (hoje 15). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 16). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos
@@ -432,6 +445,7 @@ Assim nenhuma loja precisa avisar que mudou.
 | `usage` | `usage` | `conversation_id` |
 | `pipelines`, `pipeline_runs` | `pipelines` | `name` / `conversation_id` |
 | `agent_clients`, `agent_requests`, `agent_suggestions` | `agents` | `id` |
+| `code_agents`, `code_agent_tasks` | `code-agents` | `id` / — |
 
 Tabela nova que aparece na tela precisa entrar nessa lista. Uma escrita desfeita
 (rollback) também emite: o app só recarrega, então não faz mal.

@@ -2,16 +2,18 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulidx';
 import { runCommand, runShell } from '../terminal/exec.ts';
-import { shQuote } from '../terminal/shell.ts';
+import { agentLine } from './command.ts';
+import type { CodeAgents } from './registry.ts';
+import type { CodeAgentTask } from './types.ts';
 
 /**
- * Code fixes by the coding agent installed on this machine (Claude Code, Codex, Copilot CLI…),
- * run through the developer's shell: the Orbi does not ship one. Always in two steps:
- *  1. prepare — the agent edits a throwaway git worktree; nothing is pushed.
- *  2. push    — after the autonomy gate (test-only vs production code), commit and push.
+ * Work by a coding agent installed on this machine (registered in code-agents/registry.ts), run
+ * through the developer's shell, in the background: the Orbi does not ship one. Always in two steps:
+ *  1. prepare — the agent of the task (investigar or corrigir), with its model, edits a throwaway
+ *     git worktree of the branch; nothing is committed.
+ *  2. push    — after the autonomy gate (test-only vs production code), the Orbi commits and pushes.
  * The split exists because the gate needs the list of changed files, which only exists after the
- * agent has worked. ORBI_CODE_AGENT is the command (`claude -p`, `codex exec`): the request goes
- * as its last argument, or where `{prompt}` is written.
+ * agent has worked.
  */
 export interface PreparedFix {
   id: string;
@@ -21,6 +23,10 @@ export interface PreparedFix {
   files: string[];
   diff: string;
   summary: string;
+  /** Who did it, for the cards and the trail. */
+  agent: string;
+  model: string | null;
+  task: CodeAgentTask;
 }
 
 export interface CodeFixerOptions {
@@ -30,15 +36,10 @@ export interface CodeFixerOptions {
   scratchDir: string;
   /** Credentials for git (GH_TOKEN…). */
   cliEnv: Record<string, string | undefined>;
-  /** The coding agent's command line, e.g. `claude -p` (ORBI_CODE_AGENT). */
-  command: string;
+  /** The registered agents and which does each task. */
+  agents: CodeAgents;
   /** The developer's shell (Git Bash on Windows): read when the agent runs, so a path set later counts. */
   shell: () => string | null;
-}
-
-/** The agent's command with the request in it: as its last argument, or where `{prompt}` is. */
-export function agentLine(command: string, prompt: string): string {
-  return command.includes('{prompt}') ? command.split('{prompt}').join(shQuote(prompt)) : `${command} ${shQuote(prompt)}`;
 }
 
 export const FIX_PROMPT = (diagnosis: string) =>
@@ -49,6 +50,19 @@ export const FIX_PROMPT = (diagnosis: string) =>
     '',
     diagnosis,
   ].join('\n');
+
+/** An error nobody knows yet: reproduce, try hypotheses in the copy, keep the change that works. */
+export const INVESTIGATE_PROMPT = (diagnosis: string) =>
+  [
+    'Investigue o erro abaixo neste repositório, que é uma cópia descartável.',
+    'Reproduza o erro, teste hipóteses e, se achar a causa, deixe aqui a menor mudança que resolve, com os testes afetados passando.',
+    'NÃO faça commit nem push. Não mexa em credenciais nem em arquivos fora do repositório.',
+    'No final, responda em até 6 linhas: o que tentou (uma linha por tentativa), a causa, o que mudou e como validou. Se não resolveu, diga o que descobriu.',
+    '',
+    diagnosis,
+  ].join('\n');
+
+const PROMPTS: Record<CodeAgentTask, (diagnosis: string) => string> = { investigar: INVESTIGATE_PROMPT, corrigir: FIX_PROMPT };
 
 export type CodeFixer = ReturnType<typeof createCodeFixer>;
 
@@ -65,7 +79,10 @@ export function createCodeFixer(opts: CodeFixerOptions) {
   const git = (cwd: string, args: string[], timeoutMs = 60_000) =>
     runCommand('git', args, { cwd, env: opts.cliEnv, timeoutMs, allowed: ['git'] });
 
-  async function prepare(input: { repo: string; branch: string; diagnosis: string }, signal?: AbortSignal): Promise<PreparedFix> {
+  async function prepare(input: { repo: string; branch: string; diagnosis: string; task?: CodeAgentTask }, signal?: AbortSignal): Promise<PreparedFix> {
+    const task = input.task ?? 'corrigir';
+    const chosen = opts.agents.forTask(task) ?? opts.agents.forTask(task === 'corrigir' ? 'investigar' : 'corrigir');
+    if (!chosen) throw new Error('nenhum agente de código cadastrado para esta tarefa (Autonomia › Agentes de código)');
     const base = repoDir(input.repo);
     const id = ulid().toLowerCase();
     const worktree = join(opts.scratchDir, 'fixes', id);
@@ -76,8 +93,8 @@ export function createCodeFixer(opts: CodeFixerOptions) {
     if (added.exitCode !== 0) throw new Error(`git worktree falhou: ${added.stderr}`);
 
     const shell = opts.shell();
-    if (!shell) throw new Error('o agente de código roda pelo terminal, e nenhum shell foi encontrado (Git Bash no Windows)');
-    const ran = await runShell(shell, agentLine(opts.command, FIX_PROMPT(input.diagnosis)), {
+    if (!shell) throw new Error(`${chosen.agent.name} roda pelo terminal, e nenhum shell foi encontrado (Git Bash no Windows)`);
+    const ran = await runShell(shell, agentLine(chosen.agent.command, PROMPTS[task](input.diagnosis), chosen.model), {
       cwd: worktree,
       env: opts.cliEnv,
       shell,
@@ -86,7 +103,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
     });
     const summary = ran.exitCode === 0
       ? ran.stdout.trim().slice(-2000)
-      : `o agente de código saiu com ${ran.exitCode}${ran.timedOut ? ' (tempo esgotado)' : ''}: ${(ran.stderr || ran.stdout).trim().slice(-1500)}`;
+      : `${chosen.agent.name} saiu com ${ran.exitCode}${ran.timedOut ? ' (tempo esgotado)' : ''}: ${(ran.stderr || ran.stdout).trim().slice(-1500)}`;
 
     const status = await git(worktree, ['status', '--porcelain']);
     const files = status.stdout
@@ -95,7 +112,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
       .filter(Boolean);
     const diff = (await git(worktree, ['diff'])).stdout;
 
-    const fix: PreparedFix = { id, repo: input.repo, branch: input.branch, worktree, files, diff, summary };
+    const fix: PreparedFix = { id, repo: input.repo, branch: input.branch, worktree, files, diff, summary, agent: chosen.agent.name, model: chosen.model, task };
     fixes.set(id, fix);
     return fix;
   }
@@ -122,5 +139,14 @@ export function createCodeFixer(opts: CodeFixerOptions) {
     return `commit ${sha} enviado para ${fix.branch}`;
   }
 
-  return { prepare, push, get };
+  /** Drops a prepared fix: the copy is removed, nothing reaches the repository. */
+  async function discard(id: string): Promise<boolean> {
+    const fix = fixes.get(id);
+    if (!fix) return false;
+    await git(repoDir(fix.repo), ['worktree', 'remove', '--force', fix.worktree]);
+    fixes.delete(id);
+    return true;
+  }
+
+  return { prepare, push, get, discard };
 }

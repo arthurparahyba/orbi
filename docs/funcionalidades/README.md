@@ -28,6 +28,7 @@ e [plugins](../plugins.md).
 | 14 | [App desktop e empacotamento](14-app-desktop.md) | A janela do Orbi, o runtime embutido e o instalador |
 | 15 | [Agentes de código (MCP)](15-agentes-mcp.md) | Tela **Agentes**: pedidos, sugestões e conexões do Claude Code e do Cursor |
 | 16 | [Esteiras](16-esteiras.md) | Tela **Esteiras**: procedimentos em sequência, com ramos, passagens e destino |
+| 17 | [Agentes de código desta máquina](17-agentes-de-codigo.md) | **Autonomia → Agentes de código**: quem investiga e quem corrige, com qual modelo; o chat que descobre os agentes |
 
 ## Como as funcionalidades se ligam
 

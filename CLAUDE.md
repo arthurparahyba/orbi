@@ -6,7 +6,7 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 16). A visão geral está em `docs/arquitetura.md`; as
+`docs/funcionalidades/` (01 a 17). A visão geral está em `docs/arquitetura.md`; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Estrutura
@@ -26,7 +26,8 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
-  src/{autonomy,browser,code,conversations,llm,observability,terminal,vault,voice}/
+  src/code-agents/    agentes de código da máquina: cadastro, catálogo (dado), tarefas, executor na cópia descartável
+  src/{autonomy,browser,conversations,llm,observability,terminal,vault,voice}/
   test/               node:test (+ fixtures/search-eval.json)
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
