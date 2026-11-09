@@ -1,7 +1,8 @@
 import { useContext, useState } from 'react';
 import type { UiComponent } from '@orbi/contracts';
 import { AlertIcon, CheckIcon, XIcon } from './Icons';
-import { CATEGORY_LABEL, InboxContext, LearningPreview } from './UiComponents';
+import { CATEGORY_LABEL, InboxContext } from './inboxContext';
+import { LearningPreview } from './ui/LearningPreview';
 import { EFFECT_LABEL } from './effect';
 
 /**

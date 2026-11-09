@@ -3,7 +3,7 @@ import type { UiComponent } from '@orbi/contracts';
 import { api } from '../api';
 import { useLive } from '../hooks';
 import { KeyIcon } from './Icons';
-import { InboxContext } from './UiComponents';
+import { InboxContext } from './inboxContext';
 import { secretNameProblem, toSecretName } from '../views/autonomy/format';
 
 /**

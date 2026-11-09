@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import type { UiComponent } from '@orbi/contracts';
 import { BulbIcon, CheckIcon } from './Icons';
-import { InboxContext } from './UiComponents';
+import { InboxContext } from './inboxContext';
 import { ChatContext } from './ChatContext';
 import { Markdown } from './Markdown';
 

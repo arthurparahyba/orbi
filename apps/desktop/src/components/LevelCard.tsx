@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import type { UiComponent } from '@orbi/contracts';
 import { api } from '../api';
-import { InboxContext } from './UiComponents';
+import { InboxContext } from './inboxContext';
 import { LEVEL_LABEL } from './effect';
 
 /**
