@@ -3,6 +3,10 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { llmChoice } from './llm/index.ts';
+import { findShell } from './terminal/shell.ts';
+
+/** Programs the Orbi may run when ORBI_ALLOWED_BINARIES is not set. */
+export const DEFAULT_ALLOWED = ['git', 'gh', 'aws', 'python3', 'python', 'py', 'node', 'npm', 'mvn', 'cp', 'mkdir', 'cat'];
 
 /**
  * Runtime configuration. `loadConfig` reads it from an environment object — no
@@ -70,7 +74,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     scratchDir: path(env.ORBI_SCRATCH_DIR ?? `${dataDir}/scratch`),
 
     /** CLIs the agent may run. No shell: each call is binary + arguments. */
-    allowedBinaries: list(env.ORBI_ALLOWED_BINARIES, ['git', 'gh', 'aws', 'python3', 'cp', 'mkdir']),
+    allowedBinaries: list(env.ORBI_ALLOWED_BINARIES, DEFAULT_ALLOWED),
+    /** The developer's shell (Git Bash on Windows): .cmd programs and run_shell (terminal/shell.ts). */
+    shell: findShell(env),
 
     /** Optional bearer token every HTTP route requires. */
     apiToken: env.ORBI_API_TOKEN,

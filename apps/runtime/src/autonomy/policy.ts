@@ -116,6 +116,7 @@ const READ_ONLY: Record<string, (args: readonly string[]) => boolean> = {
       || /^(describe|get|list)-/.test(verb);
   },
   python3: () => false, // scripts can do anything: governed by its own tool
+  cat: () => true,
 };
 
 /**
@@ -143,6 +144,8 @@ export function commandEffect(binary: string, args: readonly string[]): 'leitura
   }
   if (binary === 'aws') return args.some((x) => /^(delete|terminate|remove|deregister)-|^(rm|rb)$/.test(x)) ? 'apaga' : 'publica';
   if (binary === 'rm' || binary === 'rmdir') return 'apaga';
+  if (binary === 'npm') return args[0] === 'unpublish' ? 'apaga' : args[0] === 'publish' ? 'publica' : 'local';
+  if (binary === 'mvn') return args.some((x) => x === 'deploy' || x.endsWith(':deploy')) ? 'publica' : 'local';
   return 'local';
 }
 

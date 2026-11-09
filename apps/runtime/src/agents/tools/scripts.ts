@@ -82,6 +82,7 @@ export function useScripts(ctx: AgentContext) {
         timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000,
         env: config.cliEnv,
         allowed: ['python3'],
+        shell: config.shell,
         ...(save ? { maxOutput: 50_000_000 } : {}),
       });
       const shown = { ...result, command: shortCommand(a.script, a.args) };

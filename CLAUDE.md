@@ -98,7 +98,9 @@ cofre ou ponte MCP, `npm run e2e`.
   Flue). A ponte do Chrome também, com token. Não exponha nada à rede.
 - **Comandos sem shell**, só binários da lista (`ORBI_ALLOWED_BINARIES`), só dentro do
   workspace, com ambiente montado explicitamente. `run_python` roda em pasta própria sem o
-  ambiente do usuário.
+  ambiente do usuário. A única exceção é o shell do desenvolvedor (`terminal/shell.ts`, Git
+  Bash no Windows): `run_shell` (uma linha aprovada; o efeito sai do texto, linha nova sempre
+  pede) e, no Windows, os programas `.cmd` (npm, mvn), com cada argumento entre aspas simples.
 - Nunca peça nem cole chaves de API; elas ficam em `apps/runtime/.env` (ignorado pelo git).
 - Credencial que o Orbi precisa é pedida com `ask_secret`: o cartão grava direto no cofre
   (`POST /api/inbox/:id/secret`) e o modelo recebe só a referência. Nunca leve um valor

@@ -4,7 +4,8 @@ import { defineTool, useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { services } from '../../services.ts';
-import { runCommand } from '../../terminal/exec.ts';
+import { runCommand, runShell } from '../../terminal/exec.ts';
+import { shellEffect } from '../../terminal/shell.ts';
 import { commandCategory, commandEffect } from '../../autonomy/policy.ts';
 import { homedir } from 'node:os';
 import type { AgentContext } from '../context.ts';
@@ -52,6 +53,7 @@ async function execCommand(args: { binary: string; args: string[]; cwd?: string;
     timeoutMs: Math.min(args.timeoutSeconds ?? 120, 1800) * 1000,
     env: config.cliEnv,
     allowed: config.allowedBinaries,
+    shell: config.shell,
     signal,
     // The whole output goes to the file; only a summary comes back to the model.
     ...(save ? { maxOutput: 50_000_000 } : {}),
@@ -142,7 +144,7 @@ export function shortCommand(binary: string, args: readonly string[], home = hom
 }
 
 export function useTerminal(ctx: AgentContext) {
-  const { allowedBinaries } = services().config;
+  const { allowedBinaries, ...config } = services().config;
   ctx.gated({
     name: 'run_command',
     description: `Run a CLI command in the workspace — ${allowedBinaries.join(', ')} — without a shell (binary + args). Read-only commands usually run at once; writes (push, merge, workflow run, deploy) follow the autonomy rules.`,
@@ -161,4 +163,53 @@ export function useTerminal(ctx: AgentContext) {
     timeoutMs: 1_800_000,
   });
   useTool(runPython);
+  if (config.shell) useShell(ctx, config.shell);
+}
+
+const shellInput = v.object({
+  line: v.pipe(v.string(), v.minLength(1), v.maxLength(4000), v.description('One line of shell (bash): pipes, &&, redirects, a team script. Use run_command when one program with arguments is enough.')),
+  purpose: v.pipe(v.string(), v.description('One line: why you run this. Shown to the developer.')),
+  cwd: v.optional(v.pipe(v.string(), v.description('Folder inside the workspace (default: the workspace)'))),
+  timeoutSeconds: v.optional(v.number()),
+  saveTo: v.optional(v.pipe(v.string(), v.description('Write the whole output to this file instead of returning it'))),
+});
+
+/**
+ * run_shell: a line in the developer's shell (Git Bash on Windows). The shell interprets it, so
+ * the Orbi cannot tell a read from a write: a new line always asks, and what it may do is judged
+ * from the text (deleting is `apaga`; anything else may publish).
+ */
+function useShell(ctx: AgentContext, shell: string) {
+  ctx.gated({
+    name: 'run_shell',
+    description: `Run one line in the developer's shell (${shell.split(/[\\/]/).slice(-3).join('/')}): pipes, &&, redirects, scripts. Prefer run_command for a single program: it can become a known action that runs alone.`,
+    input: shellInput,
+    category: () => 'comandos-escrita',
+    effect: (a) => shellEffect(a.line),
+    summary: (a) => `${a.purpose}: ${a.line}`,
+    title: (a) => a.purpose,
+    command: (a) => shortCommand('', [a.line]).trim().replace(/^"|"$/g, ''),
+    fingerprint: (a) => `run_shell ${a.line}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
+    execute: async (a) => {
+      const { config } = services();
+      const save = a.saveTo ? savePath(a.saveTo, config.workspace) : undefined;
+      const result = await runShell(shell, a.line, {
+        cwd: insideWorkspace(a.cwd),
+        timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000,
+        env: config.cliEnv,
+        shell,
+        ...(save ? { maxOutput: 50_000_000 } : {}),
+      });
+      const extra = afterCommand(ctx.conversationId, a.line, result);
+      if (!save) return JSON.stringify({ ...result, ...extra });
+      const ok = result.exitCode === 0 && !result.timedOut;
+      if (ok) {
+        mkdirSync(dirname(save), { recursive: true });
+        writeFileSync(save, result.stdout);
+      }
+      const lines = result.stdout.split('\n').filter((l) => l.length > 0);
+      return JSON.stringify({ command: a.line, exitCode: result.exitCode, savedTo: ok ? save : null, lines: lines.length, head: lines.slice(0, 5), stderr: result.stderr.slice(0, 2000), timedOut: result.timedOut, ...extra });
+    },
+    timeoutMs: 1_800_000,
+  });
 }

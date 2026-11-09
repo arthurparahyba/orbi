@@ -54,6 +54,21 @@ flowchart LR
   código, em JSON): o runtime valida e mostra direto na conversa, e o modelo
   recebe só o resumo (`shown`, linhas). Saída que não é componente vira erro com
   o motivo.
+- **Terminal do desenvolvedor (`run_shell`)**: uma linha de shell (pipe, `&&`,
+  redirecionamento, um script `.sh` do time), no shell da máquina: Git Bash no
+  Windows (achado sozinho em `Program Files\Git`, também no app instalado), bash no
+  macOS e no Linux; `ORBI_SHELL` aponta outro ou desliga (`off`). Como o shell
+  interpreta a linha, o Orbi não sabe se ela só lê: é sempre `comandos-escrita`, o
+  alcance sai do texto (`rm`, `git push --force`, `gh … delete` → apaga; o resto →
+  publica), e uma linha nova sempre pede aprovação. Para um programa só, o
+  `run_command` continua sendo o caminho: ele vira ação conhecida e ganha autonomia.
+- **Programas `.cmd` no Windows** (npm, mvn, npx): o Node não os roda sem shell, então
+  vão pelo Git Bash como `npm 'arg' …`, cada argumento entre aspas simples (nada é
+  interpretado). As ferramentas do Git (`cat`, `cp`, `mkdir`, em `Git\usr\bin`) entram
+  no PATH dos comandos, então rodam mesmo com o app aberto pelo menu Iniciar.
+- **Comandos padrão**: git, gh, aws, python3 (python/py), node, npm, mvn, cp, mkdir e
+  cat (`ORBI_ALLOWED_BINARIES` troca a lista). `cat` é leitura; `npm publish` e
+  `mvn deploy` publicam; `npm unpublish` apaga.
 - **Windows**: `python3` costuma não existir lá; o Orbi usa `python` ou o
   lançador `py -3`, e ignora os atalhos da Microsoft Store (`WindowsApps`), que
   abrem a loja em vez de rodar. As dicas de instalação usam `winget` no Windows e
