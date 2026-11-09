@@ -46,6 +46,8 @@ const MINIMAL_ENV_KEYS = ['PATH', 'LANG', 'LC_ALL'];
 export class CommandNotAllowedError extends Error {}
 /** The binary isn't installed, or isn't on the PATH the runtime got. */
 export class CommandNotFoundError extends Error {}
+/** The program needs the developer's shell (a .cmd on Windows) and none was found. */
+export class ShellNeededError extends CommandNotFoundError {}
 
 const INSTALL_HINT: Record<string, string> = {
   gh: 'instale com `brew install gh` e rode `gh auth login`',
@@ -180,7 +182,7 @@ export function runCommand(binary: string, args: readonly string[], options: Run
   // the developer's shell, every argument quoted (nothing in them is interpreted).
   if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(program.file)) {
     if (!options.shell) {
-      return Promise.reject(new CommandNotFoundError(`\`${binary}\` no Windows é um .cmd e precisa do Git Bash para rodar; instale o Git for Windows ou aponte ORBI_SHELL para o bash.exe`));
+      return Promise.reject(new ShellNeededError(`\`${binary}\` no Windows é um .cmd e precisa do Git Bash para rodar`));
     }
     return collect(options.shell, ['-lc', shellLine(binary, args)], [binary, ...args].join(' '), env, options);
   }

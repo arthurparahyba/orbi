@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { tellAgent } from '../../conversations/tell.ts';
+import { SHELL_ROUTINE, saveShellPath } from '../../agents/tools/shell-setup.ts';
 import { Answer, Decision, InboxStatusQuery, ProvideSecret } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound, query } from '../errors.ts';
@@ -61,6 +62,17 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServ
       const { text } = await body(c, Answer);
       const item = open(c.req.param('id'));
       if (item.kind !== 'question') throw new HttpError(409, 'conflict', 'este item não é uma pergunta');
+      // "Where is Git Bash?": checked and saved by the runtime; the Orbi only learns it is set.
+      if (item.routine === SHELL_ROUTINE) {
+        const saved = saveShellPath(text);
+        if ('problem' in saved) throw new HttpError(400, 'invalid_body', saved.problem);
+        const receipt = await tellAgent(events, agent, {
+          id: item.conversationId,
+          message: { kind: 'signal', type: 'shell-configured', tagName: 'shell-configured', body: `O desenvolvedor configurou o shell: ${saved.path} (salvo no .env como ORBI_SHELL). Rode de novo o comando que precisava dele.`, attributes: { path: saved.path } },
+        });
+        inbox.resolve(item.id, 'answered', saved.path);
+        return c.json(receipt, 202);
+      }
       const receipt = await tellAgent(events, agent, { id: item.conversationId, message: { kind: 'user', body: text } });
       inbox.resolve(item.id, 'answered', text);
       return c.json(receipt, 202);

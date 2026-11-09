@@ -62,6 +62,13 @@ flowchart LR
   alcance sai do texto (`rm`, `git push --force`, `gh … delete` → apaga; o resto →
   publica), e uma linha nova sempre pede aprovação. Para um programa só, o
   `run_command` continua sendo o caminho: ele vira ação conhecida e ganha autonomia.
+- **Git Bash não encontrado**: quando um comando precisa do shell (`run_shell`, ou
+  npm/mvn no Windows) e nenhum foi achado, aparece na conversa e em Pendências o
+  cartão "Onde está o Git Bash (bash.exe)?", com os caminhos mais comuns como opção.
+  A resposta é conferida (o arquivo existe e é o bash), gravada no `.env`
+  (`ORBI_SHELL`) e passa a valer na hora, sem reiniciar; o Orbi recebe um sinal e
+  roda o comando de novo. Caminho errado deixa o cartão aberto com o motivo
+  (`agents/tools/shell-setup.ts`, `settings/env-file.ts`).
 - **Programas `.cmd` no Windows** (npm, mvn, npx): o Node não os roda sem shell, então
   vão pelo Git Bash como `npm 'arg' …`, cada argumento entre aspas simples (nada é
   interpretado). As ferramentas do Git (`cat`, `cp`, `mkdir`, em `Git\usr\bin`) entram

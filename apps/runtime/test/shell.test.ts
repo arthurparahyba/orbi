@@ -61,3 +61,11 @@ test('no Windows, .cmd (npm) roda pelo Git Bash com os argumentos protegidos', a
   const cat = await runCommand('cat', ['--version'], { cwd: tmpdir(), shell, allowed: ['cat'] });
   assert.equal(cat.exitCode, 0, 'cat do Git (usr\\bin) achado sem shell');
 });
+
+test('.env: troca a linha ativa, aproveita o exemplo comentado, ou acrescenta', async () => {
+  const { withEnvValue } = await import('../src/settings/env-file.ts');
+  const path = 'C:\\Program Files\\Git\\bin\\bash.exe';
+  assert.equal(withEnvValue('A=1\nORBI_SHELL=/x\n', 'ORBI_SHELL', path), `A=1\nORBI_SHELL='${path}'\n`);
+  assert.equal(withEnvValue('# ORBI_SHELL=C:\\\\algo\nB=2\n', 'ORBI_SHELL', path), `ORBI_SHELL='${path}'\nB=2\n`);
+  assert.equal(withEnvValue('B=2', 'ORBI_SHELL', path), `B=2\nORBI_SHELL='${path}'\n`);
+});

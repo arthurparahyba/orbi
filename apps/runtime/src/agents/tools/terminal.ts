@@ -4,7 +4,9 @@ import { defineTool, useTool } from '@flue/runtime';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import { services } from '../../services.ts';
-import { runCommand, runShell } from '../../terminal/exec.ts';
+import { ShellNeededError, runCommand, runShell } from '../../terminal/exec.ts';
+import { askShellPath } from './shell-setup.ts';
+import type { UiComponent } from '@orbi/contracts';
 import { shellEffect } from '../../terminal/shell.ts';
 import { commandCategory, commandEffect } from '../../autonomy/policy.ts';
 import { homedir } from 'node:os';
@@ -45,7 +47,7 @@ export function afterCommand(conversationId: string, command: string, result: { 
   };
 }
 
-async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
+async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal, ui?: (c: UiComponent) => void) {
   const { config } = services();
   const save = args.saveTo ? savePath(args.saveTo, config.workspace) : undefined;
   const result = await runCommand(args.binary, args.args, {
@@ -159,11 +161,19 @@ export function useTerminal(ctx: AgentContext) {
       return a.saveTo && e === 'leitura' ? 'local' : e;
     },
     fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
-    execute: (a) => execCommand(a, ctx.conversationId),
+    execute: async (a) => {
+      try {
+        return await execCommand(a, ctx.conversationId, undefined, ctx.ui);
+      } catch (error) {
+        // npm/mvn on Windows without Git Bash: ask where it is, right in the conversation.
+        if (error instanceof ShellNeededError) throw new Error(`${error.message}. ${askShellPath(ctx.conversationId, ctx.ui)}`);
+        throw error;
+      }
+    },
     timeoutMs: 1_800_000,
   });
   useTool(runPython);
-  if (config.shell) useShell(ctx, config.shell);
+  useShell(ctx);
 }
 
 const shellInput = v.object({
@@ -179,11 +189,13 @@ const shellInput = v.object({
  * the Orbi cannot tell a read from a write: a new line always asks, and what it may do is judged
  * from the text (deleting is `apaga`; anything else may publish).
  */
-function useShell(ctx: AgentContext, shell: string) {
+function useShell(ctx: AgentContext) {
   ctx.gated({
     name: 'run_shell',
-    description: `Run one line in the developer's shell (${shell.split(/[\\/]/).slice(-3).join('/')}): pipes, &&, redirects, scripts. Prefer run_command for a single program: it can become a known action that runs alone.`,
+    description: "Run one line in the developer's shell (Git Bash on Windows, bash elsewhere): pipes, &&, redirects, scripts. Prefer run_command for a single program: it can become a known action that runs alone.",
     input: shellInput,
+    // No shell on this machine: ask the developer where it is before asking to approve the line.
+    precheck: () => (services().config.shell ? [] : [askShellPath(ctx.conversationId, ctx.ui)]),
     category: () => 'comandos-escrita',
     effect: (a) => shellEffect(a.line),
     summary: (a) => `${a.purpose}: ${a.line}`,
@@ -192,6 +204,8 @@ function useShell(ctx: AgentContext, shell: string) {
     fingerprint: (a) => `run_shell ${a.line}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: async (a) => {
       const { config } = services();
+      const shell = config.shell;
+      if (!shell) throw new Error(askShellPath(ctx.conversationId, ctx.ui));
       const save = a.saveTo ? savePath(a.saveTo, config.workspace) : undefined;
       const result = await runShell(shell, a.line, {
         cwd: insideWorkspace(a.cwd),
