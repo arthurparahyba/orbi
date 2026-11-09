@@ -24,7 +24,7 @@ aparece, diagramas e detalhes: veja [funcionalidades/](funcionalidades/README.md
 
 - Framework: [Flue](https://flueframework.com) 2.3 sobre o harness Pi
 - Modelo: `anthropic/claude-haiku-5-5` por padrão; qualquer outro por um adaptador (`src/llm`, ver [modelo e plugins](funcionalidades/12-modelo-e-plugins.md))
-- Correção de código: Claude Code via Claude Agent SDK, em worktree isolada
+- Correção de código: o agente de código da máquina (`ORBI_CODE_AGENT`), pelo terminal, em worktree isolada
 - Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
 - Banco: um arquivo SQLite (`data/orbi.db`) com o cérebro e o estado do app, sem servidor; migrações versionadas (tabelas, diagrama e gatilhos em [banco.md](banco.md))
 
@@ -54,7 +54,7 @@ src/
   conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
   autonomy/policy.ts        observar · perguntar · automático, por categoria e por playbook
   terminal/exec.ts          execução sem shell, com allowlist
-  code/claude-code.ts       correção em worktree via Claude Agent SDK
+  code/code-agent.ts        correção em worktree pelo agente de código da máquina
   browser/                  Chrome compartilhado, gravador de demonstrações e
     mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
   voice/stt.ts              transcrição da narração (Whisper local ou HTTP)

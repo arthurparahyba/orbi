@@ -98,14 +98,6 @@ const drop = (p) => {
     rmSync(p, { recursive: true, force: true });
   }
 };
-// Claude Code ships one native package per platform; keep only ours (and no musl).
-const anthropic = join(nm, '@anthropic-ai');
-if (existsSync(anthropic)) {
-  for (const pkg of readdirSync(anthropic)) {
-    const m = /^claude-agent-sdk-(.+)$/.exec(pkg);
-    if (m && m[1] !== `${plat}-${arch}`) drop(join(anthropic, pkg));
-  }
-}
 // onnxruntime-node (local Whisper) bundles every OS/arch.
 const ort = join(nm, 'onnxruntime-node', 'bin');
 if (existsSync(ort)) {

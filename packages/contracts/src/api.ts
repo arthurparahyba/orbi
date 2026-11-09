@@ -80,9 +80,11 @@ export interface Recording {
 }
 export interface SecretInfo { name: string; description: string; origin: string; createdAt: string; updatedAt: string }
 export interface Health {
-  model: string; codeModel: string; anthropicKey: boolean;
+  model: string; anthropicKey: boolean;
   /** 'anthropic' or the adapter's name; llmReady = has what it needs to answer. */
-  llm?: string; llmReady?: boolean; codeFixer?: boolean;
+  llm?: string; llmReady?: boolean;
+  /** The coding agent's command (ORBI_CODE_AGENT), or null when the Orbi fixes no code. */
+  codeAgent?: string | null;
   /** Plugins found at start; `error` says why one can't be used. */
   plugins?: Array<{ name: string; kind: string; dir: string; description?: string; error?: string }>; envFile?: string; dataDir?: string; vault?: string; stt?: string; demoPortal?: string;
   /** Folder commands run in, and where each allowed CLI was found (null = not installed). */

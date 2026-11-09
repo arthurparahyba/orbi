@@ -53,7 +53,7 @@ after(async () => {
 
 test('o agente roda num adaptador próprio: prompt, ferramentas, chamada e resultado', async () => {
   assert.equal(config.model, 'orbi-llm/modelo-interno-1');
-  assert.equal(config.codeFixer, false, 'Claude Code fica desligado fora da Anthropic');
+  assert.equal(config.codeAgent, null, 'sem agente de código configurado');
 
   script = [
     () => ({ toolCalls: [{ id: 'c1', name: 'brain_query', arguments: { text: 'portal' } }] }),
@@ -73,7 +73,7 @@ test('o agente roda num adaptador próprio: prompt, ferramentas, chamada e resul
   assert.match(first.system, /Você é o Orbi/);
   const tools = first.tools.map((t) => t.name);
   for (const t of ['brain_query', 'brain_learn', 'run_command', 'ask_developer']) assert.ok(tools.includes(t), `ferramenta ${t} oferecida`);
-  assert.ok(!tools.includes('claude_code_prepare_fix'), 'sem Claude Code fora da Anthropic');
+  assert.ok(!tools.includes('code_agent_prepare_fix'), 'sem agente de código configurado, sem a ferramenta');
   assert.equal(first.tools.find((t) => t.name === 'brain_query')!.parameters.type, 'object', 'parâmetros em JSON Schema');
   assert.equal(first.messages.at(-1)?.role, 'user');
 

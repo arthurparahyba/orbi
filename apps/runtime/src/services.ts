@@ -8,7 +8,7 @@ import type { SttSlot } from './voice/stt.ts';
 import type { SharedChrome } from './browser/chrome.ts';
 import type { BrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import type { Recorder } from './browser/recorder.ts';
-import type { CodeFixer } from './code/claude-code.ts';
+import type { CodeFixer } from './code/code-agent.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';

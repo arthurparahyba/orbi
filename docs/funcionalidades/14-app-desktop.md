@@ -87,7 +87,7 @@ flowchart TB
 
 1. compila o runtime (o contrato entra no bundle);
 2. instala só as dependências de produção, nas versões exatas do `package-lock.json`;
-3. remove binários de outras plataformas (Claude Code nativo, onnxruntime);
+3. remove binários de outras plataformas (onnxruntime);
 4. copia o Node que está rodando o build como `orbi-node`;
 5. roda `tauri build`, que gera o `.app`/`.dmg` (macOS), `.msi`/`.exe` (Windows)
    ou `.deb`/`.AppImage` (Linux).
@@ -139,8 +139,7 @@ assinatura: [../empacotamento.md](../empacotamento.md).
 
 ## Limites conhecidos
 
-- O app ocupa uns 750 MB instalado, a maior parte do Claude Code nativo e do
-  onnxruntime (veja como reduzir em [../empacotamento.md](../empacotamento.md)).
+- O app ocupa uns 430 MB instalado, a maior parte do onnxruntime e do Node (veja como reduzir em [../empacotamento.md](../empacotamento.md)).
 - Para distribuir no macOS sem o aviso do Gatekeeper, é preciso assinar e
   notarizar com um Developer ID da Apple.
 - O empacotamento e o microfone no Windows ainda não foram testados.

@@ -15,8 +15,7 @@ app arm64.
 1. Compila o runtime (`apps/runtime/dist`). O contrato entra no bundle.
 2. Instala só as dependências de produção do runtime, nas versões exatas do
    `package-lock.json` da raiz, em `apps/desktop/src-tauri/resources/runtime`.
-3. Poda binários de outras plataformas: o Claude Code nativo de outros sistemas
-   e o onnxruntime (Whisper local) de outros sistemas e arquiteturas.
+3. Poda o onnxruntime (Whisper local) de outros sistemas e arquiteturas.
 4. Copia o Node que está rodando o build para `binaries/orbi-node-<plataforma>`.
    O app leva o próprio Node e não depende do da máquina. Use Node ≥ 22.13.
 5. Roda `tauri build` com `tauri.bundle.conf.json`, que acrescenta o runtime
@@ -27,12 +26,13 @@ Saída em `apps/desktop/src-tauri/target/release/bundle/` (`macos/Orbi.app`,
 
 ## Tamanho
 
-O runtime embutido ocupa uns 750 MB descompactado (o pacote compactado fica
-perto de 300 MB). A maior parte é:
+O runtime embutido ocupa uns 430 MB descompactado. A maior parte é:
 
-- Claude Code nativo (~320 MB), usado para corrigir código;
 - onnxruntime (~200 MB), usado pela transcrição local;
 - o próprio Node (~100 MB).
+
+O app não leva agente de código: para corrigir código, o Orbi usa o que estiver
+instalado na máquina (`ORBI_CODE_AGENT`, ex.: `claude -p`), pelo terminal.
 
 Se a transcrição for sempre por um serviço (`ORBI_STT_URL`), dá para tirar o
 `@huggingface/transformers` das dependências e economizar uns 250 MB.

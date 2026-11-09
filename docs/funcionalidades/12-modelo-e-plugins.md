@@ -119,9 +119,8 @@ sequenceDiagram
 
 ## O que muda fora da Anthropic
 
-- **Correção de código pelo Claude Code fica desligada.** Ela usa o Claude Agent
-  SDK, que fala com a API da Anthropic. Se o gateway aceitar o formato da
-  Anthropic, ligue com `ORBI_CODE_FIXER=claude-code` e `ANTHROPIC_BASE_URL`.
+- **A correção de código não depende do modelo**: ela usa o agente de código
+  instalado na máquina (`ORBI_CODE_AGENT`, documento 10), com qualquer modelo.
 - **O raciocínio estendido ("thinking") não é usado**; o adaptador recebe só o texto.
 - **Imagens viram o texto `[imagem]`.**
 - **Custo**: o painel de uso mostra tokens e custo se o adaptador informar o uso;

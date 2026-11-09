@@ -32,10 +32,10 @@ test('loadConfig é pura: lê só o ambiente passado, resolve ~ e caminhos relat
   assert.equal(c.dbFile, join(resolve('/base', 'dados'), 'orbi.db'));
   assert.deepEqual(c.allowedBinaries, ['git', 'gh']);
   assert.equal(c.llm, 'anthropic');
-  assert.equal(c.codeFixer, true);
-  const other = loadConfig({ ORBI_LLM: 'gateway', ORBI_LLM_MODEL: 'm' }, '/base');
+  assert.equal(c.codeAgent, null, 'sem agente de código configurado, o Orbi não corrige código');
+  const other = loadConfig({ ORBI_LLM: 'gateway', ORBI_LLM_MODEL: 'm', ORBI_CODE_AGENT: ' claude -p ' }, '/base');
   assert.equal(other.model, 'orbi-llm/m');
-  assert.equal(other.codeFixer, false);
+  assert.equal(other.codeAgent, 'claude -p', 'o agente de código vale com qualquer modelo'); 
 });
 
 test('configuração inválida é explicada antes de subir', async () => {
@@ -58,7 +58,7 @@ test('createOrbi monta as peças e aceita substitutas', async () => {
   const orbi = await createOrbi(config, { stt: fakeStt }, {});
   assert.equal(orbi.stt.name(), 'falsa');
   assert.equal(orbi.config.model, 'anthropic/claude-haiku-5-5');
-  assert.ok(orbi.codeFixer, 'Claude Code ligado com a Anthropic');
+  assert.equal(orbi.codeFixer, null, 'sem ORBI_CODE_AGENT, nenhum agente de código');
   assert.ok(existsSync(join(cwd, 'data')), 'pastas criadas só por createOrbi');
   orbi.brain.upsertType({ name: 'Classe', description: '', relations: {}, requires: [] });
   orbi.brain.upsertEntity({ id: 'x', type: 'Classe', props: {}, body: '' });

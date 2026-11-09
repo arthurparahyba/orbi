@@ -11,8 +11,8 @@ const CATEGORIES: Array<{ key: Category; title: string; hint: string; locked?: A
   { key: 'comandos-escrita', title: 'Comandos que alteram algo', hint: 'gh pr create/merge, git push, deploys. Um playbook em modo automático pode liberar.' },
   { key: 'navegador-leitura', title: 'Navegador: ler páginas', hint: 'Abrir, tirar snapshot, ler o portal ou o ServiceNow.' },
   { key: 'navegador-escrita', title: 'Navegador: clicar e preencher', hint: 'Preencher formulários, salvar a versão no portal, abrir GMUD.' },
-  { key: 'codigo-teste', title: 'Claude Code: corrigir testes', hint: 'Correções que só tocam arquivos de teste.' },
-  { key: 'codigo-producao', title: 'Claude Code: corrigir código de produção', hint: 'Sempre global; um playbook não sobrepõe.' },
+  { key: 'codigo-teste', title: 'Agente de código: corrigir testes', hint: 'Correções que só tocam arquivos de teste.' },
+  { key: 'codigo-producao', title: 'Agente de código: corrigir código de produção', hint: 'Sempre global; um playbook não sobrepõe.' },
   { key: 'aprender', title: 'Gravar aprendizado no cérebro', hint: 'O Orbi sempre mostra o que vai aprender e pede seu ok.', locked: ['auto'] },
 ];
 const LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };

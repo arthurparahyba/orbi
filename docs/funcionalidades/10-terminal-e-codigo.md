@@ -111,23 +111,23 @@ instruções de `prompts/investigador.md` e devolve: o que falhou, a causa
 provável, a evidência, se já aconteceu antes e a correção sugerida. O log
 inteiro fica com ele; a conversa principal recebe só o diagnóstico.
 
-### Correção com Claude Code
+### Correção pelo agente de código da máquina
 
 ```mermaid
 sequenceDiagram
   participant Orbi as Modelo (Orbi)
-  participant Prep as claude_code_prepare_fix
-  participant CC as Claude Code (Agent SDK)
+  participant Prep as code_agent_prepare_fix
+  participant CC as Agente de código (ORBI_CODE_AGENT, pelo terminal)
   participant WT as Worktree descartável
   participant Portao as Portão
   actor Voce as Você
-  participant Push as claude_code_push_fix
+  participant Push as code_agent_push_fix
 
   Orbi->>Prep: repo, branch, diagnóstico
   Prep->>WT: git worktree add origin/<branch>
   Prep->>CC: corrigir, rodar os testes afetados, NÃO commitar
-  CC->>WT: lê, edita, roda testes (com limite de gasto)
-  Prep-->>Orbi: id, arquivos alterados, diff, custo
+  CC->>WT: lê, edita, roda testes
+  Prep-->>Orbi: id, arquivos alterados, diff, resumo do agente
   Orbi->>Push: id, mensagem de commit
   Push->>Portao: só arquivos de teste = codigo-teste, senão codigo-producao
   Portao-->>Voce: cartão com arquivos e diff (se "perguntar")
@@ -152,7 +152,7 @@ sequenceDiagram
 | `apps/runtime/src/agents/tools/terminal.ts` | `run_command` (portão), `run_readonly_command`, `run_python` |
 | `apps/runtime/src/agents/tools/scripts.ts` | `run_script` (portão): scripts do procedimento |
 | `apps/runtime/src/subagents/investigador.ts` + `prompts/investigador.md` | O investigador |
-| `apps/runtime/src/code/claude-code.ts` | Preparar (worktree + Agent SDK) e subir a correção |
+| `apps/runtime/src/code/code-agent.ts` | Preparar (worktree + o agente da máquina pelo shell) e subir a correção |
 | `apps/runtime/src/agents/tools/code.ts` | As duas ferramentas de correção |
 | `apps/runtime/src/autonomy/policy.ts` | Leitura × escrita; teste × produção |
 
@@ -160,7 +160,7 @@ sequenceDiagram
 
 - **`node:child_process`** (`spawn` sem shell).
 - **Subagentes do Flue** (`defineSubagent`).
-- **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`), o mesmo motor do Claude Code.
+- O Orbi **não leva agente de código**: usa o que estiver instalado (Claude Code, Codex, Copilot CLI…), pelo comando em `ORBI_CODE_AGENT`, rodado no shell do desenvolvedor dentro da cópia descartável. Pedir a correção é um comando local (pede como qualquer comando novo); subir segue `codigo-teste` ou `codigo-producao`. Sem agente configurado, as ferramentas não existem e o Orbi devolve o diagnóstico a quem pediu.
 - **git worktree** para corrigir sem tocar no clone principal.
 
 ## Configuração
@@ -170,9 +170,7 @@ sequenceDiagram
 | `ORBI_WORKSPACE` | Pasta dos clones (padrão `./workspace`; aceita `~`) |
 | `ORBI_ALLOWED_BINARIES` | Binários permitidos, separados por vírgula |
 | `GH_TOKEN`, `AWS_PROFILE`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | Credenciais entregues às CLIs |
-| `ORBI_CODE_FIXER` | `claude-code` ou `off` (ligado por padrão só com a Anthropic) |
-| `ORBI_CODE_MODEL` | Modelo do Claude Code |
-| `ORBI_CODE_FIX_BUDGET_USD` | Teto de gasto por correção (padrão 0,50) |
+| `ORBI_CODE_AGENT` | O comando do agente de código (ex.: `claude -p --permission-mode acceptEdits`, `codex exec --full-auto {prompt}`); o pedido vai como último argumento ou onde estiver `{prompt}`. Sem ele, o Orbi não corrige código |
 | `ORBI_SCRATCH_DIR` | Onde ficam os worktrees e as pastas do Python |
 
 ## Limites conhecidos

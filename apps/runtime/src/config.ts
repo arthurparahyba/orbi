@@ -43,14 +43,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     /** Model spec for every agent; with an adapter, `orbi-llm/<model>` (final once the adapter loads). */
     model: llm.model,
     /**
-     * Claude Code fixes need the Anthropic API (or an Anthropic-compatible gateway via
-     * ANTHROPIC_BASE_URL). On by default only with ORBI_LLM=anthropic; ORBI_CODE_FIXER=claude-code|off overrides.
+     * The coding agent installed on this machine, as a command (`claude -p`, `codex exec`): it fixes
+     * code in a throwaway worktree, run through the developer's shell. Not set: the Orbi fixes no
+     * code and hands the diagnosis to whoever asked (code/code-agent.ts).
      */
-    codeFixer: (env.ORBI_CODE_FIXER ?? (llm.anthropic ? 'claude-code' : 'off')) === 'claude-code',
-    /** Model for the Claude Code fixer (Claude Agent SDK model id). */
-    codeModel: env.ORBI_CODE_MODEL ?? 'claude-haiku-5-5',
-    /** Hard spend cap for one Claude Code fix, in USD. */
-    codeFixBudgetUsd: Number(env.ORBI_CODE_FIX_BUDGET_USD ?? '0.5'),
+    codeAgent: env.ORBI_CODE_AGENT?.trim() || null,
 
     dataDir,
     /** Flue's own store (conversations, streams). */
@@ -172,7 +169,6 @@ export function validateConfig(c: OrbiConfig): string[] {
   };
   port('CHROME_MCP_PORT', c.chrome.port);
   port('CHROME_DEBUG_PORT', c.chrome.debugPort);
-  if (!Number.isFinite(c.codeFixBudgetUsd) || c.codeFixBudgetUsd <= 0) problems.push('ORBI_CODE_FIX_BUDGET_USD deve ser um número maior que zero');
   if (!['local', 'http', 'off'].includes(c.stt.backend)) problems.push(`ORBI_STT deve ser local, http ou off (veio ${c.stt.backend})`);
   if (c.stt.backend === 'http' && !c.stt.url) problems.push('ORBI_STT=http precisa de ORBI_STT_URL');
   if (!['auto', 'keychain', 'file'].includes(c.vault.prefer)) problems.push(`ORBI_VAULT deve ser auto, keychain ou file (veio ${c.vault.prefer})`);

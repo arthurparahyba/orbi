@@ -16,10 +16,9 @@ export function healthRoutes(s: OrbiServices, background: Background) {
     const bridge = background.bridge();
     const health: Health = {
       model: config.model,
-      codeModel: config.codeModel,
       llm: s.llm.adapter ? s.llm.adapter.name : 'anthropic',
       llmReady: s.llm.adapter ? true : Boolean(process.env.ANTHROPIC_API_KEY),
-      codeFixer: config.codeFixer,
+      codeAgent: config.codeAgent,
       plugins: describePlugins(s.llm.plugins),
       anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       envFile: resolve(config.cwd, '.env'),

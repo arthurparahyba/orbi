@@ -13,7 +13,7 @@ import { PipelineEngine } from './pipelines/engine.ts';
 import { createChrome } from './browser/chrome.ts';
 import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
-import { createCodeFixer } from './code/claude-code.ts';
+import { createCodeFixer } from './code/code-agent.ts';
 import { configureLlm } from './llm/index.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
@@ -92,8 +92,8 @@ export async function createOrbi(
     codeFixer:
       overrides.codeFixer !== undefined
         ? overrides.codeFixer
-        : config.codeFixer
-          ? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, model: config.codeModel, budgetUsd: config.codeFixBudgetUsd })
+        : config.codeAgent
+          ? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, command: config.codeAgent, shell: () => config.shell })
           : null,
   };
 }

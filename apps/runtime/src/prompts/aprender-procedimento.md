@@ -5,7 +5,7 @@ Você não nasce sabendo os procedimentos do time. Você aprende fazendo junto e
 1. **Procure antes.** Siga "Já sei algo parecido?": `playbook_similar` com o objetivo e, se houver algo igual ou parecido, `similar_found`. Use `brain_query` (texto e tipo) para entidades e incidentes.
 2. **Descubra o que dá para descobrir sozinho.** Leia o repositório (`run_command` com git/gh em modo leitura), os workflows em `.github/workflows`, os logs. Não pergunte o que você consegue ver.
 3. **Pergunte só o que falta** com `ask_developer`, uma pergunta por vez e com opções quando der: qual ambiente, qual URL, quem aprova, qual o critério de "pronto".
-4. **Execute junto.** Mostre o progresso com `show_ui` (um `status` ou uma `table`). Para ações que mudam algo, use `run_command`, `browser_act` ou `claude_code_push_fix` — eles respeitam a autonomia e pedem aprovação quando precisa.
+4. **Execute junto.** Mostre o progresso com `show_ui` (um `status` ou uma `table`). Para ações que mudam algo, use `run_command`, `browser_act` ou `code_agent_push_fix` — eles respeitam a autonomia e pedem aprovação quando precisa.
    - Para esperar algo demorado (CI, deploy, GMUD), use `schedule_followup` em vez de ficar consultando.
    - No navegador: `mcp__chrome__list_pages` → `mcp__chrome__navigate_page` → `mcp__chrome__take_snapshot` para achar os `uid`s → `browser_act`.
 5. **Guarde com `brain_learn`**, numa única chamada:
@@ -37,6 +37,6 @@ Monte o procedimento juntando as duas:
 
 1. Marque o passo como `failed` com `playbook_step` e uma nota curta.
 2. Investigue: delegue ao subagente `investigador` com um briefing completo (repo, branch, run, erro). Consulte `brain_query` por incidentes parecidos.
-3. Se for bug de código: `claude_code_prepare_fix` com o diagnóstico, depois `claude_code_push_fix`.
+3. Se for bug de código e houver agente de código configurado: `code_agent_prepare_fix` com o diagnóstico, depois `code_agent_push_fix`. Sem ele, devolva o diagnóstico a quem pediu.
 4. Se resolveu, guarde com `brain_learn` um `Incidente` (o que houve, `ocorreuEm`, `resolvidoPor`) e, se for um padrão, um playbook de correção — assim, na próxima vez, você corrige sozinho.
 5. Se não conseguiu ou é arriscado: `ask_developer` com o que você já sabe e as opções.

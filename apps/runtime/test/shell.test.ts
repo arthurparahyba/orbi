@@ -92,3 +92,40 @@ test('pendências: cada tipo tem seu handler, o mais específico primeiro', asyn
   assert.deepEqual(noteSubject({ routine: 'passage:top/publicar' }), { kind: 'passage', key: 'top/publicar' });
   assert.deepEqual(noteSubject({ routine: 'playbook:a:b' }), { kind: 'playbook', name: 'a:b' });
 });
+
+test('agente de código: o pedido vai como último argumento, ou onde está {prompt}, entre aspas', async () => {
+  const { agentLine } = await import('../src/code/code-agent.ts');
+  assert.equal(agentLine('claude -p', "corrija o 'teste'"), `claude -p 'corrija o '\\''teste'\\'''`);
+  assert.equal(agentLine('codex exec {prompt} --full-auto', 'x; rm -rf /'), `codex exec 'x; rm -rf /' --full-auto`);
+});
+
+test('agente de código de verdade (um script no lugar do claude): corrige na cópia, devolve arquivos e diff, e o push sobe', async (t) => {
+  const { findShell } = await import('../src/terminal/shell.ts');
+  const shell = findShell(process.env);
+  if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, readFileSync } = await import('node:fs');
+  const { createCodeFixer } = await import('../src/code/code-agent.ts');
+  const root = mkdtempSync(join(tmpdir(), 'orbi-agent-'));
+  const g = (cwd: string, ...a: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd, stdio: 'pipe' }).toString();
+  // A bare "origin" and a clone in the workspace, with a bug.
+  g(root, 'init', '-q', '--bare', 'origin.git');
+  const ws = join(root, 'ws');
+  g(root, 'clone', '-q', join(root, 'origin.git'), join(ws, 'app'));
+  writeFileSync(join(ws, 'app', 'soma.txt'), '1+1=3\n');
+  g(join(ws, 'app'), 'add', '.');
+  g(join(ws, 'app'), 'commit', '-qm', 'bug');
+  g(join(ws, 'app'), 'push', '-q', 'origin', 'HEAD:main');
+  // The "coding agent": fixes the file and says what it did.
+  const agent = join(root, 'agente.sh');
+  writeFileSync(agent, '#!/bin/bash\necho "1+1=2" > soma.txt\necho "corrigi a soma: $1" | head -c 40\n');
+  const fixer = createCodeFixer({ workspace: ws, scratchDir: join(root, 'scratch'), cliEnv: {}, command: `bash ${agent}`, shell: () => shell });
+  const fix = await fixer.prepare({ repo: 'org/app', branch: 'main', diagnosis: 'a soma está errada' });
+  assert.deepEqual(fix.files, ['soma.txt']);
+  assert.match(fix.diff, /\+1\+1=2/);
+  assert.match(fix.summary, /corrigi a soma/);
+  assert.match(await fixer.push(fix.id, 'Corrige a soma'), /enviado para main/);
+  const fresh = join(root, 'conferir');
+  g(root, 'clone', '-q', '-b', 'main', join(root, 'origin.git'), fresh);
+  assert.equal(readFileSync(join(fresh, 'soma.txt'), 'utf8'), '1+1=2\n');
+});

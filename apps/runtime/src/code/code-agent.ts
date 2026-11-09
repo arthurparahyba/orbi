@@ -1,15 +1,17 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import { ulid } from 'ulidx';
-import { runCommand } from '../terminal/exec.ts';
+import { runCommand, runShell } from '../terminal/exec.ts';
+import { shQuote } from '../terminal/shell.ts';
 
 /**
- * Code fixes go through Claude Code (the Claude Agent SDK), always in two steps:
- *  1. prepareFix — Claude Code edits a throwaway git worktree; nothing is pushed.
- *  2. pushFix    — after the autonomy gate (test-only vs production code), commit and push.
- * The split exists because the gate needs the list of changed files, which only
- * exists after Claude Code has worked.
+ * Code fixes by the coding agent installed on this machine (Claude Code, Codex, Copilot CLI…),
+ * run through the developer's shell: the Orbi does not ship one. Always in two steps:
+ *  1. prepare — the agent edits a throwaway git worktree; nothing is pushed.
+ *  2. push    — after the autonomy gate (test-only vs production code), commit and push.
+ * The split exists because the gate needs the list of changed files, which only exists after the
+ * agent has worked. ORBI_CODE_AGENT is the command (`claude -p`, `codex exec`): the request goes
+ * as its last argument, or where `{prompt}` is written.
  */
 export interface PreparedFix {
   id: string;
@@ -19,7 +21,6 @@ export interface PreparedFix {
   files: string[];
   diff: string;
   summary: string;
-  costUsd: number;
 }
 
 export interface CodeFixerOptions {
@@ -29,11 +30,25 @@ export interface CodeFixerOptions {
   scratchDir: string;
   /** Credentials for git (GH_TOKEN…). */
   cliEnv: Record<string, string | undefined>;
-  /** Claude Agent SDK model id. */
-  model: string;
-  /** Spend cap per fix, USD. */
-  budgetUsd: number;
+  /** The coding agent's command line, e.g. `claude -p` (ORBI_CODE_AGENT). */
+  command: string;
+  /** The developer's shell (Git Bash on Windows): read when the agent runs, so a path set later counts. */
+  shell: () => string | null;
 }
+
+/** The agent's command with the request in it: as its last argument, or where `{prompt}` is. */
+export function agentLine(command: string, prompt: string): string {
+  return command.includes('{prompt}') ? command.split('{prompt}').join(shQuote(prompt)) : `${command} ${shQuote(prompt)}`;
+}
+
+export const FIX_PROMPT = (diagnosis: string) =>
+  [
+    'Corrija o problema abaixo neste repositório. Faça a menor mudança que resolve.',
+    'Rode os testes afetados para confirmar. NÃO faça commit nem push.',
+    'No final, responda em 2–4 frases: causa, o que mudou e como validou.',
+    '',
+    diagnosis,
+  ].join('\n');
 
 export type CodeFixer = ReturnType<typeof createCodeFixer>;
 
@@ -60,36 +75,18 @@ export function createCodeFixer(opts: CodeFixerOptions) {
     const added = await git(base, ['worktree', 'add', '--detach', worktree, `origin/${input.branch}`]);
     if (added.exitCode !== 0) throw new Error(`git worktree falhou: ${added.stderr}`);
 
-    let summary = '';
-    let costUsd = 0;
-    const abortController = new AbortController();
-    signal?.addEventListener('abort', () => abortController.abort(), { once: true });
-
-    for await (const message of query({
-      prompt: [
-        'Corrija o problema abaixo neste repositório. Faça a menor mudança que resolve.',
-        'Rode os testes afetados para confirmar. NÃO faça commit nem push.',
-        'No final, responda em 2–4 frases: causa, o que mudou e como validou.',
-        '',
-        input.diagnosis,
-      ].join('\n'),
-      options: {
-        cwd: worktree,
-        model: opts.model,
-        allowedTools: ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash'],
-        disallowedTools: ['Bash(git push:*)', 'Bash(git commit:*)', 'Bash(git reset:*)', 'WebFetch', 'WebSearch'],
-        permissionMode: 'acceptEdits',
-        maxTurns: 40,
-        maxBudgetUsd: opts.budgetUsd,
-        settingSources: [],
-        abortController,
-      },
-    })) {
-      if (message.type === 'result') {
-        costUsd = message.total_cost_usd;
-        summary = message.subtype === 'success' ? message.result : `Claude Code parou: ${message.subtype}`;
-      }
-    }
+    const shell = opts.shell();
+    if (!shell) throw new Error('o agente de código roda pelo terminal, e nenhum shell foi encontrado (Git Bash no Windows)');
+    const ran = await runShell(shell, agentLine(opts.command, FIX_PROMPT(input.diagnosis)), {
+      cwd: worktree,
+      env: opts.cliEnv,
+      shell,
+      signal,
+      timeoutMs: 1_200_000,
+    });
+    const summary = ran.exitCode === 0
+      ? ran.stdout.trim().slice(-2000)
+      : `o agente de código saiu com ${ran.exitCode}${ran.timedOut ? ' (tempo esgotado)' : ''}: ${(ran.stderr || ran.stdout).trim().slice(-1500)}`;
 
     const status = await git(worktree, ['status', '--porcelain']);
     const files = status.stdout
@@ -98,7 +95,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
       .filter(Boolean);
     const diff = (await git(worktree, ['diff'])).stdout;
 
-    const fix: PreparedFix = { id, repo: input.repo, branch: input.branch, worktree, files, diff, summary, costUsd };
+    const fix: PreparedFix = { id, repo: input.repo, branch: input.branch, worktree, files, diff, summary };
     fixes.set(id, fix);
     return fix;
   }
