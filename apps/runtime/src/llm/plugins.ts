@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { delimiter, join, resolve } from 'node:path';
+import { delimiter, join, posix, resolve, win32 } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { PLUGIN_API_VERSION, type OrbiPlugin } from '@orbi/plugin-sdk';
@@ -30,6 +30,7 @@ export interface PluginInfo {
  */
 export function appDataHome(env: NodeJS.ProcessEnv = process.env, platform: string = process.platform, home = homedir()): string {
   const id = 'br.com.zup.orbi';
+  const { join } = platform === 'win32' ? win32 : posix;
   if (platform === 'win32') return join(env.APPDATA || join(home, 'AppData', 'Roaming'), id);
   if (platform === 'darwin') return join(home, 'Library', 'Application Support', id);
   return join(env.XDG_DATA_HOME || join(home, '.local', 'share'), id);

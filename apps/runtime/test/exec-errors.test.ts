@@ -13,7 +13,7 @@ test('pasta inexistente: erro diz que é a pasta, não o programa', async () => 
 test('programa ausente: erro diz qual e como instalar', async () => {
   await assert.rejects(runCommand('gh', ['--version'], { env: { PATH: '/nenhum' } }), (err: Error) => {
     assert.ok(err instanceof CommandNotFoundError);
-    assert.match(err.message, /`gh` não está instalado.*brew install gh/);
+    assert.match(err.message, /`gh` não está instalado.*(brew install gh|winget install GitHub\.cli)/);
     return true;
   });
 });
