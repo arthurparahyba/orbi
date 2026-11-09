@@ -14,12 +14,16 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
   const item = inbox.items.get(c.inboxId);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string>();
   const status = item?.status ?? 'open';
   const learning = c.category === 'aprender';
   const effect = c.effect ? EFFECT_LABEL[c.effect] : undefined;
   const act = async (d: 'approve' | 'deny') => {
     setBusy(true);
-    try { await inbox.decide(c.inboxId, d); } finally { setBusy(false); }
+    setError(undefined);
+    try { await inbox.decide(c.inboxId, d); }
+    catch (e) { setError(`Não chegou ao Orbi: ${(e as Error).message}. Tente de novo.`); }
+    finally { setBusy(false); }
   };
   return (
     <section className={`ui-card approval is-${status}`} data-inbox={c.inboxId}>
@@ -49,6 +53,7 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
       ) : (
         <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>
       )}
+      {error && <p className="small err-text" role="alert">{error}</p>}
     </section>
   );
 }

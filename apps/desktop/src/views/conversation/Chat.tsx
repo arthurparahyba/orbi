@@ -17,6 +17,7 @@ import { useFollowBottom } from './useFollowBottom';
 import { useGoTo } from './useGoTo';
 import { conversationMarkdown } from './transcript';
 import { ChatContext } from '../../components/ChatContext';
+import { useCatchUp } from './catchUp';
 
 const SUGGESTIONS = [
   'Ensinar pelo navegador',
@@ -50,8 +51,15 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
   // Not on focus nor on the fallback's ticks: the live stream reconnects by itself, and
   // reloading everything at every click into the window made the screen blink.
   const { refresh } = agent;
+  // What changes when the conversation does (a new message, a message that grew).
+  const lastMsg = visible.at(-1);
+  const signature = `${visible.length}:${lastMsg?.parts.length ?? 0}:${JSON.stringify(lastMsg?.parts.at(-1) ?? '').length}`;
+  // An answer, an approval or a message from the runtime starts a turn this screen did not:
+  // follow it even if the live stream is held back (catchUp.ts).
+  const catchUp = useCatchUp({ id, refresh, busy, signature });
   useChanges((c) => {
-    if ((c.topic === 'dispatched' && c.id === id) || (c.topic === 'hello' && c.why === 'reconnect')) void refresh();
+    if (c.topic === 'dispatched' && c.id === id) { void refresh(); catchUp.start(); }
+    else if (c.topic === 'hello' && c.why === 'reconnect') void refresh();
   });
   // Back to the front with the stream broken: recover (the only case focus matters).
   const broken = agent.status === 'error';
@@ -84,7 +92,7 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
         </button>
         <button type="button" className="icon-btn" onClick={() => setDeleting(true)} title="Apagar conversa" aria-label="Apagar conversa"><TrashIcon size={15} /></button>
         <span className={`pill pill-${busy ? 'running' : agent.status === 'error' ? 'failed' : 'idle'}`}>
-          {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : !agent.historyReady ? 'Carregando…' : 'Pronto'}
+          {busy || catchUp.catchingUp ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : !agent.historyReady ? 'Carregando…' : 'Pronto'}
         </span>
       </header>
       {deleting && (

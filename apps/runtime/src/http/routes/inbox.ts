@@ -24,7 +24,8 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServ
       const { decision, approver = 'Desenvolvedor' } = await body(c, Decision);
       const item = open(c.req.param('id'));
       if (!item.approvalId || item.kind === 'level') throw new HttpError(409, 'conflict', 'este item não é uma aprovação');
-      inbox.resolve(item.id, decision === 'approve' ? 'approved' : 'denied');
+      // Delivered first, marked after: if the message cannot reach the conversation, the card
+      // stays open with the error instead of saying "decided" while nothing happens.
       const receipt = await tellAgent(events, agent, {
         id: item.conversationId,
         message: {
@@ -34,6 +35,7 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServ
           attributes: { approvalId: item.approvalId, decision, approver },
         },
       });
+      inbox.resolve(item.id, decision === 'approve' ? 'approved' : 'denied');
       return c.json(receipt, 202);
     })
     // A note that only informs (a level or a passage changed): seen.
@@ -59,8 +61,8 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines }: OrbiServ
       const { text } = await body(c, Answer);
       const item = open(c.req.param('id'));
       if (item.kind !== 'question') throw new HttpError(409, 'conflict', 'este item não é uma pergunta');
-      inbox.resolve(item.id, 'answered', text);
       const receipt = await tellAgent(events, agent, { id: item.conversationId, message: { kind: 'user', body: text } });
+      inbox.resolve(item.id, 'answered', text);
       return c.json(receipt, 202);
     })
     .post('/:id/secret', async (c) => {

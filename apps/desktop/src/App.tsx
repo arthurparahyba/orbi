@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { announceSent } from './views/conversation/catchUp';
 import { api, type InboxItem } from './api';
 import { useLive, usePoll } from './hooks';
 import { BrainIcon, ChatIcon, DialIcon, OrbiIcon, PipelineIcon, PlugIcon } from './components/Icons';
@@ -24,8 +25,20 @@ export function App() {
   const [focus, setFocus] = useState<{ id: string } | undefined>();
   const openConversation = (id: string) => { setFocus({ id }); setScreen('conversa'); };
 
-  const decide = useCallback(async (id: string, d: 'approve' | 'deny') => { await api.decide(id, d); await inbox.reload(); }, [inbox.reload]);
-  const answer = useCallback(async (id: string, t: string) => { await api.answer(id, t); await inbox.reload(); }, [inbox.reload]);
+  // The conversation the answer or decision went to follows the turn it starts (catchUp.ts).
+  const conversationOf = (id: string) => inbox.data?.find((i) => i.id === id)?.conversationId;
+  const decide = useCallback(async (id: string, d: 'approve' | 'deny') => {
+    await api.decide(id, d);
+    const conv = conversationOf(id);
+    if (conv) announceSent(conv);
+    await inbox.reload();
+  }, [inbox.reload, inbox.data]);
+  const answer = useCallback(async (id: string, t: string) => {
+    await api.answer(id, t);
+    const conv = conversationOf(id);
+    if (conv) announceSent(conv);
+    await inbox.reload();
+  }, [inbox.reload, inbox.data]);
   const actions = useMemo<InboxActions>(
     () => ({ items: new Map((inbox.data ?? []).map((i) => [i.id, i])), decide, answer }),
     [inbox.data, decide, answer],

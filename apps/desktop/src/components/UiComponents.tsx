@@ -173,11 +173,22 @@ function Question({ c }: { c: Extract<UiComponent, { component: 'question' }> })
   const inbox = useContext(InboxContext);
   const item = inbox.items.get(c.inboxId);
   const [text, setText] = useState('');
+  const [error, setError] = useState<string>();
+  const [sending, setSending] = useState(false);
   const answered = item && item.status !== 'open';
   const send = async (value: string) => {
-    if (!value.trim()) return;
-    await inbox.answer(c.inboxId, value.trim());
-    setText('');
+    if (!value.trim() || sending) return;
+    setSending(true);
+    setError(undefined);
+    try {
+      await inbox.answer(c.inboxId, value.trim());
+      setText('');
+    } catch (e) {
+      // The answer did not reach the Orbi: the card stays open (nothing silently lost).
+      setError(`Não chegou ao Orbi: ${(e as Error).message}. Tente de novo.`);
+    } finally {
+      setSending(false);
+    }
   };
   return (
     <section className={`ui-card question ${answered ? 'is-answered' : ''}`} data-inbox={c.inboxId}>
@@ -201,6 +212,7 @@ function Question({ c }: { c: Extract<UiComponent, { component: 'question' }> })
           </form>
         </>
       )}
+      {error && <p className="small err-text" role="alert">{error}</p>}
     </section>
   );
 }

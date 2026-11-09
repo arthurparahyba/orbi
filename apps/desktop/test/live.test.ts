@@ -98,3 +98,14 @@ describe('abertura do app', () => {
     expect(booted({ health: { model: 'x' }, inbox: [] })).toBe(true);
   });
 });
+
+import { checkStep, nextDelay } from '../src/views/conversation/catchUp';
+describe('acompanhar o turno depois de responder ou aprovar', () => {
+  it('não recarrega se a tela já está mudando; recarrega se nada chegou; termina quando chegou e parou', () => {
+    expect(checkStep({ moved: true, busy: true, arrived: true, reloadedLast: false })).toBe('watch');
+    expect(checkStep({ moved: false, busy: false, arrived: false, reloadedLast: true })).toBe('reload');
+    expect(checkStep({ moved: false, busy: true, arrived: true, reloadedLast: true })).toBe('reload');
+    expect(checkStep({ moved: false, busy: false, arrived: true, reloadedLast: true })).toBe('done');
+    expect([3000, nextDelay(3000), nextDelay(9000)]).toEqual([3000, 4500, 10000]);
+  });
+});
