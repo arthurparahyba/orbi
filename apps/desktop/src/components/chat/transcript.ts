@@ -46,6 +46,8 @@ function component(c: UiComponent): string {
       return `**O Orbi pediu uma credencial:** \`{{segredo:${c.name}}}\` (${c.description || c.reason}). O valor vai direto ao cofre.`;
     case 'learning':
       return [`**Aprendizado proposto: ${c.title}**`, ...c.items.map((i) => `- ${i.kind}: ${i.summary}`)].join('\n');
+    case 'code_change':
+      return [`**${c.title}** (${c.alone ? 'seguiu sozinho' : 'aprovada'}) · ${c.repo} · ${c.branch} · commit ${c.commit}`, `- O quê: ${c.files.join(', ')}`, `- Por quê: ${c.why}`, `- Quem: ${c.agent}`].join('\n');
   }
 }
 

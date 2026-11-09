@@ -23,10 +23,12 @@ export interface GatedTool<T extends v.GenericSchema<Record<string, unknown>>> {
   effect?: (args: v.InferOutput<T>) => Effect;
   /** What makes two calls "the same action" across runs (default: name and arguments, without purpose). */
   fingerprint?: (args: v.InferOutput<T>) => string;
+  /** Asks even where the level or the global rule would run it alone (e.g. investigating an error nobody knows). */
+  alwaysAsk?: (args: v.InferOutput<T>) => boolean;
   /** Problems found before deciding (invalid input): the model fixes them; nothing is asked or run. */
   precheck?: (args: v.InferOutput<T>) => string[];
-  /** The effect itself: runs now, or later when the developer approves. */
-  execute: (args: v.InferOutput<T>, approvalId: string) => Promise<string>;
+  /** The effect itself: runs now (`auto`), or later when the developer approves (`approved`). */
+  execute: (args: v.InferOutput<T>, approvalId: string, how: 'auto' | 'approved') => Promise<string>;
   timeoutMs?: number;
 }
 

@@ -14,7 +14,7 @@ export interface ToolCall {
 const LABEL: Record<string, string> = {
   run_command: 'Comando', run_readonly_command: 'Comando (leitura)', run_python: 'Script Python', run_script: 'Script do procedimento', run_shell: 'Terminal', brain_query: 'Consulta ao cérebro',
   brain_learn: 'Aprender', browser_read: 'Navegador (leitura)', browser_act: 'Ação no navegador', playbook_start: 'Iniciar procedimento',
-  playbook_step: 'Passo do procedimento', code_agent_prepare_fix: 'Agente de código: preparar correção', code_agent_push_fix: 'Agente de código: enviar correção',
+  playbook_step: 'Passo do procedimento', code_agent_investigate: 'Agente de código: investigar', code_agent_fix_known: 'Agente de código: corrigir problema conhecido', code_agent_push_fix: 'Agente de código: aplicar correção', code_agent_discard_fix: 'Agente de código: descartar correção',
   show_ui: 'Interface', ask_developer: 'Pergunta', schedule_followup: 'Agendar retorno', task: 'Subagente', playbook_similar: 'Procurar o que já sei',
   agent_reply: 'Resposta ao agente', ask_secret: 'Pedir credencial', pipeline_start: 'Começar esteira', pipeline_provide: 'Dados da etapa',
 };
@@ -84,7 +84,7 @@ export const commandFailed = (t: ToolCall) => {
   return !!r && (r.timedOut === true || (r.exitCode !== 0 && r.exitCode !== undefined));
 };
 
-export interface KnownProblemView { id: string; sintoma: string; causa?: string; solucao: string; onde?: string }
+export interface KnownProblemView { id: string; sintoma: string; causa?: string; solucao: string; onde?: string; quemCorrige?: string; conferir?: string }
 /** Known problems of the brain the runtime found for a failed command. */
 export const knownProblemsOf = (t: ToolCall): KnownProblemView[] => commandResult(t)?.knownProblems ?? [];
 

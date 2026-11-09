@@ -349,7 +349,7 @@ histórico do Flue foi limpo (`purged_at`).
 
 | Coluna | O quê |
 | --- | --- |
-| `kind` | `approval`, `question`, `learning`, `secret`, `pipeline` ou `level` (aviso que só informa) |
+| `kind` | `approval`, `question`, `learning`, `secret`, `pipeline`, `level` ou `code-change` (avisos que só informam) |
 | `conversation_id`, `title`, `detail` | Onde e o quê |
 | `approval_id`, `routine` | Ligação com o portão de autonomia. Num aviso `level`: `routine` é o que mudou (`playbook:nome`, `passage:esteira/etapa`) e `approval_id` o valor de antes, para o Manter |
 | `status` | `open`, `approved`, `denied` ou `answered` |

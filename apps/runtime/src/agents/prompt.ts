@@ -3,6 +3,7 @@ import procedimento from '../prompts/orbi/procedimento.md?raw';
 import falhas from '../prompts/orbi/falhas.md?raw';
 import esteiras from '../prompts/orbi/esteiras.md?raw';
 import agentes from '../prompts/orbi/agentes.md?raw';
+import correcao from '../prompts/orbi/agentes-de-codigo.md?raw';
 
 /** What the runtime knows about the conversation when the turn starts. */
 export interface Situation {
@@ -16,6 +17,8 @@ export interface Situation {
   delivery: boolean;
   /** A coding agent asked for this conversation over MCP. */
   agentRequest: boolean;
+  /** A coding agent of this machine can investigate or fix (Autonomia › Agentes de código). */
+  codeAgents?: boolean;
 }
 
 /** One part of the instructions, sent only when its situation exists. */
@@ -38,6 +41,7 @@ export const PROMPT_PARTS: readonly PromptPart[] = [
   { id: 'falhas', when: (s) => s.activeRun || s.lastToolFailed, text: falhas },
   { id: 'esteiras', when: (s) => s.pipelines > 0 || s.delivery, text: esteiras },
   { id: 'agentes', when: (s) => s.agentRequest, text: agentes },
+  { id: 'correcao-de-codigo', when: (s) => !!s.codeAgents && (s.activeRun || s.lastToolFailed), text: correcao },
 ];
 
 export function promptParts(s: Situation, parts: readonly PromptPart[] = PROMPT_PARTS): PromptPart[] {
@@ -50,3 +54,6 @@ export function composePrompt(s: Situation, parts: readonly PromptPart[] = PROMP
 
 /** What a procedure needs to know when it starts (in playbook_start's output: the prompt of this turn didn't have it). */
 export const RUN_RULES = `${procedimento.trim()}\n\n${falhas.trim()}`;
+
+/** The same, when a coding agent can fix code here. */
+export const RUN_RULES_WITH_CODE = `${RUN_RULES}\n\n${correcao.trim()}`;

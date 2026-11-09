@@ -5,6 +5,7 @@ import { runCommand, runShell } from '../terminal/exec.ts';
 import { agentLine } from './command.ts';
 import type { CodeAgents } from './registry.ts';
 import type { CodeAgentTask } from './types.ts';
+import type { KnownProblem } from '../brain/domain/knowledge.ts';
 
 /**
  * Work by a coding agent installed on this machine (registered in code-agents/registry.ts), run
@@ -27,6 +28,8 @@ export interface PreparedFix {
   agent: string;
   model: string | null;
   task: CodeAgentTask;
+  /** The known problem this fix applies, when it is one (the brain's entity id). */
+  problem?: string;
 }
 
 export interface CodeFixerOptions {
@@ -42,11 +45,21 @@ export interface CodeFixerOptions {
   shell: () => string | null;
 }
 
-export const FIX_PROMPT = (diagnosis: string) =>
+export const FIX_PROMPT = (diagnosis: string, problem?: KnownProblem) =>
   [
     'Corrija o problema abaixo neste repositório. Faça a menor mudança que resolve.',
     'Rode os testes afetados para confirmar. NÃO faça commit nem push.',
     'No final, responda em 2–4 frases: causa, o que mudou e como validou.',
+    ...(problem
+      ? [
+          '',
+          'Este problema já aconteceu e foi resolvido assim (problema conhecido):',
+          `- sintoma: ${problem.sintoma}`,
+          ...(problem.causa ? [`- causa: ${problem.causa}`] : []),
+          `- solução: ${problem.solucao}`,
+          ...(problem.conferir ? [`- antes de terminar, confira: ${problem.conferir}`] : []),
+        ]
+      : []),
     '',
     diagnosis,
   ].join('\n');
@@ -62,7 +75,6 @@ export const INVESTIGATE_PROMPT = (diagnosis: string) =>
     diagnosis,
   ].join('\n');
 
-const PROMPTS: Record<CodeAgentTask, (diagnosis: string) => string> = { investigar: INVESTIGATE_PROMPT, corrigir: FIX_PROMPT };
 
 export type CodeFixer = ReturnType<typeof createCodeFixer>;
 
@@ -79,7 +91,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
   const git = (cwd: string, args: string[], timeoutMs = 60_000) =>
     runCommand('git', args, { cwd, env: opts.cliEnv, timeoutMs, allowed: ['git'] });
 
-  async function prepare(input: { repo: string; branch: string; diagnosis: string; task?: CodeAgentTask }, signal?: AbortSignal): Promise<PreparedFix> {
+  async function prepare(input: { repo: string; branch: string; diagnosis: string; task?: CodeAgentTask; problem?: KnownProblem }, signal?: AbortSignal): Promise<PreparedFix> {
     const task = input.task ?? 'corrigir';
     const chosen = opts.agents.forTask(task) ?? opts.agents.forTask(task === 'corrigir' ? 'investigar' : 'corrigir');
     if (!chosen) throw new Error('nenhum agente de código cadastrado para esta tarefa (Autonomia › Agentes de código)');
@@ -94,7 +106,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
 
     const shell = opts.shell();
     if (!shell) throw new Error(`${chosen.agent.name} roda pelo terminal, e nenhum shell foi encontrado (Git Bash no Windows)`);
-    const ran = await runShell(shell, agentLine(chosen.agent.command, PROMPTS[task](input.diagnosis), chosen.model), {
+    const ran = await runShell(shell, agentLine(chosen.agent.command, task === 'investigar' ? INVESTIGATE_PROMPT(input.diagnosis) : FIX_PROMPT(input.diagnosis, input.problem), chosen.model), {
       cwd: worktree,
       env: opts.cliEnv,
       shell,
@@ -112,7 +124,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
       .filter(Boolean);
     const diff = (await git(worktree, ['diff'])).stdout;
 
-    const fix: PreparedFix = { id, repo: input.repo, branch: input.branch, worktree, files, diff, summary, agent: chosen.agent.name, model: chosen.model, task };
+    const fix: PreparedFix = { id, repo: input.repo, branch: input.branch, worktree, files, diff, summary, agent: chosen.agent.name, model: chosen.model, task, ...(input.problem ? { problem: input.problem.id } : {}) };
     fixes.set(id, fix);
     return fix;
   }

@@ -10,7 +10,7 @@ export interface ConversationInfo {
 }
 export interface ConversationOrigin { agent: string; requestId: string; procedure: string | null; repo?: string; branch?: string; session?: string }
 export interface InboxItem {
-  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level'; conversationId: string; title: string; detail: string;
+  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change'; conversationId: string; title: string; detail: string;
   approvalId?: string; routine?: string; createdAt: string; status: 'open' | 'approved' | 'denied' | 'answered';
   /** What the developer answered, for answered questions. */
   answer?: string;

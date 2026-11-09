@@ -8,15 +8,19 @@ As "mãos" do Orbi fora do navegador:
   por exemplo para disparar um workflow, ver um run, abrir um PR ou ler logs.
 - **Investigação**: quando algo falha, um subagente lê logs, diffs e páginas e
   devolve só o diagnóstico.
-- **Correção de código**: o Claude Code corrige o bug num lugar descartável; o
-  commit e o push só acontecem depois, pelo portão de autonomia.
+- **Correção de código**: um agente de código da máquina (Claude Code, Cursor,
+  Devin…) investiga ou corrige o bug numa cópia descartável; o commit e o push
+  só acontecem depois, pelo portão de autonomia. Quem faz cada tarefa, e com qual
+  modelo, fica em **Autonomia → Agentes de código** (documento 17).
 
 ## Onde aparece
 
 - Na conversa, como linhas de ferramenta ("Comando", "Python", "Subagente",
-  "Claude Code: preparar correção") e, quando muda algo, como cartão de aprovação
-  ("git push origin main", "Subir correção: corrige teste de data").
+  "Agente de código: investigar") e, quando muda algo, como cartão de aprovação
+  ("git push origin main", "Aplicar a correção em acme/loja (feature/x)").
 - Na correção, o cartão de aprovação mostra os arquivos e o diff antes do push.
+- Depois de aplicada, o cartão **Houve correção de código** (o quê, por quê, quem,
+  commit, ver diff). Se seguiu sozinha, ela fica em Pendências até você marcar Visto.
 - Na **tela Autonomia → Capacidades**: quais comandos foram achados no PATH e se
   a correção de código está ligada.
 
@@ -113,36 +117,54 @@ inteiro fica com ele; a conversa principal recebe só o diagnóstico.
 
 ### Correção pelo agente de código da máquina
 
+Só existe com um agente cadastrado (documento 17). Há dois caminhos, pela
+situação:
+
 ```mermaid
 sequenceDiagram
   participant Orbi as Modelo (Orbi)
-  participant Prep as code_agent_prepare_fix
-  participant CC as Agente de código (ORBI_CODE_AGENT, pelo terminal)
-  participant WT as Worktree descartável
+  participant Ag as Agente de código (pelo terminal, sem janela)
+  participant WT as Cópia descartável (worktree)
   participant Portao as Portão
   actor Voce as Você
-  participant Push as code_agent_push_fix
 
-  Orbi->>Prep: repo, branch, diagnóstico
-  Prep->>WT: git worktree add origin/<branch>
-  Prep->>CC: corrigir, rodar os testes afetados, NÃO commitar
-  CC->>WT: lê, edita, roda testes
-  Prep-->>Orbi: id, arquivos alterados, diff, resumo do agente
-  Orbi->>Push: id, mensagem de commit
-  Push->>Portao: só arquivos de teste = codigo-teste, senão codigo-producao
-  Portao-->>Voce: cartão com arquivos e diff (se "perguntar")
-  Voce->>Portao: Aprovar
-  Portao->>Push: commit e push para a branch, remove o worktree
+  alt erro que ninguém conhece
+    Orbi->>Portao: code_agent_investigate (repo, branch, diagnóstico)
+    Portao-->>Voce: sempre pede
+    Voce->>Portao: Aprovar
+    Portao->>Ag: agente e modelo da tarefa investigar, na cópia
+  else problema conhecido com quem_corrige = agente de código
+    Orbi->>Portao: code_agent_fix_known (problema, repo, branch, erro)
+    Portao->>Ag: o nível decide (N1 pede); agente e modelo da tarefa corrigir
+  end
+  Ag->>WT: reproduz, edita, roda os testes, sem commit
+  Ag-->>Orbi: fixId, arquivos, diff, o que tentou
+  Orbi->>Portao: code_agent_push_fix
+  Portao-->>Voce: correção de investigação sempre pede; conhecida segue o nível e as regras de código
+  Portao->>WT: commit do Orbi e push para a branch da entrega
+  Orbi->>Orbi: roda de novo o passo que falhou
 ```
 
-- **Dois passos de propósito**: o portão precisa saber quais arquivos mudaram, e
-  isso só existe depois que o Claude Code trabalhou.
-- **Limites do Claude Code**: roda no worktree, pode ler, editar e rodar comandos,
-  mas `git commit`, `git push`, `git reset` e acesso à web são proibidos. Há um
-  teto de gasto por correção.
-- **Teste × produção**: correção só em arquivos de teste é automática por padrão;
-  em código de produção, pede aprovação sempre, mesmo dentro de um procedimento
-  em "Automático".
+- **Erro novo** (nenhum problema conhecido serve): investigar **sempre pede**, e
+  aplicar o que a investigação achou também, mesmo com "Comandos que alteram algo"
+  em automático ou um procedimento no N3 (`alwaysAsk` no portão).
+- **Problema conhecido**: um problema do cérebro com `quem_corrige: agente de
+  código` (e `conferir`, como checar antes de aplicar). A correção é delegada com
+  a solução e a conferência no pedido. Preparar é uma ação local, e aplicar na
+  branch da entrega também conta como local (desfaz com revert, e a CI confere):
+  as duas viram ações conhecidas do procedimento. No N1 pedem; no N2 e no N3
+  seguem sozinhas. Na `main` (ou `master`, `develop`), aplicar sempre publica.
+- **O teto continua sendo a regra global**: aplicar em código de produção segue
+  "Agente de código: corrigir código de produção" (padrão: perguntar), que nenhum
+  nível sobrepõe. Para a correção conhecida seguir sozinha em código de
+  produção, ponha essa regra em Automático. Só testes: "corrigir testes".
+- **Aviso**: correção que seguiu sozinha vira o cartão **Houve correção de
+  código** e um item em Pendências (**Para você saber**) até você marcar Visto.
+- **Vira conhecimento**: quando uma correção de investigação passou, a revisão no
+  fim da execução pede o problema conhecido com `quem_corrige` e `conferir`
+  (cartão de aprendizado). Na próxima vez, é o caminho do problema conhecido.
+- O agente nunca faz commit nem push, não vê credenciais e não grava no cérebro.
+  `code_agent_discard_fix` apaga a cópia.
 
 ## Peças
 
@@ -152,15 +174,17 @@ sequenceDiagram
 | `apps/runtime/src/agents/tools/terminal.ts` | `run_command` (portão), `run_readonly_command`, `run_python` |
 | `apps/runtime/src/agents/tools/scripts.ts` | `run_script` (portão): scripts do procedimento |
 | `apps/runtime/src/subagents/investigador.ts` + `prompts/investigador.md` | O investigador |
-| `apps/runtime/src/code/code-agent.ts` | Preparar (worktree + o agente da máquina pelo shell) e subir a correção |
-| `apps/runtime/src/agents/tools/code.ts` | As duas ferramentas de correção |
+| `apps/runtime/src/code-agents/fixer.ts` | Preparar (worktree + o agente da tarefa pelo shell), subir e descartar |
+| `apps/runtime/src/agents/tools/code.ts` | `code_agent_investigate`, `code_agent_fix_known`, `code_agent_push_fix`, `code_agent_discard_fix` |
+| `apps/runtime/src/prompts/orbi/agentes-de-codigo.md` | Quando investigar e quando delegar (parte do prompt, só com agente cadastrado) |
+| `apps/desktop/src/components/ui/CodeChange.tsx` | O cartão "Houve correção de código" |
 | `apps/runtime/src/autonomy/policy.ts` | Leitura × escrita; teste × produção |
 
 ## Tecnologias
 
 - **`node:child_process`** (`spawn` sem shell).
 - **Subagentes do Flue** (`defineSubagent`).
-- O Orbi **não leva agente de código**: usa o que estiver instalado (Claude Code, Codex, Copilot CLI…), pelo comando em `ORBI_CODE_AGENT`, rodado no shell do desenvolvedor dentro da cópia descartável. Pedir a correção é um comando local (pede como qualquer comando novo); subir segue `codigo-teste` ou `codigo-producao`. Sem agente configurado, as ferramentas não existem e o Orbi devolve o diagnóstico a quem pediu.
+- O Orbi **não leva agente de código**: usa os que estiverem instalados e cadastrados (documento 17), rodados no shell do desenvolvedor, sem janela, dentro da cópia descartável. Sem agente cadastrado, as ferramentas não existem e o Orbi devolve o diagnóstico a quem pediu.
 - **git worktree** para corrigir sem tocar no clone principal.
 
 ## Configuração

@@ -33,8 +33,10 @@ daquilo acontece, e o Orbi encerra o turno em vez de ficar esperando.
 Os tipos de pendência na tabela `inbox_items`: `approval` e `learning` nascem no
 **portão de autonomia**; `question` e `secret`, das ferramentas que perguntam;
 `pipeline`, do motor da esteira; `level`, do fim de uma execução que mudou um
-nível (documento 3). `level` só informa: não conta como "esperando você", não
-deixa um pedido de agente em "esperando" e não aceita `/decision`.
+nível (documento 3); `code-change`, de uma correção de código que seguiu sozinha
+(documento 10). `level` e `code-change` só informam: não contam como "esperando
+você", não deixam um pedido de agente em "esperando" e não aceitam `/decision`
+(`code-change` só tem Visto).
 
 ```mermaid
 sequenceDiagram

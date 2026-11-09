@@ -110,6 +110,22 @@ export const UiComponent = v.variant('component', [
     items: v.array(v.object({ kind: v.string(), summary: v.string() })),
     inboxId: v.string(),
   }),
+  v.object({
+    /** A code change the Orbi applied (Pontos importantes): what, why, who, and whether it went alone. */
+    component: v.literal('code_change'),
+    id: v.string(),
+    title: v.string(),
+    repo: v.string(),
+    branch: v.string(),
+    commit: v.string(),
+    files: v.array(v.string()),
+    why: v.string(),
+    agent: v.string(),
+    /** Applied without asking (level + known problem), so the developer is told. */
+    alone: v.boolean(),
+    diff: v.optional(v.string()),
+    inboxId: v.optional(v.string()),
+  }),
 ]);
 
 export type UiComponent = v.InferOutput<typeof UiComponent>;

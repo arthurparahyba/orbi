@@ -6,7 +6,7 @@ import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
 import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
-import { RUN_RULES } from '../prompt.ts';
+import { RUN_RULES, RUN_RULES_WITH_CODE } from '../prompt.ts';
 
 /** The playbook running in this conversation, kept across turns. */
 export function useActiveRun() {
@@ -25,9 +25,9 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
   return [...playbooks].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, Math.max(0, size));
 }
 
-export const playbooks = defineCapability({ name: 'playbooks', needs: ['brain', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config'], register: usePlaybooks });
+export const playbooks = defineCapability({ name: 'playbooks', needs: ['brain', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents'], register: usePlaybooks });
 
-function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes, inbox, config }: Deps<'brain' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config'>) {
+function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes, inbox, config, codeAgents }: Deps<'brain' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents'>) {
 
   const showRun = (runId: string) => {
     const run = brain.run(runId);
@@ -82,9 +82,9 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       const steps = run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how }));
       const level = pb.autonomy === 'observe' ? 'só observar' : LEVEL_NAMES[pb.level];
       // This turn's prompt was built before the run existed: the rules for running come here.
-      if (!pb.outputs.length) return { output: { runId: run.id, autonomy: level, steps, regras: RUN_RULES } };
+      if (!pb.outputs.length) return { output: { runId: run.id, autonomy: level, steps, regras: codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES } };
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
-      return { output: { runId: run.id, autonomy: level, steps, outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.', regras: RUN_RULES } };
+      return { output: { runId: run.id, autonomy: level, steps, outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.', regras: codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES } };
     },
   });
 

@@ -36,3 +36,9 @@ test('o playbook_start leva as regras de execução', () => {
   assert.match(RUN_RULES, /playbook_step/);
   assert.match(RUN_RULES, /knownProblems/);
 });
+
+test('correção de código só entra com agente cadastrado e algo rodando ou falhando', () => {
+  assert.deepEqual(ids({ codeAgents: true }), ['base'], 'conversa simples não leva');
+  assert.deepEqual(ids({ codeAgents: true, lastToolFailed: true }), ['base', 'falhas', 'correcao-de-codigo']);
+  assert.deepEqual(ids({ activeRun: true }), ['base', 'procedimento', 'falhas'], 'sem agente, não leva');
+});

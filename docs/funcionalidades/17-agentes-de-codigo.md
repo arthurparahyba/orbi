@@ -103,6 +103,29 @@ modelo. O agente não faz commit nem push; não vê credenciais; não grava no
 cérebro. Subir é outro passo, pelo portão (`code_agent_push_fix`), e descartar
 remove a cópia.
 
+### No fluxo: investigar e corrigir
+
+Com um agente cadastrado, o Orbi ganha as ferramentas de correção e a parte
+"Correção de código" do prompt (só quando há procedimento rodando ou uma
+ferramenta falhou). As regras por nível estão no documento 10:
+
+| Situação | N1 | N2 | N3 |
+| --- | --- | --- | --- |
+| Investigar um erro sem conhecimento | pede | pede | pede |
+| Aplicar a correção que a investigação achou | pede | pede | pede |
+| Corrigir um problema conhecido (preparar e aplicar na branch da entrega) | pede | segue e avisa | segue e avisa |
+
+A regra global "Agente de código: corrigir código de produção" continua sendo o
+teto: com ela em Perguntar (o padrão), aplicar em código de produção pede em
+qualquer nível.
+
+Correção que seguiu sozinha aparece no cartão **Houve correção de código** e em
+Pendências (**Para você saber**, item `code-change`) até você marcar Visto.
+
+Quando uma correção de investigação passou, a revisão do fim da execução pede o
+**problema conhecido** com `quem_corrige: agente de código` e `conferir`; aprovado,
+na próxima vez é o caminho do problema conhecido.
+
 ## Peças
 
 | Peça | Arquivo |
@@ -111,7 +134,9 @@ remove a cópia.
 | Cadastro e tarefas | `apps/runtime/src/code-agents/registry.ts` (`CodeAgents`) |
 | Teste do agente | `apps/runtime/src/code-agents/tester.ts` |
 | Executor na cópia | `apps/runtime/src/code-agents/fixer.ts` |
-| Ferramentas do Orbi | `apps/runtime/src/agents/tools/code.ts` |
+| Ferramentas do Orbi | `apps/runtime/src/agents/tools/code.ts` (investigar, corrigir conhecido, aplicar, descartar) |
+| Parte do prompt | `apps/runtime/src/prompts/orbi/agentes-de-codigo.md` |
+| Aviso em Pendências | `apps/runtime/src/inbox/code-change.ts`; cartão `apps/desktop/src/components/ui/CodeChange.tsx` |
 | Agente do chat de configuração | `apps/runtime/src/agents/configurador.ts`, `configurador-capabilities.ts`, `prompts/configurador/agentes-de-codigo.md` |
 | Ferramentas do chat | `apps/runtime/src/agents/tools/code-agent-setup.ts`, `code-agents/discovery.ts` |
 | Qual agente responde a conversa | `apps/runtime/src/agents/directory.ts` |
@@ -147,4 +172,7 @@ Mudanças viram o evento `code-agents`. O chat fala com `/agents/configurador/co
 - `apps/runtime/test/flow-config-agents.test.ts`: o chat é outro agente (prompt
   e ferramentas próprios), o cadastro só vale depois do cartão, a aprovação volta
   para ele, e um comando com dois programas volta como problema.
+- `apps/runtime/test/flow-code-fix.test.ts`: erro novo pede para investigar e
+  para aplicar, mesmo com tudo em automático; problema conhecido segue sozinho,
+  faz o push na branch da entrega e avisa em Pendências.
 - `apps/desktop/test/codeAgents.test.ts`: situação, tarefas, catálogo e modelos.

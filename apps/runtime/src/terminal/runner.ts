@@ -61,7 +61,7 @@ export function afterCommand(brain: Pick<BrainStore, 'knownProblems' | 'noteComm
   brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0 });
   if (!known.length) return {};
   return {
-    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}) })),
+    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}), ...(p.quemCorrige ? { quemCorrige: p.quemCorrige } : {}), ...(p.conferir ? { conferir: p.conferir } : {}) })),
     hint: 'Problema conhecido no cérebro: siga a solução dele antes de investigar do zero.',
   };
 }

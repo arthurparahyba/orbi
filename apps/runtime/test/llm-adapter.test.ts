@@ -73,7 +73,7 @@ test('o agente roda num adaptador próprio: prompt, ferramentas, chamada e resul
   assert.match(first.system, /Você é o Orbi/);
   const tools = first.tools.map((t) => t.name);
   for (const t of ['brain_query', 'brain_learn', 'run_command', 'ask_developer']) assert.ok(tools.includes(t), `ferramenta ${t} oferecida`);
-  assert.ok(!tools.includes('code_agent_prepare_fix'), 'sem agente de código configurado, sem a ferramenta');
+  assert.ok(!tools.includes('code_agent_investigate') && !tools.includes('code_agent_push_fix'), 'sem agente de código configurado, sem as ferramentas');
   assert.equal(first.tools.find((t) => t.name === 'brain_query')!.parameters.type, 'object', 'parâmetros em JSON Schema');
   assert.equal(first.messages.at(-1)?.role, 'user');
 

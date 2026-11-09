@@ -16,7 +16,7 @@ import { composePrompt } from './prompt.ts';
 export function Orbi({ id }: { id: string }) {
   // The edge: the conversation reads the Orbi's parts once and hands each capability what it declared.
   const all = services();
-  const { config, brain, vault, pipelines, agents, toolOutcomes } = all;
+  const { config, brain, vault, pipelines, agents, toolOutcomes, codeAgents } = all;
   useModel(config.model, { thinkingLevel: 'low' });
   useMcpConnection(all.browser.connection);
   useSubagent({ ...investigadorFor(all), model: config.model });
@@ -32,6 +32,7 @@ export function Orbi({ id }: { id: string }) {
     pipelines: defs.length,
     delivery: !!delivery && (delivery.status === 'running' || delivery.status === 'waiting'),
     agentRequest: !!agents.requests.byConversation(id),
+    codeAgents: codeAgents.available(),
   });
   // Names only: the values never reach the model.
   const secrets = vault.list().map((x) => `{{segredo:${x.name}}}${x.description ? ` (${x.description})` : ''}`);

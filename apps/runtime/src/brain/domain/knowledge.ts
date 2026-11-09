@@ -3,7 +3,9 @@
  * pipeline, coverage below the minimum) and how it was solved. They live in the brain as facts,
  * of whatever type the Orbi created for them, so the same problem serves every procedure that
  * runs into it. What makes an entity a known problem is its shape: a `sintoma` (what shows up)
- * and a `solucao` (what solves it), with `causa` and `onde` when known. Pure rules.
+ * and a `solucao` (what solves it), with `causa` and `onde` when known. A problem solved in code
+ * says who fixes it (`quem_corrige`: the coding agent) and how to check before applying (`conferir`).
+ * Pure rules.
  */
 import type { Entity } from './types.ts';
 import type { Deviation } from './levels.ts';
@@ -16,6 +18,10 @@ export interface KnownProblem {
   causa?: string;
   solucao: string;
   onde?: string;
+  /** Who fixes it, e.g. "agente de código": the Orbi delegates the fix (code_agent_fix_known). */
+  quemCorrige?: string;
+  /** How to check a fix before applying it (e.g. the test command). */
+  conferir?: string;
 }
 
 const prop = (props: Record<string, unknown>, ...names: string[]): string | undefined => {
@@ -33,7 +39,14 @@ export function asKnownProblem(e: Entity): KnownProblem | undefined {
   if (!sintoma || !solucao) return undefined;
   const causa = prop(e.props, 'causa', 'cause');
   const onde = prop(e.props, 'onde', 'where', 'passo');
-  return { id: e.id, type: e.type, sintoma, solucao, ...(causa ? { causa } : {}), ...(onde ? { onde } : {}) };
+  const quemCorrige = prop(e.props, 'quem_corrige', 'quemcorrige', 'corrige_com', 'fixed_by');
+  const conferir = prop(e.props, 'conferir', 'como_conferir', 'check');
+  return { id: e.id, type: e.type, sintoma, solucao, ...(causa ? { causa } : {}), ...(onde ? { onde } : {}), ...(quemCorrige ? { quemCorrige } : {}), ...(conferir ? { conferir } : {}) };
+}
+
+/** Whether the problem is fixed in code by the coding agent (the Orbi delegates, it does not edit). */
+export function fixedByCodeAgent(p: Pick<KnownProblem, 'quemCorrige'>): boolean {
+  return /agente|agent/i.test(p.quemCorrige ?? '');
 }
 
 const stems = (text: string) => new Set(words(text).map(stem));

@@ -28,6 +28,7 @@ export const INBOX_KINDS: Record<InboxItem['kind'], InboxKind> = {
   question: { label: 'Pergunta', group: 'perguntas', icon: 'alert', tone: 'warn' },
   secret: { label: 'Credencial', group: 'perguntas', icon: 'key', tone: 'warn' },
   level: { label: 'Autonomia', group: 'saber', icon: 'bulb', tone: 'info', note: true },
+  'code-change': { label: 'Correção de código', group: 'saber', icon: 'bulb', tone: 'info', note: true },
 };
 const GROUP_OF = (k: InboxItem['kind']) => INBOX_KINDS[k].group;
 const TITLES: Record<InboxGroupKey, string> = { aprovar: 'Falta você aprovar', perguntas: 'Perguntas', saber: 'Para você saber' };

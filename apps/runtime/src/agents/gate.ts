@@ -17,7 +17,7 @@ function currentStep(run: PlaybookRun | undefined): { id: string; text: string }
   if (at < 0) return null;
   return { id: run.steps[at]!.id, text: `passo ${at + 1} de ${run.steps.length} · ${run.steps[at]!.label}` };
 }
-type Executor = (args: unknown, approvalId: string) => Promise<string>;
+type Executor = (args: unknown, approvalId: string, how: 'auto' | 'approved') => Promise<string>;
 
 /**
  * The autonomy gate: one path for every tool that changes something.
@@ -59,9 +59,10 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           step: step?.id ?? null,
         };
         const known = pb ? brain.isKnownAction(pb.name, action.fingerprint) : false;
-        const level = decide(policy.get(), category, pb ?? null, { known, effect });
+        const decided = decide(policy.get(), category, pb ?? null, { known, effect });
+        const level = decided === 'auto' && def.alwaysAsk?.(data) ? 'ask' : decided;
         if (level === 'auto') {
-          const result = await def.execute(data, toolCallId);
+          const result = await def.execute(data, toolCallId, 'auto');
           if (run) brain.recordRunAction(run.id, action);
           // How the call reads in the conversation travels with it: the app needs no list of tools.
           const shown = { ...(def.title ? { title: def.title(data) } : {}), ...(def.command ? { command: def.command(data) } : {}) };
@@ -99,7 +100,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
       return;
     }
     try {
-      const result = await executors.get(call.tool)!(call.args, approvalId);
+      const result = await executors.get(call.tool)!(call.args, approvalId, 'approved');
       if (call.runId && call.action) brain.recordRunAction(call.runId, call.action);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} aprovou ${call.tool} (${approvalId}). Resultado: ${result}` });
     } catch (error) {

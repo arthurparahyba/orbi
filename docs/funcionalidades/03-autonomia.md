@@ -82,8 +82,12 @@ A classificação é do código, não do modelo:
   (Scripts de investigação em Python usam `run_python`, que roda isolado e não
   passa pelo portão; veja o documento 10.)
 - **Navegador**: uma lista fixa das ferramentas do Chrome que só leem; o resto é escrita.
-- **Código**: depois que o Claude Code prepara a correção, o portão olha os
+- **Código**: depois que o agente de código prepara a correção, o portão olha os
   arquivos alterados. Se todos são de teste, é `codigo-teste`; se algum não é, `codigo-producao`.
+  Investigar um erro que ninguém conhece, e aplicar o que a investigação achou,
+  **sempre pede** (o portão ignora o nível e o global em automático). A correção de
+  um problema conhecido segue o nível, e aplicá-la na branch da entrega conta como
+  local; o teto continua sendo `codigo-producao` (documento 10).
 
 ## Como o nível é decidido
 
@@ -110,6 +114,9 @@ Em palavras (`decide()` em `autonomy/policy.ts`):
 4. O resto segue o nível do procedimento e se a ação é conhecida (tabela acima),
    pelo `decideAction` em `brain/domain/levels.ts`. Nunca solta o que você pôs em
    "Só observar" e nunca vale para código de produção.
+5. Uma ferramenta pode **sempre pedir** (`alwaysAsk` no `GatedTool`): o que daria
+   automático vira pedido. Hoje: investigar com o agente de código e aplicar uma
+   correção que não vem de um problema conhecido.
 
 O caminho natural: um procedimento novo nasce no **N1**. Rodou certo uma vez, vai
 para o **N2**; mais três vezes sem desvio, **N3**. Você é avisado a cada mudança e

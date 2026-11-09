@@ -653,3 +653,9 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .code-agents .config-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; background: transparent; border: 0; }
 .code-agents .config-chat .chat-head h2 { font-size: 14px; margin: 0; }
 .code-agents .config-chat .messages { font-size: 13.5px; }
+
+/* "Houve correção de código" (Pontos importantes) */
+.code-change .kv { display: grid; grid-template-columns: 80px 1fr; gap: 4px 12px; margin: 8px 0; font-size: 13px; }
+.code-change .kv dt { color: var(--muted); }
+.code-change .kv dd { margin: 0; overflow-wrap: anywhere; }
+.code-change pre.code { max-height: 320px; overflow: auto; }
