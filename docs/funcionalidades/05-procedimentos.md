@@ -144,8 +144,11 @@ sequenceDiagram
   ser encerrada ou parar numa decisão sua; não acontece a cada aprovação no caminho.
   Procedimento que ficou aberto quando a entrega terminou aparece como "ficou aberto".
 - **Cartão da correção**: quando o Orbi corrige procedimentos que já existem, o
-  título é "Corrigir N procedimentos: …" e cada passo aparece marcado (igual, muda,
-  novo, sai) contra a versão atual. Aprender não leva "por que pede" nem o passo do
+  título é "Corrigir N procedimentos: …" e o cartão mostra **só o que muda**: cada
+  campo ou passo alterado com **Hoje** e **Depois da correção** lado a lado, passo
+  novo e passo que sai; os passos iguais ficam dobrados numa linha
+  (`CorrectionPreview.tsx`, `correctionView` em `stepDiff.ts`). Variação de um
+  procedimento continua mostrando todos os passos marcados contra a base. Aprender não leva "por que pede" nem o passo do
   procedimento que estiver rodando, e não entra no histórico da execução.
 - **Passo que pergunta algo que já veio**: quando o valor chegou como parâmetro
   (da esteira, do padrão), o Orbi usa e não pergunta (regra no prompt).

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import { ScriptsPreview } from './ScriptsPreview';
+import { CorrectionPreview } from './CorrectionPreview';
 import type { InboxItem, UiComponent } from '@orbi/contracts';
 import { AlertIcon, BulbIcon, CheckIcon, ClockIcon, LinkIcon, XIcon } from './Icons';
 import { KnownLine, SimilarCard } from './SimilarCards';
@@ -87,6 +88,8 @@ export function LearningPreview({ detail }: { detail: string }) {
         const secrets = all.filter((x) => x.startsWith('segredo:')).map((x) => x.slice(8));
         const baseName: string | undefined = pb.variationOf ?? known.data?.find((k) => k.name === pb.name)?.name;
         const base = baseName ? known.data?.find((k) => k.name === baseName) : undefined;
+        // A correction of a procedure that exists: only what changes, today and after.
+        if (base && !pb.variationOf) return <CorrectionPreview key={pb.name} base={base} next={pb as never} />;
         return (
           <div key={pb.name} className="learn-pb">
             <div className="learn-pb-head">

@@ -168,3 +168,11 @@ test('scripts do procedimento: validados, guardados, mantidos quando a mudança 
     { fingerprint: 'run_command gh pr list', tool: 'run_command', effect: 'leitura', summary: '', step: 'listar' },
   ] }).map((x) => x.slice(0, 64)), ['o passo gerar rodou Python escrito na hora (python3 -c, 2 vezes)']);
 });
+
+test('pergunta condicional ("se der problema, perguntar") não é passo que pergunta', async () => {
+  const { asksAlways } = await import('../src/brain/domain/review.ts');
+  assert.equal(asksAlways("git add; commit; push origin main. Se index.lock aparecer, parar e perguntar; não remover o lock."), false);
+  assert.equal(asksAlways('Caso o login peça MFA, ask_developer.'), false);
+  assert.equal(asksAlways('Só perguntar ao desenvolvedor se vier vazio.'), true, 'esse pergunta sem condição antes do verbo; o {{parâmetro}} no passo é o que o libera');
+  assert.equal(asksAlways('ask_developer pedindo o caminho da pasta. Não assumir.'), true);
+});

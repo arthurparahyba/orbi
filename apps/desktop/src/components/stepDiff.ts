@@ -49,3 +49,31 @@ export function scriptDiff(base: Script[] | undefined, next: Script[] | undefine
   for (const script of base ?? []) if (!kept.has(script.name)) out.push({ script, change: 'removed' });
   return out;
 }
+
+/** A field of the procedure that a correction changes, as it is today and as it will be. */
+export interface FieldChange { label: string; before: string; after: string }
+interface ProcedureLike {
+  description?: string; trigger?: string; instructions?: string; appliesTo?: string | null;
+  outputs?: Array<{ name: string }>; steps?: Step[];
+}
+
+/**
+ * What a correction of an existing procedure changes, and only that: the fields that differ
+ * (a field left out of the proposal keeps its value), the steps that change, come or go,
+ * and the steps that stay the same (shown folded).
+ */
+export function correctionView(base: ProcedureLike, next: ProcedureLike): { fields: FieldChange[]; steps: DiffedStep[]; same: Step[] } {
+  const fields: FieldChange[] = [];
+  const text = (v: unknown) => String(v ?? '').trim();
+  const field = (label: string, a: unknown, b: unknown) => {
+    if (b === undefined) return;
+    if (text(a) !== text(b)) fields.push({ label, before: text(a) || '(vazio)', after: text(b) || '(vazio)' });
+  };
+  field('Descrição', base.description, next.description);
+  field('Quando roda', base.trigger, next.trigger);
+  field('Vale para', base.appliesTo, next.appliesTo);
+  field('Instruções', base.instructions, next.instructions);
+  if (next.outputs !== undefined) field('Entrega', (base.outputs ?? []).map((o) => o.name).join(', '), next.outputs.map((o) => o.name).join(', '));
+  const diffed = stepDiff(base.steps ?? [], next.steps ?? base.steps ?? []);
+  return { fields, steps: diffed.filter((d) => d.change !== 'same'), same: diffed.filter((d) => d.change === 'same').map((d) => d.step) };
+}

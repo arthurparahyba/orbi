@@ -87,7 +87,8 @@ sequenceDiagram
   - etapa depois da primeira cujo procedimento não recebe nada: os dados só
     passariam pela memória do modelo;
   - passo que pergunta ao desenvolvedor (`ask_developer`, "não assumir") o que a
-    esteira já dá;
+    esteira já dá. Pergunta condicional ("se o lock aparecer, parar e perguntar",
+    "caso peça MFA") é o que fazer quando algo dá errado, não conta (`asksAlways`);
   - na revisão, com os dados da entrega: passo que escreve fixo um valor que uma
     etapa anterior entrega (um caminho), em vez de `{{nome}}`.
   São avisos, não impedem salvar. `GET /api/pipelines` traz `warnings`.

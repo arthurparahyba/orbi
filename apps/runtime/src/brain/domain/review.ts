@@ -57,6 +57,18 @@ export interface ConfigProblem {
 }
 
 const ASKS = /ask_developer|\bpergunt(ar|e|a)\b|n[aã]o assumir/i;
+/** "Se o lock aparecer, parar e perguntar": what to do when something goes wrong, not asking for data. */
+const CONDITION = /(^|\s)(se|caso|quando|s[oó] se|if)\s/i;
+
+/** Whether a step asks the developer for something every time (not only when something goes wrong). */
+export function asksAlways(how: string): boolean {
+  return how
+    .split(/\.(?:\s|$)|[;\n]+/)
+    .some((clause) => {
+      const m = ASKS.exec(clause);
+      return !!m && !CONDITION.test(clause.slice(0, m.index));
+    });
+}
 
 /**
  * Problems of an esteira's configuration. With `delivered` (stage id → what it handed over in
@@ -86,7 +98,7 @@ export function pipelineConfigProblems(
       }
       for (const step of pb.steps) {
         // A step that already uses a {{parameter}} receives the value: asking only if it comes empty is fine.
-        if (ASKS.test(step.how) && !step.how.includes('{{') && upstream.length > 0) {
+        if (asksAlways(step.how) && !step.how.includes('{{') && upstream.length > 0) {
           add(`passo ${step.id} de ${pb.name} pergunta ao desenvolvedor; na esteira, receba como parâmetro o que já vem de antes (${upstream.slice(0, 4).join(', ')}).`);
         }
         for (const v of earlierValues) {

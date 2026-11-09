@@ -618,3 +618,16 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .splash-hint { max-width: 460px; text-align: center; }
 @keyframes splash-pulse { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .splash-mark { animation: none; } }
+
+/* Correction of a procedure: only what changes, today and after */
+.correction .corr-item { margin-top: 10px; }
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.ba-col { border: 1px solid var(--border-2); border-radius: 8px; padding: 6px 9px; font-size: 12.5px; text-align: left; }
+.ba-col p { margin: 3px 0 0; white-space: pre-wrap; word-break: break-word; }
+.ba-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.ba-before p { color: var(--muted); }
+.ba-after { border-color: var(--blue); }
+.ba-after .ba-tag { color: #9cc4ff; }
+.corr-same { margin-top: 10px; }
+.corr-same ul { margin: 4px 0 0 16px; padding: 0; }
+@media (max-width: 720px) { .ba { grid-template-columns: 1fr; } }

@@ -28,3 +28,15 @@ describe('variações no cérebro', () => {
     expect(ordered.map((p: { name: string }) => p.name)).toEqual(['subir', 'criar', 'deletar', 'orfa']);
   });
 });
+
+import { correctionView } from '../src/components/stepDiff';
+describe('cartão de correção', () => {
+  it('mostra só o que muda, com antes e depois; o resto fica dobrado', () => {
+    const base = { description: 'Publica', trigger: 't', instructions: '', steps: [{ id: 'a', label: 'A', how: 'x' }, { id: 'b', label: 'B', how: 'perguntar' }] };
+    const next = { description: 'Publica', instructions: 'Não perguntar', steps: [{ id: 'a', label: 'A', how: 'x' }, { id: 'b', label: 'B', how: 'usar {{p}}' }] };
+    const v = correctionView(base, next);
+    expect(v.fields).toEqual([{ label: 'Instruções', before: '(vazio)', after: 'Não perguntar' }]);
+    expect(v.steps.map((d) => [d.step.id, d.change, d.before?.how, d.step.how])).toEqual([['b', 'changed', 'perguntar', 'usar {{p}}']]);
+    expect(v.same.map((s) => s.id)).toEqual(['a']);
+  });
+});
