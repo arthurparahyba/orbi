@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { concerns, createLive, type Change, type EventSourceLike } from '../src/live';
+import { concerns, createLive, sameData, type Change, type EventSourceLike } from '../src/live';
 
 /** An EventSource we drive by hand. */
 function fakeSource() {
@@ -33,8 +33,12 @@ describe('createLive', () => {
     src.fire('change', JSON.stringify({ topic: 'inbox', id: 'x' }));
     stopB();
     src.fire('change', JSON.stringify({ topic: 'brain' }));
-    expect(a).toEqual([{ topic: 'hello' }, { topic: 'inbox', id: 'x' }, { topic: 'brain' }]);
-    expect(b).toEqual([{ topic: 'hello' }, { topic: 'inbox', id: 'x' }]);
+    const hello = { topic: 'hello', why: 'first' };
+    expect(a).toEqual([hello, { topic: 'inbox', id: 'x' }, { topic: 'brain' }]);
+    expect(b).toEqual([hello, { topic: 'inbox', id: 'x' }]);
+    src.fire('error');
+    src.fire('hello');
+    expect(a.at(-1)).toEqual({ topic: 'hello', why: 'reconnect' });
     live.close();
     expect(src.closed).toBe(1);
   });
@@ -57,7 +61,7 @@ describe('createLive sem o feed', () => {
     const seen: Change[] = [];
     live.subscribe((c) => seen.push(c));
     tick();
-    expect(seen).toEqual([{ topic: 'hello' }]);
+    expect(seen).toEqual([{ topic: 'hello', why: 'fallback' }]);
     src.fire('hello');
     tick();
     expect(seen).toHaveLength(2); // the real hello only: the feed is up
@@ -70,7 +74,12 @@ describe('createLive sem o feed', () => {
 
 describe('concerns', () => {
   it('hello interessa a todos', () => {
-    expect(concerns({ topic: 'hello' }, ['brain'])).toBe(true);
+    expect(concerns({ topic: 'hello', why: 'fallback' }, ['brain'])).toBe(true);
+  });
+  it('mesmo dado não conta como mudança', () => {
+    expect(sameData({ a: [1, 2], b: 'x' }, { a: [1, 2], b: 'x' })).toBe(true);
+    expect(sameData([{ id: 1, status: 'open' }], [{ id: 1, status: 'done' }])).toBe(false);
+    expect(sameData(undefined, [])).toBe(false);
   });
   it('filtra por tópico e, quando dado, por item', () => {
     expect(concerns({ topic: 'inbox', id: '1' }, ['brain'])).toBe(false);
@@ -78,5 +87,14 @@ describe('concerns', () => {
     expect(concerns({ topic: 'recording', id: 'a' }, ['recording'], 'b')).toBe(false);
     expect(concerns({ topic: 'recording', id: 'a' }, ['recording'], 'a')).toBe(true);
     expect(concerns({ topic: 'recording' }, ['recording'], 'a')).toBe(true);
+  });
+});
+
+import { booted } from '../src/components/Splash';
+describe('abertura do app', () => {
+  it('só mostra as telas quando o runtime respondeu e os primeiros dados chegaram', () => {
+    expect(booted({})).toBe(false);
+    expect(booted({ health: { model: 'x' } })).toBe(false);
+    expect(booted({ health: { model: 'x' }, inbox: [] })).toBe(true);
   });
 });

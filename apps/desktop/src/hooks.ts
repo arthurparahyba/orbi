@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Topic } from '@orbi/contracts';
 import { RUNTIME_URL } from './api';
-import { concerns, createLive, type Change, type Live } from './live';
+import { concerns, createLive, sameData, type Change, type Live } from './live';
 
 let live: Live | undefined;
 /** The app's single connection to the change feed (EventSource reconnects by itself). */
@@ -13,6 +13,7 @@ function feed(): Live {
 /**
  * Loads data and keeps the last good value on errors. `reload()` never runs
  * two loads at once: a call during a load schedules exactly one more after it.
+ * A load that brings the same data keeps the old value, so nothing re-renders.
  */
 export function useLoad<T>(load: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | undefined>();
@@ -29,7 +30,8 @@ export function useLoad<T>(load: () => Promise<T>, deps: unknown[] = []) {
       do {
         s.again = false;
         try {
-          setData(await loadRef.current());
+          const next = await loadRef.current();
+          setData((prev) => (prev !== undefined && sameData(prev, next) ? prev : next));
           setError(undefined);
         } catch (e) {
           setError(e instanceof Error ? e.message : String(e));
@@ -52,10 +54,18 @@ export function useChanges(onChange: (change: Change) => void) {
   useEffect(() => feed().subscribe((c) => ref.current(c)), []);
 }
 
+/** How long a burst of changes (a run writes many in a row) is gathered into one reload. */
+const BURST_MS = 120;
+
 /** Data that follows the runtime: loaded once, then again whenever one of `topics` changes. */
 export function useLive<T>(load: () => Promise<T>, topics: readonly Topic[], deps: unknown[] = []) {
   const q = useLoad(load, deps);
-  useChanges((c) => { if (concerns(c, topics)) void q.reload(); });
+  const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(pending.current), []);
+  useChanges((c) => {
+    if (!concerns(c, topics) || pending.current) return;
+    pending.current = setTimeout(() => { pending.current = undefined; void q.reload(); }, BURST_MS);
+  });
   return q;
 }
 

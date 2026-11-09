@@ -66,6 +66,16 @@ flowchart TB
   mostra e busca de novo. Gatilhos do SQLite transformam qualquer escrita em
   evento, sem as partes do código precisarem avisar. A cada reconexão chega um
   `hello` e tudo recarrega. A única consulta periódica é a de saúde, a cada 10 s.
+- **Sem piscar**: uma recarga que traz os mesmos dados não redesenha a tela
+  (`sameData` em `live.ts`), e uma rajada de mudanças (uma execução grava muitas
+  seguidas) vira uma recarga só (`useLive`, 120 ms). A conversa só recarrega o
+  histórico inteiro quando o runtime escreveu nela por fora (`dispatched`) ou o
+  feed voltou depois de cair (`hello` de reconexão); não ao focar a janela nem nos
+  `hello` de reserva: o stream dela se reconecta sozinho.
+- **Abertura**: até o runtime responder e chegarem as primeiras pendências, o app
+  mostra "Carregando…" (ou "Iniciando o Orbi…" enquanto o runtime sobe; depois de
+  15 s, onde ver o log), em vez de telas vazias. Telas que ainda esperam seus dados
+  dizem "Carregando…", nunca "nenhum ainda".
 - **Só local**: o runtime escuta apenas em `127.0.0.1`, então outra máquina na
   mesma rede não chega nele (`apps/runtime/scripts/write-entry.mjs` troca a entrada gerada pelo
   Flue, que escutaria em todas as interfaces). Navegadores só são aceitos de

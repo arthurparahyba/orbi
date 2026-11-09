@@ -9,8 +9,13 @@ import { TOPICS, type ChangeEvent, type Topic } from '@orbi/contracts';
  * If the feed is not up (no `hello` yet, or it errored), a fallback sends a
  * `hello` every few seconds, so screens keep refreshing until it is: some
  * webviews drop or never open the stream, and the app must not go stale.
+ *
+ * A `hello` says why it came: the first connection, a reconnection (something may
+ * have been missed: worth catching up even on heavy screens) or a fallback tick
+ * (cheap screens reload; a reload that brings the same data changes nothing).
  */
-export type Change = ChangeEvent | { topic: 'hello' };
+export type Hello = { topic: 'hello'; why: 'first' | 'reconnect' | 'fallback' };
+export type Change = ChangeEvent | Hello;
 export type Listener = (change: Change) => void;
 
 /** The part of EventSource we use (a fake one in tests). */
@@ -36,6 +41,7 @@ export function createLive(
   const listeners = new Set<Listener>();
   let source: EventSourceLike | undefined;
   let up = false;
+  let connected = false;
   let timer: unknown;
 
   const send = (change: Change) => {
@@ -44,8 +50,12 @@ export function createLive(
   const connect = () => {
     source = open();
     up = false;
-    timer ??= fallback.setInterval(() => { if (!up) send({ topic: 'hello' }); }, fallback.everyMs);
-    source.addEventListener('hello', () => { up = true; send({ topic: 'hello' }); });
+    timer ??= fallback.setInterval(() => { if (!up) send({ topic: 'hello', why: 'fallback' }); }, fallback.everyMs);
+    source.addEventListener('hello', () => {
+      up = true;
+      send({ topic: 'hello', why: connected ? 'reconnect' : 'first' });
+      connected = true;
+    });
     source.addEventListener('error', () => { up = false; });
     source.addEventListener('change', (e) => {
       try {
@@ -70,6 +80,19 @@ export function createLive(
       timer = undefined;
     },
   };
+}
+
+/**
+ * Whether a reload brought something new. Same data (the usual case for a health check
+ * or a fallback tick) must not re-render the screen: that is what makes things blink.
+ */
+export function sameData(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
 }
 
 /** Whether a change concerns a screen that shows `topics` (optionally one item). */

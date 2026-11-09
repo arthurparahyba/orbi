@@ -63,12 +63,15 @@ export function ConversationView({ openInbox, focus }: { openInbox: InboxItem[];
               </li>
             );
           })}
+          {!list.data && <li className="muted pad">{list.error ? `Erro: ${list.error}` : 'Carregando…'}</li>}
           {list.data && list.data.length === 0 && <li className="muted pad">Nenhuma conversa ainda.</li>}
         </ul>
       </aside>
       {current ? (
         <Chat key={current} id={current} target={target?.conversationId === current ? target : undefined} title={list.data?.find((c) => c.id === current)?.title ?? ''} origin={list.data?.find((c) => c.id === current)?.origin} onTitled={list.reload}
           onDeleted={() => { setCurrent(list.data?.find((c) => c.id !== current)?.id); void list.reload(); }} />
+      ) : !list.data ? (
+        <div className="empty-chat muted">Carregando as conversas…</div>
       ) : (
         <div className="empty-chat">
           <p>Comece uma conversa para ensinar um procedimento ao Orbi ou pedir que ele execute algo que já sabe.</p>

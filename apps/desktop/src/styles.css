@@ -611,3 +611,10 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .diff-tag.script-changed { color: var(--amber); margin-left: 6px; }
 .diff-tag.script-new { color: #9cc4ff; margin-left: 6px; }
 .diff-tag.script-removed { margin-left: 6px; }
+
+/* First moments: loading screen while the runtime starts */
+.splash { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
+.splash-mark { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; animation: splash-pulse 1.6s ease-in-out infinite; }
+.splash-hint { max-width: 460px; text-align: center; }
+@keyframes splash-pulse { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .splash-mark { animation: none; } }

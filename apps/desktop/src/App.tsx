@@ -9,6 +9,7 @@ import { BrainView } from './views/brain/BrainView';
 import { AutonomyView } from './views/autonomy/AutonomyView';
 import { AgentsView } from './views/agents/AgentsView';
 import { PipelinesView } from './views/pipelines/PipelinesView';
+import { Splash, booted } from './components/Splash';
 
 type Screen = 'conversa' | 'esteiras' | 'cerebro' | 'agentes' | 'autonomia';
 
@@ -35,6 +36,9 @@ export function App() {
 
   const online = !health.error && !!health.data;
   const chromeOk = health.data && 'tools' in health.data.chrome;
+
+  // Until the runtime answers and the first data arrives: a loading screen, not empty screens.
+  if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} />;
 
   return (
     <InboxContext.Provider value={actions}>

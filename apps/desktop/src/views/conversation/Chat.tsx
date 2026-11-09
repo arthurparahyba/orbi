@@ -46,17 +46,22 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
 
   // The runtime can write to this conversation out-of-band (a finished demonstration, an approval,
   // a follow-up, an agent's request): when it says so, catch up and resume live updates.
-  // Also when the window comes back to the front, in case the live stream dropped meanwhile.
+  // A refresh reloads the whole history, so only then, or when the feed came back after a drop.
+  // Not on focus nor on the fallback's ticks: the live stream reconnects by itself, and
+  // reloading everything at every click into the window made the screen blink.
   const { refresh } = agent;
   useChanges((c) => {
-    if ((c.topic === 'dispatched' && c.id === id) || c.topic === 'hello') void refresh();
+    if ((c.topic === 'dispatched' && c.id === id) || (c.topic === 'hello' && c.why === 'reconnect')) void refresh();
   });
+  // Back to the front with the stream broken: recover (the only case focus matters).
+  const broken = agent.status === 'error';
   useEffect(() => {
+    if (!broken) return;
     const back = () => { if (document.visibilityState === 'visible') refresh(); };
     document.addEventListener('visibilitychange', back);
     window.addEventListener('focus', back);
     return () => { document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
-  }, [refresh]);
+  }, [refresh, broken]);
 
   const send = async (text: string) => {
     const t = text.trim();
@@ -79,7 +84,7 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
         </button>
         <button type="button" className="icon-btn" onClick={() => setDeleting(true)} title="Apagar conversa" aria-label="Apagar conversa"><TrashIcon size={15} /></button>
         <span className={`pill pill-${busy ? 'running' : agent.status === 'error' ? 'failed' : 'idle'}`}>
-          {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : agent.status === 'connecting' ? 'Conectando…' : 'Pronto'}
+          {busy ? 'Trabalhando…' : agent.status === 'error' ? 'Erro' : !agent.historyReady ? 'Carregando…' : 'Pronto'}
         </span>
       </header>
       {deleting && (
@@ -102,6 +107,7 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
       <ChatContext.Provider value={{ send: (t) => void send(t) }}>
       <div className="messages-wrap">
       <div className="messages" aria-live="polite" ref={follow.box} onScroll={follow.onScroll}>
+        {!agent.historyReady && visible.length === 0 && <p className="muted pad loading">Carregando a conversa…</p>}
         {agent.historyReady && visible.length === 0 && (
           <div className="suggest">
             <p className="muted">O Orbi não vem sabendo fazer nada específico: ele aprende com você e guarda no cérebro. Tente:</p>
