@@ -79,6 +79,13 @@ test('agente duas vezes no build (Windows): a entrega usa a cópia registrada', 
   assert.equal(registeredAgent(Orbi as never, reg), Orbi);
   assert.equal(registeredAgent(copy as never, reg), Orbi, 'a cópia vira a registrada');
   assert.equal(registeredAgent(other as never, reg), other, 'outro agente não é trocado');
+  // The bundler renames the duplicate copy (Orbi$1): the identity (agentName) still matches.
+  const renamed = Object.assign(function Orbi$1() {}, { agentName: 'orbi' });
+  const config = Object.assign(function Configurador() {}, { agentName: 'configurador' });
+  const two = [{ identity: 'orbi', agent: Orbi }, { identity: 'configurador', agent: config }];
+  assert.equal(registeredAgent(renamed as never, two), Orbi, 'cópia renomeada vira a registrada pelo agentName');
+  const configCopy = Object.assign(function Configurador$1() {}, { agentName: 'configurador' });
+  assert.equal(registeredAgent(configCopy as never, two), config, 'o mesmo vale para o configurador');
 });
 
 test('pendências: cada tipo tem seu handler, o mais específico primeiro', async () => {

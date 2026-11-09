@@ -35,17 +35,21 @@ export function deliver(agent: Agent, message: AgentMessage): Promise<Receipt> {
  * (drive letter, folder casing) and the bundle then holds TWO copies of the agent module. Only
  * one is registered, and dispatch() refuses the other ("target agent is not registered"), which
  * is what made answers and approvals on the cards (and MCP requests) never reach the Orbi there.
- * Same agent, other copy: use the registered one (matched by its function name).
+ * Same agent, other copy: use the registered one, matched by its identity (the `agentName`
+ * static, like Flue does) — the bundler may rename the copy's function (`Orbi$1`), so the
+ * function name alone is not enough.
  */
 export function registeredAgent(agent: Agent, registered: ReadonlyArray<{ identity: string; agent: unknown }> = getRegisteredFlueAgents()): Agent {
   if (registered.length === 0 || registered.some((r) => r.agent === agent)) return agent;
-  const name = (agent as { name?: string }).name;
-  const same = registered.filter((r) => typeof r.agent === 'function' && (r.agent as { name?: string }).name === name);
+  const named = agent as { agentName?: unknown; name?: string };
+  const identity = typeof named.agentName === 'string' ? named.agentName : named.name;
+  const same = registered.filter((r) => typeof r.agent === 'function' && (r.identity === identity || (r.agent as { name?: string }).name === named.name));
   if (same.length === 1) {
-    if (!warned) log.warn('o agente está duas vezes no build (caminhos escritos de jeitos diferentes): usando o registrado', { agent: name, identity: same[0].identity });
+    if (!warned) log.warn('o agente está duas vezes no build (caminhos escritos de jeitos diferentes): usando o registrado', { agent: identity, identity: same[0].identity });
     warned = true;
     return same[0].agent as Agent;
   }
+  if (same.length === 0) log.error('agente não está entre os registrados no build', { agent: identity, registered: registered.map((r) => r.identity).join(', ') });
   return agent;
 }
 let warned = false;
