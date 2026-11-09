@@ -135,7 +135,9 @@ cofre ou ponte MCP, `npm run e2e`.
   recalculadas. Mudanças no catálogo de skills viram sinais na conversa; mantenha o catálogo
   estável (só os mais usados, em ordem fixa).
 - **Semicolons** quebram mensagens em diagramas Mermaid de sequência. Use vírgula.
-- O app empacotado só se gera na plataforma de destino; o Windows ainda não foi testado.
+- O app empacotado só se gera na plataforma de destino (o `.exe` sai do GitHub Actions, `app-windows.yml`).
+- **Diferenças de sistema operacional ficam em `src/platform/`** (uma implementação por sistema): não teste
+  `process.platform` fora dali.
 
 ## Convenções
 

@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { gitToolDirs, shellLine } from './shell.ts';
+import { platform, platformFor } from '../platform/index.ts';
 import { installHint } from '../commands/index.ts';
 
 /**
@@ -58,21 +59,18 @@ export { installHint } from '../commands/index.ts';
  * that open the Store instead of running: they are skipped.
  */
 export function resolveBinary(binary: string, pathVar = process.env.PATH ?? '', platform: string = process.platform): { file: string; prefix: string[] } | null {
-  if (platform !== 'win32' || binary !== 'python3') {
-    const file = findBinary(binary, pathVar);
-    return file ? { file, prefix: [] } : null;
-  }
-  const real = pathVar.split(delimiter).filter((d) => d && !/WindowsApps/i.test(d)).join(delimiter);
-  for (const [name, prefix] of [['python', []], ['py', ['-3']], ['python3', []]] as const) {
-    const file = findBinary(name, real);
+  const p = platformFor(platform);
+  const real = pathVar.split(delimiter).filter((d) => d && !p.skipsPathDir(d)).join(delimiter);
+  for (const { name, prefix } of p.programAliases(binary)) {
+    const file = findBinary(name, real, platform);
     if (file) return { file, prefix: [...prefix] };
   }
   return null;
 }
 
 /** Where `binary` would be found on `pathVar`, or null. Mirrors what spawn() does. */
-export function findBinary(binary: string, pathVar = process.env.PATH ?? ''): string | null {
-  const exts = process.platform === 'win32' ? (process.env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';') : [''];
+export function findBinary(binary: string, pathVar = process.env.PATH ?? '', platform: string = process.platform): string | null {
+  const exts = platformFor(platform).programExtensions(process.env);
   for (const dir of pathVar.split(delimiter)) {
     if (!dir) continue;
     for (const ext of exts) {
@@ -120,10 +118,8 @@ function buildEnv(options: RunOptions): Record<string, string> {
     const value = process.env[key === 'PATH' ? pathKey : key];
     if (value) env[key] = value;
   }
-  if (process.platform === 'win32') {
-    for (const key of ['SYSTEMROOT', 'SystemRoot', 'COMSPEC', 'PATHEXT', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'ProgramFiles', 'TEMP', 'TMP']) {
-      if (process.env[key]) env[key] = process.env[key]!;
-    }
+  for (const key of platform().childEnvKeys) {
+    if (process.env[key]) env[key] = process.env[key]!;
   }
   for (const [key, value] of Object.entries(options.env ?? {})) {
     if (value !== undefined) env[key] = value;
@@ -168,7 +164,7 @@ export function runCommand(binary: string, args: readonly string[], options: Run
 
   // npm, mvn, npx… are .cmd on Windows, which Node will not start without a shell: through
   // the developer's shell, every argument quoted (nothing in them is interpreted).
-  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(program.file)) {
+  if (platform().needsShell(program.file)) {
     if (!options.shell) {
       return Promise.reject(new ShellNeededError(`\`${binary}\` no Windows é um .cmd e precisa do Git Bash para rodar`));
     }

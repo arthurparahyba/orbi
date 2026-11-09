@@ -33,11 +33,11 @@ test('Windows: python3 vira python ou py, sem os atalhos da Store; dica de insta
   const py = join(root, 'Python312');
   mkdirSync(store);
   mkdirSync(py);
-  const exe = process.platform === 'win32' ? '.EXE' : '';
+  const exe = '.EXE'; // Windows rules (platform 'win32'), on any machine
   writeFileSync(join(store, `python3${exe}`), '');
   writeFileSync(join(store, `python${exe}`), '');
   // Only the Store shortcuts: nothing real to run.
-  if (process.platform === 'win32') assert.equal(resolveBinary('python3', store, 'win32'), null);
+  assert.equal(resolveBinary('python3', store, 'win32'), null);
   writeFileSync(join(py, `py${exe}`), '');
   assert.deepEqual(resolveBinary('python3', [store, py].join(delimiter), 'win32'), { file: join(py, `py${exe}`), prefix: ['-3'] });
   writeFileSync(join(py, `python${exe}`), '');

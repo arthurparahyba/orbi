@@ -129,3 +129,16 @@ test('agente de código de verdade (um script no lugar do claude): corrige na c�
   g(root, 'clone', '-q', '-b', 'main', join(root, 'origin.git'), fresh);
   assert.equal(readFileSync(join(fresh, 'soma.txt'), 'utf8'), '1+1=2\n');
 });
+
+test('plataforma: o que muda por sistema vem de uma implementação por sistema', async () => {
+  const { platformFor } = await import('../src/platform/index.ts');
+  const win = platformFor('win32'), mac = platformFor('darwin'), lin = platformFor('freebsd');
+  assert.equal(lin.id, 'linux', 'outro sistema se comporta como Linux');
+  assert.deepEqual(win.programAliases('python3').map((a) => a.name), ['python', 'py', 'python3']);
+  assert.deepEqual(mac.programAliases('python3').map((a) => a.name), ['python3']);
+  assert.equal(win.needsShell('C:\\x\\npm.cmd'), true);
+  assert.equal(mac.needsShell('/usr/local/bin/npm'), false);
+  assert.equal(win.skipsPathDir('C:\\Users\\a\\AppData\\Local\\Microsoft\\WindowsApps'), true);
+  assert.match(win.shellQuestion, /Git Bash/);
+  assert.ok(lin.chromePaths({}).some((p) => p.includes('chrom')));
+});

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { platform } from '../platform/index.ts';
 import { existsSync, mkdirSync } from 'node:fs';
 import type { OrbiConfig } from '../config.ts';
 
@@ -28,11 +29,7 @@ async function alive(url: string): Promise<boolean> {
 export function chromeExecutable(executablePath?: string): string {
   const candidates = [
     executablePath,
-    ...(process.platform === 'darwin'
-      ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium']
-      : process.platform === 'win32'
-        ? [`${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`, `${process.env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`, `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`]
-        : ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser']),
+    ...platform().chromePaths(process.env),
   ].filter((p): p is string => Boolean(p));
   const found = candidates.find((p) => existsSync(p));
   if (!found) throw new Error('Chrome não encontrado; defina CHROME_PATH');

@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { posix, win32 } from 'node:path';
+import { platformFor } from '../platform/index.ts';
 
 /**
  * The developer's shell (Git Bash on Windows, bash elsewhere). Orbi runs programs without a
@@ -13,17 +13,7 @@ export function findShell(env: NodeJS.ProcessEnv, platform: string = process.pla
   const chosen = env.ORBI_SHELL?.trim();
   if (chosen === 'off') return null;
   if (chosen) return exists(chosen) ? chosen : null;
-  const { join } = platform === 'win32' ? win32 : posix;
-  const candidates =
-    platform === 'win32'
-      ? [
-          env.ProgramFiles && join(env.ProgramFiles, 'Git', 'bin', 'bash.exe'),
-          env.ProgramW6432 && join(env.ProgramW6432, 'Git', 'bin', 'bash.exe'),
-          env.LOCALAPPDATA && join(env.LOCALAPPDATA, 'Programs', 'Git', 'bin', 'bash.exe'),
-          'C:\\Program Files\\Git\\bin\\bash.exe',
-        ]
-      : ['/bin/bash', '/usr/bin/bash', '/bin/zsh'];
-  return candidates.find((c): c is string => !!c && exists(c)) ?? null;
+  return platformFor(platform).shellCandidates(env).find((c) => exists(c)) ?? null;
 }
 
 /**
@@ -31,9 +21,7 @@ export function findShell(env: NodeJS.ProcessEnv, platform: string = process.pla
  * so they run without a shell even when the app was opened from the Start menu.
  */
 export function gitToolDirs(shell: string | null, platform: string = process.platform): string[] {
-  if (platform !== 'win32' || !shell || !/[\\/]Git[\\/]bin[\\/]bash\.exe$/i.test(shell)) return [];
-  const git = win32.dirname(win32.dirname(shell));
-  return [win32.join(git, 'usr', 'bin'), win32.join(git, 'mingw64', 'bin')];
+  return shell ? platformFor(platform).shellToolDirs(shell) : [];
 }
 
 /** One argument for a POSIX shell: in single quotes, so nothing in it is interpreted. */
