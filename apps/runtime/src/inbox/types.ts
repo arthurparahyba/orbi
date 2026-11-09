@@ -7,7 +7,7 @@ import type { Agent } from '../http/routes/types.ts';
  * One handler per kind (or per routine of a kind), in index.ts: a new kind of item is a new
  * handler; the routes only find the handler and call the action.
  */
-export type InboxDeps = Pick<OrbiServices, 'inbox' | 'events' | 'vault' | 'brain' | 'pipelines'> & { agent: Agent };
+export type InboxDeps = Pick<OrbiServices, 'inbox' | 'events' | 'vault' | 'brain' | 'pipelines' | 'config'> & { agent: Agent };
 
 /** An action's result: the HTTP status and the body (a dispatch receipt, or the resolved item). */
 export interface ActionResult { status: 200 | 202; body: unknown }

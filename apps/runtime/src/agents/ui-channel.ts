@@ -1,4 +1,4 @@
-import { useDataWriter, useResponseStart } from '@flue/runtime';
+import { useDataWriter, useResponseStart } from './runtime-port.ts';
 import { UiPart, type UiComponent } from '@orbi/contracts';
 
 /**

@@ -35,7 +35,7 @@ src/
   app.ts                    entrada: lê a configuração, compõe, sobe o que roda em segundo plano
   config.ts                 configuração pura (loadConfig) e validada na partida (validateConfig)
   compose.ts                raiz de composição: createOrbi(config) cria e liga todas as peças
-  services.ts               onde agentes e ferramentas pegam as peças (services())
+  services.ts               onde o agente e as rotas pegam as peças (services())
   events.ts                 o que mudou (createEvents), para o app acompanhar
   contract-check.ts         garante em tempo de compilação que o runtime cumpre o contrato
 
@@ -154,8 +154,16 @@ contrato. Se um lado mudar sem o outro, `npm test` falha apontando o par.
 
 Nenhum módulo cria nada ao ser importado. `app.ts` é a única entrada com
 efeitos: lê o `.env`, chama `createOrbi(loadConfig())` e entrega as peças ao
-servidor. Como o Flue chama os agentes só com `{ id }`, agentes e ferramentas
-pegam as peças com `services()`. Testes e scripts montam o próprio conjunto com
+servidor. Como o Flue chama os agentes só com `{ id }`, o agente (`agents/orbi.ts`)
+pega as peças uma vez com `services()` e entrega a cada capacidade só o que ela
+declarou em `defineCapability({ needs })`. Ferramentas não chamam `services()`:
+um teste dá a elas só as peças que usam (ex.: `runPython({ scratchDir })`).
+
+Tudo que o Orbi usa do Flue passa por `agents/runtime-port.ts` (definir
+ferramenta, entregar mensagem, observar turnos, roteador HTTP, SQLite). Atualizar
+ou trocar o Flue mexe nesse arquivo; um teste acusa import do Flue fora dele.
+
+Testes e scripts montam o próprio conjunto com
 `createOrbi(config, substitutas)`: por exemplo, um transcritor falso ou um cofre
 em arquivo.
 

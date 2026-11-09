@@ -1,11 +1,12 @@
-import { useTool } from '@flue/runtime';
+import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /** Clock: wake up later in the same conversation (the loop lives in compose.ts). */
-export function useClock(ctx: AgentContext) {
-  const { brain } = services();
+export const clock = defineCapability({ name: 'clock', needs: ['brain'], register: useClock });
+
+function useClock(ctx: AgentContext, { brain }: Deps<'brain'>) {
   useTool({
     name: 'schedule_followup',
     description:

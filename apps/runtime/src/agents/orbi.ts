@@ -1,8 +1,8 @@
 'use agent';
-import { useMcpConnection, useModel, useSkill, useSubagent } from '@flue/runtime';
+import { useMcpConnection, useModel, useSkill, useSubagent } from './runtime-port.ts';
 import { services } from '../services.ts';
 import { useOrbi } from './capabilities.ts';
-import { investigador } from '../subagents/investigador.ts';
+import { investigadorFor } from '../subagents/investigador.ts';
 import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
 import instructions from '../prompts/orbi.md?raw';
 
@@ -13,12 +13,14 @@ import instructions from '../prompts/orbi.md?raw';
  * instructions are in prompts/orbi.md; the current state is added here.
  */
 export function Orbi({ id }: { id: string }) {
-  const { config, brain, browser, vault, pipelines } = services();
+  // The edge: the conversation reads the Orbi's parts once and hands each capability what it declared.
+  const all = services();
+  const { config, brain, vault, pipelines } = all;
   useModel(config.model, { thinkingLevel: 'low' });
-  useMcpConnection(browser.connection);
-  useSubagent({ ...investigador, model: config.model });
+  useMcpConnection(all.browser.connection);
+  useSubagent({ ...investigadorFor(all), model: config.model });
   useSkill(aprenderProcedimento);
-  const { activeRun } = useOrbi(id);
+  const { activeRun } = useOrbi(id, all);
 
   const stats = brain.stats();
   // Names only: the values never reach the model.

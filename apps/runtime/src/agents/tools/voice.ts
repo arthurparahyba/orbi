@@ -1,12 +1,13 @@
-import { useTool } from '@flue/runtime';
+import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { UiComponent } from '@orbi/contracts';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /** Voice: show components in the conversation and ask the developer. */
-export function useVoice(ctx: AgentContext) {
-  const { inbox } = services();
+export const voice = defineCapability({ name: 'voice', needs: ['inbox'], register: useVoice });
+
+function useVoice(ctx: AgentContext, { inbox }: Deps<'inbox'>) {
 
   useTool({
     name: 'show_ui',

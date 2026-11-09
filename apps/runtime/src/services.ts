@@ -24,8 +24,10 @@ import type { AgentSuggestions } from './mcp/suggestions.ts';
  * Everything Orbi's code uses, created once by `createOrbi` (compose.ts).
  *
  * Flue discovers agents as plain functions and calls them with `{ id }` only,
- * so agents and tools can't receive these through parameters. They read them
- * with `services()`, which the entry point fills before the server starts.
+ * so the agent can't receive these through parameters: it reads them once with
+ * `services()`, which the entry point fills before the server starts, and hands
+ * each capability only what it declared (agents/capability.ts). Tools never call
+ * `services()` (test/capability.test.ts); the HTTP routes get the set from app.ts.
  * Nothing is created at import: tests and scripts build their own set with
  * `createOrbi` and hand it over with `provideServices`.
  */
@@ -40,7 +42,7 @@ export interface OrbiServices {
   chrome: SharedChrome;
   browser: BrowserMcp;
   recorder: Recorder;
-  /** Claude Code fixes; null when the fixer is off (non-Anthropic LLM). */
+  /** Fixes by the machine's coding agent (ORBI_CODE_AGENT); null when none is configured. */
   codeFixer: CodeFixer | null;
   llm: ActiveLlm;
   /** What changed, for the app (GET /api/events). */

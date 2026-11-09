@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { FlueObservation } from '@flue/runtime';
+import type { FlueObservation } from '../src/agents/runtime-port.ts';
 import { createLogger, formatLine, type Level } from '../src/observability/log.ts';
 import { handleObservation } from '../src/observability/telemetry.ts';
 import { loadConfig } from '../src/config.ts';

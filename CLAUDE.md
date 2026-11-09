@@ -16,9 +16,10 @@ npm workspaces. Rode tudo da raiz.
 ```
 apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), navegador, cofre
   src/compose.ts      raiz de composição: createOrbi(config) monta todas as peças; startBackground
-  src/services.ts     services(): como agentes e ferramentas pegam as peças (o Flue não injeta)
+  src/services.ts     services(): o agente (orbi.ts) e as rotas pegam as peças; ferramentas não
   src/config.ts       loadConfig(env, cwd) puro + validateConfig
-  src/agents/         o agente Orbi; tools/ tem uma capacidade por arquivo; gate.ts é o portão
+  src/agents/         o agente Orbi; tools/ uma capacidade por arquivo (defineCapability); gate.ts é o portão;
+                      runtime-port.ts é a única porta para o Flue
   src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
@@ -73,6 +74,9 @@ cofre ou ponte MCP, `npm run e2e`.
   `EXAMPLE_TYPES` explicitamente.
 - **Regras puras em `brain/domain/`**, SQL em `brain/repo/`, orquestração por assunto em `brain/services/` (facts, procedures, autonomy, execution, pipelineDefs, agenda). Código novo usa `brain.execution.startRun(…)` etc.; os métodos diretos em `BrainStore` são atalhos de compatibilidade. Aprendizado (propose/apply/learn) fica no `store.ts`.
   Validação vale igual para o que o Orbi aprende e para o que o usuário edita na tela.
+- **Capacidade declara o que usa.** `defineCapability({ name, needs: ['brain', …], register(ctx, deps) })`
+  e uma linha em `agents/capabilities.ts`. Ferramentas não chamam `services()`; recebem `deps`.
+- **Flue só por `agents/runtime-port.ts`.** Nada de `import … from '@flue/runtime'` fora dele (teste acusa).
 - **Sem efeito colateral ao importar um módulo.** Tudo é criado em `createOrbi`; o que roda
   em segundo plano, em `startBackground`. Configuração só por `loadConfig`.
 - **Contrato compartilhado**: formatos da API, pedidos (valibot) e componentes do canal `ui`

@@ -1,9 +1,10 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { defineTool, useTool } from '@flue/runtime';
+import { defineTool, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { ulid } from 'ulidx';
-import { services } from '../../services.ts';
+import type { OrbiConfig } from '../../config.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import { ShellNeededError, runCommand, runShell } from '../../terminal/exec.ts';
 import { askShellPath } from './shell-setup.ts';
 import { shellEffect } from '../../terminal/shell.ts';
@@ -14,8 +15,7 @@ import { runAndReport } from '../../terminal/runner.ts';
 
 /** Terminal: git, gh, aws and python3, without a shell, inside the workspace. */
 
-function insideWorkspace(cwd?: string): string {
-  const { workspace } = services().config;
+function insideWorkspace(workspace: string, cwd?: string): string {
   const dir = cwd ? (isAbsolute(cwd) ? cwd : resolve(workspace, cwd)) : workspace;
   const rel = relative(workspace, dir);
   if (rel.startsWith('..') || isAbsolute(rel)) throw new Error(`cwd fora do workspace: ${cwd}`);
@@ -30,14 +30,14 @@ export function savePath(saveTo: string, workspace: string, home = homedir()): s
 
 export { afterCommand } from '../../terminal/runner.ts';
 
-async function execCommand(args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
-  const { config } = services();
+async function execCommand({ config, brain }: Deps<'config' | 'brain'>, args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
   const { report } = await runAndReport({
+    brain,
     conversationId,
     shown: shortCommand(args.binary, args.args),
     saveTo: args.saveTo ? savePath(args.saveTo, config.workspace) : undefined,
     start: (o) => runCommand(args.binary, args.args, {
-      cwd: insideWorkspace(args.cwd),
+      cwd: insideWorkspace(config.workspace, args.cwd),
       timeoutMs: Math.min(args.timeoutSeconds ?? 120, 1800) * 1000,
       env: config.cliEnv,
       allowed: config.allowedBinaries,
@@ -59,7 +59,7 @@ const commandInput = v.object({
 });
 
 /** Read-only command runner for subagents (they cannot hold approvals). */
-export const runReadOnlyCommand = defineTool({
+export const runReadOnlyCommand = (deps: Deps<'config' | 'brain'>) => defineTool({
   name: 'run_readonly_command',
   description: 'Run a read-only CLI command (git log/diff/status, gh run view/list, aws logs tail, describe/get/list…). No shell. Write commands are refused.',
   input: commandInput,
@@ -69,11 +69,11 @@ export const runReadOnlyCommand = defineTool({
       return { output: { refused: 'Comando de escrita. Devolva ao agente principal o que precisa ser feito.' } };
     }
     // Subagents have no procedure of their own: no trail, but the known problems still come.
-    return { output: await execCommand(data, '', signal) };
+    return { output: await execCommand(deps, data, '', signal) };
   },
 });
 
-export const runPython = defineTool({
+export const runPython = (config: Pick<OrbiConfig, 'scratchDir'>) => defineTool({
   name: 'run_python',
   description:
     'Run a short Python 3 script for investigation (parse logs, compare files, compute). Runs in its own empty folder, ' +
@@ -83,7 +83,7 @@ export const runPython = defineTool({
   async run({ data, signal }) {
     // One empty folder per run, which is also HOME and TMPDIR: the script sees nothing of
     // the user's session (~/.aws, ~/.config/gh, tokens in the environment) and leaves nothing behind.
-    const dir = join(services().config.scratchDir, `py-${ulid()}`);
+    const dir = join(config.scratchDir, `py-${ulid()}`);
     mkdirSync(dir, { recursive: true });
     try {
       writeFileSync(join(dir, 'script.py'), data.code);
@@ -113,8 +113,10 @@ export function shortCommand(binary: string, args: readonly string[], home = hom
   return [binary, ...parts].join(' ');
 }
 
-export function useTerminal(ctx: AgentContext) {
-  const { allowedBinaries, ...config } = services().config;
+export const terminal = defineCapability({ name: 'terminal', needs: ['config', 'brain', 'inbox'], register: useTerminal });
+
+function useTerminal(ctx: AgentContext, deps: Deps<'config' | 'brain' | 'inbox'>) {
+  const { allowedBinaries } = deps.config;
   ctx.gated({
     name: 'run_command',
     description: `Run a CLI command in the workspace — ${allowedBinaries.join(', ')} — without a shell (binary + args). Read-only commands usually run at once; writes (push, merge, workflow run, deploy) follow the autonomy rules.`,
@@ -131,17 +133,17 @@ export function useTerminal(ctx: AgentContext) {
     fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: async (a) => {
       try {
-        return await execCommand(a, ctx.conversationId);
+        return await execCommand(deps, a, ctx.conversationId);
       } catch (error) {
         // npm/mvn on Windows without Git Bash: ask where it is, right in the conversation.
-        if (error instanceof ShellNeededError) throw new Error(`${error.message}. ${askShellPath(ctx.conversationId, ctx.ui)}`);
+        if (error instanceof ShellNeededError) throw new Error(`${error.message}. ${askShellPath(deps.inbox, ctx.conversationId, ctx.ui)}`);
         throw error;
       }
     },
     timeoutMs: 1_800_000,
   });
-  useTool(runPython);
-  useShell(ctx);
+  useTool(runPython(deps.config));
+  useShell(ctx, deps);
 }
 
 const shellInput = v.object({
@@ -157,13 +159,13 @@ const shellInput = v.object({
  * the Orbi cannot tell a read from a write: a new line always asks, and what it may do is judged
  * from the text (deleting is `apaga`; anything else may publish).
  */
-function useShell(ctx: AgentContext) {
+function useShell(ctx: AgentContext, { config, brain, inbox }: Deps<'config' | 'brain' | 'inbox'>) {
   ctx.gated({
     name: 'run_shell',
     description: "Run one line in the developer's shell (Git Bash on Windows, bash elsewhere): pipes, &&, redirects, scripts. Prefer run_command for a single program: it can become a known action that runs alone.",
     input: shellInput,
     // No shell on this machine: ask the developer where it is before asking to approve the line.
-    precheck: () => (services().config.shell ? [] : [askShellPath(ctx.conversationId, ctx.ui)]),
+    precheck: () => (config.shell ? [] : [askShellPath(inbox, ctx.conversationId, ctx.ui)]),
     category: () => 'comandos-escrita',
     effect: (a) => shellEffect(a.line),
     summary: (a) => `${a.purpose}: ${a.line}`,
@@ -171,14 +173,14 @@ function useShell(ctx: AgentContext) {
     command: (a) => shortCommand('', [a.line]).trim().replace(/^"|"$/g, ''),
     fingerprint: (a) => `run_shell ${a.line}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: async (a) => {
-      const { config } = services();
       const shell = config.shell;
-      if (!shell) throw new Error(askShellPath(ctx.conversationId, ctx.ui));
+      if (!shell) throw new Error(askShellPath(inbox, ctx.conversationId, ctx.ui));
       const { report } = await runAndReport({
+        brain,
         conversationId: ctx.conversationId,
         shown: a.line,
         saveTo: a.saveTo ? savePath(a.saveTo, config.workspace) : undefined,
-        start: (o) => runShell(shell, a.line, { cwd: insideWorkspace(a.cwd), timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000, env: config.cliEnv, shell, ...o }),
+        start: (o) => runShell(shell, a.line, { cwd: insideWorkspace(config.workspace, a.cwd), timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000, env: config.cliEnv, shell, ...o }),
       });
       return report;
     },

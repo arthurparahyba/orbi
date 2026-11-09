@@ -8,7 +8,7 @@ export const shellPath: InboxHandler = {
   id: 'caminho-do-shell',
   matches: (item) => item.kind === 'question' && item.routine === SHELL_ROUTINE,
   async answer(item, text, d) {
-    const saved = saveShellPath(text);
+    const saved = saveShellPath(d.config, text);
     if ('problem' in saved) throw new HttpError(400, 'invalid_body', saved.problem);
     const receipt = await tellAgent(d.events, d.agent, {
       id: item.conversationId,

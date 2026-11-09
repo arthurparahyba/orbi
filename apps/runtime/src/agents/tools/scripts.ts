@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import * as v from 'valibot';
 import { UiComponent } from '@orbi/contracts';
-import { services } from '../../services.ts';
+import type { BrainStore } from '../../brain/store.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import { runCommand } from '../../terminal/exec.ts';
 import { scriptVersion, type PlaybookScript } from '../../brain/domain/scripts.ts';
 import { savePath, shortCommand } from './terminal.ts';
@@ -18,8 +19,7 @@ import type { AgentContext } from '../context.ts';
 const SECRET = /\{\{\s*segredo:/i;
 
 /** The script of the procedure running in this conversation, or why there is none. */
-export function findScript(conversationId: string, name: string): { playbook: string; script: PlaybookScript } | { problem: string } {
-  const { brain } = services();
+export function findScript(brain: Pick<BrainStore, 'openRunIn' | 'playbook'>, conversationId: string, name: string): { playbook: string; script: PlaybookScript } | { problem: string } {
   const run = brain.openRunIn(conversationId);
   if (!run) return { problem: 'run_script só roda dentro de um procedimento em andamento (playbook_start antes).' };
   const pb = brain.playbook(run.playbook);
@@ -40,9 +40,11 @@ const input = v.object({
   timeoutSeconds: v.optional(v.number()),
 });
 
-export function useScripts(ctx: AgentContext) {
+export const scripts = defineCapability({ name: 'scripts', needs: ['brain', 'config'], register: useScripts });
+
+function useScripts(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>) {
   const version = (name: string) => {
-    const found = findScript(ctx.conversationId, name);
+    const found = findScript(brain, ctx.conversationId, name);
     return 'script' in found ? `${found.playbook}/${name}@${scriptVersion(found.script.code).slice(0, 8)}` : name;
   };
   ctx.gated({
@@ -53,14 +55,14 @@ export function useScripts(ctx: AgentContext) {
     input,
     precheck: (a) => {
       const problems: string[] = [];
-      const found = findScript(ctx.conversationId, a.script);
+      const found = findScript(brain, ctx.conversationId, a.script);
       if ('problem' in found) problems.push(found.problem);
       if (a.args.some((x) => SECRET.test(x))) problems.push('Credenciais não vão em argumentos de script.');
       return problems;
     },
     category: () => 'comandos-escrita',
     effect: (a) => {
-      const found = findScript(ctx.conversationId, a.script);
+      const found = findScript(brain, ctx.conversationId, a.script);
       return 'script' in found && found.script.effect === 'publica' ? 'publica' : 'local';
     },
     summary: (a) => `${a.purpose}: ${a.script} ${a.args.join(' ')}`,
@@ -69,9 +71,8 @@ export function useScripts(ctx: AgentContext) {
     // The version is in the fingerprint: an edited script is a new action, approved again.
     fingerprint: (a) => `run_script ${version(a.script)} ${a.args.join(' ')}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: async (a) => {
-      const found = findScript(ctx.conversationId, a.script);
+      const found = findScript(brain, ctx.conversationId, a.script);
       if ('problem' in found) return JSON.stringify({ error: found.problem });
-      const { config } = services();
       const file = join(config.scratchDir, 'scripts', found.playbook, `${scriptVersion(found.script.code)}-${found.script.name}`);
       if (!existsSync(file)) {
         mkdirSync(dirname(file), { recursive: true });
@@ -79,6 +80,7 @@ export function useScripts(ctx: AgentContext) {
       }
       const shown = shortCommand(a.script, a.args);
       const { result, report, extra } = await runAndReport({
+        brain,
         conversationId: ctx.conversationId,
         shown,
         // show: the output is the component itself, not a file.

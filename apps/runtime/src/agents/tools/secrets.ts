@@ -1,6 +1,6 @@
-import { useTool } from '@flue/runtime';
+import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 const SECRET_NAME = /^[a-z0-9][a-z0-9._/@-]{0,127}$/;
@@ -11,8 +11,9 @@ const SECRET_NAME = /^[a-z0-9][a-z0-9._/@-]{0,127}$/;
  * it straight to the vault (POST /api/inbox/:id/secret). What comes back to
  * Orbi is only that {{segredo:nome}} now exists.
  */
-export function useSecrets(ctx: AgentContext) {
-  const { inbox, vault } = services();
+export const secrets = defineCapability({ name: 'secrets', needs: ['inbox', 'vault'], register: useSecrets });
+
+function useSecrets(ctx: AgentContext, { inbox, vault }: Deps<'inbox' | 'vault'>) {
 
   useTool({
     name: 'ask_secret',

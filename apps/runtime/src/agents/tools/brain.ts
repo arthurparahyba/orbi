@@ -1,11 +1,12 @@
-import { defineTool, useTool } from '@flue/runtime';
+import { defineTool, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import type { BrainStore } from '../../brain/store.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /** Memory: query the brain freely; learning goes through the gate (the developer approves). */
 
-export const brainQuery = defineTool({
+export const brainQuery = (brain: BrainStore) => defineTool({
   name: 'brain_query',
   description:
     'Look up the brain (knowledge graph). Give `id` to get one entity with its current relations and neighborhood, `type` to list entities of a type, or `text` to search. Use before acting: what you were taught is here.',
@@ -16,7 +17,6 @@ export const brainQuery = defineTool({
     depth: v.optional(v.number()),
   }),
   async run({ data }) {
-    const { brain } = services();
     const json = (value: unknown) => JSON.parse(JSON.stringify(value));
     if (data.id) {
       const entity = brain.get(data.id);
@@ -112,9 +112,10 @@ export function learnTitle(items: Array<{ kind: string; payload: { name?: string
   return `Aprender: ${reason}`;
 }
 
-export function useBrain(ctx: AgentContext) {
-  const { brain } = services();
-  useTool(brainQuery);
+export const memory = defineCapability({ name: 'brain', needs: ['brain'], register: useBrain });
+
+function useBrain(ctx: AgentContext, { brain }: Deps<'brain'>) {
+  useTool(brainQuery(brain));
   ctx.gated({
     name: 'brain_learn',
     description:

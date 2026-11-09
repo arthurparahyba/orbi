@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { RunResult } from './exec.ts';
-import { services } from '../services.ts';
+import type { BrainStore } from '../brain/store.ts';
 import { errorTail } from '../brain/domain/knowledge.ts';
 
 /**
@@ -11,6 +11,8 @@ import { errorTail } from '../brain/domain/knowledge.ts';
  * a program says only how to start it.
  */
 export interface RunSpec {
+  /** Where the attempt is recorded and known problems are looked up. */
+  brain: Pick<BrainStore, 'knownProblems' | 'noteCommand'>;
   conversationId: string;
   /** The command as the conversation shows it. */
   shown: string;
@@ -22,7 +24,7 @@ export interface RunSpec {
 
 export async function runAndReport(spec: RunSpec): Promise<{ result: RunResult; report: string; extra: Record<string, unknown> }> {
   const result = await spec.start(spec.saveTo ? { maxOutput: 50_000_000 } : {});
-  const extra = afterCommand(spec.conversationId, spec.shown, result);
+  const extra = afterCommand(spec.brain, spec.conversationId, spec.shown, result);
   if (!spec.saveTo) return { result, extra, report: JSON.stringify({ ...result, command: spec.shown, ...extra }) };
   const ok = result.exitCode === 0 && !result.timedOut;
   if (ok) {
@@ -52,8 +54,7 @@ export async function runAndReport(spec: RunSpec): Promise<{ result: RunResult; 
  * later passes becomes knowledge), and a failure brings the known problems it looks like, so
  * the Orbi knows what to do without remembering to look (domain/knowledge.ts).
  */
-export function afterCommand(conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
-  const { brain } = services();
+export function afterCommand(brain: Pick<BrainStore, 'knownProblems' | 'noteCommand'>, conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
   const failed = result.exitCode !== 0 || !!result.timedOut;
   const error = failed ? errorTail(result) : '';
   const known = failed ? brain.knownProblems(`${command}\n${error}`) : [];

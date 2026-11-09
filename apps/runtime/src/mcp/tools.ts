@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import type { dispatch } from '@flue/runtime';
+import type { Agent } from '../agents/runtime-port.ts';
 import type { OrbiServices } from '../services.ts';
 import { tellAgent } from '../conversations/tell.ts';
 import { playbookParams, stepId } from '../brain/domain/playbooks.ts';
@@ -8,7 +8,6 @@ import type { AgentClient } from './clients.ts';
 import { requestStatus } from './status.ts';
 import { pipelineSummary, pipelineDetail, searchPipelines } from './pipelines.ts';
 
-type Agent = Parameters<typeof dispatch>[0];
 
 /** What a tool call has: the parts of Orbi, the agent to talk to and who is calling. */
 export interface McpCall {

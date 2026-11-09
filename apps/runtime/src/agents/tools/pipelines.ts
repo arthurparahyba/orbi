@@ -1,6 +1,6 @@
-import { useTool } from '@flue/runtime';
+import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -8,8 +8,9 @@ import type { AgentContext } from '../context.ts';
  * o portal até a GMUD"), and hand over values the developer gave for a stage.
  * Creating or changing an esteira goes through brain_learn (approval card).
  */
-export function usePipelines(ctx: AgentContext) {
-  const { brain, pipelines } = services();
+export const pipelines = defineCapability({ name: 'pipelines', needs: ['brain', 'pipelines'], register: usePipelines });
+
+function usePipelines(ctx: AgentContext, { brain, pipelines }: Deps<'brain' | 'pipelines'>) {
   if (brain.pipelines().length === 0) return;
 
   useTool({

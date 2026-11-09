@@ -1,6 +1,8 @@
-import { defineSkill, usePersistentState, useSkill, useTool } from '@flue/runtime';
+import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import type { BrainStore } from '../../brain/store.ts';
+import type { Inbox } from '../../conversations/inbox.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
 import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
@@ -22,8 +24,9 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
   return [...playbooks].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, Math.max(0, size));
 }
 
-export function usePlaybooks(ctx: AgentContext) {
-  const { brain, vault, pipelines, toolOutcomes } = services();
+export const playbooks = defineCapability({ name: 'playbooks', needs: ['brain', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config'], register: usePlaybooks });
+
+function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes, inbox, config }: Deps<'brain' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config'>) {
 
   const showRun = (runId: string) => {
     const run = brain.run(runId);
@@ -37,7 +40,7 @@ export function usePlaybooks(ctx: AgentContext) {
     });
   };
 
-  for (const pb of skillCatalog(brain.playbooks(), services().config.skillCatalogSize)) {
+  for (const pb of skillCatalog(brain.playbooks(), config.skillCatalogSize)) {
     useSkill(
       defineSkill({
         name: pb.name,
@@ -108,7 +111,7 @@ export function usePlaybooks(ctx: AgentContext) {
       }
       // "Waiting" must be for something real: an approval card, a question or a scheduled follow-up.
       // Saying it before calling the tool left the developer with no button to press.
-      if (data.status === 'waiting' && !(await somethingWaits(ctx.conversationId))) {
+      if (data.status === 'waiting' && !(await somethingWaits({ inbox, brain }, ctx.conversationId))) {
         return {
           output: {
             error: `nada está esperando nesta conversa: não há aprovação, pergunta nem retorno agendado para o passo ${data.stepId}.`,
@@ -157,8 +160,7 @@ export function usePlaybooks(ctx: AgentContext) {
  * Whether the conversation waits for something: an open card (approval, question, learning,
  * passage) or a scheduled follow-up. Tools of the same batch may still be starting: a short look again.
  */
-async function somethingWaits(conversationId: string, tries = 4): Promise<boolean> {
-  const { inbox, brain } = services();
+async function somethingWaits({ inbox, brain }: { inbox: Inbox; brain: BrainStore }, conversationId: string, tries = 4): Promise<boolean> {
   for (let i = 0; i < tries; i++) {
     const open = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversationId && x.kind !== 'level');
     if (open || brain.hasScheduledFollowup(conversationId)) return true;

@@ -1,5 +1,4 @@
-import type { dispatch } from '@flue/runtime';
-import type { createAgentRouter } from '@flue/runtime/routing';
+import type { Agent as FlueAgent, createAgentRouter } from '../../agents/runtime-port.ts';
 
 /** The agent the routes talk to (passed in, so routes have no import cycle with it). */
-export type Agent = Parameters<typeof createAgentRouter>[0] & Parameters<typeof dispatch>[0];
+export type Agent = Parameters<typeof createAgentRouter>[0] & FlueAgent;

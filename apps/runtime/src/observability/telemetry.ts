@@ -1,4 +1,4 @@
-import { observe, type FlueObservation } from '@flue/runtime';
+import { observe, type FlueObservation } from '../agents/runtime-port.ts';
 import type { Logger } from './log.ts';
 import type { UsageStore } from './usage.ts';
 

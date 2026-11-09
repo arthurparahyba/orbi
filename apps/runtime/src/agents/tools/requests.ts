@@ -1,6 +1,6 @@
-import { useTool } from '@flue/runtime';
+import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -8,8 +8,9 @@ import type { AgentContext } from '../context.ts';
  * outcome with agent_reply: that short result is what the agent reads with
  * orbi_status. Other conversations don't get the tool.
  */
-export function useAgentRequest(ctx: AgentContext) {
-  const { agents } = services();
+export const agentRequest = defineCapability({ name: 'agentRequest', needs: ['agents'], register: useAgentRequest });
+
+function useAgentRequest(ctx: AgentContext, { agents }: Deps<'agents'>) {
   const req = agents.requests.byConversation(ctx.conversationId);
   if (!req) return;
 

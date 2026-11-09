@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { setProvider } from '@flue/runtime';
+import { setProvider } from '../agents/runtime-port.ts';
 import { ADAPTER_PROVIDER, toPiProvider } from './pi-bridge.ts';
 import { openAICompatible } from './adapters/openai-compatible.ts';
 import { discoverPlugins, pluginDirs, type PluginInfo } from './plugins.ts';

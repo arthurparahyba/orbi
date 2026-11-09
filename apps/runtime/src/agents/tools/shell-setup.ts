@@ -1,6 +1,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { services } from '../../services.ts';
+import type { Inbox } from '../../conversations/inbox.ts';
+import type { OrbiConfig } from '../../config.ts';
 import { setEnvValue } from '../../settings/env-file.ts';
 import { platform } from '../../platform/index.ts';
 import type { UiComponent } from '@orbi/contracts';
@@ -14,8 +15,7 @@ export const SHELL_ROUTINE = 'config:shell';
 
 
 /** Asks once per conversation (an open card is not asked again). */
-export function askShellPath(conversationId: string, ui: (c: UiComponent) => void): string {
-  const { inbox } = services();
+export function askShellPath(inbox: Inbox, conversationId: string, ui: (c: UiComponent) => void): string {
   const open = inbox.list({ status: 'open' }).find((i) => i.routine === SHELL_ROUTINE && i.conversationId === conversationId);
   if (!open) {
     const { shellQuestion: question } = platform();
@@ -27,11 +27,10 @@ export function askShellPath(conversationId: string, ui: (c: UiComponent) => voi
 }
 
 /** The developer's answer: a bash that exists becomes the shell, now and after a restart. */
-export function saveShellPath(answer: string): { path: string } | { problem: string } {
+export function saveShellPath(config: Pick<OrbiConfig, 'cwd' | 'shell'>, answer: string): { path: string } | { problem: string } {
   const path = resolve(answer.trim().replace(/^["']|["']$/g, ''));
   if (!existsSync(path) || !statSync(path).isFile()) return { problem: `não achei ${path}. Confira o caminho do bash.exe (fica em Git\\bin dentro da pasta onde o Git for Windows foi instalado).` };
   if (!/bash(\.exe)?$/i.test(path)) return { problem: `${path} não parece ser o bash (o arquivo se chama bash.exe).` };
-  const { config } = services();
   setEnvValue(resolve(config.cwd, '.env'), 'ORBI_SHELL', path);
   config.shell = path;
   return { path };

@@ -1,5 +1,5 @@
 import { mkdirSync } from 'node:fs';
-import type { dispatch } from '@flue/runtime';
+import type { Agent } from './agents/runtime-port.ts';
 import { validateConfig, type OrbiConfig } from './config.ts';
 import { BrainStore } from './brain/store.ts';
 import { Inbox } from './conversations/inbox.ts';
@@ -134,7 +134,6 @@ export interface Background {
   stop(): Promise<void>;
 }
 
-type Agent = Parameters<typeof dispatch>[0];
 
 /**
  * Starts the long-running parts: telemetry, the Chrome DevTools bridge, the

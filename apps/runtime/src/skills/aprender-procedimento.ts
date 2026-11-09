@@ -1,4 +1,4 @@
-import { defineSkill } from '@flue/runtime';
+import { defineSkill } from '../agents/runtime-port.ts';
 import instructions from '../prompts/aprender-procedimento.md?raw';
 
 /**

@@ -71,7 +71,7 @@ test('.env: troca a linha ativa, aproveita o exemplo comentado, ou acrescenta', 
 });
 
 test('agente duas vezes no build (Windows): a entrega usa a cópia registrada', async () => {
-  const { registeredAgent } = await import('../src/conversations/tell.ts');
+  const { registeredAgent } = await import('../src/agents/runtime-port.ts');
   function Orbi() {}
   const copy = { Orbi() {} }.Orbi; // same name, another function value
   const other = function Outro() {};

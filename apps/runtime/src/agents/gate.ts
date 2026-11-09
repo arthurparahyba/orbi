@@ -1,7 +1,7 @@
-import { useAgentStart, useDelivery, usePersistentState, useTool } from '@flue/runtime';
+import { useAgentStart, useDelivery, usePersistentState, useTool } from './runtime-port.ts';
 import type * as v from 'valibot';
 import type { UiComponent } from '@orbi/contracts';
-import { services } from '../services.ts';
+import type { Deps } from './capability.ts';
 import { decide, effectOfCategory, type Category } from '../autonomy/policy.ts';
 import { askReason, defaultFingerprint, fingerprintWith, type RunAction } from '../brain/domain/levels.ts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
@@ -26,8 +26,7 @@ type Executor = (args: unknown, approvalId: string) => Promise<string>;
  *   ask     → recorded, shown as an approval card, turn ends; it runs when the
  *             developer approves (signal `tool-approval`, sent by the HTTP inbox route)
  */
-export function useGate(conversationId: string, ui: (c: UiComponent) => void, activeRun: () => ActiveRun) {
-  const { inbox, policy, brain } = services();
+export function useGate(conversationId: string, ui: (c: UiComponent) => void, activeRun: () => ActiveRun, { inbox, policy, brain }: Deps<'inbox' | 'policy' | 'brain'>) {
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
   const delivery = useDelivery();
   const executors = new Map<string, Executor>();

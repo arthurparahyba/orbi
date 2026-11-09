@@ -6,9 +6,8 @@ import { analyzeRun, howToFix } from './analyzers/index.ts';
 import { collected } from '../pipelines/engine.ts';
 import { tellAgent } from '../conversations/tell.ts';
 import { log } from '../observability/log.ts';
-import type { dispatch } from '@flue/runtime';
+import type { Agent } from '../agents/runtime-port.ts';
 
-type Agent = Parameters<typeof dispatch>[0];
 
 /**
  * The review at the end of an execution. It runs when the conversation's turn ends, so every

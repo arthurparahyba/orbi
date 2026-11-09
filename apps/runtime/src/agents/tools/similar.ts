@@ -1,6 +1,6 @@
-import { useTool } from '@flue/runtime';
+import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -9,8 +9,9 @@ import type { AgentContext } from '../context.ts';
  * in one line and goes on. Something similar: it stops and shows the card with
  * what it can reuse, what changes and a suggestion, and the developer chooses.
  */
-export function useSimilar(ctx: AgentContext) {
-  const { brain, inbox } = services();
+export const similar = defineCapability({ name: 'similar', needs: ['brain', 'inbox'], register: useSimilar });
+
+function useSimilar(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>) {
 
   useTool({
     name: 'playbook_similar',

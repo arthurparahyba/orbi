@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import { codeFixCategory } from '../../autonomy/policy.ts';
 import { askShellPath } from './shell-setup.ts';
 import type { AgentContext } from '../context.ts';
@@ -9,10 +9,11 @@ import type { AgentContext } from '../context.ts';
  * prepare in a throwaway worktree, then push behind the gate. Off when no agent is configured:
  * the Orbi then hands the diagnosis to whoever asked.
  */
-export function useCode(ctx: AgentContext) {
-  const fixer = services().codeFixer;
+export const code = defineCapability({ name: 'code', needs: ['codeFixer', 'config', 'inbox'], register: useCode });
+
+function useCode(ctx: AgentContext, { codeFixer: fixer, config, inbox }: Deps<'codeFixer' | 'config' | 'inbox'>) {
   if (!fixer) return;
-  const agent = services().config.codeAgent ?? 'agente de código';
+  const agent = config.codeAgent ?? 'agente de código';
 
   ctx.gated({
     name: 'code_agent_prepare_fix',
@@ -26,7 +27,7 @@ export function useCode(ctx: AgentContext) {
     command: () => agent,
     summary: (a) => `${agent} corrige ${a.repo} (${a.branch}) numa cópia descartável: ${a.diagnosis.slice(0, 200)}`,
     fingerprint: (a) => `code_agent_prepare_fix ${a.repo}`,
-    precheck: () => (services().config.shell ? [] : [askShellPath(ctx.conversationId, ctx.ui)]),
+    precheck: () => (config.shell ? [] : [askShellPath(inbox, ctx.conversationId, ctx.ui)]),
     execute: async (a) => {
       ctx.ui({ component: 'status', id: `fix-${a.repo}`, title: 'Agente de código investigando', state: 'running', text: `${a.repo} · ${a.branch}` });
       const fix = await fixer.prepare(a);

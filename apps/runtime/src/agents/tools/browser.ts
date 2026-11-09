@@ -1,6 +1,7 @@
-import { defineTool } from '@flue/runtime';
+import { defineTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import { services } from '../../services.ts';
+import type { BrowserMcp } from '../../browser/mcp/chrome-devtools.ts';
+import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
 import { browserCategory } from '../../autonomy/policy.ts';
 import type { AgentContext } from '../context.ts';
@@ -11,7 +12,7 @@ import type { AgentContext } from '../context.ts';
  * `browser_act`, behind the autonomy gate, with credentials from the vault.
  */
 
-export const browserRead = defineTool({
+export const browserRead = (browser: Pick<BrowserMcp, 'call'>) => defineTool({
   name: 'browser_read',
   description:
     'Read-only browser access (Chrome DevTools MCP): list_pages, new_page, navigate_page, take_snapshot, take_screenshot, wait_for, console and network listing. Pass the page-scoped tools a `pageId` from list_pages.',
@@ -19,12 +20,13 @@ export const browserRead = defineTool({
   timeoutMs: 120_000,
   async run({ data }) {
     if (browserCategory(data.tool) !== 'navegador-leitura') return { output: { refused: 'Ação de escrita no navegador.' } };
-    return { output: await services().browser.call(data.tool, data.args ?? {}) };
+    return { output: await browser.call(data.tool, data.args ?? {}) };
   },
 });
 
-export function useBrowser(ctx: AgentContext) {
-  const { vault, browser } = services();
+export const browserCapability = defineCapability({ name: 'browser', needs: ['vault', 'browser'], register: useBrowser });
+
+function useBrowser(ctx: AgentContext, { vault, browser }: Deps<'vault' | 'browser'>) {
   ctx.gated({
     name: 'browser_act',
     description:

@@ -1,4 +1,4 @@
-import { sqlite } from '@flue/runtime/node';
+import { sqlite } from './agents/runtime-port.ts';
 import { loadConfig, loadDotEnv } from './config.ts';
 import { purgeDeletedTranscripts } from './conversations/purge.ts';
 
