@@ -391,8 +391,27 @@ pedidos seguintes, que estressam o que foi aprendido.
 - Cada fase da implementação acrescenta os cenários dela: a 1ª e a 2ª, o
   cenário 1 até "impressora"; a 3ª, o cenário 2; a 4ª, os cenários 4 e 5.
 
+### Onde está
+
+| Onde | O quê |
+| --- | --- |
+| `apps/runtime/scripts/eval-behavior.ts` | O executor: sobe o Orbi com o modelo do `.env`, os sites falsos, conduz cada sessão, responde as pendências e chama o juiz |
+| `apps/runtime/scripts/eval/core.ts` | O que uma rodada registra, os prompts do desenvolvedor simulado e do juiz, a leitura da nota (sem modelo, testável) |
+| `apps/runtime/scripts/eval/scenarios.ts` | Os cenários: a ficha do desenvolvedor, as sessões e as verificações de cada uma |
+| `apps/runtime/scripts/eval/fake-store.ts` | A loja falsa (com o modo quebrado); o portal é o `scripts/fake-portal.ts` |
+| `apps/runtime/test/eval-behavior.test.ts` | As partes sem modelo: ficha, juiz, verificações, a loja |
+
+Como o harness responde: pergunta e "Combinando início e fim" → o desenvolvedor
+simulado (com a ficha e as últimas falas); credencial → o valor da ficha do cenário,
+direto no cofre (`POST /api/inbox/:id/secret`); aprovação e cartão de aprendizado
+→ aprova. São até 15 pendências por sessão. `ORBI_EVAL_MODEL` e
+`ORBI_EVAL_JUDGE_MODEL` escolhem outros modelos da Anthropic para o desenvolvedor
+simulado e o juiz; com um plugin de modelo, os dois usam o mesmo do Orbi.
+
 ### Limites
 
+- Só os cenários 1 e 2 estão escritos. Os cenários 3 a 5 (repositório, ambiente,
+  falhas) entram com a fase 4, junto com o painel de serviços falso.
 - O usuário simulado é um modelo: pode ajudar demais ou de menos. A ficha dele e as
   regras de resposta ficam versionadas junto com o cenário.
 - O juiz também erra. As asserções determinísticas são o que trava; a nota do juiz
