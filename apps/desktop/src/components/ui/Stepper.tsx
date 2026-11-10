@@ -8,9 +8,9 @@ const STEP_MARK: Record<StepStatus, string> = { pending: '', running: '', done: 
 export function Stepper({ c }: { c: Extract<UiComponent, { component: 'stepper' }> }) {
   const done = c.steps.filter((s) => s.status === 'done' || s.status === 'skipped').length;
   return (
-    <section className={`ui-card stepper is-${c.status}`} aria-label={`Playbook ${c.title}`}>
+    <section className={`ui-card stepper is-${c.status}`} aria-label={`Procedimento ${c.title}`}>
       <header className="ui-card-head">
-        <span className="ui-kicker">Playbook</span>
+        <span className="ui-kicker">Procedimento</span>
         <strong>{c.title}</strong>
         <span className={`pill pill-${c.status}`}>{c.status === 'done' ? 'Concluído' : c.status === 'failed' ? 'Falhou' : c.status === 'waiting' ? 'Aguardando' : 'Executando'}</span>
       </header>

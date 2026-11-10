@@ -52,7 +52,7 @@ npm start                 # compila o runtime e abre a interface no navegador (p
 npm run demo              # runtime com modelo roteirizado e exemplos, sem chave; com `npm run demo:ui` na outra aba
 npm run dev               # app desktop (precisa de Rust/cargo)
 npm test                  # testes do runtime, tipos do runtime e do app, Vitest do app
-npm run e2e               # ponta a ponta com Chrome real (ponte MCP + demonstração gravada)
+npm run e2e               # ponta a ponta com Chrome real (ponte MCP + demonstração gravada + tela Ensinar)
 npm run eval:search -w @orbi/runtime   # acerto da busca de procedimentos
 npm run eval:behavior -w @orbi/runtime [cenário]   # comportamento com o modelo real: desenvolvedor simulado, sites falsos, juiz (gasta tokens; precisa de Chrome)
 npm run build             # instalador da plataforma atual (gere na plataforma de destino)

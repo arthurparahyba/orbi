@@ -15,6 +15,20 @@ export type ConversationState =
   | { mode: 'ensinando'; stage: Exclude<TeachingStage, 'assumir'> }
   | { mode: 'aprendido'; stage: 'assumir'; playbook: string; level: 1 | 2 | 3 }
   | { mode: 'fazendo'; playbook: string; status: 'running' | 'waiting' | 'done' | 'failed' };
+/** The "O que estou aprendendo" panel: what the Orbi understood in a conversation, from the brain. */
+export interface ConversationNotebook {
+  state: ConversationState;
+  intent?: string;
+  steps: Array<{ label: string; status: 'pending' | 'running' | 'done' | 'failed' | 'waiting' | 'skipped' | 'planned'; note?: string }>;
+  receives: string[];
+  agreement?: { start: string; end: string; outside: string[]; corrections: Array<{ explained: string; actual: string }> };
+  noted: Array<{ id: string; type: string }>;
+  readiness: Array<{ label: string; known: boolean; detail: string }>;
+  procedure?: {
+    name: string; description: string; level: 1 | 2 | 3; levelMax: 1 | 2 | 3; uses: number; successes: number;
+    nextLevel?: { level: 1 | 2 | 3; cleanRunsLeft: number };
+  };
+}
 export interface ConversationOrigin { agent: string; requestId: string; procedure: string | null; repo?: string; branch?: string; session?: string }
 export interface InboxItem {
   id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change' | 'followup'; conversationId: string; title: string; detail: string;

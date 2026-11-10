@@ -25,6 +25,17 @@ rodaram e o procedimento em andamento.
   aprendido nesta conversa e nenhum cartão esperando → Assumir; cartão de
   aprendizado aberto ou ensaio com acordo → Aprender; ensaio com todos os passos
   feitos e sem acordo → Combinar; ensaio em curso → Ensaiar; nada disso → Explicar.
+- **Painel à direita**, ao lado da conversa, ao vivo, montado pelo runtime a partir do
+  cérebro (`GET /api/conversations/:id/notebook`, `conversations/notebook.ts`), nunca
+  escrito pelo modelo:
+  - ensinando, **O que estou aprendendo**: para que serve (o objetivo do ensaio), os passos
+    como foram tentados (feito, esperando você, falhou), o que recebe, onde começa e termina,
+    o que fica de fora e o que o ensaio corrigiu, e "Ainda não sei" até o acordo;
+  - aprendido, **O que aprendi**: o procedimento, os passos (as citações como ‹entrada›),
+    o acordo, a autonomia (N1–N3, e quantas execuções sem correção faltam para subir) e as execuções;
+  - fazendo, **O que estou fazendo**: o "O que eu sei" da execução e os passos dela.
+  Em todos, **Já anotei**: os fatos que vieram desta conversa (cartão aprovado aqui ou execução dela).
+  Pendências, aberta, ocupa o lugar do painel; em janelas estreitas o painel some.
 - **Ensinar algo novo** cria uma conversa nova. O título vira o primeiro pedido.
   Vazia, ela pergunta "O que você quer me ensinar?" e mostra os jeitos: explicar
   com palavras, mostrar no navegador, pedir algo que já sei, com exemplos.
@@ -143,6 +154,8 @@ e as mensagens aparecem.
 | `apps/desktop/src/views/conversation/ConversationView.tsx` | Tela: lista, conversa aberta, Pendências sob demanda |
 | `apps/desktop/src/views/conversation/ConversationList.tsx`, `StageBar.tsx`, `TeachStart.tsx`, `ChatMenu.tsx` | Lista por estado, barra de etapas, começo vazio, menu "…" |
 | `apps/desktop/src/views/conversation/stage.ts` | Etapas, linha da lista e grupos (sem React) |
+| `apps/desktop/src/views/conversation/Notebook.tsx`, `NotebookParts.tsx`, `notebook.ts` | O painel ao lado da conversa |
+| `apps/runtime/src/conversations/notebook.ts` | O conteúdo do painel, derivado do cérebro |
 | `apps/runtime/src/conversations/state.ts` | Onde a conversa está, derivado do último run, do cartão aberto e do que foi aprendido |
 | `apps/desktop/src/components/chat/ChatPanel.tsx` | O chat comum a todas as telas: mensagens, cartões, acompanhar turnos, compositor |
 | `apps/desktop/src/views/conversation/Chat.tsx` | O que só a conversa tem em volta do chat: etapas, Pendências, mostrar no navegador, menu "…", barra da esteira |
@@ -197,7 +210,14 @@ e as mensagens aparecem.
 
 - `apps/runtime/test/flow-*.test.ts`: o ciclo inteiro pelo Flue real, com
   um modelo roteirizado (aprender, aprovar, executar, agendar, "já sei algo parecido").
-- `apps/runtime/test/conversation-state.test.ts` e `apps/desktop/test/stage.test.ts`:
-  a etapa derivada, a linha da lista e os grupos.
+- `apps/runtime/test/conversation-state.test.ts`, `conversation-notebook.test.ts` e
+  `apps/desktop/test/stage.test.ts`, `notebook.test.ts`: a etapa, o painel, a lista.
+- `apps/runtime/test/flow-teaching-screen.test.ts`: uma conversa do começo ao fim
+  (Explicar → Ensaiar → Combinar → Aprender → Assumir → Fazendo), conferindo a lista e o
+  painel a cada parada, até subir para N2.
+- `npm run e2e:tela` (`scripts/e2e-teaching-screen.ts`, parte do `npm run e2e`): o mesmo
+  caminho num navegador de verdade sobre a interface, digitando no chat e clicando nos
+  cartões; confere etapas, lista, painel, Pendências e o menu "…", e guarda uma captura de
+  cada parada (`ORBI_E2E_SHOTS`).
 - `apps/desktop/test/message.test.ts` e `transcript.test.ts`: agrupamento das
   ferramentas e o Markdown copiado.

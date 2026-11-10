@@ -285,6 +285,10 @@ export class Execution {
     return this.p.playbookRepo.runs(limit);
   }
 
+  runsIn(conversationId: string): PlaybookRun[] {
+    return this.p.playbookRepo.runsIn(conversationId);
+  }
+
   lastRunIn(conversationId: string): PlaybookRun | undefined {
     return this.p.playbookRepo.lastRunIn(conversationId);
   }

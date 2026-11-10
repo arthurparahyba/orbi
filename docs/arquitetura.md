@@ -306,6 +306,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `POST /api/transcribe` | Ditado: áudio WAV vira texto (nada é guardado) |
 | `GET /api/voice` · `POST /api/voice/prepare` · `PUT /api/voice/model` | Modelo de transcrição: pasta, arquivos, baixar e testar, trocar |
 | `DELETE /api/conversations/:id` | Apagar conversa |
+| `GET /api/conversations/:id/notebook` | O painel ao lado da conversa: o que ele está aprendendo, aprendeu ou fazendo |
 | `/api/agents/...` · `POST /mcp` | Agentes de código (documento 15) |
 | `/api/pipelines/...` · `/api/pipeline-runs/...` | Esteiras e entregas (documento 16) |
 | `/api/code-agents/...` | Agentes de código desta máquina e quem faz cada tarefa (documento 17) |

@@ -2,29 +2,52 @@ import { Hono } from 'hono';
 import { CreateConversation, RenameConversation } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { body, notFound } from '../errors.ts';
-import { conversationState } from '../../conversations/state.ts';
+import { conversationState, type ConversationState } from '../../conversations/state.ts';
+import { buildNotebook } from '../../conversations/notebook.ts';
 
-/** The sidebar list. The app opens /agents/orbi/<id> for each one. */
-export function conversationRoutes({ conversations, agents, brain, inbox }: OrbiServices) {
+/** Where each conversation is, from the brain: open learning cards and the procedure learned in each one. */
+function stateReader({ brain, inbox }: OrbiServices): (id: string) => ConversationState {
+  const learning = new Set(inbox.list({ status: 'open' }).filter((i) => i.kind === 'learning').map((i) => i.conversationId));
+  const learned = new Map<string, { name: string; level: 1 | 2 | 3; at: string }>();
+  for (const pb of brain.procedures.playbooks()) {
+    const prev = pb.learnedFrom ? learned.get(pb.learnedFrom) : undefined;
+    if (pb.learnedFrom && (!prev || prev.at < pb.updatedAt)) learned.set(pb.learnedFrom, { name: pb.name, level: pb.level, at: pb.updatedAt });
+  }
+  return (id) => {
+    const l = learned.get(id);
+    return conversationState({ lastRun: brain.execution.lastRunIn(id), learningOpen: learning.has(id), learned: l && { name: l.name, level: l.level } });
+  };
+}
+
+/** The sidebar list and the panel beside a conversation. The app opens /agents/orbi/<id> for each one. */
+export function conversationRoutes(s: OrbiServices) {
+  const { conversations, agents, brain } = s;
   return new Hono()
     .get('/', (c) => {
       // Conversations a coding agent asked for carry who asked (the list shows a badge).
       const byConversation = new Map(agents.requests.list(1000).map((r) => [r.conversationId, r]));
       // Where each one is (teaching, doing, learned): from the brain, nothing stored for it.
-      const learning = new Set(inbox.list({ status: 'open' }).filter((i) => i.kind === 'learning').map((i) => i.conversationId));
-      const learned = new Map<string, { name: string; level: 1 | 2 | 3; at: string }>();
-      for (const pb of brain.procedures.playbooks()) {
-        const prev = pb.learnedFrom ? learned.get(pb.learnedFrom) : undefined;
-        if (pb.learnedFrom && (!prev || prev.at < pb.updatedAt)) learned.set(pb.learnedFrom, { name: pb.name, level: pb.level, at: pb.updatedAt });
-      }
+      const stateOf = stateReader(s);
       return c.json(
         conversations.list().map((conv) => {
           const r = byConversation.get(conv.id);
-          const l = learned.get(conv.id);
-          const state = conversationState({ lastRun: brain.execution.lastRunIn(conv.id), learningOpen: learning.has(conv.id), learned: l && { name: l.name, level: l.level } });
+          const state = stateOf(conv.id);
           return r ? { ...conv, state, origin: { agent: r.agent, requestId: r.id, procedure: r.procedure, ...r.context } } : { ...conv, state };
         }),
       );
+    })
+    .get('/:id/notebook', (c) => {
+      const id = c.req.param('id');
+      if (!conversations.get(id)) throw notFound('conversa');
+      const state = stateReader(s)(id);
+      const lastRun = brain.execution.lastRunIn(id);
+      const procedure = state.mode === 'ensinando' ? undefined : brain.procedures.playbook(state.playbook);
+      return c.json(buildNotebook({
+        conversationId: id, state, lastRun, procedure,
+        entities: brain.facts.graph().entities,
+        runIds: brain.execution.runsIn(id).map((r) => r.id),
+        readiness: state.mode === 'fazendo' && lastRun ? brain.execution.readiness(lastRun.id) : [],
+      }));
     })
     .post('/', async (c) => {
       const { title } = await body(c, CreateConversation);

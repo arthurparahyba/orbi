@@ -1,0 +1,220 @@
+/**
+ * End-to-end of the Ensinar screen, in a real browser: the desktop UI (Vite) over the real
+ * runtime, with the model scripted (Pi's faux provider). A "developer" teaches a procedure from
+ * start to end by typing in the chat and clicking the cards, and at each stop the test checks
+ * what the screen shows: the stage bar, the list by state, the "O que estou aprendendo" panel,
+ * the cards in the chat, Pendências and the "…" menu. Screenshots of each stop go to
+ * ORBI_E2E_SHOTS (default: a temp folder) for a look.
+ *
+ *   npm run e2e:tela
+ */
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
+const dir = mkdtempSync(join(tmpdir(), 'orbi-tela-e2e-'));
+const RUNTIME_PORT = 3317;
+const UI_PORT = 5187;
+Object.assign(process.env, {
+  ORBI_DATA_DIR: dir,
+  ORBI_WORKSPACE: dir,
+  ANTHROPIC_API_KEY: 'faux',
+  CHROME_MCP_AUTOSTART: 'false',
+  CHROME_MCP_PORT: '1',
+  ORBI_RUNTIME_URL: `http://127.0.0.1:${RUNTIME_PORT}`,
+});
+const shots = process.env.ORBI_E2E_SHOTS ?? join(dir, 'telas');
+mkdirSync(shots, { recursive: true });
+
+const pi = await import('@earendil-works/pi-ai');
+const { fauxAssistantMessage, fauxToolCall, fauxText } = pi;
+const flue = await import('@flue/runtime');
+const { start } = await import('@flue/runtime/node');
+const { serve } = await import('@hono/node-server');
+const { createServer } = await import('vite');
+const puppeteer = (await import('puppeteer-core')).default;
+const { chromeExecutable } = await import('../src/browser/chrome.ts');
+
+const faux = pi.fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }] });
+flue.setProvider(faux.provider);
+const { Orbi } = await import('../src/agents/orbi.ts');
+const { Configurador } = await import('../src/agents/configurador.ts');
+const { default: app } = await import('../src/app.ts');
+const { brain } = (await import('../src/services.ts')).services();
+
+const runtime = await start({ agents: [Orbi, Configurador] });
+const http = serve({ fetch: app.fetch, port: RUNTIME_PORT, hostname: '127.0.0.1' });
+const desktop = resolve(import.meta.dirname, '../../desktop');
+const vite = await createServer({ root: desktop, configFile: join(desktop, 'vite.config.ts'), server: { port: UI_PORT, strictPort: true }, logLevel: 'error' });
+await vite.listen();
+const browser = await puppeteer.launch({ executablePath: chromeExecutable(), headless: true, args: ['--no-sandbox', '--no-first-run'], defaultViewport: { width: 1440, height: 900 } });
+const page = await browser.newPage();
+const pageErrors: string[] = [];
+page.on('pageerror', (e) => pageErrors.push(String(e)));
+
+const ctx = (context: unknown) => JSON.stringify(context).replace(/\\"/g, '"');
+let n = 0;
+async function shot(name: string) {
+  await page.screenshot({ path: join(shots, `${String(++n).padStart(2, '0')}-${name}.png`) });
+}
+const text = (sel: string) => page.$eval(sel, (e) => (e as HTMLElement).innerText).catch(() => '');
+async function until(what: string, ok: () => Promise<boolean>, ms = 15_000) {
+  for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 150))) if (await ok()) return;
+  await shot(`falhou-${what.replace(/\W+/g, '-')}`);
+  throw new Error(`a tela não mostrou: ${what}`);
+}
+const shows = (sel: string, re: RegExp) => until(`${sel} ${re}`, async () => re.test(await text(sel)));
+const stageNow = () => text('.stages [aria-current="step"]');
+async function say(message: string) {
+  await page.click('.composer textarea, textarea');
+  await page.keyboard.type(message);
+  await page.keyboard.press('Enter');
+}
+async function clickButton(scope: string, label: RegExp) {
+  await until(`botão ${label}`, async () => (await page.$$(`${scope} button`)).length > 0);
+  const handles = await page.$$(`${scope} button`);
+  for (const h of handles) {
+    if (label.test(await h.evaluate((e) => (e as HTMLElement).innerText))) return h.click();
+  }
+  throw new Error(`sem o botão ${label} em ${scope}`);
+}
+/** The chat finished its turn: no working dots and the composer free. */
+const idle = () => until('o turno terminar', async () => !(await page.$('.typing')) && !(await page.$('.stop-btn')));
+
+const learn = (testedRun: string) => ({
+  reason: 'Arthur ensinou a subir versão de MFE no portal',
+  items: [
+    { kind: 'type', payload: { name: 'MicroFrontend', description: 'Front publicado por um portal', knows: { achar: 'buscar pelo nome na lista de aplicações' } } },
+    { kind: 'entity', payload: { id: 'checkout-mfe', type: 'MicroFrontend', aliases: ['checkout'] } },
+    {
+      kind: 'playbook',
+      payload: {
+        name: 'atualizar-mfe', description: 'Sobe a versão de um MicroFrontend no portal', trigger: 'pedido para subir versão de um MFE',
+        intent: 'Publicar uma Versao de um MicroFrontend em um Ambiente', instructions: '', testedRun,
+        inputs: [{ name: 'mfe', concept: 'MicroFrontend' }, { name: 'versao' }, { name: 'ambiente' }],
+        steps: [
+          { id: 'abrir', label: 'Abrir o portal de {{mfe}}', how: 'navegador no portal' },
+          { id: 'criar', label: 'Criar o release {{versao}} em {{ambiente}}', how: 'Releases › Criar release' },
+        ],
+      },
+    },
+  ],
+});
+
+try {
+  await page.goto(`http://127.0.0.1:${UI_PORT}/`, { waitUntil: 'domcontentloaded' });
+  await until('a tela Ensinar', async () => !!(await page.$('.convs-new')));
+
+  // 1 · Explicar
+  await page.click('.convs-new');
+  await shows('.teach-start', /O que você quer me ensinar\?/);
+  await until('a etapa Explicar', async () => /Explicar/.test(await stageNow()));
+  await shows('.notebook', /Conforme você explica/i);
+  await shot('explicar');
+
+  // 2 · Ensaiar: tries along, stops at what it did not find and asks.
+  let runId = '';
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('rehearsal_start', { goal: 'subir versão de um MFE no portal' }), { stopReason: 'toolUse' }),
+    (context) => {
+      runId = /"runId":"([^"]+)"/.exec(ctx(context))?.[1] ?? '';
+      return fauxAssistantMessage(fauxToolCall('rehearsal_step', { label: 'Abrir o portal', status: 'done', note: 'login pelo cofre' }), { stopReason: 'toolUse' });
+    },
+    fauxAssistantMessage(fauxToolCall('rehearsal_step', { label: 'Achar onde cria a versão', status: 'waiting', note: 'Nova versão não existe' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Não achei "Nova versão". É Releases › Criar release ou Promover?')),
+  ]);
+  await say('Pra subir versão do checkout-mfe: entra no portal, clica em nova versão e coloca a 2.14.0 em homologação.');
+  await shows('.messages', /Releases › Criar release ou Promover\?/);
+  await idle();
+  await until('a etapa Ensaiar', async () => /Ensaiar/.test(await stageNow()));
+  await shows('.notebook', /subir versão de um MFE no portal/i);
+  await shows('.notebook', /Achar onde cria a versão · esperando você/i);
+  await shows('.convs', /Ensinando[\s\S]*Pra subir versão do checkout-mfe[\s\S]*Ensaiando/i);
+  await shows('.chat-title', /Pra subir versão do checkout-mfe/);
+  await shot('ensaiar');
+
+  // 3 · Combinar
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('rehearsal_step', { label: 'Achar onde cria a versão', status: 'done', note: 'Releases › Criar release' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('rehearsal_step', { label: 'Conferir que ficou verde', status: 'done' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Deu certo: o release 2.14.0 ficou verde. Vamos combinar onde isso começa e termina?')),
+  ]);
+  await say('É Releases › Criar release.');
+  await shows('.messages', /Vamos combinar onde isso começa e termina\?/);
+  await idle();
+  await until('a etapa Combinar', async () => /Combinar/.test(await stageNow()));
+  await shows('.notebook', /Ainda não sei/i);
+  await shot('combinar');
+
+  // 4 · Aprender: the agreement card, then the learning card (also in Pendências).
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('rehearsal_finish', {
+      start: 'alguém pede para subir a versão de um MFE', receives: ['mfe', 'versao', 'ambiente'], end: 'o release fica verde', outside: ['abrir GMUD'],
+      corrections: [{ explained: 'Nova versão', actual: 'Releases › Criar release' }],
+    }), { stopReason: 'toolUse' }),
+  ]);
+  await say('Começa quando alguém pede para subir versão; termina com o release verde. GMUD fica de fora.');
+  await shows('.agreement', /Termina quando[\s\S]*o release fica verde/i);
+  await until('a etapa Aprender', async () => /Aprender/.test(await stageNow()));
+  await shows('.notebook', /Começa e termina[\s\S]*o release fica verde/i);
+  await shows('.notebook', /O ensaio corrigiu[\s\S]*Releases › Criar release/i);
+  await shot('acordo');
+
+  faux.setResponses([fauxAssistantMessage(fauxToolCall('brain_learn', learn(runId) as never), { stopReason: 'toolUse' })]);
+  await clickButton('.agreement', /Está certo/);
+  await until('o cartão de aprendizado no chat', async () => (await page.$$('.messages button.btn.primary')).length > 0 && /Aprovar/.test(await text('.messages')));
+  await shows('.chat-head', /Pendências\s*\d/);
+  await clickButton('.chat-head', /Pendências/);
+  await shows('.inbox', /Aprend|aprend/);
+  await shot('pendencias');
+  await clickButton('.inbox-head', /^$/); // the close (×) button has no text
+  await until('o painel de volta', async () => !!(await page.$('.notebook')));
+
+  // 5 · Assumir: approved.
+  faux.setResponses([fauxAssistantMessage(fauxText('Guardado: agora sei subir versão de MFE. Peça quando quiser.'))]);
+  await clickButton('.messages', /Aprovar/);
+  await shows('.messages', /agora sei subir versão de MFE/);
+  await idle();
+  await until('a etapa Assumir', async () => /Assumir/.test(await stageNow()));
+  await shows('.notebook', /O que aprendi[\s\S]*atualizar-mfe/i);
+  await shows('.notebook', /N1 agora · N2 depois de 1 execução sem correção/i);
+  await shows('.notebook', /Já anotei[\s\S]*checkout-mfe/i);
+  await shows('.convs', /Já sei fazer[\s\S]*Aprendi: atualizar-mfe · N1/i);
+  await shot('aprendido');
+
+  // 6 · Fazendo: asked to do it.
+  let review = '';
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'atualizar-mfe', params: { mfe: 'checkout', versao: '2.15.0', ambiente: 'homologação' } }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'abrir', status: 'done', note: 'portal aberto' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'criar', status: 'done', note: 'release verde' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Feito: checkout-mfe 2.15.0 em homologação, release verde.')),
+    (context) => { review = ctx(context); return fauxAssistantMessage(fauxText('Ok.')); },
+  ]);
+  await say('Sobe a 2.15 do checkout em homologação.');
+  await shows('.messages', /Feito: checkout-mfe 2.15.0/);
+  await idle();
+  await until('sem a barra de etapas ao fazer', async () => !(await page.$('.stages')));
+  await shows('.notebook', /O que estou fazendo[\s\S]*Criar o release 2.15.0 em homologação/i);
+  await shows('.notebook', /O que eu sei[\s\S]*mfe/i);
+  await shows('.convs', /Fazendo[\s\S]*atualizar-mfe · feito/i);
+  await until('a revisão do fim', async () => review.includes('review'));
+  await until('N2 depois de uma execução limpa', async () => brain.playbook('atualizar-mfe')?.level === 2);
+  await shot('fazendo');
+
+  // The "…" menu has copy and delete; Escape closes it.
+  await page.click('.menu-wrap .icon-btn');
+  await shows('.menu', /Copiar conversa[\s\S]*Apagar conversa/);
+  await page.keyboard.press('Escape');
+  await until('o menu fechar', async () => !(await page.$('.menu')));
+
+  assert.deepEqual(pageErrors, [], 'a página não teve erros');
+  console.log(`tela Ensinar: ok · telas em ${shots}`);
+} finally {
+  await browser.close();
+  await vite.close();
+  http.close();
+  await (runtime as unknown as { [Symbol.asyncDispose](): Promise<void> })[Symbol.asyncDispose]?.();
+}
+process.exit(0);

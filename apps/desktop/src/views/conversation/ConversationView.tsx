@@ -5,6 +5,7 @@ import { Segmented } from '../../components/Segmented';
 import { Chat } from './Chat';
 import { ConversationList } from './ConversationList';
 import { InboxPanel } from './InboxPanel';
+import { Notebook } from './Notebook';
 import { needsYou } from './inbox';
 import { stateOf } from './stage';
 
@@ -47,7 +48,7 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
   };
 
   return (
-    <div className={`conversa ${inboxOpen ? 'with-inbox' : ''}`}>
+    <div className={`conversa ${current || inboxOpen ? 'with-side' : ''}`}>
       <ConversationList items={shown} current={current} openInbox={openInbox} error={list.error} onPick={setCurrent} onNew={newConversation}
         filter={fromAgents && <Segmented<Filter> label="Mostrar" value={filter} onChange={setFilter} options={[{ value: 'todas', label: 'Todas' }, { value: 'minhas', label: 'Minhas' }, { value: 'agentes', label: 'Dos agentes' }]} />} />
       {current ? (
@@ -62,7 +63,10 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
           <button type="button" className="btn primary" onClick={newConversation}>Ensinar algo novo</button>
         </div>
       )}
-      {inboxOpen && <InboxPanel items={openInbox} current={current} onClose={() => setInboxOpen(false)} onOpen={(id) => (isConfigChat(id) ? onOpenConfig() : setCurrent(id))} onGoTo={goTo} />}
+      {/* Pendências takes the place of the panel while open. */}
+      {inboxOpen
+        ? <InboxPanel items={openInbox} current={current} onClose={() => setInboxOpen(false)} onOpen={(id) => (isConfigChat(id) ? onOpenConfig() : setCurrent(id))} onGoTo={goTo} />
+        : current && <Notebook key={current} id={current} />}
     </div>
   );
 }
