@@ -1,9 +1,11 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { useFlueAgent, type FlueConversationMessage } from '@flue/react';
+import { createFlueClient } from '@flue/sdk';
 import { useChanges } from '../../hooks';
 import { ChatContext } from '../ChatContext';
 import { Composer } from './Composer';
-import { Message } from './Message';
+import { Message, Working } from './Message';
+import { workingState } from './tools';
 import { contentKey } from './scroll';
 import { useFollowBottom } from './useFollowBottom';
 import { useGoTo } from './useGoTo';
@@ -71,6 +73,11 @@ export function ChatPanel(props: {
     return () => { document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
   }, [refresh, broken]);
 
+  // Stop: aborts the turn that is running (and what is queued behind it); it settles as "interrompida".
+  const client = useMemo(() => createFlueClient({ url: new URL(url, window.location.href).toString() }), [url]);
+  const stop = async () => { await client.abort().catch(() => undefined); refresh(); };
+  const working = workingState(visible, busy || catchUp.catchingUp);
+
   const send = async (text: string) => {
     const t = text.trim();
     if (!t) return;
@@ -90,14 +97,14 @@ export function ChatPanel(props: {
             {!agent.historyReady && visible.length === 0 && <p className="muted pad loading">Carregando a conversa…</p>}
             {agent.historyReady && visible.length === 0 && props.empty?.((t) => void send(t))}
             {visible.map((m) => <Message key={m.id} m={m} />)}
-            {agent.status === 'submitted' && <div className="msg assistant"><span className="typing"><i /><i /><i /></span></div>}
+            {working === 'thinking' && <Working />}
             {agent.error && <div className="banner small" role="alert">{friendlyError(agent.error.message)}</div>}
           </div>
           {follow.unread && <button type="button" className="btn small new-msgs" onClick={follow.toBottom}>Novas mensagens ↓</button>}
         </div>
       </ChatContext.Provider>
       {props.dock}
-      <Composer onSend={send} placeholder={props.placeholder} />
+      <Composer onSend={send} placeholder={props.placeholder} busy={busy || catchUp.catchingUp} onStop={stop} />
     </section>
   );
 }

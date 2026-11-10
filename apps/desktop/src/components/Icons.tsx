@@ -17,6 +17,7 @@ export const CheckIcon = ({ size }: P) => (<svg {...base(size)}><path d="M5 12l5
 export const XIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 6l12 12M18 6L6 18" /></svg>);
 export const AlertIcon = ({ size }: P) => (<svg {...base(size)}><path d="M12 3l9.5 17h-19L12 3z" /><path d="M12 10v4M12 17.5v.5" /></svg>);
 export const ToolIcon = ({ size }: P) => (<svg {...base(size)}><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z" /></svg>);
+export const StopIcon = ({ size }: P) => (<svg {...base(size)}><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" /></svg>);
 export const SendIcon = ({ size }: P) => (<svg {...base(size)}><path d="M5 12l14-7-5 14-2.5-5.5L5 12z" /></svg>);
 export const BulbIcon = ({ size }: P) => (<svg {...base(size)}><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" /></svg>);
 export const LinkIcon = ({ size }: P) => (<svg {...base(size)}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>);

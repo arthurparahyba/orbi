@@ -34,6 +34,23 @@ flowchart TB
   Runtime --> Dados
 ```
 
+### A caixa de mensagem (todas as telas com chat)
+
+`components/chat/Composer.tsx` e `ChatPanel.tsx`:
+
+- **Enter** envia; **Shift+Enter** quebra a linha.
+- **Ditar**: o microfone começa a ouvir e o foco fica na caixa. **Enter** (ou o
+  microfone de novo) para e transcreve o final; o texto entra na caixa e **Enter de
+  novo** envia. Nada é enviado sem você.
+- **Parar**: enquanto o Orbi trabalha e a caixa está vazia, o botão de enviar vira
+  **Parar** (quadrado). Ele interrompe o turno em andamento e o que estiver na fila
+  (`abort` do cliente do Flue, `POST /agents/<agente>/<conversa>/abort`); a conversa
+  mostra "A execução foi interrompida". Com texto na caixa, o botão volta a ser
+  enviar (a mensagem entra na fila).
+- **Recebi, trabalhando**: logo depois de enviar, e enquanto a resposta ainda não
+  tem nada para mostrar (só raciocínio ou ferramentas internas), aparece a linha
+  "Recebi. Trabalhando nisso…" com os três pontos, no lugar da resposta vazia.
+
 ### A casca (Tauri)
 
 `apps/desktop/src-tauri/src/main.rs`, ao abrir:
@@ -170,6 +187,9 @@ Orbi encerra os dois (e o Chrome que o Orbi abriu):
 - O empacotamento e o microfone no Windows ainda não foram testados.
 
 ## Testes
+
+- `apps/desktop/test/message.test.ts`: quando aparece "Recebi. Trabalhando nisso…"
+  e quando uma resposta ainda não tem o que mostrar.
 
 - `apps/runtime/test/compose.test.ts`: montagem das peças e configuração inválida.
 - `apps/runtime/test/http.test.ts`, `events.test.ts`: API, erros e o feed de eventos.

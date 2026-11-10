@@ -736,3 +736,8 @@ table.facts td { padding: 4px 8px; border-bottom: 1px solid var(--line, #222631)
 .frontier { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
 .frontier h3 { margin: 0 0 4px; font-size: 13px; }
 .frontier ul { margin: 0; padding-left: 18px; }
+
+/* Chat: trabalhando e parar */
+.msg.working .working-row { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; text-align: left; align-self: center; }
+.msg.working .typing { padding: 4px 0; grid-column: auto; }
+.stop-btn { color: var(--red, #ffb4b4); border-color: currentColor; }

@@ -3,7 +3,7 @@ import { ClockIcon, KeyIcon, ToolIcon } from '../Icons';
 import { UiComponentView, type UiComponent } from '../UiComponents';
 import { Markdown } from '../Markdown';
 import { DemonstrationCard } from '../Demonstration';
-import { commandFailed, groupSummary, isSilent, knownProblemsOf, toolCommand, toolLabel, toolResult } from './tools';
+import { commandFailed, groupSummary, hasVisibleContent, isSilent, knownProblemsOf, toolCommand, toolLabel, toolResult } from './tools';
 import { KnownProblems } from '../KnownProblems';
 import { ReviewCard, reviewOf } from '../ReviewCard';
 
@@ -38,6 +38,8 @@ export function Message({ m }: { m: FlueConversationMessage }) {
     if (text.startsWith('<demonstracao')) return <DemonstrationCard text={text} />;
     return <div className="msg user"><div className="bubble">{text}</div></div>;
   }
+  // A reply that has nothing to show yet (the turn just started) is drawn by the "working" row, not as an empty bubble.
+  if (!hasVisibleContent(m.parts)) return null;
   return (
     <div className="msg assistant">
       <div className="avatar" aria-hidden="true">O</div>
@@ -108,4 +110,14 @@ function Part({ p }: { p: FlueConversationPart }) {
     return <div className="ui-stack">{comps.map((c) => <UiComponentView key={c.id} c={c} />)}</div>;
   }
   return null;
+}
+
+/** While a turn runs and has nothing visible yet: the message arrived and the Orbi is working on it. */
+export function Working() {
+  return (
+    <div className="msg assistant working" role="status">
+      <div className="avatar" aria-hidden="true">O</div>
+      <div className="parts working-row"><span className="typing" aria-hidden="true"><i /><i /><i /></span><span className="muted small">Recebi. Trabalhando nisso…</span></div>
+    </div>
+  );
 }

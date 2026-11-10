@@ -106,3 +106,27 @@ describe('ferramenta que se descreve', () => {
     expect(toolCommand(t)).toBe('relatorio --mes 10');
   });
 });
+
+import { hasVisibleContent, workingState } from '../src/components/chat/tools';
+
+describe('trabalhando', () => {
+  const user = { role: 'user', parts: [{ type: 'text', text: 'oi' }] };
+  const empty = { role: 'assistant', parts: [{ type: 'reasoning', text: 'pensando' }] };
+  const said = { role: 'assistant', parts: [{ type: 'text', text: 'Feito.' }] };
+  const signal = { role: 'system', parts: [{ type: 'text', text: '<skills/>' }] };
+
+  it('logo depois de enviar, mostra que recebeu e está trabalhando', () => {
+    expect(workingState([user], true)).toBe('thinking');
+    expect(workingState([user, signal], true)).toBe('thinking');
+    expect(workingState([user, empty], true)).toBe('thinking');
+  });
+  it('some quando a resposta tem algo a mostrar, ou quando o turno termina', () => {
+    expect(workingState([user, said], true)).toBe('none');
+    expect(workingState([user], false)).toBe('none');
+  });
+  it('resposta só com raciocínio ou texto vazio não tem o que mostrar', () => {
+    expect(hasVisibleContent(empty.parts)).toBe(false);
+    expect(hasVisibleContent([{ type: 'text', text: '  ' } as never])).toBe(false);
+    expect(hasVisibleContent([{ type: 'data-ui', data: { components: [{}] } } as never])).toBe(true);
+  });
+});

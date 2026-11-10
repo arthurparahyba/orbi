@@ -123,3 +123,26 @@ export function groupSummary(tools: ToolCall[]): string {
   });
   return parts.join(' · ');
 }
+
+/**
+ * Whether an assistant message has anything to show yet: text, a card or a tool call that is not
+ * bookkeeping. While a turn starts, the message exists with nothing in it (reasoning, silent tools).
+ */
+export function hasVisibleContent(parts: ReadonlyArray<{ type: string }>): boolean {
+  return parts.some((p) => {
+    if (p.type === 'text') return !!(p as { text?: string }).text?.trim();
+    if (p.type === 'data-ui') return (((p as { data?: { components?: unknown[] } }).data?.components) ?? []).length > 0;
+    if (p.type === 'dynamic-tool') return !isSilent(p as unknown as ToolCall);
+    return false;
+  });
+}
+
+/** Where the "working" indicator goes: after the last message, while the turn has nothing visible to show. */
+export function workingState(messages: Array<{ role: string; parts: Array<{ type: string }> }>, running: boolean): 'none' | 'thinking' {
+  if (!running) return 'none';
+  // Runtime signals (system messages) are mostly not drawn: look at the last user or assistant message.
+  const last = messages.filter((m) => m.role !== 'system').at(-1);
+  if (!last || last.role === 'user') return 'thinking';
+  if (last.role === 'assistant' && !hasVisibleContent(last.parts as never)) return 'thinking';
+  return 'none';
+}
