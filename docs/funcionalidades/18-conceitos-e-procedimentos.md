@@ -238,7 +238,7 @@ domínio (deploy, mudança, infraestrutura).
    cartão "testado em".
 4. **Sei / não sei** *(feito)*: a lista antes de executar e na falha; "fora da ontologia →
    delega".
-5. **Tela Cérebro**: mapa de conceitos, fatos em lista, vizinhança, fronteira.
+5. **Tela Cérebro** *(feito)*: mapa de conceitos, fatos em lista, vizinhança, fronteira.
 
 Cada fase entra com testes de fluxo no estilo de `test/flow-*.test.ts` e com o
 documento da funcionalidade atualizado.

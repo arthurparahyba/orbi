@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../api';
 import { useLive } from '../../hooks';
-import { Gaps, Graph, Legend } from './Graph';
-import { EntityDetail } from './EntityDetail';
+import { Knowledge } from './Knowledge';
 import { Playbooks } from './Playbooks';
 import { Runs } from './Runs';
 import { Ontology } from './Ontology';
@@ -11,9 +10,8 @@ type Tab = 'grafo' | 'playbooks' | 'execucoes' | 'ontologia';
 
 export function BrainView() {
   const brain = useLive(api.brain, ['brain']);
+  const playbooks = useLive(api.playbooks, ['brain']);
   const [tab, setTab] = useState<Tab>('grafo');
-  const [selected, setSelected] = useState<string | undefined>();
-  const [query, setQuery] = useState('');
   const [exported, setExported] = useState<string>();
   const s = brain.data?.stats;
 
@@ -47,18 +45,7 @@ export function BrainView() {
       ) : tab === 'grafo' && brain.data.entities.length === 0 ? (
         <EmptyBrain />
       ) : tab === 'grafo' ? (
-        <div className="graph-layout">
-          <div className="graph-col">
-            <div className="graph-tools">
-              <label className="sr-only" htmlFor="brain-q">Filtrar entidades</label>
-              <input id="brain-q" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar (ex.: novo-front, Portal)…" />
-              <Legend snapshot={brain.data} />
-            </div>
-            <Graph snapshot={brain.data} selected={selected} onSelect={setSelected} query={query} />
-            {brain.data.gaps.length > 0 && <Gaps snapshot={brain.data} onSelect={setSelected} />}
-          </div>
-          <EntityDetail id={selected} snapshot={brain.data} onSelect={setSelected} onDeleted={() => { setSelected(undefined); void brain.reload(); }} />
-        </div>
+        <Knowledge snapshot={brain.data} playbooks={playbooks.data ?? []} onDeleted={() => void brain.reload()} />
       ) : tab === 'playbooks' ? (
         <Playbooks />
       ) : tab === 'execucoes' ? (

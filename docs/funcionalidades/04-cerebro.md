@@ -13,8 +13,17 @@ trabalha com o Orbi, e cada coisa nova só entra depois que você aprova.
 ## Onde aparece
 
 - **Tela Cérebro**, com quatro abas:
-  - **Conhecimento**: o grafo (entidades como nós, ligações como setas), filtro,
-    detalhe da entidade escolhida e as **lacunas** (o que falta saber);
+  - **Conhecimento**: em três níveis, para o mapa não virar um novelo quando o
+    cérebro cresce (documento 18):
+    - **mapa de conceitos** (o padrão): os tipos como nós, com quantos fatos cada um
+      tem, ligados pelas ligações da ontologia e pelas que os fatos usam;
+    - **fatos em lista**: ao escolher um conceito, os fatos dele numa tabela, com
+      filtro (também pelos outros nomes), origem e data;
+    - **vizinhança**: ao escolher um fato, o grafo só do que está ligado a ele, com
+      o detalhe ao lado;
+    - embaixo, **Sei agir sozinho / Preciso de você** (a fronteira, calculada do
+      próprio cérebro: recurso cujo conceito não sabe o que um procedimento usa,
+      conceito sem fatos, lacunas) e as **lacunas**;
   - **Playbooks**: procedimentos, variações e nível de autonomia (documento 5);
   - **Execuções**: cada vez que um procedimento rodou e como terminou cada passo;
   - **Ontologia**: os tipos e as ligações que cada um aceita.
@@ -250,6 +259,8 @@ numa transação.
 | `apps/runtime/src/db/migrations.ts` | Esquema e migrações versionadas |
 | `apps/runtime/src/http/routes/brain.ts` | `GET /api/brain`, entidades, procedimentos, execuções, exportação |
 | `apps/desktop/src/views/brain/` | A tela: grafo e layout, detalhe, editores, playbooks, execuções, ontologia |
+| `apps/desktop/src/views/brain/map.ts` | Mapa de conceitos, vizinhança, fatos de um conceito e a fronteira (sem React) |
+| `apps/desktop/src/views/brain/Knowledge.tsx`, `FactList.tsx`, `Frontier.tsx` | A aba Conhecimento nos três níveis |
 | `apps/desktop/src/views/brain/editing.ts` | Propriedades como linhas editáveis e passos como lista (sem React, testável) |
 | `apps/desktop/src/components/ConfirmDelete.tsx` | Confirmação de exclusão com as consequências |
 
@@ -288,6 +299,8 @@ Tudo em `data/orbi.db`. A exportação Markdown vai para `data/brain-md/`.
 - `apps/runtime/test/units.test.ts`: cérebro vazio, ontologia, ligações com
   validade, propostas, migração que remove tipos de fábrica não usados.
 - `apps/desktop/test/layout.test.ts`: layout do grafo.
+- `apps/desktop/test/brainMap.test.ts`: mapa de conceitos, vizinhança, fatos por
+  outro nome e a fronteira.
 - `apps/runtime/test/review.test.ts` ("problemas conhecidos"): forma, quando um erro
   bate, o que vira conhecimento.
 - `apps/runtime/test/flow-*.test.ts` ("problema conhecido"): o quality gate

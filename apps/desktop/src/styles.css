@@ -725,3 +725,14 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .readiness-list .is-known .readiness-mark { color: var(--green, #8fe3b8); }
 .readiness-list .is-unknown .readiness-mark { color: var(--amber); }
 .readiness-list .is-unknown { background: rgba(242, 177, 60, 0.06); border-radius: 4px; }
+
+/* Cérebro: conceitos como mapa, fatos em lista, fronteira */
+.fact-list { display: flex; flex-direction: column; gap: 8px; }
+.fact-list h2 { margin: 0; font-size: 16px; }
+.fact-list .knows { margin-right: 12px; }
+table.facts { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.facts th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--line, #222631); }
+table.facts td { padding: 4px 8px; border-bottom: 1px solid var(--line, #222631); }
+.frontier { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.frontier h3 { margin: 0 0 4px; font-size: 13px; }
+.frontier ul { margin: 0; padding-left: 18px; }
