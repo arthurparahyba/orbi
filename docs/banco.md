@@ -391,7 +391,7 @@ parecidos (`similar_to`) e `status` (`open`, `accepted`, `rejected`).
 investigar ou corrigir (Claude Code, Cursor, Devin…): `id` (kebab-case), nome,
 programa (`binary`), comando de uso único (`command`, com `{prompt}` e
 `{modelo}`), modelos aceitos (`models`, JSON), de onde veio o cadastro
-(`source`: `catalogo`, `ajuda`, `manual`) e o último teste (`test_at`,
+(`source`: `catalogo`, `ajuda`, `manual`), onde roda (`run_in`: `window`, uma janela do terminal, ou `background`; migração 17) e o último teste (`test_at`,
 `test_ok`, `test_detail`).
 
 **`code_agent_tasks`** · qual agente faz cada tarefa (`task`: `investigar` ou
@@ -421,8 +421,9 @@ editada, sempre se cria outra.
 | 14 | `playbook_runs.reviewed_at` (as execuções antigas contam como revisadas) |
 | 15 | `playbooks.scripts` (scripts do procedimento) |
 | 16 | Agentes de código desta máquina: `code_agents`, `code_agent_tasks` |
+| 17 | `code_agents.run_in` (onde o agente roda) |
 
-O número é o `user_version` depois que a migração roda (hoje 16). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 17). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos

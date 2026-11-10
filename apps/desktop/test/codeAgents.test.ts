@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { agentState, modelOptions, notRegistered, parseModels, usedFor } from '../src/views/autonomy/codeAgents/model';
 import type { CodeAgent, CodeAgentsState } from '../src/api';
 
-const agent = (over: Partial<CodeAgent> = {}): CodeAgent => ({ id: 'claude-code', name: 'Claude Code', binary: 'claude', command: 'claude -p {prompt}', models: ['claude-haiku-5-5'], source: 'catalogo', lastTest: null, createdAt: '', updatedAt: '', ...over });
+const agent = (over: Partial<CodeAgent> = {}): CodeAgent => ({ id: 'claude-code', name: 'Claude Code', binary: 'claude', command: 'claude -p {prompt}', models: ['claude-haiku-5-5'], source: 'catalogo', runIn: 'window', lastTest: null, createdAt: '', updatedAt: '', ...over });
 
 describe('agentes de código', () => {
   it('situação vem do último teste', () => {

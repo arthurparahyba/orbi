@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { binaryOf, commandProblems } from './command.ts';
-import { CODE_AGENT_TASKS, type CodeAgent, type CodeAgentSource, type CodeAgentTask, type TaskAssignment } from './types.ts';
+import { CODE_AGENT_TASKS, type CodeAgent, type CodeAgentRunIn, type CodeAgentSource, type CodeAgentTask, type TaskAssignment } from './types.ts';
 
 type Row = Record<string, unknown>;
 const toAgent = (r: Row): CodeAgent => ({
@@ -10,6 +10,7 @@ const toAgent = (r: Row): CodeAgent => ({
   command: String(r.command),
   models: JSON.parse(String(r.models ?? '[]')) as string[],
   source: String(r.source) as CodeAgentSource,
+  runIn: (String(r.run_in ?? 'window') === 'background' ? 'background' : 'window'),
   lastTest: r.test_at ? { at: String(r.test_at), ok: Number(r.test_ok) === 1, detail: String(r.test_detail ?? '') } : null,
   createdAt: String(r.created_at),
   updatedAt: String(r.updated_at),
@@ -21,6 +22,7 @@ export interface SaveAgent {
   command: string;
   models?: string[];
   source?: CodeAgentSource;
+  runIn?: CodeAgentRunIn;
 }
 
 /** Thrown for invalid input: the route answers 400 with the message. */
@@ -54,11 +56,11 @@ export class CodeAgents {
     const now = new Date().toISOString();
     this.db
       .prepare(
-        `INSERT INTO code_agents (id, name, binary, command, models, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO code_agents (id, name, binary, command, models, source, run_in, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, binary = excluded.binary, command = excluded.command,
-           models = excluded.models, source = excluded.source, updated_at = excluded.updated_at`,
+           models = excluded.models, source = excluded.source, run_in = excluded.run_in, updated_at = excluded.updated_at`,
       )
-      .run(input.id, input.name.trim() || input.id, binaryOf(input.command), input.command.trim(), JSON.stringify(models), input.source ?? 'manual', now, now);
+      .run(input.id, input.name.trim() || input.id, binaryOf(input.command), input.command.trim(), JSON.stringify(models), input.source ?? 'manual', input.runIn ?? this.get(input.id)?.runIn ?? 'window', now, now);
     return this.get(input.id)!;
   }
 
@@ -115,6 +117,6 @@ export class CodeAgents {
 
   private envAgent(): CodeAgent | undefined {
     if (!this.fromEnv) return undefined;
-    return { id: 'env', name: `${binaryOf(this.fromEnv)} (do .env)`, binary: binaryOf(this.fromEnv), command: this.fromEnv, models: [], source: 'env', lastTest: null, createdAt: '', updatedAt: '' };
+    return { id: 'env', name: `${binaryOf(this.fromEnv)} (do .env)`, binary: binaryOf(this.fromEnv), command: this.fromEnv, models: [], source: 'env', runIn: 'background', lastTest: null, createdAt: '', updatedAt: '' };
   }
 }

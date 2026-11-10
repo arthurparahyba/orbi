@@ -82,7 +82,7 @@ test('agente de código de verdade (um script no lugar do claude): corrige na c�
   const agent = join(root, 'agente.sh');
   writeFileSync(agent, '#!/bin/bash\necho "1+1=2" > soma.txt\necho "corrigi a soma: $4" | head -c 40\n');
   const agents = new CodeAgents(db());
-  agents.save({ id: 'script', name: 'Agente de teste', command: `bash ${agent} --model {modelo} -- {prompt}` });
+  agents.save({ id: 'script', name: 'Agente de teste', command: `bash ${agent} --model {modelo} -- {prompt}`, runIn: 'background' });
   agents.assign('corrigir', 'script', 'modelo-x');
   const fixer = createCodeFixer({ workspace: ws, scratchDir: join(root, 'scratch'), cliEnv: {}, agents, shell: () => shell });
   const fix = await fixer.prepare({ repo: 'org/app', branch: 'main', diagnosis: 'a soma está errada' });
@@ -144,4 +144,35 @@ test('Orbi iniciado de dentro de uma sessão do Claude Code: o agente não herda
   assert.equal(orbiOwn('CLAUDE_CODE_OAUTH_TOKEN', parent), true);
   assert.equal(orbiOwn('HTTPS_PROXY', parent), false);
   assert.equal(orbiOwn('CLAUDE_CONFIG_DIR', {}), false, 'fora de uma sessão, a configuração do desenvolvedor vale');
+});
+
+test('janela do terminal: o script roda a linha, guarda a saída e o código, e o Orbi espera', async (t) => {
+  const { findShell } = await import('../src/terminal/shell.ts');
+  const shell = findShell(process.env);
+  if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
+  const { runInTerminalWindow, windowScript } = await import('../src/code-agents/terminal-window.ts');
+  const { spawn } = await import('node:child_process');
+  const script = windowScript({ line: "echo 'oi do agente'", cwd: 'C:\\Users\\a', title: 'teste', log: 'C:\\x\\log', done: 'C:\\x\\fim' });
+  assert.match(script, /cd 'C:\/Users\/a'/, 'caminhos do Windows com / para o bash');
+  assert.match(script, /PIPESTATUS/);
+  const dir = mkdtempSync(join(tmpdir(), 'orbi-win-'));
+  // The "window": runs the script right here, like the terminal would.
+  const open = (s: string) => { spawn('bash', [s], { stdio: 'ignore' }); };
+  const ok = await runInTerminalWindow({ line: "echo 'oi do agente'", cwd: dir, title: 'teste', scratchDir: dir, shell, open, pollMs: 50 });
+  assert.equal(ok.exitCode, 0);
+  assert.match(ok.stdout, /oi do agente/);
+  const bad = await runInTerminalWindow({ line: "echo 'Failed to authenticate' >&2; false", cwd: dir, title: 'teste', scratchDir: dir, shell, open, pollMs: 50 });
+  assert.equal(bad.exitCode, 1);
+  assert.match(bad.stderr, /Failed to authenticate/);
+  const slow = await runInTerminalWindow({ line: 'sleep 5', cwd: dir, title: 'teste', scratchDir: dir, shell, open: () => {}, pollMs: 20, timeoutMs: 100 });
+  assert.equal(slow.timedOut, true, 'janela que não termina: tempo esgotado');
+});
+
+test('plataforma: como abrir uma janela do terminal', async () => {
+  const { platformFor } = await import('../src/platform/index.ts');
+  assert.deepEqual(platformFor('darwin').terminalWindow('/t/run.command', null), { command: '/usr/bin/open', args: ['-a', 'Terminal', '/t/run.command'] });
+  const win = platformFor('win32').terminalWindow('C:\\t\\run.command', 'C:\\Program Files\\Git\\bin\\bash.exe');
+  assert.equal(win?.command, 'C:\\Program Files\\Git\\usr\\bin\\mintty.exe');
+  assert.deepEqual(win?.args.slice(-3), ['/usr/bin/bash', '-l', 'C:/t/run.command']);
+  assert.equal(platformFor('win32').terminalWindow('x', null), null);
 });

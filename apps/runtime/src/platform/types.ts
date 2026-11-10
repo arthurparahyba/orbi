@@ -32,6 +32,11 @@ export interface Platform {
   childEnvKeys: string[];
   /** Where Chrome usually is. */
   chromePaths(env: Env): string[];
+  /**
+   * How to open a terminal window the developer sees, running `script` (a bash script): Terminal
+   * on macOS, mintty (Git Bash) on Windows, the desktop's terminal on Linux. Null when there is none.
+   */
+  terminalWindow(script: string, shell: string | null, env?: Env): { command: string; args: string[]; env?: Env } | null;
   /** The path module of this system. */
   path: typeof import('node:path').posix;
 }

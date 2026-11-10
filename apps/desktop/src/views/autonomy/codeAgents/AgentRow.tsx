@@ -23,7 +23,7 @@ export function AgentRow({ agent, usedFor, onChanged }: { agent: CodeAgent; used
         <strong>{agent.name}</strong> <span className={`pill pill-${state.tone}`}>{state.label}</span>
         <p className="muted small"><code>{agent.command}</code></p>
         <p className="muted small">
-          {agent.models.length ? `Modelos: ${agent.models.join(', ')}` : 'Usa o modelo padrão do agente'}
+          {agent.runIn === 'window' ? 'Numa janela do terminal' : 'Em segundo plano'} · {agent.models.length ? `Modelos: ${agent.models.join(', ')}` : 'Usa o modelo padrão do agente'}
           {usedFor ? ` · usado para ${usedFor}` : ''}
           {detail ? ` · último teste: ${detail}` : ''}
         </p>

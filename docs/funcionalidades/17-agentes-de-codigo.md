@@ -90,7 +90,21 @@ As leituras só aceitam nomes de programa e um subcomando, e rodam sempre com
 As pendências desta conversa aparecem em Pendências como as outras; **Ir até**
 abre a tela Autonomia.
 
-### Com qual ambiente o agente roda
+### Onde o agente roda: numa janela do terminal (padrão) ou em segundo plano
+
+Por padrão o agente roda **numa janela do terminal** que o Orbi abre, como uma que
+você abriria na mão (Terminal no macOS, a janela do Git Bash no Windows, o
+terminal da área de trabalho no Linux). Assim ele usa a sua sessão de verdade (o
+login dele funciona como no seu terminal) e você acompanha o que ele faz. A janela
+roda um script pequeno (`code-agents/terminal-window.ts`): mostra o que o Orbi
+pediu, roda o agente, guarda a saída num arquivo e, ao terminar, o código de
+saída; o Orbi espera esse arquivo. A janela fica aberta para você ler.
+
+Em cada agente dá para escolher **em segundo plano** (sem janela), no editor do
+agente (Onde roda). A descoberta (`--version`, `--help`) roda sempre em segundo
+plano.
+
+### Com qual ambiente o agente roda (em segundo plano)
 
 O agente é uma ferramenta do desenvolvedor: roda com a **sessão dele** (o login do
 agente, proxy, certificados, variáveis do perfil do shell), como no terminal, e
@@ -156,6 +170,7 @@ na próxima vez é o caminho do problema conhecido.
 | Tipos, catálogo, linha de comando | `apps/runtime/src/code-agents/{types,catalog,command}.ts` |
 | Cadastro e tarefas | `apps/runtime/src/code-agents/registry.ts` (`CodeAgents`) |
 | Teste do agente | `apps/runtime/src/code-agents/tester.ts` |
+| Janela do terminal, e onde roda | `apps/runtime/src/code-agents/terminal-window.ts`, `run.ts`; `terminalWindow` em `src/platform/` |
 | Executor na cópia | `apps/runtime/src/code-agents/fixer.ts` |
 | Ferramentas do Orbi | `apps/runtime/src/agents/tools/code.ts` (investigar, corrigir conhecido, aplicar, descartar) |
 | Parte do prompt | `apps/runtime/src/prompts/orbi/agentes-de-codigo.md` |

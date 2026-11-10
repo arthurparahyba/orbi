@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulidx';
-import { runCommand, runShell } from '../terminal/exec.ts';
+import { runCommand } from '../terminal/exec.ts';
 import { agentLine } from './command.ts';
+import { runAgent } from './run.ts';
 import type { CodeAgents } from './registry.ts';
 import type { CodeAgentTask } from './types.ts';
 import type { KnownProblem } from '../brain/domain/knowledge.ts';
@@ -106,13 +107,12 @@ export function createCodeFixer(opts: CodeFixerOptions) {
 
     const shell = opts.shell();
     if (!shell) throw new Error(`${chosen.agent.name} roda pelo terminal, e nenhum shell foi encontrado (Git Bash no Windows)`);
-    const ran = await runShell(shell, agentLine(chosen.agent.command, task === 'investigar' ? INVESTIGATE_PROMPT(input.diagnosis) : FIX_PROMPT(input.diagnosis, input.problem), chosen.model), {
+    const ran = await runAgent(chosen.agent, agentLine(chosen.agent.command, task === 'investigar' ? INVESTIGATE_PROMPT(input.diagnosis) : FIX_PROMPT(input.diagnosis, input.problem), chosen.model), {
       cwd: worktree,
-      // The developer's session for their own tool, never the Orbi's credentials (cliEnv is only for git here).
-      env: {},
+      title: `${task === 'investigar' ? 'investigar' : 'corrigir'} ${input.repo} (${input.branch})`,
+      scratchDir: opts.scratchDir,
       shell,
       signal,
-      inherit: 'developer',
       timeoutMs: 1_200_000,
     });
     const summary = ran.exitCode === 0

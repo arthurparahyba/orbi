@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { ulid } from 'ulidx';
 import { runShell } from '../terminal/exec.ts';
 import { agentLine } from './command.ts';
+import { runAgent } from './run.ts';
 import { orbiOwn } from '../terminal/orbi-env.ts';
 import type { CodeAgent } from './types.ts';
 
@@ -43,23 +44,23 @@ export const TEST_PROMPT = 'Responda apenas com a palavra ok. Não leia nem alte
  */
 export async function testAgent(
   agent: CodeAgent,
-  opts: { model?: string | null; scratchDir: string; shell: string | null; env: Record<string, string | undefined>; timeoutMs?: number },
+  opts: { model?: string | null; scratchDir: string; shell: string | null; env: Record<string, string | undefined>; timeoutMs?: number; open?: (script: string) => void },
 ): Promise<{ ok: boolean; detail: string }> {
   if (!opts.shell) return { ok: false, detail: 'nenhum shell encontrado (Git Bash no Windows): configure o caminho do bash.exe' };
   const dir = join(opts.scratchDir, 'agent-tests', ulid().toLowerCase());
   mkdirSync(dir, { recursive: true });
   const started = Date.now();
   try {
-    const ran = await runShell(opts.shell, agentLine(agent.command, TEST_PROMPT, opts.model ?? null), {
+    const ran = await runAgent(agent, agentLine(agent.command, TEST_PROMPT, opts.model ?? null), {
       cwd: dir,
-      env: opts.env,
+      title: `teste do ${agent.name}`,
+      scratchDir: opts.scratchDir,
       shell: opts.shell,
-      // The developer's own tool: their session (login, proxy, certificates), not the Orbi's keys.
-      inherit: 'developer',
-      timeoutMs: opts.timeoutMs ?? 120_000,
+      timeoutMs: opts.timeoutMs ?? (agent.runIn === 'window' ? 300_000 : 120_000),
+      open: opts.open,
     });
     const secs = Math.round((Date.now() - started) / 1000);
-    if (ran.timedOut) return { ok: false, detail: `não respondeu em ${secs} s: pode estar esperando login ou uma confirmação` };
+    if (ran.timedOut) return { ok: false, detail: agent.runIn === 'window' ? `a janela do terminal não terminou em ${secs} s: veja se o agente está esperando login ou uma confirmação nela` : `não respondeu em ${secs} s: pode estar esperando login ou uma confirmação` };
     if (ran.exitCode !== 0) {
       const error = (ran.stderr || ran.stdout).trim().slice(-300);
       const why = /auth|login|oauth|credential|token|expired/i.test(error) ? await authClues(agent, opts.shell, dir) : '';

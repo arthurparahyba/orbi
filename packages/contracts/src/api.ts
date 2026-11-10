@@ -215,6 +215,8 @@ export interface CodeAgent {
   /** One-shot command: `{prompt}` is the request, `{modelo}` the task's model. */
   command: string; models: string[];
   source: 'catalogo' | 'ajuda' | 'manual' | 'env';
+  /** `window`: a terminal window the developer sees (their own session); `background`: hidden. */
+  runIn: 'window' | 'background';
   lastTest: { at: string; ok: boolean; detail: string } | null;
   createdAt: string; updatedAt: string;
 }

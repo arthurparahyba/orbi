@@ -25,3 +25,8 @@ export function orbiOwn(key: string, env: NodeJS.ProcessEnv = process.env): bool
   // the developer's own, from their shell, is theirs (their claude may log in with it).
   return fromOrbiEnvFile.has(key) || /^ORBI_/i.test(key) || /^(CHROME_MCP_|CHROME_DEBUG_)/i.test(key);
 }
+
+/** The developer's session without what is the Orbi's: for their own tools (a terminal window, a coding agent). */
+export function developerEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([k, v]) => v !== undefined && !orbiOwn(k, env)));
+}

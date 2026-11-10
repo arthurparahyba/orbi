@@ -139,6 +139,7 @@ export const SaveCodeAgent = v.object({
   command: v.pipe(v.string(), v.trim(), v.minLength(1, 'informe o comando'), v.maxLength(500)),
   models: v.optional(v.array(v.pipe(v.string(), v.maxLength(120)))),
   source: v.optional(v.picklist(['catalogo', 'ajuda', 'manual'])),
+  runIn: v.optional(v.picklist(['window', 'background'])),
 });
 /** PUT /api/code-agents/tasks/:task — which agent (and model) does a task; agent null clears it. */
 export const AssignCodeAgentTask = v.object({

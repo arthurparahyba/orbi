@@ -199,4 +199,8 @@ CREATE TABLE code_agents (
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE code_agent_tasks (task TEXT PRIMARY KEY, agent TEXT NOT NULL, model TEXT);`,
   },
+  {
+    name: 'agentes de código: onde rodam (numa janela do terminal, o padrão, ou em segundo plano)',
+    sql: `ALTER TABLE code_agents ADD COLUMN run_in TEXT NOT NULL DEFAULT 'window';`,
+  },
 ];

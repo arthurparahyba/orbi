@@ -9,6 +9,8 @@
 export type CodeAgentTask = 'investigar' | 'corrigir';
 export const CODE_AGENT_TASKS: readonly CodeAgentTask[] = ['investigar', 'corrigir'];
 
+export type CodeAgentRunIn = 'window' | 'background';
+
 /** Where a registration came from. */
 export type CodeAgentSource = 'catalogo' | 'ajuda' | 'manual' | 'env';
 
@@ -27,6 +29,11 @@ export interface CodeAgent {
   /** Models it accepts, as its option takes them. Empty: it uses its own default. */
   models: string[];
   source: CodeAgentSource;
+  /**
+   * Where it runs: `window`, a terminal window the developer sees (their own session, so the
+   * agent's login works as in their terminal, and they follow it); `background`, hidden.
+   */
+  runIn: CodeAgentRunIn;
   lastTest: { at: string; ok: boolean; detail: string } | null;
   createdAt: string;
   updatedAt: string;

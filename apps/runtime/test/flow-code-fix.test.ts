@@ -29,7 +29,7 @@ before(() => {
   mkdirSync(join(root, 'bin'), { recursive: true });
   const agent = join(root, 'bin', 'agente.sh');
   writeFileSync(agent, '#!/bin/bash\necho "R$ 1.234,56" > preco.txt\necho "tentativa 1: fixei pt-BR no formatador; testes passam"\n');
-  codeAgents.save({ id: 'script', name: 'Agente de teste', command: `bash ${agent} --model {modelo} -- {prompt}`, models: ['modelo-x'] });
+  codeAgents.save({ id: 'script', name: 'Agente de teste', command: `bash ${agent} --model {modelo} -- {prompt}`, models: ['modelo-x'], runIn: 'background' });
   codeAgents.assign('investigar', 'script', 'modelo-x');
   codeAgents.assign('corrigir', 'script', null);
 });

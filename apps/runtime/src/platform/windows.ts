@@ -28,6 +28,13 @@ export const windows: Platform = {
   skipsPathDir: (dir) => /WindowsApps/i.test(dir),
   needsShell: (file) => /\.(cmd|bat)$/i.test(file),
   childEnvKeys: ['SYSTEMROOT', 'SystemRoot', 'COMSPEC', 'PATHEXT', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'ProgramFiles', 'TEMP', 'TMP'],
+  // Git Bash's own window (mintty), kept open (-h always) so the result can be read.
+  terminalWindow: (script, shell, env) => {
+    if (!shell || !/[\\/]Git[\\/](usr[\\/])?bin[\\/]bash\.exe$/i.test(shell)) return null;
+    const git = /[\\/]usr[\\/]bin[\\/]bash\.exe$/i.test(shell) ? win32.dirname(win32.dirname(win32.dirname(shell))) : win32.dirname(win32.dirname(shell));
+    const mintty = join(git, 'usr', 'bin', 'mintty.exe');
+    return { command: mintty, args: ['-h', 'always', '-t', 'Orbi', '/usr/bin/bash', '-l', script.replace(/\\/g, '/')], env };
+  },
   chromePaths: (env) => [
     `${env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
     `${env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`,

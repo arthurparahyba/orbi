@@ -659,6 +659,7 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .ca-page .ca-editor { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .ca-page .ca-editor label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
 .ca-page .ca-editor input { color: var(--text); font: inherit; font-size: 13px; }
+.ca-page .ca-editor select { max-width: none; }
 .ca-page .ca-editor input.mono { font-family: var(--mono); font-size: 12.5px; }
 @media (max-width: 1100px) { .ca-page .ca-chat { width: 360px; } }
 
