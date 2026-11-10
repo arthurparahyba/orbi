@@ -29,6 +29,7 @@ e [plugins](../plugins.md).
 | 15 | [Agentes de código (MCP)](15-agentes-mcp.md) | Tela **Agentes**: pedidos, sugestões e conexões do Claude Code e do Cursor |
 | 16 | [Esteiras](16-esteiras.md) | Tela **Esteiras**: procedimentos em sequência, com ramos, passagens e destino |
 | 17 | [Agentes de código desta máquina](17-agentes-de-codigo.md) | **Autonomia → Agentes de código**: quem investiga e quem corrige, com qual modelo; o chat que descobre os agentes |
+| 18 | [Conceitos, fatos e procedimentos](18-conceitos-e-procedimentos.md) *(proposta)* | Ensinar ensaiando, procedimentos sobre conceitos, aprender fatos ao executar e a fronteira "sei / não sei" |
 
 ## Como as funcionalidades se ligam
 
