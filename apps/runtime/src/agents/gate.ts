@@ -60,7 +60,9 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         };
         const known = pb ? brain.isKnownAction(pb.name, action.fingerprint) : false;
         const decided = decide(policy.get(), category, pb ?? null, { known, effect });
-        const level = decided === 'auto' && def.alwaysAsk?.(data) ? 'ask' : decided;
+        // In a rehearsal (trying out an explanation) whatever publishes or deletes always asks, whatever the level.
+        const rehearsing = run?.kind === 'rehearsal' && (effect === 'publica' || effect === 'apaga');
+        const level = decided === 'auto' && (def.alwaysAsk?.(data) || rehearsing) ? 'ask' : decided;
         if (level === 'auto') {
           const result = await def.execute(data, toolCallId, 'auto');
           if (run) brain.recordRunAction(run.id, action);

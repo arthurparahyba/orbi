@@ -128,10 +128,11 @@ conceito entre os fatos, pelo id ou por outro nome, sem acento nem maiúscula:
 
 Por três caminhos, todos terminando num `brain_learn` que você aprova (documento 4):
 
-1. **Fazendo junto, na conversa**: a skill `aprender-procedimento`
-   (`prompts/aprender-procedimento.md`) guia o Orbi: procurar o que já sabe,
-   descobrir sozinho o que dá (ler o repositório, os workflows), perguntar só o
-   que falta, executar junto e guardar.
+1. **Ensaiando, na conversa**: a skill `aprender-procedimento`
+   (`prompts/aprender-procedimento.md`) guia o Orbi em quatro fases: **entender**
+   (o que já sabe, o que descobre sozinho), **ensaiar** (tenta fazer o que foi
+   explicado, com você), **combinar** (início, entradas, fim, o que fica de fora e o
+   que o ensaio corrigiu) e só então o **cartão** (detalhes abaixo).
 2. **Pelo navegador**: você mostra e explica; ele monta os passos (documento 6).
 3. **Como variação** de um que já existe (documento 8).
 
@@ -216,6 +217,31 @@ sequenceDiagram
   `investigador`, corrigir se for seguro (documento 10), guardar o incidente e,
   se não der, perguntar.
 
+### O ensaio
+
+A explicação é o ponto de partida, não o procedimento (documento 18):
+
+- **`rehearsal_start`** abre uma execução `kind = 'rehearsal'`, sem procedimento
+  (o nome guardado é `ensaio`), e mostra o checklist **Ensaio: …**, que cresce a
+  cada **`rehearsal_step`** (passo novo pelo nome ou atualizado pelo id, com a nota
+  do que o Orbi achou). As ações em si vão pelas ferramentas de sempre e pelo
+  portão, e ficam no histórico do ensaio.
+- **O que publica ou apaga sempre pede** durante o ensaio, mesmo com a categoria
+  em automático (`agents/gate.ts`).
+- **`rehearsal_finish`** fecha o ensaio com o acordo (começa quando, recebe, termina
+  quando, fica de fora, o que foi corrigido na explicação), guardado em
+  `outputs.acordo`. A conversa mostra o cartão **Combinando início e fim**, com
+  **Está certo** e **Ajustar**, e o turno termina.
+- **O cartão de aprendizado** leva `testedRun` = o ensaio. O runtime confere: tem
+  que ser um ensaio terminado com o acordo, ou uma execução daquele procedimento que
+  deu certo. O cartão mostra "ensaiado em …" e as correções; procedimento novo sem
+  ensaio aparece como **Não foi ensaiado**.
+- **O ensaio não conta** como uso do procedimento e não passa pela revisão do fim
+  (não há nível para acertar).
+- Se você disser que é só para guardar, o Orbi guarda sem ensaio. A demonstração
+  pelo navegador (documento 6) conta como ensaio: ele abre o ensaio, marca as partes
+  mostradas e vai para o combinar.
+
 ### Como o modelo encontra o procedimento
 
 Os 15 mais usados entram como **skills** do Flue: uma linha de catálogo cada
@@ -233,6 +259,8 @@ procedimentos.
 | `apps/runtime/src/brain/domain/concepts.ts` | Entradas tipadas, citações `{{entrada.x.y}}`, nomes específicos nos passos, passo 0 |
 | `apps/runtime/src/prompts/orbi/passo-zero.md` | O que o Orbi faz com as entradas que não conhece (vai na saída do `playbook_start`) |
 | `apps/desktop/src/components/ui/LearnedFacts.tsx` | "Aprendi executando", com Desfazer |
+| `apps/runtime/src/brain/domain/rehearsal.ts` + `agents/tools/rehearsal.ts` | O ensaio: passos que crescem, acordo, o que prova que um procedimento funciona (`testedRun`) |
+| `apps/desktop/src/components/ui/Agreement.tsx`, `LearnTested.tsx` | "Combinando início e fim" e o "ensaiado em" no cartão |
 | `apps/desktop/src/components/ui/LearningParts.tsx` | Intenção, conceitos e "Ficou fora" no cartão de aprendizado |
 | `apps/runtime/src/review/analyzers/` | As verificações da revisão, uma por arquivo (`RunAnalyzer`): o que cada uma acha vira um achado do seu tipo (problema, melhoria, aprender) e diz como corrigir. Verificação nova = arquivo novo + uma linha em `index.ts` |
 | `apps/runtime/src/brain/domain/scripts.ts` | Regras dos scripts do procedimento (nome, tamanho, credenciais, versão) |
@@ -287,6 +315,9 @@ procedimentos.
 - `apps/runtime/test/flow-concepts.test.ts`: aprender com entradas e "Ficou fora";
   MFE desconhecido investigado, "Aprendi" e Desfazer; MFE conhecido pelo outro nome
   vai direto.
+- `apps/runtime/test/rehearsal.test.ts` e `flow-rehearsal.test.ts`: o ensaio
+  cresce passo a passo, termina com o acordo, o cartão leva o ensaio (um inventado
+  é recusado) e o clique que publica pede mesmo com a categoria em automático.
 - `apps/runtime/test/demonstration.test.ts`: parâmetros preenchidos, segredos
   continuam referência.
 - `apps/runtime/test/units.test.ts`: catálogo de skills só com os mais usados.

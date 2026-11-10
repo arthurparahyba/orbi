@@ -9,6 +9,7 @@ import { browserCapability } from './tools/browser.ts';
 import { code } from './tools/code.ts';
 import { memory } from './tools/brain.ts';
 import { useActiveRun, playbooks } from './tools/playbooks.ts';
+import { rehearsal } from './tools/rehearsal.ts';
 import { voice } from './tools/voice.ts';
 import { similar } from './tools/similar.ts';
 import { clock } from './tools/clock.ts';
@@ -29,7 +30,7 @@ export const CAPABILITIES: readonly Capability[] = [
   // hands
   terminal, scripts, browserCapability, code,
   // memory
-  memory, similar, playbooks,
+  memory, similar, playbooks, rehearsal,
   // voice and clock
   voice, secrets, pipelines, clock,
   // a coding agent asked for this conversation (MCP)

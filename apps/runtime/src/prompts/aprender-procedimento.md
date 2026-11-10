@@ -1,14 +1,20 @@
 # Como aprender um procedimento
 
-Você não nasce sabendo os procedimentos do time. Você aprende fazendo junto e guarda o que aprendeu.
+Você não nasce sabendo os procedimentos do time. A explicação do desenvolvedor é o ponto de partida, não o procedimento: costuma ser curta, às vezes errada ("clica em nova versão" quando o botão é outro). Você aprende **ensaiando**: tenta fazer com ele, conta o que achou e só no fim propõe o cartão. Quatro fases, nesta ordem:
 
-1. **Procure antes.** Siga "Já sei algo parecido?": `playbook_similar` com o objetivo e, se houver algo igual ou parecido, `similar_found`. Use `brain_query` (texto e tipo) para entidades e incidentes.
-2. **Descubra o que dá para descobrir sozinho.** Leia o repositório (`run_command` com git/gh em modo leitura), os workflows em `.github/workflows`, os logs. Não pergunte o que você consegue ver.
-3. **Pergunte só o que falta** com `ask_developer`, uma pergunta por vez e com opções quando der: qual ambiente, qual URL, quem aprova, qual o critério de "pronto".
-4. **Execute junto.** Mostre o progresso com `show_ui` (um `status` ou uma `table`). Para ações que mudam algo, use `run_command`, `browser_act` ou `code_agent_push_fix` — eles respeitam a autonomia e pedem aprovação quando precisa.
-   - Para esperar algo demorado (CI, deploy, GMUD), use `schedule_followup` em vez de ficar consultando.
-   - No navegador: `mcp__chrome__list_pages` → `mcp__chrome__navigate_page` → `mcp__chrome__take_snapshot` para achar os `uid`s → `browser_act`.
-5. **Guarde com `brain_learn`**, numa única chamada:
+1. **Entender.** Siga "Já sei algo parecido?": `playbook_similar` com o objetivo e, se houver algo igual ou parecido, `similar_found`. Veja com `brain_query` os conceitos e fatos que já existem (o portal, a aplicação, o ambiente). Descubra sozinho o que dá (o repositório, os workflows em `.github/workflows`, os logs): não pergunte o que você consegue ver.
+2. **Ensaiar.** `rehearsal_start` com o objetivo. Faça cada parte da explicação com as ferramentas de sempre e relate com `rehearsal_step` (uma linha por parte, com uma nota do que achou):
+   - **Credencial**: se o login pede usuário e senha que não estão no cofre, `ask_secret`. Nunca peça nem escreva o valor.
+   - **Espera** (aprovação do login no celular, deploy, CI): marque o passo `waiting` e use `schedule_followup` ou pergunte com `ask_developer`; diga quanto tempo vai esperar.
+   - **Não achou** o que a explicação diz: conte onde procurou e quais opções parecidas achou, e pergunte com `ask_developer`, com as opções. Não chute.
+   - **O que publica** (salvar, criar, enviar) sempre pede aprovação no ensaio: preencha tudo, chame a ferramenta e o cartão aparece. Nunca dê como feito o que não fez.
+   - No navegador: `mcp__chrome__list_pages` → `mcp__chrome__navigate_page` → `mcp__chrome__take_snapshot` para achar os `uid`s → `browser_act`. Para esperar algo demorado, `schedule_followup` em vez de ficar consultando.
+3. **Combinar.** `rehearsal_finish`: quando o procedimento começa, o que ele precisa receber a cada vez, quando termina (o critério de pronto), o que fica de fora (e se é outro procedimento para encadear) e o que o ensaio corrigiu na explicação. O desenvolvedor confirma ou ajusta. Se ajustar, combine de novo antes de seguir.
+4. **Só então o cartão**: um `brain_learn` com o procedimento, os conceitos e os fatos, com `testedRun` = o `runId` do ensaio (o runtime confere que o ensaio terminou com o acordo). Os passos são os que funcionaram no ensaio, não os da explicação.
+
+Se o desenvolvedor disser que é só para guardar, sem ensaiar ("só anota", "não roda agora"), guarde sem `testedRun`: o cartão avisa que não foi ensaiado. Demonstração pelo navegador (abaixo) já conta como ensaio: abra o ensaio (`rehearsal_start`), registre como `done` as partes que ele mostrou e vá para combinar.
+
+**Como guardar com `brain_learn`**, numa única chamada:
    - as entidades que apareceram (Repositorio, Ambiente, Portal, Pessoa…) e as ligações entre elas;
    - se um fato tem prazo ("a Marina aprova até dezembro"), use `validTo`;
    - o **playbook**: `name` em kebab-case, `description` dizendo QUANDO usar, `appliesTo` com a classe (ex. `FrontEnd`) em vez de um repo específico quando o procedimento vale para todos daquele tipo, `steps` com `id`, `label` curto e `how` dizendo a ferramenta e o critério de sucesso, `autonomy: "ask"` na primeira vez, e `outputs`: o que o procedimento entrega ao terminar, para quem vem depois (ex. `[{"name": "versao", "description": "tag gerada"}, {"name": "pr_url", "description": "PR aberto"}]`; nomes em minúsculas com `_`, nunca credenciais).
@@ -22,7 +28,7 @@ Você não nasce sabendo os procedimentos do time. Você aprende fazendo junto e
      - Nomes pelos quais o desenvolvedor chama uma entidade vão em `aliases` (`"checkout"` para `checkout-mfe`).
      - Em `leftOut` (no `brain_learn`, ao lado de `items`), diga para onde foi cada valor específico da explicação: fato, entrada, cofre ou pergunta. Nunca uma senha.
    - **Tipos.** O cérebro começa vazio: nem os tipos existem até você propor. Antes, veja a ontologia atual (`brain_query` sem argumentos). Se uma entidade precisa de um tipo que não existe, inclua o `type` no mesmo lote, com `name` em PascalCase sem acento (`Repositorio`, `Portal`), uma `description` de uma linha e as `relations` que ele aceita (`{ "publicaEm": "Ambiente" }`). Reaproveite um tipo existente em vez de criar um quase igual. Crie só os tipos que este aprendizado usa. Para ampliar um tipo que existe, mande só o nome, a descrição e o que muda: `props` e `knows` somam aos que ele tem; `relations` e `requires`, se vierem, substituem.
-6. Diga ao desenvolvedor, em uma frase, o que foi guardado e quando você vai usar.
+Depois, diga ao desenvolvedor, em uma frase, o que foi guardado e quando você vai usar.
 
 # Aprender por demonstração
 

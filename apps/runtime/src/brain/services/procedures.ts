@@ -3,6 +3,7 @@ import { transaction } from '../../db/database.ts';
 import { ftsQuery, sharedStems } from '../domain/similarity.ts';
 import { playbookProblems } from '../domain/playbooks.ts';
 import { inputProblems, leakedSpecifics } from '../domain/concepts.ts';
+import { testedRunProblem } from '../domain/rehearsal.ts';
 import type { Autonomy, Playbook, PlaybookInput } from '../domain/types.ts';
 import type { BrainParts } from './parts.ts';
 import type { BrainStore } from '../store.ts';
@@ -21,6 +22,11 @@ export class Procedures {
     const problems = playbookProblems({ ...pb, scripts });
     // Over concepts: inputs and citations valid against the ontology, no specific fact written in.
     problems.push(...inputProblems(pb, this.brain.facts.typeOf), ...leakedSpecifics(pb, (type) => this.p.graphRepo.byType(type)));
+    // What proves it works: a finished rehearsal with its agreement, or a good run of it.
+    if (pb.testedRun && pb.testedRun !== before?.testedRun) {
+      const problem = testedRunProblem(this.p.playbookRepo.run(pb.testedRun), pb.name, pb.testedRun);
+      if (problem) problems.push(problem);
+    }
     if (pb.variationOf && (pb.variationOf === pb.name || !this.p.playbookRepo.get(pb.variationOf))) {
       problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
     }

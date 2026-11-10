@@ -21,12 +21,17 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
   const delivery = s.pipelines.runs.inConversation(conversationId);
   if (delivery?.status === 'running') return null;
   const ended = delivery && (delivery.status === 'done' || delivery.status === 'cancelled');
-  const runs = s.brain.unreviewedRunsIn(conversationId);
+  let runs = s.brain.unreviewedRunsIn(conversationId);
   // Procedures left open when the delivery ended (a step never closed): they never finished.
-  const open = ended ? s.brain.openUnreviewedRunsIn(conversationId) : [];
+  let open = ended ? s.brain.openUnreviewedRunsIn(conversationId) : [];
   if (runs.length === 0 && open.length === 0) return null;
   const out: ExecutionReview = { runs: [], config: [] };
   // What each run shows comes from the registered analyzers (review/analyzers/).
+  // A rehearsal has no procedure yet: nothing to settle; what it found goes to the learning card.
+  for (const run of [...open, ...runs].filter((r) => r.kind === 'rehearsal')) s.brain.markReviewed(run.id);
+  open = open.filter((r) => r.kind !== 'rehearsal');
+  runs = runs.filter((r) => r.kind !== 'rehearsal');
+  if (runs.length === 0 && open.length === 0) return null;
   for (const run of open) {
     out.runs.push({ runId: run.id, playbook: run.playbook, status: 'open', findings: analyzeRun(run, { open: true }) });
     s.brain.markReviewed(run.id);

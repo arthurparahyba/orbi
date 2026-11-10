@@ -5,6 +5,7 @@ import { advanceRun, newRun, recordOutputs } from '../domain/playbooks.ts';
 import type { Entity, Playbook, PlaybookRun, ResolvedInput, StepStatus } from '../domain/types.ts';
 import { entityProblems, edgeProblems } from '../domain/ontology.ts';
 import { fillCitations, resolveInputs, unanswered, type FactLookup } from '../domain/concepts.ts';
+import { agreementProblems, finishRehearsal, newRehearsal, rehearsalStep, type Agreement } from '../domain/rehearsal.ts';
 import { type Deviation, type RunAction } from '../domain/levels.ts';
 import { now } from '../repo/rows.ts';
 import type { BrainParts } from './parts.ts';
@@ -132,6 +133,32 @@ export class Execution {
 
   run(id: string): PlaybookRun | undefined {
     return this.p.playbookRepo.run(id);
+  }
+
+  // ── rehearsal: trying out an explanation before there is a procedure ──
+  startRehearsal(conversationId: string, goal: string): PlaybookRun {
+    const run = newRehearsal(ulid(), conversationId, goal, now());
+    this.p.playbookRepo.insertRun(run);
+    return run;
+  }
+
+  rehearsalStep(runId: string, step: { id?: string; label: string; status: StepStatus; note?: string }): PlaybookRun {
+    const current = this.p.playbookRepo.run(runId);
+    if (!current) throw new Error(`ensaio não encontrado: ${runId}`);
+    const run = rehearsalStep(current, step);
+    this.p.playbookRepo.updateRun(run);
+    return run;
+  }
+
+  /** Ends a rehearsal with what was agreed: where it starts and ends, what it receives, what stays out. */
+  finishRehearsal(runId: string, agreement: Agreement): PlaybookRun {
+    const current = this.p.playbookRepo.run(runId);
+    if (!current) throw new Error(`ensaio não encontrado: ${runId}`);
+    const problems = agreementProblems(agreement);
+    if (problems.length) throw new Error(problems.join('; '));
+    const run = finishRehearsal(current, agreement, now());
+    this.p.playbookRepo.updateRun(run);
+    return run;
   }
 
   // ── passo 0: inputs over concepts ──────────────────────────────────────

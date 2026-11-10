@@ -1,10 +1,10 @@
 # 18. Conceitos, fatos e procedimentos (proposta)
 
-> **Estado: fases 1 e 2 implementadas** (modelo de dados, citações conferidas,
+> **Estado: fases 1 a 3 implementadas** (modelo de dados, citações conferidas,
 > nomes específicos recusados, cartão em partes, passo 0 com fatos aprendidos na
-> execução e Desfazer; descritas nos documentos 4 e 5). **Fases 3 a 5 ainda são
-> proposta** (ensaio, sei / não sei, tela do Cérebro), assim como a avaliação de
-> comportamento. Este documento descreve o que muda no cérebro, nos procedimentos e
+> execução e Desfazer, ensaio com acordo de início e fim; descritas nos documentos
+> 4 e 5). **Fases 4 e 5 ainda são proposta** (sei / não sei, tela do Cérebro),
+> assim como a avaliação de comportamento. Este documento descreve o que muda no cérebro, nos procedimentos e
 > no jeito de aprender, para servir de base à implementação. O protótipo das telas está no canvas
 > [Procedimentos sobre conceitos](https://claude.ai/artifact/59uBSrE43nJ2waay4HTURM).
 > Quando uma parte for implementada, ela sai daqui e entra nos documentos 4, 5 e 8.
@@ -234,7 +234,7 @@ domínio (deploy, mudança, infraestrutura).
    para quem já tem procedimentos (os campos novos são opcionais).
 2. **Passo 0 e fatos de execução** *(feito)*: resolver entradas por id e apelido, `toResolve`
    para o modelo, fatos com origem, resumo com Desfazer.
-3. **Ensaio**: execução sem procedimento, a skill reescrita, combinar início e fim,
+3. **Ensaio** *(feito)*: execução sem procedimento, a skill reescrita, combinar início e fim,
    cartão "testado em".
 4. **Sei / não sei**: a lista antes de executar e na falha; "fora da ontologia →
    delega".

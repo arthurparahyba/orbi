@@ -143,6 +143,19 @@ export const UiComponent = v.variant('component', [
       }),
     ),
   }),
+  v.object({
+    /** The end of a rehearsal: where the procedure starts and ends, what it receives, what stays out, what was corrected. */
+    component: v.literal('agreement'),
+    id: v.string(),
+    runId: v.string(),
+    question: v.string(),
+    start: v.string(),
+    receives: v.array(v.string()),
+    end: v.string(),
+    outside: v.array(v.string()),
+    corrections: v.array(v.object({ explained: v.string(), actual: v.string() })),
+    inboxId: v.string(),
+  }),
 ]);
 
 export type UiComponent = v.InferOutput<typeof UiComponent>;

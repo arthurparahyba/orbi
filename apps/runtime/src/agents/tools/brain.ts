@@ -58,6 +58,7 @@ const learnItem = v.variant('kind', [
       name: v.pipe(v.string(), v.description('kebab-case')),
       description: v.pipe(v.string(), v.description('When to use it — this line decides when it is picked')),
       intent: v.optional(v.pipe(v.string(), v.description('What it is for, in terms of concepts: "Publicar uma Versao de um MicroFrontend em um Ambiente"'))),
+      testedRun: v.optional(v.pipe(v.string(), v.description('The rehearsal (runId of rehearsal_finish) that proved it works'))),
       inputs: v.optional(
         v.pipe(
           v.array(v.object({ name: v.string(), concept: v.optional(v.string()), description: v.optional(v.string()) })),

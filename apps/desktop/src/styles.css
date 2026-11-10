@@ -710,3 +710,10 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .learn-leftout > div { grid-template-columns: minmax(120px, auto) 1fr; }
 .learn-concept-meta dt, .learn-leftout dt { color: var(--muted); }
 .learn-concept-meta dd, .learn-leftout dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+
+/* Ensaio: combinando início e fim */
+.agreement-kv { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; margin: 6px 0 10px; font-size: 13px; }
+.agreement-kv dt { color: var(--muted); }
+.agreement-kv dd { margin: 0; }
+.agreement-fixes { margin: 4px 0 10px; padding-left: 18px; }
+.agreement .question { box-shadow: none; border: 0; padding: 0; margin: 0; }

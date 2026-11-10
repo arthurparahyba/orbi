@@ -6,6 +6,7 @@ import { CHANGE_LABEL, stepDiff, type Step } from '../stepDiff';
 import { api } from '../../api';
 import { useLive } from '../../hooks';
 import { LearnConcepts, LearnIntent, LearnLeftOut } from './LearningParts';
+import { LearnTested } from './LearnTested';
 
 /** What a learning card would save: procedures, esteiras and facts, against what exists. */
 interface LearnItem { kind: string; payload: Record<string, any> }
@@ -68,6 +69,7 @@ export function LearningPreview({ detail }: { detail: string }) {
               </p>
             )}
             {pb.description && <p className="small">{pb.description}</p>}
+            {!base && <LearnTested runId={pb.testedRun} />}
             <dl className="learn-meta">
               {pb.trigger && <div><dt>Quando</dt><dd>{pb.trigger}</dd></div>}
               {pb.appliesTo && <div><dt>Vale para</dt><dd>todo {pb.appliesTo}</dd></div>}
