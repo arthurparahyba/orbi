@@ -41,6 +41,14 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
     });
   };
 
+  // "Sei / não sei": what a run over concepts needs, checked against the facts (domain/concepts.ts).
+  const showReadiness = (runId: string) => {
+    const items = brain.execution.readiness(runId);
+    const run = brain.run(runId);
+    if (!items.length || !run) return;
+    ctx.ui({ component: 'readiness', id: `readiness-${runId}`, title: run.playbook, items });
+  };
+
   for (const pb of skillCatalog(brain.playbooks(), config.skillCatalogSize)) {
     useSkill(
       defineSkill({
@@ -78,6 +86,7 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       const run = brain.startRun(pb.name, ctx.conversationId, data.params);
       ctx.setActiveRun({ runId: run.id, playbook: pb.name, autonomy: pb.autonomy });
       pipelines.engine.runStarted(run);
+      showReadiness(run.id);
       showRun(run.id);
       const steps = run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how }));
       const level = pb.autonomy === 'observe' ? 'só observar' : LEVEL_NAMES[pb.level];
@@ -120,6 +129,7 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       if (!ctx.activeRun) return { output: { error: 'nenhum procedimento em execução' } };
       try {
         const { run, learned } = brain.execution.resolveInput(ctx.activeRun.runId, data.input, { entity: data.entity, props: data.props, relations: data.relations });
+        showReadiness(run.id);
         showRun(run.id);
         const { toResolve, unknown } = brain.execution.inputState(run.id);
         return {

@@ -156,6 +156,13 @@ export const UiComponent = v.variant('component', [
     corrections: v.array(v.object({ explained: v.string(), actual: v.string() })),
     inboxId: v.string(),
   }),
+  v.object({
+    /** Before a run over concepts: what the Orbi knows and does not know of what it needs ("sei / não sei"). */
+    component: v.literal('readiness'),
+    id: v.string(),
+    title: v.string(),
+    items: v.array(v.object({ label: v.string(), known: v.boolean(), detail: v.string() })),
+  }),
 ]);
 
 export type UiComponent = v.InferOutput<typeof UiComponent>;

@@ -236,7 +236,7 @@ domínio (deploy, mudança, infraestrutura).
    para o modelo, fatos com origem, resumo com Desfazer.
 3. **Ensaio** *(feito)*: execução sem procedimento, a skill reescrita, combinar início e fim,
    cartão "testado em".
-4. **Sei / não sei**: a lista antes de executar e na falha; "fora da ontologia →
+4. **Sei / não sei** *(feito)*: a lista antes de executar e na falha; "fora da ontologia →
    delega".
 5. **Tela Cérebro**: mapa de conceitos, fatos em lista, vizinhança, fronteira.
 
@@ -399,6 +399,7 @@ pedidos seguintes, que estressam o que foi aprendido.
 | `apps/runtime/scripts/eval/core.ts` | O que uma rodada registra, os prompts do desenvolvedor simulado e do juiz, a leitura da nota (sem modelo, testável) |
 | `apps/runtime/scripts/eval/scenarios.ts` | Os cenários: a ficha do desenvolvedor, as sessões e as verificações de cada uma |
 | `apps/runtime/scripts/eval/fake-store.ts` | A loja falsa (com o modo quebrado); o portal é o `scripts/fake-portal.ts` |
+| `apps/runtime/scripts/eval/fake-panel.ts` | O painel de serviços (ambientes, recursos) e o catálogo que exige o time |
 | `apps/runtime/test/eval-behavior.test.ts` | As partes sem modelo: ficha, juiz, verificações, a loja |
 
 Como o harness responde: pergunta e "Combinando início e fim" → o desenvolvedor
@@ -410,8 +411,11 @@ simulado e o juiz; com um plugin de modelo, os dois usam o mesmo do Orbi.
 
 ### Limites
 
-- Só os cenários 1 e 2 estão escritos. Os cenários 3 a 5 (repositório, ambiente,
-  falhas) entram com a fase 4, junto com o painel de serviços falso.
+- Os cenários 3 a 5 preparam o que o Orbi já sabe antes (`seed`): o repositório
+  com origem e um procedimento de atualizar; o catálogo com o script que o
+  procedimento roda. O painel de serviços falso (`scripts/eval/fake-panel.ts`) tem os
+  ambientes, os recursos e o catálogo que responde 500 sem o time.
+- Cada cenário roda num processo próprio, com o seu cérebro e a sua pasta de trabalho.
 - O usuário simulado é um modelo: pode ajudar demais ou de menos. A ficha dele e as
   regras de resposta ficam versionadas junto com o cenário.
 - O juiz também erra. As asserções determinísticas são o que trava; a nota do juiz

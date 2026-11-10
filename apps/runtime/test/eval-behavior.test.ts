@@ -76,3 +76,19 @@ test('avaliação: a loja falsa tem categorias, ofertas e o modo quebrado', asyn
     await broken.close();
   }
 });
+
+test('avaliação: o painel de serviços mostra os recursos e o catálogo exige o time', async () => {
+  const { startFakePanel } = await import('../scripts/eval/fake-panel.ts');
+  const panel = await startFakePanel();
+  try {
+    assert.match(await (await fetch(`${panel.url}/ambientes/cartoes-hml`)).text(), /car-eventos-hml<\/a> — Fila SQS/);
+    assert.match(await (await fetch(`${panel.url}/recursos/car-api-svc`)).text(), /<dt>running<\/dt><dd>1<\/dd>/);
+    const post = (headers: Record<string, string>) => fetch(`${panel.url}/api/v2/catalogo`, { method: 'POST', headers, body: '{"app":"x"}' });
+    assert.equal((await post({})).status, 500);
+    assert.equal((await post({ 'x-team': 'PAG' })).status, 201);
+    assert.equal(panel.registered.length, 1);
+  } finally {
+    await panel.close();
+  }
+  assert.deepEqual(SCENARIOS.map((s) => s.id), ['loja', 'portal', 'repositorio', 'ambiente', 'falhas']);
+});

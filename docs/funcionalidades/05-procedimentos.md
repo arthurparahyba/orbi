@@ -217,6 +217,31 @@ sequenceDiagram
   `investigador`, corrigir se for seguro (documento 10), guardar o incidente e,
   se não der, perguntar.
 
+### Sei / não sei
+
+Antes de rodar um procedimento com `inputs`, o runtime confere no cérebro tudo de
+que ele precisa e mostra o cartão **O que eu sei** (`readiness`), atualizado a cada
+`playbook_resolve`:
+
+- cada entrada (conhecida, ou "não conheço esse MicroFrontend");
+- cada citação (`{{ambiente.profile}}` com o valor, ou "o cérebro não tem esse dado");
+- **cada item de uma ligação percorrida**: `{{ambiente.recurso[].de_pe}}` passa por
+  todos os recursos do ambiente e usa o saber `de_pe` do conceito de cada um
+  ("pag-api-svc (ServicoECS): running = desired"). Um recurso cujo conceito não sabe
+  aparece como "não sei" e o passo não é preenchido pela metade; o Orbi pergunta só
+  sobre ele, e a resposta vira saber do conceito (pelo cartão de aprendizado), valendo
+  para todo recurso daquele tipo.
+
+A lista sai do grafo, não da opinião do modelo. O que pede aprovação continua sendo
+decidido pelo nível (documento 3).
+
+**Erro que nunca vi**: dentro de um procedimento, um comando que falha sem nenhum
+problema conhecido parecido volta com `nuncaVi` (`terminal/runner.ts`). O Orbi não
+improvisa uma correção: tenta de novo só se for passageiro; senão diz "nunca vi isso",
+com o trecho do erro, e pergunta se investiga com você (`prompts/orbi/falhas.md`).
+Resolvido, a revisão do fim pede para guardar o problema conhecido, e da próxima vez
+ele vem em `knownProblems`.
+
 ### O ensaio
 
 A explicação é o ponto de partida, não o procedimento (documento 18):
@@ -260,6 +285,7 @@ procedimentos.
 | `apps/runtime/src/prompts/orbi/passo-zero.md` | O que o Orbi faz com as entradas que não conhece (vai na saída do `playbook_start`) |
 | `apps/desktop/src/components/ui/LearnedFacts.tsx` | "Aprendi executando", com Desfazer |
 | `apps/runtime/src/brain/domain/rehearsal.ts` + `agents/tools/rehearsal.ts` | O ensaio: passos que crescem, acordo, o que prova que um procedimento funciona (`testedRun`) |
+| `apps/desktop/src/components/ui/Readiness.tsx` | "O que eu sei" antes de executar |
 | `apps/desktop/src/components/ui/Agreement.tsx`, `LearnTested.tsx` | "Combinando início e fim" e o "ensaiado em" no cartão |
 | `apps/desktop/src/components/ui/LearningParts.tsx` | Intenção, conceitos e "Ficou fora" no cartão de aprendizado |
 | `apps/runtime/src/review/analyzers/` | As verificações da revisão, uma por arquivo (`RunAnalyzer`): o que cada uma acha vira um achado do seu tipo (problema, melhoria, aprender) e diz como corrigir. Verificação nova = arquivo novo + uma linha em `index.ts` |
@@ -315,6 +341,9 @@ procedimentos.
 - `apps/runtime/test/flow-concepts.test.ts`: aprender com entradas e "Ficou fora";
   MFE desconhecido investigado, "Aprendi" e Desfazer; MFE conhecido pelo outro nome
   vai direto.
+- `apps/runtime/test/concepts.test.ts` ("sei / não sei"): ligação percorrida com o
+  saber de cada conceito, recurso sem saber vira "não sei", saber ensinado vale para
+  todos; erro nunca visto dentro de um procedimento volta com `nuncaVi`.
 - `apps/runtime/test/rehearsal.test.ts` e `flow-rehearsal.test.ts`: o ensaio
   cresce passo a passo, termina com o acordo, o cartão leva o ensaio (um inventado
   é recusado) e o clique que publica pede mesmo com a categoria em automático.

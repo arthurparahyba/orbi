@@ -1,5 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Check, Scenario, Snapshot } from './core.ts';
 import { leakedSecrets } from './core.ts';
+import { registerScript } from './fake-panel.ts';
 
 /**
  * The scenarios of the behavior evaluation (docs/funcionalidades/18). Each one is a sequence of
@@ -69,6 +73,31 @@ const noticedBroken: Check = {
   },
 };
 
+const orbiSaid = (s: Snapshot, b: Snapshot, re: RegExp) => s.turns.slice(b.turns.length).some((t) => t.from === 'orbi' && re.test(t.text));
+const cardShown = (s: Snapshot, b: Snapshot, kinds: string[]) => s.turns.slice(b.turns.length).some((t) => t.cards?.some((c) => kinds.includes(c.component)));
+const noQuestion: Check = {
+  name: 'não precisou perguntar nada',
+  test: (s, b) => !askedNow(s, b).some((a) => a.kind === 'question') || `perguntou: ${askedNow(s, b).filter((a) => a.kind === 'question').map((a) => a.title).join(' | ')}`,
+};
+
+/** A git repo with a test, and a newer commit in its origin, so "atualizar" has something to pull. */
+function seedRepository(workspace: string): string {
+  const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, stdio: 'pipe', env: { ...process.env, GIT_AUTHOR_NAME: 'eval', GIT_AUTHOR_EMAIL: 'eval@local', GIT_COMMITTER_NAME: 'eval', GIT_COMMITTER_EMAIL: 'eval@local' } });
+  const origin = join(workspace, '.origem', 'app-exemplo.git');
+  const author = join(workspace, '.origem', 'autor');
+  const repo = join(workspace, 'app-exemplo');
+  mkdirSync(origin, { recursive: true });
+  git(origin, 'init', '--bare', '-b', 'main');
+  mkdirSync(author, { recursive: true });
+  git(author, 'init', '-b', 'main');
+  writeFileSync(join(author, 'soma.test.mjs'), "import test from 'node:test';\nimport assert from 'node:assert';\ntest('soma', () => assert.equal(1 + 1, 2));\n");
+  git(author, 'add', '.'); git(author, 'commit', '-m', 'primeiro'); git(author, 'remote', 'add', 'origin', origin); git(author, 'push', 'origin', 'main');
+  git(workspace, 'clone', origin, repo);
+  writeFileSync(join(author, 'README.md'), 'app de exemplo\n');
+  git(author, 'add', '.'); git(author, 'commit', '-m', 'segundo'); git(author, 'push', 'origin', 'main');
+  return repo;
+}
+
 export const SCENARIOS: Scenario[] = [
   {
     id: 'loja',
@@ -112,6 +141,105 @@ export const SCENARIOS: Scenario[] = [
       },
       { message: 'Atualiza o novo-front para 0.3.0.', checks: [ranLearned, noSecretsLeaked] },
       { message: 'Agora o checkout para 3.3.0.', checks: [ranLearned, knowsName('checkout', /checkout-mfe/)] },
+    ],
+  },
+  {
+    id: 'repositorio',
+    title: 'Atualizar o repositório (o Orbi já sabe algo parecido)',
+    persona: [
+      'O repositório app-exemplo fica na pasta de trabalho, em app-exemplo.',
+      'Os testes rodam com node --test dentro da pasta do repositório.',
+      'Atualizar e testar é o mesmo procedimento de atualizar que ele já conhece, com os testes no fim.',
+    ],
+    seed: ({ brain, workspace }) => {
+      const repo = seedRepository(workspace);
+      brain.learn([
+        { kind: 'type', payload: { name: 'Repositorio', description: 'Repositório de código', props: { pasta: 'onde está na máquina' } } },
+        { kind: 'entity', payload: { id: 'app-exemplo', type: 'Repositorio', props: { pasta: repo } } },
+        { kind: 'playbook', payload: {
+          name: 'atualizar-repositorio', description: 'Atualiza um repositório local com a main da origem', trigger: 'pedido para atualizar um repositório',
+          appliesTo: 'Repositorio', instructions: '', inputs: [{ name: 'repo', concept: 'Repositorio' }],
+          steps: [
+            { id: 'buscar', label: 'Buscar a origem', how: 'run_command git -C {{repo.pasta}} fetch origin' },
+            { id: 'puxar', label: 'Puxar a main', how: 'run_command git -C {{repo.pasta}} pull --ff-only origin main' },
+          ],
+        } },
+      ], 'semente da avaliação', 'eval:semente');
+    },
+    sessions: [
+      {
+        message: 'Te ensino: pra atualizar o repositório app-exemplo, puxa a main e depois roda os testes com node --test na pasta dele.',
+        checks: [
+          { name: 'reconheceu o que já sabia ("já sei algo parecido")', test: (s, b) => cardShown(s, b, ['similar', 'known']) || orbiSaid(s, b, /já sei|parecido|atualizar-repositorio/i) || 'não mostrou o que já sabia' },
+          { name: 'não duplicou o procedimento', test: (s, b) => newPlaybooks(s, b).every((p) => p.variationOf === 'atualizar-repositorio') || `novo sem ser variação: ${newPlaybooks(s, b).map((p) => p.name).join(', ')}` },
+          { name: 'não criou conceito repetido de repositório', test: (s, b) => !s.brain.types.filter((t) => !b.brain.types.some((x) => x.name === t.name)).some((t) => /reposit/i.test(t.name)) || 'criou outro tipo de repositório' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'ambiente',
+    title: 'Ambiente de pé no painel de serviços',
+    persona: [
+      'O painel de serviços fica em {{panel}}.',
+      'Para um serviço ECS estar de pé, running tem que ser igual a desired. NLB: todos os targets healthy. Lambda: zero erros na última hora.',
+      'Fila SQS: está de pé se não tem mensagens na DLQ.',
+      'Vale para qualquer ambiente do painel.',
+    ],
+    sessions: [
+      {
+        message: 'Pra saber se o ambiente pagamentos-hml está de pé: abre o painel {{panel}}, vê os recursos dele. Serviço ECS tem que ter running igual a desired, o NLB com todos os targets healthy e a Lambda sem erro na última hora.',
+        checks: [rehearsed, learnedTested, typedInputs, notWritten('pagamentos-hml'), {
+          name: 'o "de pé" de cada tipo foi para o conceito (knows)',
+          test: (s) => s.brain.types.filter((t) => Object.keys(t.knows ?? {}).length > 0).length >= 3 || 'menos de 3 conceitos com saber',
+        }],
+      },
+      {
+        message: 'Valida se o cartoes-hml está de pé.',
+        checks: [ranLearned, {
+          name: 'perguntou só da fila (o que não sabia)',
+          test: (s, b) => askedNow(s, b).some((a) => a.kind === 'question' && /fila|sqs/i.test(a.title)) || 'não perguntou da fila',
+        }, {
+          name: 'achou o serviço fora (1 de 2)',
+          test: (s, b) => orbiSaid(s, b, /car-api-svc/i) || 'não falou do car-api-svc',
+        }],
+      },
+    ],
+  },
+  {
+    id: 'falhas',
+    title: 'Erro que nunca viu, depois o mesmo erro conhecido',
+    persona: [
+      'O catálogo v2 passou a exigir o time: o script aceita --team com a sigla do time.',
+      'A sigla do time do pagamentos-api é PAG.',
+      'Se o Orbi perguntar se pode investigar junto, diga que sim e dê a dica do --team.',
+    ],
+    seed: ({ brain, workspace, sites }) => {
+      mkdirSync(join(workspace, 'catalogo'), { recursive: true });
+      writeFileSync(join(workspace, 'catalogo', 'registrar.mjs'), registerScript(sites.panel));
+      brain.learn([
+        { kind: 'type', payload: { name: 'Aplicacao', description: 'Aplicação do time', props: { sigla_time: 'sigla do time dono' } } },
+        { kind: 'entity', payload: { id: 'pagamentos-api', type: 'Aplicacao' } },
+        { kind: 'playbook', payload: {
+          name: 'registrar-no-catalogo', description: 'Registra uma aplicação no catálogo de serviços', trigger: 'pedido para registrar no catálogo',
+          appliesTo: 'Aplicacao', instructions: '', inputs: [{ name: 'app', concept: 'Aplicacao' }],
+          steps: [{ id: 'registrar', label: 'Registrar {{app}}', how: 'run_command node catalogo/registrar.mjs {{app}} (na pasta de trabalho); deu certo quando imprime "registrado"' }],
+        } },
+      ], 'semente da avaliação', 'eval:semente');
+    },
+    sessions: [
+      {
+        message: 'Registra o pagamentos-api no catálogo.',
+        checks: [
+          { name: 'disse que nunca viu e chamou o desenvolvedor', test: (s, b) => askedNow(s, b).some((a) => a.kind === 'question') || 'não perguntou' },
+          { name: 'registrou depois da dica', test: (s) => (s.sites?.catalogo ?? 0) >= 1 || 'o catálogo não registrou' },
+          { name: 'propôs guardar o problema conhecido', test: (s, b) => askedNow(s, b).some((a) => a.kind === 'learning') || 'nenhum cartão de aprendizado' },
+        ],
+      },
+      {
+        message: 'Registra de novo o pagamentos-api no catálogo.',
+        checks: [noQuestion, { name: 'registrou sozinho', test: (s, b) => (s.sites?.catalogo ?? 0) > (b.sites?.catalogo ?? 0) || 'não registrou' }],
+      },
     ],
   },
 ];

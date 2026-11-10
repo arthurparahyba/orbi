@@ -4,7 +4,7 @@ import { transaction } from '../../db/database.ts';
 import { advanceRun, newRun, recordOutputs } from '../domain/playbooks.ts';
 import type { Entity, Playbook, PlaybookRun, ResolvedInput, StepStatus } from '../domain/types.ts';
 import { entityProblems, edgeProblems } from '../domain/ontology.ts';
-import { fillCitations, resolveInputs, unanswered, type FactLookup } from '../domain/concepts.ts';
+import { fillCitations, readiness, resolveInputs, type FactLookup, type ReadinessItem } from '../domain/concepts.ts';
 import { agreementProblems, finishRehearsal, newRehearsal, rehearsalStep, type Agreement } from '../domain/rehearsal.ts';
 import { type Deviation, type RunAction } from '../domain/levels.ts';
 import { now } from '../repo/rows.ts';
@@ -184,8 +184,19 @@ export class Execution {
         candidates: x.candidates,
         ...(this.p.ontology.get(x.input.concept!)?.knows?.achar ? { howToFind: this.p.ontology.get(x.input.concept!)!.knows!.achar } : {}),
       })),
-      unknown: unanswered(pb, run.params, resolved, this.lookup).filter((c) => !pending.some((x) => c.split('.')[0] === x.input.name)),
+      // What else the facts do not answer (a property missing, a resource whose concept does not know "de_pe").
+      unknown: readiness(pb, run.params, resolved, this.lookup)
+        .filter((i) => !i.known && !pending.some((x) => i.label.startsWith(x.input.name)) && !(pb.inputs ?? []).some((inp) => i.label === inp.name))
+        .map((i) => `${i.label}: ${i.detail}`),
     };
+  }
+
+  /** The "sei / não sei" list of a run over concepts (empty for the older procedures). */
+  readiness(runId: string): ReadinessItem[] {
+    const run = this.p.playbookRepo.run(runId);
+    const pb = run && this.p.playbookRepo.get(run.playbook);
+    if (!run || !pb?.inputs?.length) return [];
+    return readiness(pb, run.params, run.resolved ?? {}, this.lookup);
   }
 
   /**

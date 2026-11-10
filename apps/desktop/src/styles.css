@@ -717,3 +717,11 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .agreement-kv dd { margin: 0; }
 .agreement-fixes { margin: 4px 0 10px; padding-left: 18px; }
 .agreement .question { box-shadow: none; border: 0; padding: 0; margin: 0; }
+
+/* Sei / não sei antes de executar */
+.readiness-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.readiness-list li { display: grid; grid-template-columns: 18px minmax(140px, auto) 1fr; gap: 8px; align-items: baseline; }
+.readiness-mark { font-weight: 600; }
+.readiness-list .is-known .readiness-mark { color: var(--green, #8fe3b8); }
+.readiness-list .is-unknown .readiness-mark { color: var(--amber); }
+.readiness-list .is-unknown { background: rgba(242, 177, 60, 0.06); border-radius: 4px; }

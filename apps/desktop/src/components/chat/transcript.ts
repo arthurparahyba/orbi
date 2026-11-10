@@ -48,6 +48,8 @@ function component(c: UiComponent): string {
       return [`**Aprendizado proposto: ${c.title}**`, ...c.items.map((i) => `- ${i.kind}: ${i.summary}`)].join('\n');
     case 'code_change':
       return [`**${c.title}** (${c.alone ? 'seguiu sozinho' : 'aprovada'}) · ${c.repo} · ${c.branch} · commit ${c.commit}`, `- O quê: ${c.files.join(', ')}`, `- Por quê: ${c.why}`, `- Quem: ${c.agent}`].join('\n');
+    case 'readiness':
+      return [`**O que eu sei: ${c.title}**`, ...c.items.map((i) => `- ${i.known ? '[sei]' : '[não sei]'} ${i.label}: ${i.detail}`)].join('\n');
     case 'agreement':
       return [`**${c.question}**`, `- Começa: ${c.start}`, `- Recebe: ${c.receives.join(', ')}`, `- Termina: ${c.end}`,
         ...c.outside.map((x) => `- Fica de fora: ${x}`), ...c.corrections.map((x) => `- Corrigido: ${x.explained} → ${x.actual}`)].join('\n');

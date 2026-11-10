@@ -21,6 +21,8 @@ export interface Snapshot {
   asked: Array<{ kind: string; title: string; decision?: string }>;
   /** Values typed into credential cards: must never show in the conversation. */
   secretValues: string[];
+  /** What the fake sites saw (e.g. how many apps the catalog registered). */
+  sites?: Record<string, number>;
 }
 
 export interface Check {
@@ -43,7 +45,16 @@ export interface Scenario {
   persona: string[];
   /** Credentials the developer types into credential cards, by a word in the card's name. */
   credentials?: Record<string, string>;
+  /** What the Orbi already knows (and what is in the workspace) before the first session. */
+  seed?: (ctx: SeedContext) => Promise<void> | void;
   sessions: Session[];
+}
+
+/** What a scenario's seed may prepare. */
+export interface SeedContext {
+  brain: import('../../src/brain/store.ts').BrainStore;
+  workspace: string;
+  sites: Record<string, string>;
 }
 
 // ── the simulated developer ──────────────────────────────────────────────

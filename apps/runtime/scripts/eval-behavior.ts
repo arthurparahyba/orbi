@@ -30,6 +30,7 @@ const { SCENARIOS } = await import('./eval/scenarios.ts');
 const core = await import('./eval/core.ts');
 const { startFakeStore } = await import('./eval/fake-store.ts');
 const { startFakePortal } = await import('./fake-portal.ts');
+const { startFakePanel } = await import('./eval/fake-panel.ts');
 const { init } = await import('@flue/runtime');
 const { start } = await import('@flue/runtime/node');
 const { Orbi } = await import('../src/agents/orbi.ts');
@@ -71,7 +72,9 @@ async function runScenario(id: string) {
   const scenario = SCENARIOS.find((s) => s.id === id)!;
   let store = await startFakeStore();
   const portal = await startFakePortal();
-  const sites = () => ({ store: store.url, portal: `${portal.url}/login` });
+  const panel = await startFakePanel();
+  const sites = () => ({ store: store.url, portal: `${portal.url}/login`, panel: panel.url });
+  await scenario.seed?.({ brain, workspace: config.workspace, sites: sites() });
   const system = core.personaPrompt(scenario, sites());
   const shown = new Map<string, Record<string, any>>();
   const snap: Snapshot = { turns: [], brain: { types: [], entities: [], playbooks: [], runs: [] }, asked: [], secretValues: [] };
@@ -80,6 +83,7 @@ async function runScenario(id: string) {
     turns: [...snap.turns],
     asked: [...snap.asked],
     brain: { types: brain.types(), entities: brain.graph().entities, playbooks: brain.playbooks(), runs: brain.runs(200) },
+    sites: { catalogo: panel.registered.length },
   });
   const conversation = `chat:eval-${scenario.id}-${Date.now()}`;
   const orbi = init(Orbi, { id: conversation });
@@ -157,18 +161,29 @@ async function runScenario(id: string) {
   console.log(`  → ${out}`);
   await store.close();
   await portal.close();
+  await panel.close();
   return results.flatMap((r) => r.checks).every((c) => c.ok);
 }
 
-const flue = (await start({ agents: [Orbi, Configurador] })) as unknown as { [Symbol.asyncDispose](): Promise<void> };
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+for (const id of wanted) if (!SCENARIOS.some((s) => s.id === id)) throw new Error(`cenário desconhecido: ${id} (há ${SCENARIOS.map((s) => s.id).join(', ')})`);
 const ids = wanted.length ? wanted : SCENARIOS.map((s) => s.id);
-let ok = true;
-try {
+
+if (ids.length > 1) {
+  // Each scenario in its own process: its own data folder, brain and workspace (they do not share what was learned).
+  const { spawnSync } = await import('node:child_process');
+  let ok = true;
   for (const id of ids) {
-    if (!SCENARIOS.some((s) => s.id === id)) throw new Error(`cenário desconhecido: ${id} (há ${SCENARIOS.map((s) => s.id).join(', ')})`);
-    ok = (await runScenario(id)) && ok;
+    const r = spawnSync(process.execPath, [...process.execArgv, process.argv[1], id], { stdio: 'inherit', env: process.env });
+    ok = r.status === 0 && ok;
   }
+  process.exit(ok ? 0 : 1);
+}
+
+const flue = (await start({ agents: [Orbi, Configurador] })) as unknown as { [Symbol.asyncDispose](): Promise<void> };
+let ok = false;
+try {
+  ok = await runScenario(ids[0]);
 } finally {
   await flue[Symbol.asyncDispose]();
   await services.chrome?.stop?.();

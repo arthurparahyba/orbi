@@ -11,10 +11,16 @@ import { DATA_NAME } from './playbooks.ts';
 type TypeOf = (name: string) => OntologyType | undefined;
 type ProcedureText = Pick<Playbook, 'steps' | 'instructions'> & { inputs?: PlaybookParam[] };
 
+/**
+ * A citation: an input, then relations and a property ({{mfe.publicadoPor.endereco}}), or a
+ * relation fanned out with [] and what is known of each one reached ({{ambiente.recursos[].de_pe}}).
+ */
+const CITE = /\{\{\s*([a-zA-Z_][\w-]*(?:\.[\p{L}\w-]+(?:\[\])?)*)\s*\}\}/gu;
+
 /** Every {{…}} citation in the steps and instructions, without credentials ({{segredo:…}}). */
 export function citations(pb: ProcedureText): string[] {
   const text = [pb.instructions, ...pb.steps.map((s) => `${s.label} ${s.how}`)].join('\n');
-  return [...new Set([...text.matchAll(/\{\{\s*([a-zA-Z_][\w-]*(?:\.[\p{L}\w-]+)*)\s*\}\}/gu)].map((m) => m[1]))];
+  return [...new Set([...text.matchAll(CITE)].map((m) => m[1]))];
 }
 
 /** Properties every entity has, without declaring them. */
@@ -57,8 +63,15 @@ export function inputProblems(pb: ProcedureText, typeOf: TypeOf): string[] {
 function pathProblem(concept: string, path: string[], typeOf: TypeOf): string | null {
   let type = typeOf(concept);
   for (let i = 0; i < path.length; i++) {
-    const segment = path[i];
+    const fan = path[i].endsWith('[]');
+    const segment = fan ? path[i].slice(0, -2) : path[i];
     if (!type) return null;
+    if (fan) {
+      // {{x.rel[].saber}}: the relation fans out; what comes after is what is known of each one reached.
+      if (!type.relations[segment]) return `"${segment}" não é ligação de ${type.name}: só uma ligação pode ter []`;
+      if (path.length - i !== 2) return `depois de "${segment}[]" vem só o nome do saber (ex.: ${segment}[].de_pe)`;
+      return null;
+    }
     const target = type.relations[segment];
     if (target) {
       if (target === '*') return null;
@@ -135,6 +148,10 @@ export function resolveInputs(
  * follows the current relations and ends in a property. Undefined when a link is missing.
  */
 export function citationValue(cite: string, params: Record<string, string>, resolved: Record<string, ResolvedInput>, facts: FactLookup): string | undefined {
+  if (cite.includes('[]')) {
+    const fan = fanOut(cite, resolved, facts);
+    return fan && !fan.missing.length ? fan.lines.join('; ') : undefined;
+  }
   const [head, ...path] = cite.split('.');
   const res = resolved[head];
   if (!path.length) return res && !res.undone ? res.entity : params[head];
@@ -157,12 +174,76 @@ export function citationValue(cite: string, params: Record<string, string>, reso
   return undefined;
 }
 
+/**
+ * {{ambiente.recursos[].de_pe}}: each entity reached by the relation, with what its concept knows
+ * by that name. `missing`: the ones whose concept does not know it yet (the run cannot guess).
+ */
+export function fanOut(cite: string, resolved: Record<string, ResolvedInput>, facts: FactLookup): { lines: string[]; missing: string[] } | undefined {
+  const [head, ...path] = cite.split('.');
+  const res = resolved[head];
+  if (!res || res.undone) return undefined;
+  let entity = facts.entity(res.entity);
+  let i = 0;
+  for (; i < path.length && entity && !path[i].endsWith('[]'); i++) {
+    const edge = facts.out(entity.id).find((e) => e.rel === path[i]);
+    entity = edge ? facts.entity(edge.to) : undefined;
+  }
+  if (!entity || i >= path.length - 1) return undefined;
+  const rel = path[i].slice(0, -2);
+  const saber = path[i + 1];
+  const lines: string[] = [];
+  const missing: string[] = [];
+  for (const edge of facts.out(entity.id).filter((e) => e.rel === rel)) {
+    const target = facts.entity(edge.to);
+    if (!target) continue;
+    const how = facts.typeOf(target.type)?.knows?.[saber];
+    if (how) lines.push(`${target.id} (${target.type}): ${how}`);
+    else missing.push(`${target.id} (${target.type}) não sabe "${saber}"`);
+  }
+  return { lines, missing };
+}
+
 /** Fills the citations a run can already answer; the others stay as {{…}}, for the model to see what is missing. */
 export function fillCitations(text: string, params: Record<string, string>, resolved: Record<string, ResolvedInput>, facts: FactLookup): string {
-  return text.replace(/\{\{\s*([a-zA-Z_][\w-]*(?:\.[\p{L}\w-]+)*)\s*\}\}/gu, (all, cite: string) => citationValue(cite, params, resolved, facts) ?? all);
+  return text.replace(CITE, (all, cite: string) => citationValue(cite, params, resolved, facts) ?? all);
 }
 
 /** Citations of a run that the facts cannot answer yet ("sei / não sei"). */
 export function unanswered(pb: ProcedureText, params: Record<string, string>, resolved: Record<string, ResolvedInput>, facts: FactLookup): string[] {
   return citations(pb).filter((cite) => citationValue(cite, params, resolved, facts) === undefined);
+}
+
+/** One line of the "sei / não sei" list before a run. */
+export interface ReadinessItem { label: string; known: boolean; detail: string }
+
+/**
+ * What a run over concepts needs, checked against the facts before it starts: each input, each
+ * citation, and each entity a fan-out reaches. What is not known becomes a question, not a guess.
+ */
+export function readiness(pb: ProcedureText, params: Record<string, string>, resolved: Record<string, ResolvedInput>, facts: FactLookup): ReadinessItem[] {
+  const items: ReadinessItem[] = [];
+  for (const input of pb.inputs ?? []) {
+    const value = params[input.name];
+    const res = resolved[input.name];
+    if (value === undefined || value === '') items.push({ label: input.name, known: false, detail: 'não veio no pedido' });
+    else if (!input.concept) items.push({ label: input.name, known: true, detail: value });
+    else if (res && !res.undone) items.push({ label: `${input.name}: ${value}`, known: true, detail: res.entity === value ? `${input.concept} conhecido` : `${res.entity} (${input.concept})` });
+    else items.push({ label: `${input.name}: ${value}`, known: false, detail: `não conheço esse ${input.concept}` });
+  }
+  for (const cite of citations(pb)) {
+    if (!cite.includes('.')) continue;
+    if (cite.includes('[]')) {
+      const fan = fanOut(cite, resolved, facts);
+      if (!fan) {
+        items.push({ label: cite, known: false, detail: 'depende de uma entrada que ainda não conheço' });
+        continue;
+      }
+      for (const line of fan.lines) items.push({ label: line.split(':')[0], known: true, detail: line.slice(line.indexOf(':') + 2) });
+      for (const line of fan.missing) items.push({ label: line.split(' não sabe')[0], known: false, detail: `não sei ${line.split(' não sabe ')[1]}` });
+      continue;
+    }
+    const value = citationValue(cite, params, resolved, facts);
+    items.push(value === undefined ? { label: cite, known: false, detail: 'o cérebro não tem esse dado' } : { label: cite, known: true, detail: value });
+  }
+  return items;
 }

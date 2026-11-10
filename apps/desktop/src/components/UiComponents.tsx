@@ -11,6 +11,7 @@ import { Learning, Status, Table } from './ui/Basic';
 import { CodeChange } from './ui/CodeChange';
 import { LearnedFacts } from './ui/LearnedFacts';
 import { Agreement } from './ui/Agreement';
+import { Readiness } from './ui/Readiness';
 
 /**
  * Draws the component catalog the agent sends on the `ui` channel. The shapes come from
@@ -38,7 +39,7 @@ const Code = ({ c }: { c: Extract<UiComponent, { component: 'code' }> }) => (
 export const RENDERERS: Renderers = {
   stepper: Stepper, approval: ApprovalCard, level: LevelCard, question: Question, status: Status, table: Table,
   learning: Learning, known: KnownLine, similar: SimilarCard, secret: SecretCard, link: Link, code: Code, code_change: CodeChange,
-  learned_facts: LearnedFacts, agreement: Agreement,
+  learned_facts: LearnedFacts, agreement: Agreement, readiness: Readiness,
 };
 
 /** Unknown components render as a small note instead of breaking the conversation. */

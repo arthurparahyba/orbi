@@ -130,3 +130,58 @@ test('passo 0: só fatos de um conceito que existe, do tipo da entrada', () => {
   assert.throws(() => brain.execution.resolveInput(run.id, 'mfe', { entity: 'portal-deploy' }), /é Portal, não MicroFrontend/);
   assert.throws(() => brain.execution.resolveInput(run.id, 'versao', { entity: '1.0.0' }), /não tem a entrada versao com conceito/);
 });
+
+// ── fase 4: sei / não sei ──
+import { afterCommand } from '../src/terminal/runner.ts';
+
+function environmentBrain(): BrainStore {
+  const brain = new BrainStore(':memory:');
+  brain.upsertType({ name: 'Ambiente', description: 'onde roda', relations: { recurso: '*' }, requires: [], props: { profile: 'profile da AWS CLI' } });
+  brain.upsertType({ name: 'ServicoECS', description: 'serviço', relations: {}, requires: [], knows: { de_pe: 'running = desired' } });
+  brain.upsertType({ name: 'NLB', description: 'balanceador', relations: {}, requires: [], knows: { de_pe: 'targets healthy' } });
+  brain.upsertType({ name: 'FilaSQS', description: 'fila', relations: {}, requires: [] });
+  brain.upsertEntity({ id: 'pag-hml', type: 'Ambiente', props: { profile: 'pag-hml' }, body: '' });
+  for (const [id, type] of [['pag-api-svc', 'ServicoECS'], ['pag-nlb', 'NLB'], ['pag-eventos', 'FilaSQS']]) {
+    brain.upsertEntity({ id, type, props: {}, body: '' });
+    brain.addEdge({ from: 'pag-hml', rel: 'recurso', to: id });
+  }
+  brain.savePlaybook({
+    name: 'validar-ambiente', description: 'Confere se um ambiente está de pé', appliesTo: 'Ambiente', trigger: 'validar ambiente',
+    autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null, inputs: [{ name: 'ambiente', concept: 'Ambiente' }],
+    steps: [
+      { id: 'conectar', label: 'Conectar', how: 'AWS CLI com --profile {{ambiente.profile}}' },
+      { id: 'conferir', label: 'Conferir cada recurso', how: '{{ambiente.recurso[].de_pe}}' },
+    ],
+  });
+  return brain;
+}
+
+test('sei / não sei: [] percorre a ligação e usa o saber do conceito de cada um', () => {
+  assert.deepEqual(inputProblems({ steps: [{ id: 'a', label: 'x', how: '{{mfe.publicadoPor[].de_pe}}' }], instructions: '', inputs }, typeOf), []);
+  assert.match(inputProblems({ steps: [{ id: 'a', label: 'x', how: '{{mfe.repositorio[].de_pe}}' }], instructions: '', inputs }, typeOf)[0], /só uma ligação pode ter \[\]/);
+  assert.match(inputProblems({ steps: [{ id: 'a', label: 'x', how: '{{mfe.publicadoPor[].a.b}}' }], instructions: '', inputs }, typeOf)[0], /vem só o nome do saber/);
+
+  const brain = environmentBrain();
+  const run = brain.startRun('validar-ambiente', 'chat:amb', { ambiente: 'pag-hml' });
+  assert.equal(run.steps[0].how, 'AWS CLI com --profile pag-hml');
+  assert.equal(run.steps[1].how, '{{ambiente.recurso[].de_pe}}', 'com um recurso sem saber, o passo não é preenchido pela metade');
+  const items = brain.execution.readiness(run.id);
+  assert.deepEqual(items.filter((i) => !i.known).map((i) => [i.label, i.detail]), [['pag-eventos (FilaSQS)', 'não sei "de_pe"']]);
+  assert.ok(items.some((i) => i.known && i.label === 'pag-api-svc (ServicoECS)' && i.detail === 'running = desired'));
+  assert.deepEqual(brain.execution.inputState(run.id).unknown, ['pag-eventos (FilaSQS): não sei "de_pe"']);
+
+  // Taught what "de pé" is for a queue (a saber of the concept), every environment with a queue knows it.
+  brain.learn([{ kind: 'type', payload: { name: 'FilaSQS', description: '', knows: { de_pe: 'DLQ vazia' } } }], 'x', 'chat:amb');
+  const again = brain.startRun('validar-ambiente', 'chat:amb2', { ambiente: 'pag-hml' });
+  assert.match(again.steps[1].how, /pag-eventos \(FilaSQS\): DLQ vazia/);
+  assert.deepEqual(brain.execution.readiness(again.id).filter((i) => !i.known), []);
+});
+
+test('sei / não sei: erro que o cérebro nunca viu, dentro de um procedimento, é dito como tal', () => {
+  const brain = environmentBrain();
+  brain.startRun('validar-ambiente', 'chat:erro', { ambiente: 'pag-hml' });
+  const failed = { exitCode: 1, stdout: '', stderr: 'HTTP 500 do catálogo de serviços' };
+  assert.equal((afterCommand(brain, 'chat:erro', 'node registrar.mjs', failed) as { nuncaVi?: boolean }).nuncaVi, true);
+  assert.deepEqual(afterCommand(brain, 'chat:fora', 'node registrar.mjs', failed), {}, 'fora de um procedimento, não');
+  assert.deepEqual(afterCommand(brain, 'chat:erro', 'node registrar.mjs', { ...failed, exitCode: 0 }), {});
+});
