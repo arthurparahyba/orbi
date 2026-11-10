@@ -142,6 +142,15 @@ assinatura: [../empacotamento.md](../empacotamento.md).
 | `npm run build` | Gera o instalador da plataforma atual |
 | `npm test`, `npm run e2e` | Testes e testes de ponta a ponta |
 
+## Armadilhas do Windows
+
+- Os caminhos que o Tauri dá (recursos, pasta de dados) vêm no formato longo
+  `\\?\C:\…`. O Node não inicia um script por esse caminho ("EISDIR: illegal
+  operation on a directory, lstat 'C:'"): `plain()` em `src-tauri/src/main.rs`
+  tira o prefixo antes de iniciar o runtime.
+- O runtime é um programa de console: ele inicia com `CREATE_NO_WINDOW`, senão uma
+  janela pisca a cada abertura.
+
 ## Limites conhecidos
 
 - O app ocupa uns 430 MB instalado, a maior parte do onnxruntime e do Node (veja como reduzir em [../empacotamento.md](../empacotamento.md)).

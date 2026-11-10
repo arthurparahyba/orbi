@@ -37,14 +37,28 @@ struct Launch {
     home: Option<PathBuf>,
 }
 
+/// Windows: Tauri gives the resource and data folders as extended-length paths
+/// (`\\?\C:\Users\…`). Node cannot start a script from such a path (it fails with
+/// "EISDIR: illegal operation on a directory, lstat 'C:'"), so hand it the plain form.
+fn plain(path: PathBuf) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{rest}"));
+    }
+    if let Some(rest) = text.strip_prefix(r"\\?\") {
+        return PathBuf::from(rest);
+    }
+    path
+}
+
 fn bundled(app: &App) -> Option<Launch> {
-    let runtime = app.path().resource_dir().ok()?.join("runtime");
+    let runtime = plain(app.path().resource_dir().ok()?).join("runtime");
     if !runtime.join("dist/server.mjs").exists() {
         return None;
     }
-    let exe_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    let exe_dir = plain(std::env::current_exe().ok()?.parent()?.to_path_buf());
     let node = exe_dir.join(if cfg!(windows) { "orbi-node.exe" } else { "orbi-node" });
-    let home = app.path().app_data_dir().ok()?;
+    let home = plain(app.path().app_data_dir().ok()?);
     Some(Launch { node, runtime, home: Some(home) })
 }
 
@@ -145,6 +159,19 @@ fn start_runtime(app: &App) -> Option<Child> {
             eprintln!("[orbi] não consegui iniciar {}: {err}", launch.node.display());
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::plain;
+    use std::path::PathBuf;
+
+    #[test]
+    fn plain_paths_for_node() {
+        assert_eq!(plain(PathBuf::from(r"\\?\C:\Users\a\runtime")), PathBuf::from(r"C:\Users\a\runtime"));
+        assert_eq!(plain(PathBuf::from(r"\\?\UNC\srv\share\x")), PathBuf::from(r"\\srv\share\x"));
+        assert_eq!(plain(PathBuf::from("/Applications/Orbi.app")), PathBuf::from("/Applications/Orbi.app"));
     }
 }
 
