@@ -135,3 +135,12 @@ test('o agente roda com a sessão do desenvolvedor, sem as chaves e configuraç�
     for (const k of ['HTTPS_PROXY', 'ANTHROPIC_API_KEY', 'ORBI_LLM', 'GH_TOKEN_DO_ORBI']) delete process.env[k];
   }
 });
+
+test('Orbi iniciado de dentro de uma sessão do Claude Code: o agente não herda a identidade dela', async () => {
+  const { orbiOwn } = await import('../src/terminal/orbi-env.ts');
+  const parent = { CLAUDECODE: '1', CLAUDE_CODE_SESSION_ID: 's' };
+  assert.equal(orbiOwn('ANTHROPIC_BASE_URL', parent), true);
+  assert.equal(orbiOwn('CLAUDE_CODE_OAUTH_TOKEN', parent), true);
+  assert.equal(orbiOwn('HTTPS_PROXY', parent), false);
+  assert.equal(orbiOwn('CLAUDE_CONFIG_DIR', {}), false, 'fora de uma sessão, a configuração do desenvolvedor vale');
+});

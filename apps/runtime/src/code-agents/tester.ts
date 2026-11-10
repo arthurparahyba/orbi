@@ -5,6 +5,28 @@ import { runShell } from '../terminal/exec.ts';
 import { agentLine } from './command.ts';
 import type { CodeAgent } from './types.ts';
 
+/**
+ * When the agent says it is not logged in but works in the developer's terminal: what differs.
+ * Names only, never values: which program answered, which login-related variables exist, and
+ * where its login could come from.
+ */
+async function authClues(agent: CodeAgent, shell: string, cwd: string): Promise<string> {
+  const bin = agent.binary.replace(/[^\w.-]/g, '');
+  const line = [
+    `echo "programa: $(command -v ${bin}) ($(${bin} --version 2>/dev/null | head -1))"`,
+    `echo "variáveis: $(env | cut -d= -f1 | grep -iE '^(CLAUDE|ANTHROPIC|CODEX|OPENAI|CURSOR|DEVIN)' | tr '\\n' ' ')"`,
+    `echo "shell: $SHELL · usuário: $USER · home: $HOME"`,
+    `[ -f "$HOME/.claude/.credentials.json" ] && echo "arquivo de login: ~/.claude/.credentials.json existe" || true`,
+    `command -v security >/dev/null && (security find-generic-password -s "Claude Code-credentials" >/dev/null 2>&1 && echo "Keychain: login do Claude Code acessível" || echo "Keychain: login do Claude Code NÃO acessível daqui") || true`,
+  ].join('; ');
+  try {
+    const r = await runShell(shell, line, { cwd, shell, timeoutMs: 20_000, inherit: 'developer' });
+    return `\n\nO que o Orbi vê ao rodar o agente:\n${r.stdout.trim()}`;
+  } catch {
+    return '';
+  }
+}
+
 export const TEST_PROMPT = 'Responda apenas com a palavra ok. Não leia nem altere arquivos.';
 
 /**
@@ -31,7 +53,11 @@ export async function testAgent(
     });
     const secs = Math.round((Date.now() - started) / 1000);
     if (ran.timedOut) return { ok: false, detail: `não respondeu em ${secs} s: pode estar esperando login ou uma confirmação` };
-    if (ran.exitCode !== 0) return { ok: false, detail: `saiu com ${ran.exitCode}: ${(ran.stderr || ran.stdout).trim().slice(-300)}` };
+    if (ran.exitCode !== 0) {
+      const error = (ran.stderr || ran.stdout).trim().slice(-300);
+      const why = /auth|login|oauth|credential|token|expired/i.test(error) ? await authClues(agent, opts.shell, dir) : '';
+      return { ok: false, detail: `saiu com ${ran.exitCode}: ${error}${why}` };
+    }
     return { ok: true, detail: `respondeu em ${secs} s${opts.model ? ` com ${opts.model}` : ''}` };
   } catch (error) {
     return { ok: false, detail: error instanceof Error ? error.message : String(error) };

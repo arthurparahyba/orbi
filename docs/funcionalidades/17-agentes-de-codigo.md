@@ -99,6 +99,17 @@ nunca com o que é do Orbi: as variáveis `ORBI_*`, a chave do modelo do Orbi
 (`terminal/orbi-env.ts`, `inherit: 'developer'` em `terminal/exec.ts`). Se o
 agente funciona no terminal e não pelo Orbi, a diferença está aí.
 
+Se o próprio Orbi foi iniciado de dentro de uma sessão do Claude Code (ele rodou
+o `npm start`), o ambiente traz a identidade daquela sessão (`CLAUDECODE`,
+`CLAUDE_CODE_SESSION_ID`, um proxy em `ANTHROPIC_BASE_URL`…); nenhuma variável
+`CLAUDE*`/`ANTHROPIC*` passa adiante nesse caso, senão o `claude` do Orbi tenta
+usar a sessão do outro e falha ("OAuth session expired").
+
+Quando o teste falha por login, o resultado traz o que o Orbi vê (só nomes, nunca
+valores): qual programa respondeu e a versão, quais variáveis de login existem,
+shell, usuário e pasta, se há arquivo de login e se o Keychain do macOS está
+acessível.
+
 O teste roda com o modelo que você escolher; sem escolha, com o padrão do agente.
 
 ### `ORBI_CODE_AGENT` (o jeito antigo)

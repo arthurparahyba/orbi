@@ -9,6 +9,17 @@ export function rememberOrbiEnvKeys(keys: Iterable<string>): void {
   for (const k of keys) fromOrbiEnvFile.add(k);
 }
 
-export function orbiOwn(key: string): boolean {
+/**
+ * The Orbi itself was started from inside a coding agent's session (Claude Code ran `npm start`):
+ * its environment then carries that session's identity (CLAUDECODE, CLAUDE_CODE_SESSION_ID, a
+ * proxy in ANTHROPIC_BASE_URL, its OAuth…). A `claude` started by the Orbi would take them as its
+ * own and fail ("OAuth session expired"), so none of them is handed on.
+ */
+export function insideAgentSession(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.CLAUDECODE === '1' || !!env.CLAUDE_CODE_ENTRYPOINT || !!env.CLAUDE_CODE_SESSION_ID;
+}
+
+export function orbiOwn(key: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  if (insideAgentSession(env) && /^(CLAUDE|ANTHROPIC)/i.test(key)) return true;
   return fromOrbiEnvFile.has(key) || /^ORBI_/i.test(key) || /^(ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|CHROME_MCP_|CHROME_DEBUG_)/i.test(key);
 }
