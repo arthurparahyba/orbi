@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { orbiOwn } from './orbi-env.ts';
 import { existsSync, statSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { gitToolDirs, shellLine } from './shell.ts';
@@ -25,7 +26,13 @@ export interface RunOptions {
    * 'minimal' passes only PATH and locale, so nothing of the user's session
    * (HOME and its credential files, tokens) is visible: callers set the rest.
    */
-  inherit?: 'safe' | 'minimal';
+  /**
+   * Which of the runtime's environment the program gets: `safe` (default: PATH, HOME, user and
+   * locale), `minimal` (PATH and locale), or `developer`: everything the developer's session has
+   * except the Orbi's own settings and keys, for their own tools (the coding agents keep their
+   * login, proxy and certificates there).
+   */
+  inherit?: 'safe' | 'minimal' | 'developer';
   /**
    * The developer's shell (shell.ts), when there is one: on Windows it runs the programs
    * that only exist as .cmd (npm, mvn), and Git's own tools (cat, cp) join the PATH.
@@ -114,6 +121,9 @@ function buildEnv(options: RunOptions): Record<string, string> {
   const env: Record<string, string> = {};
   // Windows spells it Path; the rest of this file reads PATH.
   const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+  if (options.inherit === 'developer') {
+    for (const [key, value] of Object.entries(process.env)) if (value !== undefined && !orbiOwn(key)) env[key === pathKey ? 'PATH' : key] = value;
+  }
   for (const key of options.inherit === 'minimal' ? MINIMAL_ENV_KEYS : SAFE_ENV_KEYS) {
     const value = process.env[key === 'PATH' ? pathKey : key];
     if (value) env[key] = value;

@@ -21,10 +21,12 @@ export async function testAgent(
   mkdirSync(dir, { recursive: true });
   const started = Date.now();
   try {
-    const ran = await runShell(opts.shell, agentLine(agent.command, TEST_PROMPT, opts.model ?? agent.models[0] ?? null), {
+    const ran = await runShell(opts.shell, agentLine(agent.command, TEST_PROMPT, opts.model ?? null), {
       cwd: dir,
       env: opts.env,
       shell: opts.shell,
+      // The developer's own tool: their session (login, proxy, certificates), not the Orbi's keys.
+      inherit: 'developer',
       timeoutMs: opts.timeoutMs ?? 120_000,
     });
     const secs = Math.round((Date.now() - started) / 1000);

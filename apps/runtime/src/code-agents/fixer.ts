@@ -108,9 +108,11 @@ export function createCodeFixer(opts: CodeFixerOptions) {
     if (!shell) throw new Error(`${chosen.agent.name} roda pelo terminal, e nenhum shell foi encontrado (Git Bash no Windows)`);
     const ran = await runShell(shell, agentLine(chosen.agent.command, task === 'investigar' ? INVESTIGATE_PROMPT(input.diagnosis) : FIX_PROMPT(input.diagnosis, input.problem), chosen.model), {
       cwd: worktree,
-      env: opts.cliEnv,
+      // The developer's session for their own tool, never the Orbi's credentials (cliEnv is only for git here).
+      env: {},
       shell,
       signal,
+      inherit: 'developer',
       timeoutMs: 1_200_000,
     });
     const summary = ran.exitCode === 0

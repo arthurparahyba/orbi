@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { rememberOrbiEnvKeys } from './terminal/orbi-env.ts';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
@@ -18,7 +19,10 @@ export const DEFAULT_ALLOWED = ['git', 'gh', 'aws', 'python3', 'python', 'py', '
 export function loadDotEnv(cwd = process.cwd()): string | undefined {
   const file = resolve(cwd, '.env');
   if (!existsSync(file)) return undefined;
+  const before = new Set(Object.keys(process.env));
   process.loadEnvFile(file);
+  // What the Orbi's .env brought is the Orbi's: a coding agent never gets it (terminal/orbi-env.ts).
+  rememberOrbiEnvKeys(Object.keys(process.env).filter((k) => !before.has(k)));
   return file;
 }
 

@@ -90,6 +90,17 @@ As leituras só aceitam nomes de programa e um subcomando, e rodam sempre com
 As pendências desta conversa aparecem em Pendências como as outras; **Ir até**
 abre a tela Autonomia.
 
+### Com qual ambiente o agente roda
+
+O agente é uma ferramenta do desenvolvedor: roda com a **sessão dele** (o login do
+agente, proxy, certificados, variáveis do perfil do shell), como no terminal, e
+nunca com o que é do Orbi: as variáveis `ORBI_*`, a chave do modelo do Orbi
+(`ANTHROPIC_API_KEY`), as da ponte do Chrome e tudo que o `.env` do Orbi trouxe
+(`terminal/orbi-env.ts`, `inherit: 'developer'` em `terminal/exec.ts`). Se o
+agente funciona no terminal e não pelo Orbi, a diferença está aí.
+
+O teste roda com o modelo que você escolher; sem escolha, com o padrão do agente.
+
 ### `ORBI_CODE_AGENT` (o jeito antigo)
 
 Continua valendo enquanto nenhuma tarefa tiver agente cadastrado: aparece na

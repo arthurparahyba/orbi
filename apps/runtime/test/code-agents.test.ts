@@ -119,3 +119,19 @@ test('API: cadastra, escolhe agente e modelo por tarefa, recusa comando com dois
   assert.equal(tested.ok, false, 'sem shell, o teste diz o motivo em vez de quebrar');
   assert.equal((await call('DELETE', '/claude-code')).status, 200);
 });
+
+test('o agente roda com a sessão do desenvolvedor, sem as chaves e configurações do Orbi', async (t) => {
+  const { findShell } = await import('../src/terminal/shell.ts');
+  const { runShell } = await import('../src/terminal/exec.ts');
+  const { rememberOrbiEnvKeys } = await import('../src/terminal/orbi-env.ts');
+  const shell = findShell(process.env);
+  if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
+  Object.assign(process.env, { HTTPS_PROXY: 'http://proxy.empresa:8080', ANTHROPIC_API_KEY: 'sk-do-orbi', ORBI_LLM: 'yara', GH_TOKEN_DO_ORBI: 'x' });
+  rememberOrbiEnvKeys(['GH_TOKEN_DO_ORBI']);
+  try {
+    const r = await runShell(shell, 'echo "$HTTPS_PROXY|$ANTHROPIC_API_KEY|$ORBI_LLM|$GH_TOKEN_DO_ORBI"', { inherit: 'developer', shell, cwd: tmpdir() });
+    assert.equal(r.stdout.trim(), 'http://proxy.empresa:8080|||', 'proxy do desenvolvedor sim; chave, config e .env do Orbi não');
+  } finally {
+    for (const k of ['HTTPS_PROXY', 'ANTHROPIC_API_KEY', 'ORBI_LLM', 'GH_TOKEN_DO_ORBI']) delete process.env[k];
+  }
+});
