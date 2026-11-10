@@ -295,6 +295,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `GET /api/brain/entities/:id` · `GET /api/brain/search?q=` | Navegar o grafo |
 | `GET /api/brain/playbooks` · `PATCH /api/brain/playbooks/:name` | Playbooks e autonomia de cada um |
 | `GET /api/brain/runs` | Execuções de playbook (passo a passo) |
+| `POST /api/brain/runs/:id/resolved/:input/undo` | Desfaz o que uma execução aprendeu sozinha sobre uma entrada (fato novo ou outro nome) |
 | `POST /api/brain/export` | Exporta o cérebro em Markdown (Obsidian) |
 | `GET/PATCH /api/autonomy` | Níveis globais por categoria |
 | `POST /api/recordings` · `GET /api/recordings/:id` · `POST …/audio` · `POST …/stop` | Demonstração no navegador |

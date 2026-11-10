@@ -11,7 +11,10 @@ export function PlaybookData({ p }: { p: Playbook }) {
     <div className="pb-data">
       <div>
         <h4>Recebe</h4>
-        {params.length ? <p className="small">{params.map((x) => <code key={x}>{x}</code>)}</p> : <p className="muted small">nada: não usa {'{{parâmetros}}'}</p>}
+        {p.intent && <p className="small">{p.intent}</p>}
+        {p.inputs?.length
+          ? <p className="small">{p.inputs.map((x) => <code key={x.name}>{x.name}{x.concept ? `: ${x.concept}` : ''}</code>)}</p>
+          : params.length ? <p className="small">{params.map((x) => <code key={x}>{x}</code>)}</p> : <p className="muted small">nada: não usa {'{{parâmetros}}'}</p>}
       </div>
       <div>
         <h4>Entrega</h4>

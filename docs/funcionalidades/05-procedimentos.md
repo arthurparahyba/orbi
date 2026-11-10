@@ -72,6 +72,58 @@ repetitivo depois do commit em algo que o Orbi faz sozinho.
   pede de novo. Uma mudança que não traz `scripts` mantém os que existem; um passo
   que cita `run_script x.py` sem esse script é recusado. Na tela: **Scripts**.
 
+### Procedimento sobre conceitos (entradas tipadas)
+
+Um procedimento pode declarar o que recebe com o conceito de cada entrada, em vez
+de parâmetros soltos (documento 18):
+
+```json
+{
+  "name": "atualizar-versao-mfe",
+  "intent": "Publicar uma Versao de um MicroFrontend em um Ambiente",
+  "inputs": [{ "name": "mfe", "concept": "MicroFrontend" }, { "name": "versao" }, { "name": "ambiente" }],
+  "steps": [
+    { "id": "abrir", "label": "Abrir o portal de {{mfe}}", "how": "navegador em {{mfe.publicadoPor.endereco}}" }
+  ]
+}
+```
+
+- **Citações conferidas**: `{{mfe.publicadoPor.endereco}}` segue as ligações do
+  conceito e termina numa propriedade declarada no tipo. Citação que o conceito não
+  tem, entrada que não existe e conceito que não existe voltam ao modelo antes do
+  cartão (`brain/domain/concepts.ts`), como as outras verificações.
+- **Nada específico nos passos**: o nome de uma entidade conhecida dos conceitos
+  das entradas escrito num passo ("checkout-mfe") é recusado com a pergunta "é fato
+  ou entrada?". Vale para o que o Orbi aprende e para o que você edita na tela.
+- **Cartão**: mostra a intenção, os conceitos (novo ou ampliado, com propriedades e
+  saberes), os fatos (com os outros nomes), o procedimento com **Recebe** e, por
+  fim, **Ficou fora do procedimento**: para onde foi cada valor específico da
+  explicação (`leftOut` no `brain_learn`).
+- Procedimentos sem `inputs` continuam como antes, com `{{parâmetros}}` livres.
+
+### Passo 0: resolver as entradas
+
+Ao começar um procedimento com `inputs`, o runtime procura cada entrada de
+conceito entre os fatos, pelo id ou por outro nome, sem acento nem maiúscula:
+
+- **Conhecida**: as citações dela já vêm preenchidas nos passos
+  (`navegador em http://portal.local/apps`). As credenciais continuam referência
+  do cofre (`{{segredo:portal-deploy}}`).
+- **Desconhecida**: o `playbook_start` devolve `passo0` com `toResolve` (o valor
+  dado, o conceito, os candidatos e o `achar` do conceito), `unknown` (citações que
+  os fatos ainda não respondem) e as regras (`prompts/orbi/passo-zero.md`). O Orbi
+  investiga; com um candidato claro segue, com vários ou nenhum pergunta; e registra
+  com **`playbook_resolve`**: o fato novo (com o nome dado como outro nome) ou o
+  outro nome de um fato que existe, marcados com a origem
+  `execucao:<execução>`. Os passos são preenchidos de novo.
+- **No fim**: o cartão **Aprendi executando** lista o que a execução aprendeu
+  sozinha, cada item com **Desfazer** (`POST
+  /api/brain/runs/:id/resolved/:input/undo`): tira o fato criado, ou só o outro nome.
+- **Limite**: o `playbook_resolve` só guarda fatos de um conceito que já existe, do
+  tipo da entrada. Conceito novo, propriedade nova ou mudança no procedimento vão
+  pelo `brain_learn` e pelo cartão. É a única escrita no cérebro sem cartão, e por
+  isso ela é estreita e desfazível.
+
 ## Como é aprendido
 
 Por três caminhos, todos terminando num `brain_learn` que você aprova (documento 4):
@@ -178,6 +230,10 @@ procedimentos.
 | --- | --- |
 | `apps/runtime/src/agents/tools/playbooks.ts` | Catálogo de skills, `playbook_start`, `playbook_step`, checklist |
 | `apps/runtime/src/brain/domain/playbooks.ts` | Validação, parâmetros, avanço de uma execução |
+| `apps/runtime/src/brain/domain/concepts.ts` | Entradas tipadas, citações `{{entrada.x.y}}`, nomes específicos nos passos, passo 0 |
+| `apps/runtime/src/prompts/orbi/passo-zero.md` | O que o Orbi faz com as entradas que não conhece (vai na saída do `playbook_start`) |
+| `apps/desktop/src/components/ui/LearnedFacts.tsx` | "Aprendi executando", com Desfazer |
+| `apps/desktop/src/components/ui/LearningParts.tsx` | Intenção, conceitos e "Ficou fora" no cartão de aprendizado |
 | `apps/runtime/src/review/analyzers/` | As verificações da revisão, uma por arquivo (`RunAnalyzer`): o que cada uma acha vira um achado do seu tipo (problema, melhoria, aprender) e diz como corrigir. Verificação nova = arquivo novo + uma linha em `index.ts` |
 | `apps/runtime/src/brain/domain/scripts.ts` | Regras dos scripts do procedimento (nome, tamanho, credenciais, versão) |
 | `apps/runtime/src/agents/tools/scripts.ts` | `run_script` (portão): roda o script do procedimento em andamento |
@@ -225,6 +281,12 @@ procedimentos.
 
 - `apps/runtime/test/flow-*.test.ts`: aprender, aprovar, ver como skill,
   executar com checklist e contar o sucesso.
+- `apps/runtime/test/concepts.test.ts`: citações válidas e inválidas, nome
+  específico recusado, tipo ampliado sem perder ligações, passo 0 (preencher,
+  resolver, outro nome, desfazer, só fatos do conceito da entrada).
+- `apps/runtime/test/flow-concepts.test.ts`: aprender com entradas e "Ficou fora";
+  MFE desconhecido investigado, "Aprendi" e Desfazer; MFE conhecido pelo outro nome
+  vai direto.
 - `apps/runtime/test/demonstration.test.ts`: parâmetros preenchidos, segredos
   continuam referência.
 - `apps/runtime/test/units.test.ts`: catálogo de skills só com os mais usados.

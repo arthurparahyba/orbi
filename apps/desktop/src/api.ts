@@ -55,6 +55,9 @@ export const api = {
   dismissInbox: (id: string) => request(`/api/inbox/${id}/dismiss`, { method: 'POST' }),
   keepInbox: (id: string) => request(`/api/inbox/${id}/keep`, { method: 'POST' }),
   brain: () => request<BrainSnapshot>('/api/brain'),
+  /** Takes back what a run learned by itself about an input (passo 0). */
+  undoResolved: (runId: string, input: string) =>
+    request(`/api/brain/runs/${encodeURIComponent(runId)}/resolved/${encodeURIComponent(input)}/undo`, { method: 'POST' }),
   entity: (id: string) => request<EntityDetail>(`/api/brain/entities/${encodeURIComponent(id)}`),
   editEntity: (id: string, change: EditEntity) =>
     request<Entity>(`/api/brain/entities/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(change) }),

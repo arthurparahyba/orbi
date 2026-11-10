@@ -2,7 +2,9 @@ import { knownProblemsFor, type KnownProblem } from '../domain/knowledge.ts';
 import { ulid } from 'ulidx';
 import { transaction } from '../../db/database.ts';
 import { advanceRun, newRun, recordOutputs } from '../domain/playbooks.ts';
-import type { PlaybookRun, StepStatus } from '../domain/types.ts';
+import type { Entity, Playbook, PlaybookRun, ResolvedInput, StepStatus } from '../domain/types.ts';
+import { entityProblems, edgeProblems } from '../domain/ontology.ts';
+import { fillCitations, resolveInputs, unanswered, type FactLookup } from '../domain/concepts.ts';
 import { type Deviation, type RunAction } from '../domain/levels.ts';
 import { now } from '../repo/rows.ts';
 import type { BrainParts } from './parts.ts';
@@ -101,7 +103,14 @@ export class Execution {
   startRun(playbookName: string, conversationId: string, params: Record<string, string> = {}): PlaybookRun {
     const pb = this.p.playbookRepo.get(playbookName);
     if (!pb) throw new Error(`playbook não encontrado: ${playbookName}`);
-    const run = newRun(pb, ulid(), conversationId, params, now());
+    let run: PlaybookRun;
+    if (pb.inputs?.length) {
+      // Over concepts (passo 0): the inputs found among the facts fill their citations now.
+      const { resolved } = resolveInputs(pb.inputs, params, this.lookup);
+      run = { ...newRun(pb, ulid(), conversationId, params, now(), (text) => fillCitations(text, params, resolved, this.lookup)), resolved };
+    } else {
+      run = newRun(pb, ulid(), conversationId, params, now());
+    }
     transaction(this.p.db, () => {
       this.p.playbookRepo.insertRun(run);
       this.p.playbookRepo.countUse(pb.name);
@@ -123,6 +132,115 @@ export class Execution {
 
   run(id: string): PlaybookRun | undefined {
     return this.p.playbookRepo.run(id);
+  }
+
+  // ── passo 0: inputs over concepts ──────────────────────────────────────
+  /** The facts as a run reads them: types, entities, other names and current relations. */
+  readonly lookup: FactLookup = {
+    typeOf: (name) => this.p.ontology.get(name),
+    entity: (id) => this.p.graphRepo.entity(id),
+    named: (type, name) => this.p.graphRepo.named(type, name),
+    out: (id) => this.p.graphRepo.neighbors(id, now()).out,
+  };
+
+  /** Where a run stands on its inputs: what is still to find, and the citations the facts cannot answer yet. */
+  inputState(runId: string): { toResolve: Array<{ input: string; value: string; concept: string; candidates: string[]; howToFind?: string }>; unknown: string[] } {
+    const run = this.p.playbookRepo.run(runId);
+    const pb = run && this.p.playbookRepo.get(run.playbook);
+    if (!run || !pb?.inputs?.length) return { toResolve: [], unknown: [] };
+    const { resolved, pending } = resolveInputs(pb.inputs, run.params, this.lookup, run.resolved);
+    return {
+      toResolve: pending.map((x) => ({
+        input: x.input.name,
+        value: x.value,
+        concept: x.input.concept!,
+        candidates: x.candidates,
+        ...(this.p.ontology.get(x.input.concept!)?.knows?.achar ? { howToFind: this.p.ontology.get(x.input.concept!)!.knows!.achar } : {}),
+      })),
+      unknown: unanswered(pb, run.params, resolved, this.lookup).filter((c) => !pending.some((x) => c.split('.')[0] === x.input.name)),
+    };
+  }
+
+  /**
+   * An input of the running procedure found by investigating: it becomes a fact of the input's
+   * concept (new, or the name given becomes another name of one that exists), marked as learned
+   * in this run, so the developer can take it back. Only facts of a concept that exists; never a
+   * type, a property of the concept or the procedure (those go through the learning card).
+   */
+  resolveInput(
+    runId: string,
+    inputName: string,
+    found: { entity: string; props?: Record<string, unknown>; relations?: Array<{ rel: string; to: string }> },
+  ): { run: PlaybookRun; learned: ResolvedInput } {
+    const run = this.p.playbookRepo.run(runId);
+    if (!run) throw new Error(`execução não encontrada: ${runId}`);
+    if (run.status !== 'running' && run.status !== 'waiting') throw new Error('a execução já terminou');
+    const pb = this.p.playbookRepo.get(run.playbook)!;
+    const input = pb.inputs?.find((i) => i.name === inputName);
+    if (!input?.concept) throw new Error(`${pb.name} não tem a entrada ${inputName} com conceito; entradas: ${(pb.inputs ?? []).map((i) => i.name).join(', ') || 'nenhuma'}`);
+    const value = run.params[inputName] ?? found.entity;
+    const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+    const existing = this.p.graphRepo.entity(found.entity);
+    if (existing && existing.type !== input.concept) throw new Error(`${found.entity} é ${existing.type}, não ${input.concept}`);
+    let learned: ResolvedInput;
+    transaction(this.p.db, () => {
+      if (existing) {
+        const isAlias = fold(value) !== fold(existing.id) && !(existing.aliases ?? []).some((a) => fold(a) === fold(value));
+        if (isAlias) this.p.graphRepo.upsertEntity({ ...existing, aliases: [...(existing.aliases ?? []), value] });
+        learned = { value, entity: existing.id, learned: isAlias ? 'alias' : 'known' };
+      } else {
+        const entity: Omit<Entity, 'updatedAt'> = {
+          id: found.entity,
+          type: input.concept!,
+          props: found.props ?? {},
+          body: '',
+          aliases: fold(value) === fold(found.entity) ? [] : [value],
+          source: `execucao:${run.id}`,
+        };
+        const problems = entityProblems(entity, this.lookup.typeOf);
+        if (problems.length) throw new Error(problems.join('; '));
+        this.p.graphRepo.upsertEntity(entity);
+        learned = { value, entity: entity.id, learned: 'created' };
+      }
+      for (const r of found.relations ?? []) {
+        const from = this.p.graphRepo.entity(learned!.entity);
+        const problems = edgeProblems({ from: learned!.entity, rel: r.rel, to: r.to }, from, this.p.graphRepo.entity(r.to), this.lookup.typeOf);
+        if (problems.length) throw new Error(problems.join('; '));
+        this.p.graphRepo.insertEdge({ from: learned!.entity, rel: r.rel, to: r.to, attrs: { origem: `execucao:${run.id}` }, validFrom: now(), validTo: null });
+      }
+    });
+    const next = this.refill({ ...run, resolved: { ...run.resolved, [inputName]: learned! } }, pb);
+    this.p.playbookRepo.updateRun(next);
+    return { run: next, learned: learned! };
+  }
+
+  /** Takes back what a run learned about an input: the fact it created, or the other name it added. */
+  undoResolved(runId: string, inputName: string): ResolvedInput {
+    const run = this.p.playbookRepo.run(runId);
+    const res = run?.resolved?.[inputName];
+    if (!run || !res) throw new Error(`nada aprendido para ${inputName} nesta execução`);
+    if (res.undone || res.learned === 'known') return res;
+    transaction(this.p.db, () => {
+      if (res.learned === 'created') this.p.graphRepo.deleteEntity(res.entity);
+      else {
+        const entity = this.p.graphRepo.entity(res.entity);
+        if (entity) this.p.graphRepo.upsertEntity({ ...entity, aliases: (entity.aliases ?? []).filter((a) => a !== res.value) });
+      }
+      this.p.playbookRepo.updateRun({ ...run, resolved: { ...run.resolved, [inputName]: { ...res, undone: true } } });
+    });
+    return { ...res, undone: true };
+  }
+
+  /** What runs learned by themselves (passo 0), newest first: for the "Aprendi" summaries. */
+  learnedIn(run: PlaybookRun): Array<{ input: string } & ResolvedInput> {
+    return Object.entries(run.resolved ?? {}).filter(([, r]) => r.learned !== 'known').map(([input, r]) => ({ input, ...r }));
+  }
+
+  /** The steps' text again, with what the facts answer now; status and notes stay. */
+  private refill(run: PlaybookRun, pb: Playbook): PlaybookRun {
+    const fill = (text: string) => fillCitations(text, run.params, run.resolved ?? {}, this.lookup);
+    const original = new Map(pb.steps.map((s) => [s.id, s]));
+    return { ...run, steps: run.steps.map((s) => (original.has(s.id) ? { ...s, label: fill(original.get(s.id)!.label), how: fill(original.get(s.id)!.how) } : s)) };
   }
 
   runs(limit = 20): PlaybookRun[] {

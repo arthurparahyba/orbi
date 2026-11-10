@@ -1,8 +1,11 @@
 # 18. Conceitos, fatos e procedimentos (proposta)
 
-> **Estado: proposta, ainda não implementada.** Este documento descreve o que
-> muda no cérebro, nos procedimentos e no jeito de aprender, para servir de base à
-> implementação. O protótipo das telas está no canvas
+> **Estado: fases 1 e 2 implementadas** (modelo de dados, citações conferidas,
+> nomes específicos recusados, cartão em partes, passo 0 com fatos aprendidos na
+> execução e Desfazer; descritas nos documentos 4 e 5). **Fases 3 a 5 ainda são
+> proposta** (ensaio, sei / não sei, tela do Cérebro), assim como a avaliação de
+> comportamento. Este documento descreve o que muda no cérebro, nos procedimentos e
+> no jeito de aprender, para servir de base à implementação. O protótipo das telas está no canvas
 > [Procedimentos sobre conceitos](https://claude.ai/artifact/59uBSrE43nJ2waay4HTURM).
 > Quando uma parte for implementada, ela sai daqui e entra nos documentos 4, 5 e 8.
 
@@ -226,10 +229,10 @@ domínio (deploy, mudança, infraestrutura).
 
 ## Ordem de implementação
 
-1. **Modelo de dados e validação**: migração 19, tipos, referências
+1. **Modelo de dados e validação** *(feito)*: migração 19, tipos, referências
    `{{entrada.x}}`, verificação de específicos, cartão em cinco partes. Nada muda
    para quem já tem procedimentos (os campos novos são opcionais).
-2. **Passo 0 e fatos de execução**: resolver entradas por id e apelido, `toResolve`
+2. **Passo 0 e fatos de execução** *(feito)*: resolver entradas por id e apelido, `toResolve`
    para o modelo, fatos com origem, resumo com Desfazer.
 3. **Ensaio**: execução sem procedimento, a skill reescrita, combinar início e fim,
    cartão "testado em".
@@ -242,12 +245,9 @@ documento da funcionalidade atualizado.
 
 ## Decisões em aberto
 
-- **Fatos sem cartão.** Fatos observados numa execução entram direto, com origem e
-  Desfazer? Ou vão para um cartão leve no fim? A proposta é direto, porque um cartão
-  por apelido seria ruído. Isso abre uma exceção na regra da arquitetura
-  "`aprender` sempre pede aprovação" (`CLAUDE.md`): precisa ser decidida antes da
-  fase 2, e, se aceita, limitada a fatos de conceitos que já existem (nunca tipo,
-  saber ou procedimento) e escrita na regra.
+- ~~**Fatos sem cartão.**~~ Decidido na fase 2: fatos observados numa execução
+  entram direto pelo `playbook_resolve`, com origem e Desfazer, só de um conceito
+  que já existe e do tipo da entrada. A exceção está escrita na regra do `CLAUDE.md`.
 - **O ensaio publica de verdade?** A proposta: preenche tudo e pede confirmação
   para publicar. A alternativa é parar sempre antes e deixar o primeiro uso real
   para depois do cartão.

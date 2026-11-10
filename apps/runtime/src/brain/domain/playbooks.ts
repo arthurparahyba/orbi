@@ -51,8 +51,15 @@ export function playbookParams(pb: Pick<Playbook, 'steps' | 'instructions'>): st
   return [...new Set([...text.matchAll(/\{\{\s*([a-zA-Z_][\w-]*)\s*\}\}/g)].map((m) => m[1]))];
 }
 
-/** A new run of `pb`: every step pending, parameters filled. */
-export function newRun(pb: Playbook, id: string, conversationId: string, params: Record<string, string>, startedAt: string): PlaybookRun {
+/** A new run of `pb`: every step pending, parameters filled (by `fill` when the procedure is over concepts). */
+export function newRun(
+  pb: Playbook,
+  id: string,
+  conversationId: string,
+  params: Record<string, string>,
+  startedAt: string,
+  fill: (text: string) => string = (text) => fillParams(text, params),
+): PlaybookRun {
   return {
     id,
     playbook: pb.name,
@@ -62,7 +69,7 @@ export function newRun(pb: Playbook, id: string, conversationId: string, params:
     outputs: {},
     actions: [],
     deviations: [],
-    steps: pb.steps.map((s) => ({ ...s, label: fillParams(s.label, params), how: fillParams(s.how, params), status: 'pending' as StepStatus })),
+    steps: pb.steps.map((s) => ({ ...s, label: fill(s.label), how: fill(s.how), status: 'pending' as StepStatus })),
     startedAt,
     finishedAt: null,
   };

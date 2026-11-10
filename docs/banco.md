@@ -227,6 +227,8 @@ propõe cada tipo na primeira vez que precisa. Tela **Cérebro → Ontologia**.
 | `description` | Para que serve o tipo |
 | `relations` | JSON `{ ligação: tipoDestino }`: as ligações que o tipo aceita |
 | `requires` | JSON `[ligação]`: o que precisa ter para não virar lacuna |
+| `props` | JSON `{ propriedade: o que é }`: o que um procedimento pode citar como `{{entrada.propriedade}}` (migração 19) |
+| `knows` | JSON `{ saber: como }`: o que vale para toda entidade do tipo, como `achar` (migração 19) |
 
 **`entities`** · as coisas concretas. Tela **Cérebro → Conhecimento**.
 
@@ -236,6 +238,8 @@ propõe cada tipo na primeira vez que precisa. Tela **Cérebro → Ontologia**.
 | `type` FK → `types.name` | O tipo |
 | `props` | JSON livre (`{ "url": "…" }`) |
 | `body` | Texto livre |
+| `aliases` | JSON `[nome]`: outros nomes pelos quais é chamada; entram na busca (migração 19) |
+| `source` | De onde veio: `cartao:<conversa>`, `execucao:<execução>` (migração 19) |
 | `updated_at` | Última mudança |
 
 **`edges`** · ligações entre entidades, com validade. Uma ligação "muda" fechando
@@ -256,6 +260,9 @@ a antiga (`valid_to`) e abrindo outra; o passado continua consultável.
 | `name` PK | kebab-case, `promover-front-hml` |
 | `description`, `trigger` | Quando usar; é por aqui que a busca acha |
 | `applies_to` | Classe a que se aplica (`MicroFrontend`), ou nulo |
+| `intent` | Para que serve, em termos de conceitos (migração 19) |
+| `inputs` | JSON `[{ name, concept?, description? }]`: o que recebe, com o conceito (migração 19) |
+| `tested_run` | A execução (ou o ensaio) que provou que funciona (migração 19) |
 | `autonomy` | `observe` (só observar), `ask` (= N1) ou `auto` (= N3 posto por você); acompanha o nível |
 | `level`, `level_max` | Nível de autonomia (1 a 3) e o máximo permitido (migração 13; documento 3) |
 | `level_by` | Quem pôs o nível: `learned`, `promoted`, `demoted` ou `user` |
@@ -280,6 +287,8 @@ conversa, **Cérebro → Execuções**.
 | `steps` | JSON: cada passo com estado e nota |
 | `params` | JSON: o que recebeu (migração 10) |
 | `outputs` | JSON: o que entregou (migração 10) |
+| `kind` | `run` ou `rehearsal` (ensaio, antes de existir o procedimento; migração 19) |
+| `resolved` | JSON `{ entrada: { value, entity, learned, undone? } }`: as entradas que viraram fatos no passo 0 (migração 19) |
 | `actions` | JSON: as ações que rodou, com impressão digital, efeito e passo (migração 13) |
 | `deviations` | JSON: o que saiu do caminho: ferramenta que falhou, ação negada (migração 13) |
 | `reviewed_at` | Quando a revisão do fim da execução passou por ela (migração 14); nulo = ainda não revisada |
@@ -423,8 +432,9 @@ editada, sempre se cria outra.
 | 16 | Agentes de código desta máquina: `code_agents`, `code_agent_tasks` |
 | 17 | `code_agents.run_in` (onde o agente roda) |
 | 18 | Agentes de código voltam a rodar em segundo plano por padrão |
+| 19 | Conceitos, fatos e procedimentos: `types.props`/`knows`, `entities.aliases`/`source` (apelidos entram no índice de busca), `playbooks.intent`/`inputs`/`tested_run`, `playbook_runs.kind`/`resolved` |
 
-O número é o `user_version` depois que a migração roda (hoje 18). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 19). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos

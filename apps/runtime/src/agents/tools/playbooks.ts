@@ -6,7 +6,7 @@ import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
 import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
-import { RUN_RULES, RUN_RULES_WITH_CODE } from '../prompt.ts';
+import { RESOLVE_RULES, RUN_RULES, RUN_RULES_WITH_CODE } from '../prompt.ts';
 
 /** The playbook running in this conversation, kept across turns. */
 export function useActiveRun() {
@@ -82,9 +82,57 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       const steps = run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how }));
       const level = pb.autonomy === 'observe' ? 'só observar' : LEVEL_NAMES[pb.level];
       // This turn's prompt was built before the run existed: the rules for running come here.
-      if (!pb.outputs.length) return { output: { runId: run.id, autonomy: level, steps, regras: codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES } };
+      const rules = codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES;
+      // Over concepts: what the brain already knows came filled in; the rest is passo 0.
+      const { toResolve, unknown } = brain.execution.inputState(run.id);
+      const missing = (pb.inputs ?? []).filter((i) => !data.params?.[i.name]).map((i) => i.name);
+      const passo0 = toResolve.length || unknown.length || missing.length
+        ? { passo0: { toResolve, unknown, ...(missing.length ? { faltam: missing } : {}), regras: RESOLVE_RULES } }
+        : {};
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
-      return { output: { runId: run.id, autonomy: level, steps, outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.', regras: codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES } };
+      return {
+        output: {
+          runId: run.id,
+          autonomy: level,
+          ...(pb.intent ? { intent: pb.intent } : {}),
+          steps,
+          ...passo0,
+          ...(outputs.length ? { outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.' } : {}),
+          regras: rules,
+        },
+      };
+    },
+  });
+
+  useTool({
+    name: 'playbook_resolve',
+    description:
+      'Passo 0 of a procedure over concepts: record what an input turned out to be after you investigated (the exact name found, e.g. xpto-mfe for "xpto"). ' +
+      'It becomes a fact of the input\'s concept, marked as learned in this run (the developer can undo it), and the steps are filled again. ' +
+      'Only facts of an existing concept: new concepts or changes to the procedure go through brain_learn.',
+    input: v.object({
+      input: v.pipe(v.string(), v.description('The input name, e.g. mfe')),
+      entity: v.pipe(v.string(), v.description('The exact name found (the fact id)')),
+      props: v.optional(v.record(v.string(), v.unknown())),
+      relations: v.optional(v.pipe(v.array(v.object({ rel: v.string(), to: v.string() })), v.description('Relations to facts that already exist, e.g. {"rel":"dono","to":"time-cartoes"}'))),
+    }),
+    async run({ data }) {
+      if (!ctx.activeRun) return { output: { error: 'nenhum procedimento em execução' } };
+      try {
+        const { run, learned } = brain.execution.resolveInput(ctx.activeRun.runId, data.input, { entity: data.entity, props: data.props, relations: data.relations });
+        showRun(run.id);
+        const { toResolve, unknown } = brain.execution.inputState(run.id);
+        return {
+          output: {
+            learned: learned.learned === 'created' ? `fato novo: ${learned.entity}` : learned.learned === 'alias' ? `"${learned.value}" é outro nome de ${learned.entity}` : `${learned.entity} já era conhecido`,
+            steps: run.steps.filter((s) => s.status === 'pending').map((s) => ({ id: s.id, label: s.label, how: s.how })),
+            ...(toResolve.length ? { toResolve } : {}),
+            ...(unknown.length ? { unknown } : {}),
+          },
+        };
+      } catch (error) {
+        return { output: { error: error instanceof Error ? error.message : String(error) } };
+      }
     },
   });
 
@@ -150,6 +198,17 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
         return { output: { runStatus: run.status } };
       }
       ctx.setActiveRun(null);
+      // What the run learned by itself (passo 0) is shown at the end, each with Desfazer.
+      const learned = brain.execution.learnedIn(run);
+      if (learned.length) {
+        ctx.ui({
+          component: 'learned_facts',
+          id: `learned-${run.id}`,
+          title: `Aprendi executando ${run.playbook}`,
+          runId: run.id,
+          items: learned.map((l) => ({ input: l.input, value: l.value, entity: l.entity, learned: l.learned as 'alias' | 'created', undone: !!l.undone })),
+        });
+      }
       // The level and the review come when the turn ends (review/review.ts), after every failure is in.
       // Part of an esteira: the engine says what comes next (the next stage, or wait for the developer).
       const next = pipelines.engine.runFinished(run);

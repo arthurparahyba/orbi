@@ -6,7 +6,7 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 17). A visão geral está em `docs/arquitetura.md`; as
+`docs/funcionalidades/` (01 a 18). A visão geral está em `docs/arquitetura.md`; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Estrutura
@@ -70,6 +70,9 @@ cofre ou ponte MCP, `npm run e2e`.
 - **Toda ação que muda algo passa pelo portão** (`agents/gate.ts`, via `ctx.gated`), com
   uma categoria de `autonomy/policy.ts`. Leitura pode ser ferramenta comum. Nunca crie
   uma ferramenta que escreve, publica ou apaga sem o portão. `aprender` sempre pede aprovação.
+  Única exceção: `playbook_resolve` (passo 0) guarda, sem cartão, o fato que uma entrada virou
+  numa execução, só de um conceito que já existe e do tipo da entrada, com origem e Desfazer
+  (documento 18). Não amplie a exceção: conceito, propriedade e procedimento passam pelo cartão.
 - **O código não conhece o domínio do usuário.** Nada de CI, GMUD ou portal específico no
   código: isso é aprendido e guardado no cérebro. O código dá capacidades genéricas.
 - **O cérebro começa vazio**, sem tipos. Não reintroduza tipos de fábrica; a demo usa

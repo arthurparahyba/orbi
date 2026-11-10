@@ -30,14 +30,40 @@ export const brainQuery = (brain: BrainStore) => defineTool({
 });
 
 const learnItem = v.variant('kind', [
-  v.object({ kind: v.literal('type'), payload: v.object({ name: v.string(), description: v.string(), relations: v.optional(v.record(v.string(), v.string())), requires: v.optional(v.array(v.string())) }) }),
-  v.object({ kind: v.literal('entity'), payload: v.object({ id: v.string(), type: v.string(), props: v.optional(v.record(v.string(), v.unknown())), body: v.optional(v.string()) }) }),
+  v.object({
+    kind: v.literal('type'),
+    payload: v.object({
+      name: v.string(),
+      description: v.string(),
+      relations: v.optional(v.record(v.string(), v.string())),
+      requires: v.optional(v.array(v.string())),
+      props: v.optional(v.pipe(v.record(v.string(), v.string()), v.description('Properties every entity of this concept has (name → what it is), e.g. {"endereco": "URL do portal"}: what a procedure may cite as {{entrada.endereco}}. Added to the ones it has.'))),
+      knows: v.optional(v.pipe(v.record(v.string(), v.string()), v.description('What is known for every entity of this concept (name → how), e.g. {"de_pe": "running = desired", "achar": "buscar pelo nome no portal"}. Added to the ones it has.'))),
+    }),
+  }),
+  v.object({
+    kind: v.literal('entity'),
+    payload: v.object({
+      id: v.string(),
+      type: v.string(),
+      props: v.optional(v.record(v.string(), v.unknown())),
+      body: v.optional(v.string()),
+      aliases: v.optional(v.pipe(v.array(v.string()), v.description('Other names it goes by ("xpto" for xpto-mfe)'))),
+    }),
+  }),
   v.object({ kind: v.literal('edge'), payload: v.object({ from: v.string(), rel: v.string(), to: v.string(), attrs: v.optional(v.record(v.string(), v.unknown())), validFrom: v.optional(v.string()), validTo: v.optional(v.string()) }) }),
   v.object({
     kind: v.literal('playbook'),
     payload: v.object({
       name: v.pipe(v.string(), v.description('kebab-case')),
       description: v.pipe(v.string(), v.description('When to use it — this line decides when it is picked')),
+      intent: v.optional(v.pipe(v.string(), v.description('What it is for, in terms of concepts: "Publicar uma Versao de um MicroFrontend em um Ambiente"'))),
+      inputs: v.optional(
+        v.pipe(
+          v.array(v.object({ name: v.string(), concept: v.optional(v.string()), description: v.optional(v.string()) })),
+          v.description('What it receives each time (snake_case), typed by a concept when it is one: [{"name":"mfe","concept":"MicroFrontend"},{"name":"versao"}]. Steps cite {{mfe}} and {{mfe.publicadoPor.endereco}} (relations, then a declared property); never write a specific name (checkout-mfe) in the steps.'),
+        ),
+      ),
       appliesTo: v.optional(v.string()),
       trigger: v.string(),
       autonomy: v.optional(v.picklist(['observe', 'ask', 'auto'])),
@@ -123,7 +149,16 @@ function useBrain(ctx: AgentContext, { brain }: Deps<'brain'>) {
       'The brain starts empty: when an entity needs a type that does not exist yet, include that `type` in the same batch — never drop the entity because its type is missing. ' +
       'Save the things the procedure touches (account, repository, portal, environment) as entities, not only the playbook. ' +
       'The batch is checked first (problems come back at once, nothing is asked); then shown to the developer to approve, and saved all or nothing.',
-    input: v.object({ reason: v.string(), items: v.array(learnItem) }),
+    input: v.object({
+      reason: v.string(),
+      items: v.array(learnItem),
+      leftOut: v.optional(
+        v.pipe(
+          v.array(v.object({ value: v.string(), where: v.string() })),
+          v.description('Each specific value of the explanation that is NOT in the procedure, and where it went: {"value":"checkout-mfe","where":"fato: é um MicroFrontend"}, {"value":"2.14.0","where":"entrada versao"}. Never a password.'),
+        ),
+      ),
+    }),
     category: () => 'aprender',
     summary: (a) => learnTitle(a.items as Array<{ kind: string; payload: { name?: string } }>, a.reason, (name) => !!brain.playbook(name)),
     precheck: (a) => {

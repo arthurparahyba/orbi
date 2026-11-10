@@ -207,4 +207,26 @@ CREATE TABLE code_agent_tasks (task TEXT PRIMARY KEY, agent TEXT NOT NULL, model
     name: 'agentes de código voltam a rodar em segundo plano por padrão (a janela do terminal fica como opção)',
     sql: `UPDATE code_agents SET run_in = 'background';`,
   },
+  {
+    name: 'conceitos, fatos e procedimentos: propriedades e saberes dos tipos, apelidos e origem dos fatos, entradas e intenção dos procedimentos, ensaio e entradas resolvidas das execuções',
+    sql: `
+ALTER TABLE types ADD COLUMN props TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE types ADD COLUMN knows TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE entities ADD COLUMN aliases TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE entities ADD COLUMN source TEXT NOT NULL DEFAULT '';
+ALTER TABLE playbooks ADD COLUMN intent TEXT NOT NULL DEFAULT '';
+ALTER TABLE playbooks ADD COLUMN inputs TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE playbooks ADD COLUMN tested_run TEXT;
+ALTER TABLE playbook_runs ADD COLUMN kind TEXT NOT NULL DEFAULT 'run';
+ALTER TABLE playbook_runs ADD COLUMN resolved TEXT NOT NULL DEFAULT '{}';
+DROP TRIGGER entities_fts_ai;
+DROP TRIGGER entities_fts_au;
+CREATE TRIGGER entities_fts_ai AFTER INSERT ON entities BEGIN
+  INSERT INTO entities_fts (key, id, type, props, body) VALUES (NEW.id, NEW.id || ' ' || NEW.aliases, NEW.type, NEW.props, NEW.body);
+END;
+CREATE TRIGGER entities_fts_au AFTER UPDATE ON entities BEGIN
+  DELETE FROM entities_fts WHERE key = OLD.id;
+  INSERT INTO entities_fts (key, id, type, props, body) VALUES (NEW.id, NEW.id || ' ' || NEW.aliases, NEW.type, NEW.props, NEW.body);
+END;`,
+  },
 ];

@@ -56,5 +56,10 @@ export function brainRoutes({ brain, config }: OrbiServices) {
       return c.json({ deleted: true, ...brain.deletePlaybook(c.req.param('name')) });
     })
     .get('/runs', (c) => c.json(brain.runs()))
+    // Takes back what a run learned by itself about an input (passo 0): the fact it created or the other name.
+    .post('/runs/:id/resolved/:input/undo', (c) => {
+      if (!brain.run(c.req.param('id'))) throw notFound('execução');
+      return c.json(invalid(() => brain.execution.undoResolved(c.req.param('id'), c.req.param('input'))));
+    })
     .post('/export', (c) => c.json({ written: brain.exportMarkdown(config.brainExportDir), dir: config.brainExportDir }));
 }

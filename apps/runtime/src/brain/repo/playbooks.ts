@@ -12,6 +12,9 @@ const toPlaybook = (r: Row): Playbook => ({
   steps: parse(r.steps, []),
   instructions: String(r.instructions),
   learnedFrom: nullable(r.learned_from),
+  intent: String(r.intent ?? ''),
+  inputs: parse(r.inputs, []),
+  testedRun: nullable(r.tested_run),
   variationOf: nullable(r.variation_of),
   outputs: parse(r.outputs, []),
   scripts: parse(r.scripts, []),
@@ -29,6 +32,8 @@ const toRun = (r: Row): PlaybookRun => ({
   playbook: String(r.playbook),
   conversationId: String(r.conversation_id),
   status: String(r.status) as PlaybookRun['status'],
+  kind: String(r.kind ?? 'run') as PlaybookRun['kind'],
+  resolved: parse(r.resolved, {}),
   steps: parse(r.steps, []),
   params: parse(r.params, {}),
   outputs: parse(r.outputs, {}),
@@ -45,16 +50,18 @@ export class PlaybookRepo {
   save(pb: PlaybookInput): void {
     this.db
       .prepare(
-        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at, level, level_by, scripts)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)
+        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at, level, level_by, scripts, intent, inputs, tested_run)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description, applies_to = excluded.applies_to,
            trigger = excluded.trigger, autonomy = excluded.autonomy, steps = excluded.steps,
            instructions = excluded.instructions, learned_from = excluded.learned_from,
-           variation_of = excluded.variation_of, outputs = excluded.outputs, scripts = excluded.scripts, updated_at = excluded.updated_at`,
+           variation_of = excluded.variation_of, outputs = excluded.outputs, scripts = excluded.scripts, updated_at = excluded.updated_at,
+           intent = excluded.intent, inputs = excluded.inputs, tested_run = excluded.tested_run`,
       )
       // A new playbook marked "auto" was trusted by whoever made it: it starts at N3, set by the developer.
       .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, json(pb.outputs ?? []), now(),
-        pb.autonomy === 'auto' ? 3 : 1, pb.autonomy === 'auto' ? 'user' : 'learned', json(pb.scripts ?? []));
+        pb.autonomy === 'auto' ? 3 : 1, pb.autonomy === 'auto' ? 'user' : 'learned', json(pb.scripts ?? []),
+        pb.intent ?? '', json(pb.inputs ?? []), pb.testedRun ?? null);
   }
 
   /** Removes a playbook. Its variations stay, no longer linked; its runs stay as history. Returns the variations detached. */
@@ -140,12 +147,14 @@ export class PlaybookRepo {
 
   insertRun(run: PlaybookRun): void {
     this.db
-      .prepare('INSERT INTO playbook_runs (id, playbook, conversation_id, status, steps, params, outputs, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(run.id, run.playbook, run.conversationId, run.status, json(run.steps), json(run.params), json(run.outputs), run.startedAt);
+      .prepare('INSERT INTO playbook_runs (id, playbook, conversation_id, status, steps, params, outputs, started_at, kind, resolved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(run.id, run.playbook, run.conversationId, run.status, json(run.steps), json(run.params), json(run.outputs), run.startedAt, run.kind ?? 'run', json(run.resolved ?? {}));
   }
 
   updateRun(run: PlaybookRun): void {
-    this.db.prepare('UPDATE playbook_runs SET steps = ?, status = ?, outputs = ?, finished_at = ? WHERE id = ?').run(json(run.steps), run.status, json(run.outputs), run.finishedAt, run.id);
+    this.db
+      .prepare('UPDATE playbook_runs SET steps = ?, status = ?, outputs = ?, finished_at = ?, params = ?, resolved = ? WHERE id = ?')
+      .run(json(run.steps), run.status, json(run.outputs), run.finishedAt, json(run.params), json(run.resolved ?? {}), run.id);
   }
 
   run(id: string): PlaybookRun | undefined {

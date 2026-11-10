@@ -53,7 +53,7 @@ export function pipelineFromPayload(p: Record<string, unknown>): PipelineInputDe
 
 /** The change an approved proposal makes, ready for the repositories. */
 export type Change =
-  | { kind: 'type'; type: OntologyType; label: string }
+  | { kind: 'type'; type: Pick<OntologyType, 'name' | 'description'> & Partial<OntologyType>; label: string }
   | { kind: 'entity'; entity: Omit<Entity, 'updatedAt'>; label: string }
   | { kind: 'edge'; edge: { from: string; rel: string; to: string; attrs: Record<string, unknown>; validFrom?: string; validTo: string | null }; label: string }
   | { kind: 'playbook'; playbook: PlaybookInput; label: string }
@@ -65,13 +65,28 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
       return {
         kind,
         label: `tipo ${p.name}`,
-        type: { name: String(p.name), description: String(p.description ?? ''), relations: (p.relations as Record<string, string>) ?? {}, requires: (p.requires as string[]) ?? [] },
+        // Left out, relations and requires stay as they were (Facts.upsertType); props and knows add up.
+        type: {
+          name: String(p.name),
+          description: String(p.description ?? ''),
+          ...(p.relations ? { relations: p.relations as Record<string, string> } : {}),
+          ...(p.requires ? { requires: p.requires as string[] } : {}),
+          ...(p.props ? { props: p.props as Record<string, string> } : {}),
+          ...(p.knows ? { knows: p.knows as Record<string, string> } : {}),
+        },
       };
     case 'entity':
       return {
         kind,
         label: `${p.type} ${p.id}`,
-        entity: { id: String(p.id), type: String(p.type), props: (p.props as Record<string, unknown>) ?? {}, body: String(p.body ?? '') },
+        entity: {
+          id: String(p.id),
+          type: String(p.type),
+          props: (p.props as Record<string, unknown>) ?? {},
+          body: String(p.body ?? ''),
+          ...(Array.isArray(p.aliases) ? { aliases: (p.aliases as unknown[]).map(String) } : {}),
+          source: conversationId ? `cartao:${conversationId}` : 'cartao',
+        },
       };
     case 'edge':
       return {
@@ -99,6 +114,18 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
           steps: p.steps as PlaybookStep[],
           instructions: String(p.instructions ?? ''),
           learnedFrom: conversationId || null,
+          // Left out (a correction of the steps), intent and inputs stay as they were (Procedures.savePlaybook).
+          ...(p.intent !== undefined ? { intent: String(p.intent) } : {}),
+          ...(Array.isArray(p.inputs)
+            ? {
+                inputs: (p.inputs as Array<Record<string, unknown>>).map((i) => ({
+                  name: String(i.name ?? ''),
+                  ...(i.concept ? { concept: String(i.concept) } : {}),
+                  ...(i.description ? { description: String(i.description) } : {}),
+                })),
+              }
+            : {}),
+          ...(p.testedRun ? { testedRun: String(p.testedRun) } : {}),
           variationOf: p.variationOf ? String(p.variationOf) : null,
           outputs: Array.isArray(p.outputs)
             ? (p.outputs as Array<Partial<PlaybookOutput>>).map((o) => ({ name: String(o.name ?? ''), description: String(o.description ?? '') }))

@@ -5,6 +5,7 @@ import type { PipelineDef } from '../../views/pipelines/model';
 import { CHANGE_LABEL, stepDiff, type Step } from '../stepDiff';
 import { api } from '../../api';
 import { useLive } from '../../hooks';
+import { LearnConcepts, LearnIntent, LearnLeftOut } from './LearningParts';
 
 /** What a learning card would save: procedures, esteiras and facts, against what exists. */
 interface LearnItem { kind: string; payload: Record<string, any> }
@@ -14,13 +15,38 @@ const placeholders = (text: string) => [...new Set([...text.matchAll(/\{\{\s*([^
 export function LearningPreview({ detail }: { detail: string }) {
   // A variation (or a replacement) is shown against the playbook it comes from.
   const known = useLive(api.playbooks, ['brain']);
+  const brain = useLive(api.brain, ['brain']);
   let items: LearnItem[] = [];
-  try { items = (JSON.parse(detail).items ?? []) as LearnItem[]; } catch { return null; }
+  let leftOut: Array<{ value: string; where: string }> = [];
+  try {
+    const parsed = JSON.parse(detail);
+    items = (parsed.items ?? []) as LearnItem[];
+    leftOut = Array.isArray(parsed.leftOut) ? parsed.leftOut : [];
+  } catch { return null; }
   const playbooks = items.filter((i) => i.kind === 'playbook').map((i) => i.payload);
   const pipelines = items.filter((i) => i.kind === 'pipeline').map((i) => i.payload);
-  const facts = items.filter((i) => i.kind !== 'playbook' && i.kind !== 'pipeline');
+  // Concepts get their own part; the facts are the entities and relations.
+  const facts = items.filter((i) => i.kind === 'entity' || i.kind === 'edge');
+  const intents = playbooks.map((pb) => pb.intent).filter((t): t is string => !!t);
   return (
     <div className="learn-preview">
+      <LearnIntent intents={intents} />
+      <LearnConcepts items={items} known={brain.data?.types} />
+      {facts.length > 0 && (
+        <div className="learn-facts">
+          <span className="ui-kicker">Fatos</span>
+          <ul>
+            {facts.map((f, i) => (
+              <li key={i}>
+                {f.kind === 'edge'
+                  ? <><code>{f.payload.from}</code> <span className="muted">{f.payload.rel}</span> <code>{f.payload.to}</code></>
+                  : <><span className="pill tiny">{f.payload.type}</span> <code>{f.payload.id}</code>
+                    {Array.isArray(f.payload.aliases) && f.payload.aliases.length > 0 && <span className="muted"> também “{f.payload.aliases.join('”, “')}”</span>}</>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {playbooks.map((pb) => {
         // Script code is Python: its braces are not parameters.
         const all = placeholders(JSON.stringify({ ...pb, scripts: undefined }));
@@ -33,7 +59,7 @@ export function LearningPreview({ detail }: { detail: string }) {
         return (
           <div key={pb.name} className="learn-pb">
             <div className="learn-pb-head">
-              <span className="ui-kicker">Playbook</span> <strong>{pb.name}</strong>
+              <span className="ui-kicker">Procedimento</span> <strong>{pb.name}</strong>
               {pb.autonomy && <span className="pill tiny">{pb.autonomy === 'auto' ? 'automático' : pb.autonomy === 'observe' ? 'só observar' : 'pede aprovação'}</span>}
             </div>
             {base && (
@@ -45,7 +71,9 @@ export function LearningPreview({ detail }: { detail: string }) {
             <dl className="learn-meta">
               {pb.trigger && <div><dt>Quando</dt><dd>{pb.trigger}</dd></div>}
               {pb.appliesTo && <div><dt>Vale para</dt><dd>todo {pb.appliesTo}</dd></div>}
-              {params.length > 0 && <div><dt>Parâmetros</dt><dd>{params.map((x) => <code key={x}>{x}</code>)}</dd></div>}
+              {Array.isArray(pb.inputs) && pb.inputs.length > 0
+                ? <div><dt>Recebe</dt><dd>{pb.inputs.map((x: { name: string; concept?: string }) => <code key={x.name}>{x.name}{x.concept ? `: ${x.concept}` : ''}</code>)}</dd></div>
+                : params.length > 0 && <div><dt>Parâmetros</dt><dd>{params.map((x) => <code key={x}>{x}</code>)}</dd></div>}
               {Array.isArray(pb.outputs) && pb.outputs.length > 0 && <div><dt>Entrega</dt><dd>{pb.outputs.map((o: { name: string }) => <code key={o.name} className="out-name">{o.name}</code>)}</dd></div>}
               {secrets.length > 0 && <div><dt>Credenciais</dt><dd>{secrets.map((x) => <span key={x} className="secret-ref">🔒 {x}</span>)} <span className="muted">no cofre do sistema</span></dd></div>}
             </dl>
@@ -64,22 +92,7 @@ export function LearningPreview({ detail }: { detail: string }) {
         );
       })}
       {pipelines.map((p) => <PipelinePreview key={p.name} p={p as PipelineDef} />)}
-      {facts.length > 0 && (
-        <div className="learn-facts">
-          <span className="ui-kicker">Fatos para o cérebro</span>
-          <ul>
-            {facts.map((f, i) => (
-              <li key={i}>
-                {f.kind === 'edge'
-                  ? <><code>{f.payload.from}</code> <span className="muted">{f.payload.rel}</span> <code>{f.payload.to}</code></>
-                  : f.kind === 'entity'
-                    ? <><span className="pill tiny">{f.payload.type}</span> <code>{f.payload.id}</code></>
-                    : <><span className="pill tiny">{f.kind}</span> {JSON.stringify(f.payload).slice(0, 120)}</>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <LearnLeftOut leftOut={leftOut} />
     </div>
   );
 }

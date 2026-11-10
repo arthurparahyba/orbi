@@ -8,11 +8,11 @@ export class OntologyRepo {
   upsert(type: OntologyType): void {
     this.db
       .prepare(
-        `INSERT INTO types (name, description, relations, requires) VALUES (?, ?, ?, ?)
+        `INSERT INTO types (name, description, relations, requires, props, knows) VALUES (?, ?, ?, ?, ?, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description,
-           relations = excluded.relations, requires = excluded.requires`,
+           relations = excluded.relations, requires = excluded.requires, props = excluded.props, knows = excluded.knows`,
       )
-      .run(type.name, type.description, json(type.relations), json(type.requires));
+      .run(type.name, type.description, json(type.relations), json(type.requires), json(type.props ?? {}), json(type.knows ?? {}));
   }
 
   all(): OntologyType[] {
@@ -21,6 +21,8 @@ export class OntologyRepo {
       description: String(r.description),
       relations: parse(r.relations, {}),
       requires: parse(r.requires, []),
+      props: parse(r.props, {}),
+      knows: parse(r.knows, {}),
     }));
   }
 

@@ -7,6 +7,8 @@ const toEntity = (r: Row): Entity => ({
   type: String(r.type),
   props: parse(r.props, {}),
   body: String(r.body),
+  aliases: parse(r.aliases, []),
+  source: String(r.source ?? ''),
   updatedAt: String(r.updated_at),
 });
 
@@ -19,6 +21,8 @@ const toEdge = (r: Row): Edge => ({
   validTo: (r.valid_to as string | null) ?? null,
 });
 
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+
 /** Entities and temporal edges. Validation is the caller's (brain/domain). */
 export class GraphRepo {
   constructor(private readonly db: DatabaseSync) {}
@@ -27,11 +31,11 @@ export class GraphRepo {
     const updatedAt = now();
     this.db
       .prepare(
-        `INSERT INTO entities (id, type, props, body, updated_at) VALUES (?, ?, ?, ?, ?)
+        `INSERT INTO entities (id, type, props, body, aliases, source, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET type = excluded.type, props = excluded.props,
-           body = excluded.body, updated_at = excluded.updated_at`,
+           body = excluded.body, aliases = excluded.aliases, source = excluded.source, updated_at = excluded.updated_at`,
       )
-      .run(entity.id, entity.type, json(entity.props), entity.body, updatedAt);
+      .run(entity.id, entity.type, json(entity.props), entity.body, json(entity.aliases ?? []), entity.source ?? '', updatedAt);
     return { ...entity, updatedAt };
   }
 
@@ -60,6 +64,12 @@ export class GraphRepo {
 
   byType(type: string): Entity[] {
     return (this.db.prepare('SELECT * FROM entities WHERE type = ? ORDER BY id').all(type) as Row[]).map(toEntity);
+  }
+
+  /** Entities of a type whose id or another name is `name` (no accents or case). */
+  named(type: string, name: string): Entity[] {
+    const key = fold(name);
+    return this.byType(type).filter((e) => fold(e.id) === key || (e.aliases ?? []).some((a) => fold(a) === key));
   }
 
   entities(): Entity[] {

@@ -4,6 +4,7 @@ import falhas from '../prompts/orbi/falhas.md?raw';
 import esteiras from '../prompts/orbi/esteiras.md?raw';
 import agentes from '../prompts/orbi/agentes.md?raw';
 import correcao from '../prompts/orbi/agentes-de-codigo.md?raw';
+import passoZero from '../prompts/orbi/passo-zero.md?raw';
 
 /** What the runtime knows about the conversation when the turn starts. */
 export interface Situation {
@@ -57,3 +58,6 @@ export const RUN_RULES = `${procedimento.trim()}\n\n${falhas.trim()}`;
 
 /** The same, when a coding agent can fix code here. */
 export const RUN_RULES_WITH_CODE = `${RUN_RULES}\n\n${correcao.trim()}`;
+
+/** Only for a run that starts with inputs the brain does not know yet (domain/concepts.ts). */
+export const RESOLVE_RULES = passoZero.trim();

@@ -104,7 +104,15 @@ erDiagram
   `publicaEm` um `Ambiente`, por exemplo. O próprio Orbi propõe cada tipo na
   primeira vez que precisa dele.
 - **Entidades** (`entities`): as coisas concretas, como `portal-clientes-front`
-  do tipo `Repositorio`, com propriedades livres e um texto.
+  do tipo `Repositorio`, com propriedades livres e um texto. Também guardam
+  **outros nomes** (`aliases`: "xpto" para `xpto-mfe`, achados pela busca e pelo
+  passo 0 dos procedimentos) e a **origem** (`source`: o cartão de aprendizado ou a
+  execução que descobriu o fato). A tela mostra os dois no detalhe.
+- **Conceitos**: um tipo também declara **propriedades** (`props`: o que toda
+  entidade dele tem, como o `endereco` de um Portal) e **saberes** (`knows`: o que
+  vale para todas, como `achar` uma pelo nome). É o que um procedimento cita como
+  `{{entrada.propriedade}}` (documento 18). Reenviar um tipo que existe soma
+  propriedades e saberes; ligações só mudam se vierem.
 - **Ligações com validade** (`edges`): cada ligação tem início e, opcionalmente,
   fim. "A Marina aprova GMUDs até 31/12; a partir de janeiro, o Rafael" vira duas
   ligações com datas. Consultas por padrão olham o presente, e o passado continua lá.

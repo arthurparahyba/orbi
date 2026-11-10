@@ -126,6 +126,23 @@ export const UiComponent = v.variant('component', [
     diff: v.optional(v.string()),
     inboxId: v.optional(v.string()),
   }),
+  v.object({
+    /** Facts a run learned by itself (passo 0): the name given, what it turned out to be, and Desfazer. */
+    component: v.literal('learned_facts'),
+    id: v.string(),
+    title: v.string(),
+    runId: v.string(),
+    items: v.array(
+      v.object({
+        input: v.string(),
+        value: v.string(),
+        entity: v.string(),
+        /** created: a new fact; alias: the name given became another name of `entity`. */
+        learned: v.picklist(['created', 'alias']),
+        undone: v.boolean(),
+      }),
+    ),
+  }),
 ]);
 
 export type UiComponent = v.InferOutput<typeof UiComponent>;

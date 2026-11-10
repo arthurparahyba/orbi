@@ -2,6 +2,7 @@ import { levelState } from '../domain/level-state.ts';
 import { transaction } from '../../db/database.ts';
 import { ftsQuery, sharedStems } from '../domain/similarity.ts';
 import { playbookProblems } from '../domain/playbooks.ts';
+import { inputProblems, leakedSpecifics } from '../domain/concepts.ts';
 import type { Autonomy, Playbook, PlaybookInput } from '../domain/types.ts';
 import type { BrainParts } from './parts.ts';
 import type { BrainStore } from '../store.ts';
@@ -15,7 +16,11 @@ export class Procedures {
     // Scripts left out of a change stay as they were (and the steps are checked against them).
     const before = this.p.playbookRepo.get(pb.name);
     const scripts = pb.scripts ?? before?.scripts ?? [];
+    // The same for what it is for, what it receives and the rehearsal that proved it.
+    pb = { ...pb, intent: pb.intent ?? before?.intent ?? '', inputs: pb.inputs ?? before?.inputs ?? [], testedRun: pb.testedRun ?? before?.testedRun ?? null };
     const problems = playbookProblems({ ...pb, scripts });
+    // Over concepts: inputs and citations valid against the ontology, no specific fact written in.
+    problems.push(...inputProblems(pb, this.brain.facts.typeOf), ...leakedSpecifics(pb, (type) => this.p.graphRepo.byType(type)));
     if (pb.variationOf && (pb.variationOf === pb.name || !this.p.playbookRepo.get(pb.variationOf))) {
       problems.push(`variationOf: playbook base não existe: ${pb.variationOf}`);
     }
@@ -26,7 +31,7 @@ export class Procedures {
   }
 
   /** The developer edits a playbook on the Cérebro screen. Name, autonomy, base and counters stay. */
-  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions' | 'outputs' | 'scripts'>>): Playbook {
+  editPlaybook(name: string, change: Partial<Pick<Playbook, 'description' | 'trigger' | 'appliesTo' | 'steps' | 'instructions' | 'outputs' | 'scripts' | 'intent' | 'inputs'>>): Playbook {
     const current = this.p.playbookRepo.get(name);
     if (!current) throw new Error(`playbook não encontrado: ${name}`);
     const { uses: _u, successes: _s, updatedAt: _t, ...rest } = current;

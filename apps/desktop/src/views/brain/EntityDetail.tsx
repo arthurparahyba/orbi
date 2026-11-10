@@ -48,6 +48,12 @@ export function EntityDetail({ id, snapshot, onSelect, onDeleted }: { id?: strin
       )}
       {mode === 'edit' && <EntityEditor entity={e} onDone={(saved) => { setMode('view'); if (saved) setVersion((v) => v + 1); }} />}
       {mode !== 'edit' && e.body && <p>{e.body}</p>}
+      {mode !== 'edit' && (e.aliases?.length || e.source) && (
+        <p className="muted small">
+          {e.aliases?.length ? <>Também chamado: {e.aliases.map((a) => <code key={a}>{a}</code>)}. </> : null}
+          {e.source ? <>Origem: {sourceLabel(e.source)}.</> : null}
+        </p>
+      )}
       {mode !== 'edit' && props.length > 0 && (
         <dl className="props">
           {props.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{typeof v === 'string' ? v : JSON.stringify(v)}</dd></div>)}
@@ -74,4 +80,11 @@ export function EntityDetail({ id, snapshot, onSelect, onDeleted }: { id?: strin
       <p className="muted small">Atualizado em {fmt(e.updatedAt)} · {detail.nearby.length} entidades a até 2 saltos</p>
     </aside>
   );
+}
+
+/** Where a fact came from, readable: the learning card, a run that found it, the screen. */
+function sourceLabel(source: string): string {
+  if (source.startsWith('execucao:')) return 'aprendido executando um procedimento';
+  if (source.startsWith('cartao')) return 'cartão de aprendizado';
+  return source;
 }

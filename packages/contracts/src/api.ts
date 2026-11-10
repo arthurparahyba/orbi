@@ -15,14 +15,26 @@ export interface InboxItem {
   /** What the developer answered, for answered questions. */
   answer?: string;
 }
-export interface OntologyType { name: string; description: string; relations: Record<string, string>; requires: string[] }
-export interface Entity { id: string; type: string; props: Record<string, unknown>; body: string; updatedAt: string }
+export interface OntologyType {
+  name: string; description: string; relations: Record<string, string>; requires: string[];
+  /** Declared properties (name → what it is) and what is known for every entity of the type (name → how). */
+  props?: Record<string, string>; knows?: Record<string, string>;
+}
+export interface Entity {
+  id: string; type: string; props: Record<string, unknown>; body: string; updatedAt: string;
+  /** Other names it goes by, and where the fact came from ("cartao:…", "execucao:…"). */
+  aliases?: string[]; source?: string;
+}
+/** What a procedure receives each time, typed by a concept when it has one. */
+export interface PlaybookParam { name: string; concept?: string; description?: string }
 export interface Edge { from: string; rel: string; to: string; attrs: Record<string, unknown>; validFrom: string; validTo: string | null }
 export interface Gap { entity: string; type: string; missing: string }
 export type Autonomy = 'observe' | 'ask' | 'auto';
 export interface Playbook {
   name: string; description: string; appliesTo: string | null; trigger: string; autonomy: Autonomy;
   steps: Array<{ id: string; label: string; how: string }>; instructions: string;
+  /** Over concepts: what it is for, what it receives, and the rehearsal that proved it. */
+  intent?: string; inputs?: PlaybookParam[]; testedRun?: string | null;
   /** The playbook this one was made from ("variação de"). */
   variationOf: string | null; uses: number; successes: number; updatedAt: string;
   /** What it hands over when it finishes, for the next stage of an esteira or an agent. */
@@ -63,6 +75,9 @@ export interface PlaybookRun {
   id: string; playbook: string; conversationId: string; status: 'running' | 'done' | 'failed' | 'waiting';
   steps: Array<{ id: string; label: string; status: string; note?: string }>; startedAt: string; finishedAt: string | null;
   params: Record<string, string>; outputs: Record<string, string>;
+  kind?: 'run' | 'rehearsal';
+  /** Inputs resolved to facts (passo 0), and whether the run learned them by itself. */
+  resolved?: Record<string, { value: string; entity: string; learned: 'known' | 'alias' | 'created'; undone?: boolean }>;
   actions: Array<{ fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null }>;
   /** `recovered`: the same step got past it right away (the tool worked next), not a problem. */
   deviations: Array<{ kind: 'falha' | 'negado' | 'passo' | 'comando'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean; command?: string; known?: boolean }>;

@@ -11,8 +11,20 @@ export class Facts {
   constructor(private readonly p: BrainParts, private readonly brain: BrainStore) {}
 
   // ── ontology ────────────────────────────────────────────────────────────
-  upsertType(type: OntologyType): void {
-    this.p.ontology.upsert(type);
+  /**
+   * Saves a type. Left out, relations and requires stay as they were; properties and what is
+   * known add up (a new one joins, one with the same name is replaced).
+   */
+  upsertType(type: Pick<OntologyType, 'name' | 'description'> & Partial<OntologyType>): void {
+    const before = this.p.ontology.get(type.name);
+    this.p.ontology.upsert({
+      name: type.name,
+      description: type.description || before?.description || '',
+      relations: type.relations ?? before?.relations ?? {},
+      requires: type.requires ?? before?.requires ?? [],
+      props: { ...before?.props, ...type.props },
+      knows: { ...before?.knows, ...type.knows },
+    });
   }
 
   types(): OntologyType[] {
@@ -37,7 +49,14 @@ export class Facts {
   upsertEntity(entity: Omit<Entity, 'updatedAt'>): Entity {
     const problems = this.validateEntity(entity);
     if (problems.length) throw new Error(problems.join('; '));
-    return this.p.graphRepo.upsertEntity(entity);
+    // Left out, the other names and the origin stay.
+    const before = this.p.graphRepo.entity(entity.id);
+    return this.p.graphRepo.upsertEntity({ ...entity, aliases: entity.aliases ?? before?.aliases ?? [], source: entity.source ?? before?.source ?? '' });
+  }
+
+  /** Entities of a type known by this name: the id or another name, without accents or case. */
+  named(type: string, name: string): Entity[] {
+    return this.p.graphRepo.named(type, name);
   }
 
   /** The developer edits an entity on the Cérebro screen: properties and text (type and id stay). */
