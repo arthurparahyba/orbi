@@ -19,7 +19,12 @@ type SttConfig = OrbiConfig['stt'];
 export interface Transcriber {
   name: string;
   transcribe(wav: Buffer): Promise<string>;
+  /** Loads what it needs ahead of the first use (the local model into memory). */
+  warm?(): Promise<void>;
 }
+
+/** What the local transcriber reports while it gets ready (the voice model's state). */
+export type SttReport = (state: { state: 'loading' } | { state: 'ready' } | { state: 'error'; message: string }) => void;
 
 /** Decode a PCM16 WAV into 16 kHz mono float samples (what Whisper expects). */
 export function wavToFloat32(wav: Buffer): { samples: Float32Array; sampleRate: number } {
@@ -111,11 +116,12 @@ export function modelLoadError(stt: Pick<SttConfig, 'localModel' | 'modelHost' |
     'Veja em Autonomia → Transcrição de voz: dá para baixar de novo ou colocar os arquivos à mão.';
 }
 
-function localWhisper(stt: SttConfig, report?: (ok: boolean, message?: string) => void): Transcriber {
+function localWhisper(stt: SttConfig, report?: SttReport): Transcriber {
   let asr: Promise<Asr> | undefined;
   const load = () =>
     (asr ??= (async () => {
       log.info('carregando modelo de transcrição (a primeira vez baixa o modelo)', { model: stt.localModel, dir: stt.modelsDir });
+      report?.({ state: 'loading' });
       let reported = '';
       return loadWhisper(stt, (p) => {
         if (p.status === 'download' && p.file && p.file !== reported) {
@@ -124,16 +130,21 @@ function localWhisper(stt: SttConfig, report?: (ok: boolean, message?: string) =
         }
       });
     })().then(
-      (loaded) => { report?.(true); return loaded; },
+      (loaded) => { report?.({ state: 'ready' }); return loaded; },
       (error) => {
         asr = undefined;
         log.error('modelo de transcrição não carregou', { error });
-        report?.(false, error instanceof Error ? error.message : String(error));
+        report?.({ state: 'error', message: error instanceof Error ? error.message : String(error) });
         throw error;
       },
     ));
   return {
     name: `local:${stt.localModel}`,
+    async warm() {
+      const started = Date.now();
+      await load();
+      log.info('modelo de transcrição pronto', { model: stt.localModel, ms: Date.now() - started });
+    },
     async transcribe(wav) {
       const { samples } = wavToFloat32(wav);
       const run = await load();
@@ -183,7 +194,7 @@ export interface SttSlot {
   name(): string;
 }
 
-export function createStt(config: SttConfig | (() => SttConfig), report?: (ok: boolean, message?: string) => void): SttSlot {
+export function createStt(config: SttConfig | (() => SttConfig), report?: SttReport): SttSlot {
   let current: Transcriber | null | undefined;
   const build = () => {
     const stt = typeof config === 'function' ? config() : config;

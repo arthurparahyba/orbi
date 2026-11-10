@@ -193,6 +193,7 @@ export interface VoiceStatus {
   status:
     | { state: 'idle' }
     | { state: 'downloading'; file?: string; progress?: number }
+    | { state: 'loading' }
     | { state: 'ready' }
     | { state: 'error'; message: string };
 }

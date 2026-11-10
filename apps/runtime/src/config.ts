@@ -151,6 +151,8 @@ function sttConfig(env: NodeJS.ProcessEnv, { path, dataDir }: Paths) {
     modelHost: env.ORBI_STT_MODEL_HOST,
     /** Never download: use only the model already in modelsDir (copied by hand on a closed network). */
     offline: env.ORBI_STT_OFFLINE === 'true',
+    /** Load the local model into memory when the runtime starts (only if it is already on disk), so the first dictation does not wait. */
+    preload: env.ORBI_STT_PRELOAD !== 'false',
   };
 }
 

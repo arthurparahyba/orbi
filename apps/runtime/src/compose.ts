@@ -8,6 +8,7 @@ import { Conversations } from './conversations/conversations.ts';
 import { Vault } from './vault/vault.ts';
 import { createStt } from './voice/stt.ts';
 import { VoiceModel } from './voice/model.ts';
+import { warmVoice } from './voice/warm.ts';
 import { PipelineRuns } from './pipelines/runs.ts';
 import { PipelineEngine } from './pipelines/engine.ts';
 import { createChrome } from './browser/chrome.ts';
@@ -62,7 +63,7 @@ export async function createOrbi(
   watchTables(db, events);
   // The transcription model: chosen in .env or on the Autonomia screen, its files and their state.
   const voice = overrides.voice ?? new VoiceModel(db, config.stt, () => events.emit('voice'));
-  const stt = overrides.stt ?? createStt(() => voice.config(), (ok, message) => voice.report(ok ? { state: 'ready' } : { state: 'error', message: message ?? '' }));
+  const stt = overrides.stt ?? createStt(() => voice.config(), (state) => voice.report(state));
   vault.onChange = () => events.emit('vault');
   const inbox = overrides.inbox ?? new Inbox(db);
   const conversations = overrides.conversations ?? new Conversations(db);
@@ -163,6 +164,7 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
     onSettled: (conversationId) => void sendReview(s, agent, conversationId),
   });
   const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
+  warmVoice(s.voice, s.stt);
   const timers = [startFollowups(s, agent), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();
   // Whatever way the runtime ends (app closed, Ctrl+C, the parent gone), what it started ends

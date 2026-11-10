@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { MicIcon, SendIcon, StopIcon } from '../Icons';
-import { appendDictation } from '../dictation';
+import { appendDictation, micAvailability } from '../dictation';
 import { useDictation } from '../useDictation';
+import { api } from '../../api';
+import { useLive } from '../../hooks';
 
 /**
  * The message box: Enter sends, Shift+Enter breaks the line. The microphone dictates into the
@@ -19,6 +21,9 @@ export function Composer({ onSend, placeholder = 'Peça algo ou ensine um proced
   const dictation = useDictation((text) => setDraft((d) => appendDictation(d, text)));
   const listening = dictation.state === 'listening';
   const working = dictation.state === 'transcribing';
+  // The local model loads into memory after the app opens: the microphone waits for it, and says so.
+  const voice = useLive(api.voice, ['voice']);
+  const mic = micAvailability(voice.data);
 
   const startDictation = () => {
     void dictation.start();
@@ -52,6 +57,7 @@ export function Composer({ onSend, placeholder = 'Peça algo ou ensine um proced
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKey}
         />
+        {!listening && !working && !dictation.error && !mic.ready && <p className="composer-note small muted" role="status">{mic.why}</p>}
         {(listening || working || dictation.error) && (
           <p className={`composer-note small ${dictation.error ? 'err-text' : 'muted'}`} role="status">
             {dictation.error
@@ -64,12 +70,12 @@ export function Composer({ onSend, placeholder = 'Peça algo ou ensine um proced
         type="button"
         className={`btn icon-only mic-btn ${listening ? 'on' : ''}`}
         onClick={() => (listening ? void dictation.stop().then(() => box.current?.focus()) : startDictation())}
-        disabled={working}
+        disabled={working || (!listening && !mic.ready)}
         aria-pressed={listening}
-        aria-label={listening ? 'Parar de ditar' : 'Ditar mensagem'}
-        title={listening ? 'Parar de ditar' : 'Ditar: fale e o texto entra na caixa'}
+        aria-label={listening ? 'Parar de ditar' : mic.ready ? 'Ditar mensagem' : mic.why}
+        title={listening ? 'Parar de ditar' : mic.ready ? 'Ditar: fale e o texto entra na caixa' : mic.why}
       >
-        {working ? <span className="spinner" aria-hidden="true" /> : <MicIcon size={16} />}
+        {working || (!listening && !mic.ready) ? <span className="spinner" aria-hidden="true" /> : <MicIcon size={16} />}
         {listening && <span className="mic-level" style={{ transform: `scaleX(${dictation.level})` }} aria-hidden="true" />}
       </button>
       {busy && onStop && !draft.trim() ? (

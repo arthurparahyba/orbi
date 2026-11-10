@@ -165,6 +165,15 @@ demonstração funciona sem a narração, só com os cliques.
 - **Quando**: não no build nem na instalação. Na primeira transcrição (ditado na
   conversa ou narração), ou quando você clica em **Baixar agora** em
   **Autonomia → Transcrição de voz**. Depois disso, não usa mais a internet.
+- **Carregar na memória**: baixado uma vez, o modelo ainda precisa ser carregado
+  na memória a cada vez que o Orbi abre, e isso leva alguns segundos (mais no
+  `whisper-large`). Por isso o runtime carrega logo ao abrir, em segundo plano, se
+  os arquivos já estão no disco (`voice/warm.ts`); o mesmo depois de **Baixar
+  agora** ou de trocar o modelo. Enquanto carrega, o estado é `loading` e o
+  microfone da conversa fica com o indicador girando, desabilitado, com "Carregando
+  o modelo de voz…" embaixo da caixa (durante o download, "Baixando o modelo de
+  voz N%"). `ORBI_STT_PRELOAD=false` desliga o carregamento ao abrir: economiza a
+  memória do modelo, e o primeiro ditado espera carregar.
 - **Onde** (`<pasta de dados>/models/<modelo>/`):
 
   | Como roda | Pasta |

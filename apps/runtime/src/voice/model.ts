@@ -33,6 +33,8 @@ export const KNOWN_MODELS = [
 export type VoiceState =
   | { state: 'idle' }
   | { state: 'downloading'; file?: string; progress?: number }
+  /** Loading the model into memory (after opening the app, before the first dictation can be transcribed). */
+  | { state: 'loading' }
   | { state: 'ready' }
   | { state: 'error'; message: string };
 

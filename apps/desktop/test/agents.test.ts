@@ -54,3 +54,18 @@ describe('ditado', () => {
     expect(appendDictation('Atualiza', '   ')).toBe('Atualiza');
   });
 });
+
+import { micAvailability } from '../src/components/dictation';
+
+describe('microfone e o modelo de voz', () => {
+  const local = (status: { state: string; progress?: number }) => ({ backend: 'local', status });
+  it('espera o modelo carregar e diz o porquê', () => {
+    expect(micAvailability(local({ state: 'loading' }))).toEqual({ ready: false, why: 'Carregando o modelo de voz… (só depois de abrir o Orbi)' });
+    expect(micAvailability(local({ state: 'downloading', progress: 41.6 })).why).toBe('Baixando o modelo de voz 42%…');
+  });
+  it('fica livre quando pronto, parado (carrega no primeiro uso), com erro ou sem modelo local', () => {
+    for (const state of ['ready', 'idle', 'error']) expect(micAvailability(local({ state })).ready).toBe(true);
+    expect(micAvailability({ backend: 'http', status: { state: 'loading' } }).ready).toBe(true);
+    expect(micAvailability(undefined).ready).toBe(true);
+  });
+});
