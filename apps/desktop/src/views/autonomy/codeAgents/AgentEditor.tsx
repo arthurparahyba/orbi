@@ -10,7 +10,7 @@ export function AgentEditor({ initial, isNew, onDone }: { initial: Draft; isNew:
   const [name, setName] = useState(initial.name);
   const [command, setCommand] = useState(initial.command);
   const [models, setModels] = useState(initial.models.join(', '));
-  const [runIn, setRunIn] = useState<'window' | 'background'>(initial.runIn ?? 'window');
+  const [runIn, setRunIn] = useState<'window' | 'background'>(initial.runIn ?? 'background');
   const [error, setError] = useState<string>();
   const save = async () => {
     try {
@@ -32,8 +32,8 @@ export function AgentEditor({ initial, isNew, onDone }: { initial: Draft; isNew:
       <p className="muted small">{'{prompt}'} é onde entra o pedido (sem ele, vai no fim); {'{modelo}'}, o modelo da tarefa. Roda dentro de uma cópia do repositório.</p>
       <label>Onde roda
         <select value={runIn} onChange={(e) => setRunIn(e.target.value as 'window' | 'background')}>
-          <option value="window">Numa janela do terminal: você acompanha, e ele usa o seu login como no terminal</option>
           <option value="background">Em segundo plano, sem janela</option>
+          <option value="window">Numa janela do terminal, para você acompanhar</option>
         </select>
       </label>
       <label>Modelos que ele aceita (separados por vírgula)<input value={models} onChange={(e) => setModels(e.target.value)} placeholder="vazio: usa o padrão do agente" /></label>

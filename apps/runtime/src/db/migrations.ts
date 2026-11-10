@@ -203,4 +203,8 @@ CREATE TABLE code_agent_tasks (task TEXT PRIMARY KEY, agent TEXT NOT NULL, model
     name: 'agentes de código: onde rodam (numa janela do terminal, o padrão, ou em segundo plano)',
     sql: `ALTER TABLE code_agents ADD COLUMN run_in TEXT NOT NULL DEFAULT 'window';`,
   },
+  {
+    name: 'agentes de código voltam a rodar em segundo plano por padrão (a janela do terminal fica como opção)',
+    sql: `UPDATE code_agents SET run_in = 'background';`,
+  },
 ];

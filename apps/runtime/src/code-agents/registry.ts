@@ -10,7 +10,7 @@ const toAgent = (r: Row): CodeAgent => ({
   command: String(r.command),
   models: JSON.parse(String(r.models ?? '[]')) as string[],
   source: String(r.source) as CodeAgentSource,
-  runIn: (String(r.run_in ?? 'window') === 'background' ? 'background' : 'window'),
+  runIn: (String(r.run_in ?? 'background') === 'window' ? 'window' : 'background'),
   lastTest: r.test_at ? { at: String(r.test_at), ok: Number(r.test_ok) === 1, detail: String(r.test_detail ?? '') } : null,
   createdAt: String(r.created_at),
   updatedAt: String(r.updated_at),
@@ -60,7 +60,7 @@ export class CodeAgents {
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, binary = excluded.binary, command = excluded.command,
            models = excluded.models, source = excluded.source, run_in = excluded.run_in, updated_at = excluded.updated_at`,
       )
-      .run(input.id, input.name.trim() || input.id, binaryOf(input.command), input.command.trim(), JSON.stringify(models), input.source ?? 'manual', input.runIn ?? this.get(input.id)?.runIn ?? 'window', now, now);
+      .run(input.id, input.name.trim() || input.id, binaryOf(input.command), input.command.trim(), JSON.stringify(models), input.source ?? 'manual', input.runIn ?? this.get(input.id)?.runIn ?? 'background', now, now);
     return this.get(input.id)!;
   }
 

@@ -90,19 +90,19 @@ As leituras só aceitam nomes de programa e um subcomando, e rodam sempre com
 As pendências desta conversa aparecem em Pendências como as outras; **Ir até**
 abre a tela Autonomia.
 
-### Onde o agente roda: numa janela do terminal (padrão) ou em segundo plano
+### Onde o agente roda: em segundo plano (padrão) ou numa janela do terminal
 
-Por padrão o agente roda **numa janela do terminal** que o Orbi abre, como uma que
-você abriria na mão (Terminal no macOS, a janela do Git Bash no Windows, o
-terminal da área de trabalho no Linux). Assim ele usa a sua sessão de verdade (o
-login dele funciona como no seu terminal) e você acompanha o que ele faz. A janela
-roda um script pequeno (`code-agents/terminal-window.ts`): mostra o que o Orbi
-pediu, roda o agente, guarda a saída num arquivo e, ao terminar, o código de
-saída; o Orbi espera esse arquivo. A janela fica aberta para você ler.
+Por padrão o agente roda **em segundo plano**, sem janela. Em cada agente dá para
+escolher **numa janela do terminal** (editor do agente, Onde roda): o Orbi abre
+uma janela de verdade (Terminal no macOS, a do Git Bash no Windows, o terminal da
+área de trabalho no Linux), que mostra o que o Orbi pediu e o que o agente
+responde, e fica aberta para você ler. A janela roda um script pequeno
+(`code-agents/terminal-window.ts`) que guarda a saída e o código de saída; o Orbi
+espera o fim. A descoberta (`--version`, `--help`) roda sempre em segundo plano.
 
-Em cada agente dá para escolher **em segundo plano** (sem janela), no editor do
-agente (Onde roda). A descoberta (`--version`, `--help`) roda sempre em segundo
-plano.
+Se o agente falha também na janela do terminal, o problema é do próprio agente
+(o login dele), não do Orbi: confira rodando o mesmo comando de uso único no seu
+terminal (ex.: `claude -p "responda ok"`).
 
 ### Com qual ambiente o agente roda (em segundo plano)
 

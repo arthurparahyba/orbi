@@ -30,8 +30,8 @@ export interface CodeAgent {
   models: string[];
   source: CodeAgentSource;
   /**
-   * Where it runs: `window`, a terminal window the developer sees (their own session, so the
-   * agent's login works as in their terminal, and they follow it); `background`, hidden.
+   * Where it runs: `background` (default), hidden, with the developer's session minus what is the
+   * Orbi's; `window`, a terminal window the developer sees and follows.
    */
   runIn: CodeAgentRunIn;
   lastTest: { at: string; ok: boolean; detail: string } | null;
