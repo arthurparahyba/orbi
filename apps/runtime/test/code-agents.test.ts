@@ -126,11 +126,12 @@ test('o agente roda com a sessão do desenvolvedor, sem as chaves e configuraç�
   const { rememberOrbiEnvKeys } = await import('../src/terminal/orbi-env.ts');
   const shell = findShell(process.env);
   if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
-  Object.assign(process.env, { HTTPS_PROXY: 'http://proxy.empresa:8080', ANTHROPIC_API_KEY: 'sk-do-orbi', ORBI_LLM: 'yara', GH_TOKEN_DO_ORBI: 'x' });
+  Object.assign(process.env, { HTTPS_PROXY: 'http://proxy.empresa:8080', ANTHROPIC_API_KEY: 'sk-do-orbi', ORBI_LLM: 'yara', GH_TOKEN_DO_ORBI: 'x' }); // ANTHROPIC_API_KEY here plays the developer's own
   rememberOrbiEnvKeys(['GH_TOKEN_DO_ORBI']);
   try {
     const r = await runShell(shell, 'echo "$HTTPS_PROXY|$ANTHROPIC_API_KEY|$ORBI_LLM|$GH_TOKEN_DO_ORBI"', { inherit: 'developer', shell, cwd: tmpdir() });
-    assert.equal(r.stdout.trim(), 'http://proxy.empresa:8080|||', 'proxy do desenvolvedor sim; chave, config e .env do Orbi não');
+    const inside = !!process.env.CLAUDECODE; // this test may itself run inside a Claude Code session
+    assert.equal(r.stdout.trim(), `http://proxy.empresa:8080|${inside ? '' : 'sk-do-orbi'}||`, 'proxy e chave da sessão do desenvolvedor sim; config e .env do Orbi não');
   } finally {
     for (const k of ['HTTPS_PROXY', 'ANTHROPIC_API_KEY', 'ORBI_LLM', 'GH_TOKEN_DO_ORBI']) delete process.env[k];
   }

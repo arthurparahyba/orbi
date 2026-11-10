@@ -21,5 +21,7 @@ export function insideAgentSession(env: NodeJS.ProcessEnv = process.env): boolea
 
 export function orbiOwn(key: string, env: NodeJS.ProcessEnv = process.env): boolean {
   if (insideAgentSession(env) && /^(CLAUDE|ANTHROPIC)/i.test(key)) return true;
-  return fromOrbiEnvFile.has(key) || /^ORBI_/i.test(key) || /^(ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|CHROME_MCP_|CHROME_DEBUG_)/i.test(key);
+  // ANTHROPIC_API_KEY is the Orbi's only when the Orbi's .env (or its model screen) put it there:
+  // the developer's own, from their shell, is theirs (their claude may log in with it).
+  return fromOrbiEnvFile.has(key) || /^ORBI_/i.test(key) || /^(CHROME_MCP_|CHROME_DEBUG_)/i.test(key);
 }

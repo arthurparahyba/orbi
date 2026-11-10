@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { ulid } from 'ulidx';
 import { runShell } from '../terminal/exec.ts';
 import { agentLine } from './command.ts';
+import { orbiOwn } from '../terminal/orbi-env.ts';
 import type { CodeAgent } from './types.ts';
 
 /**
@@ -10,12 +11,18 @@ import type { CodeAgent } from './types.ts';
  * Names only, never values: which program answered, which login-related variables exist, and
  * where its login could come from.
  */
+/** Login-related variables the runtime has but does not hand to the agent (names only). */
+function withheld(): string {
+  return Object.keys(process.env).filter((k) => /^(CLAUDE|ANTHROPIC)/i.test(k) && orbiOwn(k)).join(' ') || 'nenhuma';
+}
+
 async function authClues(agent: CodeAgent, shell: string, cwd: string): Promise<string> {
   const bin = agent.binary.replace(/[^\w.-]/g, '');
   const line = [
     `echo "programa: $(command -v ${bin}) ($(${bin} --version 2>/dev/null | head -1))"`,
     `echo "variáveis: $(env | cut -d= -f1 | grep -iE '^(CLAUDE|ANTHROPIC|CODEX|OPENAI|CURSOR|DEVIN)' | tr '\\n' ' ')"`,
     `echo "shell: $SHELL · usuário: $USER · home: $HOME"`,
+    `echo "no Orbi (não passadas ao agente): ${withheld()}"`,
     `[ -f "$HOME/.claude/.credentials.json" ] && echo "arquivo de login: ~/.claude/.credentials.json existe" || true`,
     `command -v security >/dev/null && (security find-generic-password -s "Claude Code-credentials" >/dev/null 2>&1 && echo "Keychain: login do Claude Code acessível" || echo "Keychain: login do Claude Code NÃO acessível daqui") || true`,
   ].join('; ');

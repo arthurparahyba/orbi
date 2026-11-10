@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { setEnvValue } from '../settings/env-file.ts';
+import { rememberOrbiEnvKeys } from '../terminal/orbi-env.ts';
 import { ADAPTERS, configureLlm, llmSettings, type ActiveLlm } from './index.ts';
 import type { PluginInfo } from './plugins.ts';
 import type { ChatEvent, ChatResult, LlmAdapter, LlmAdapterFactory } from './types.ts';
@@ -178,6 +179,8 @@ export async function applyModel(
     if (next[key] !== undefined && next[key] !== env[key]) setEnvValue(file, key, next[key]!);
     if (next[key] !== undefined) env[key] = next[key];
   }
+  // Written by the model screen: the Orbi's, never handed to a coding agent.
+  rememberOrbiEnvKeys(keys.filter((k) => next[k] !== undefined && (k !== 'ANTHROPIC_API_KEY' || choice.apiKey)));
   const llm = await configureLlm(env, s.config.cwd, s.llm.plugins);
   Object.assign(s.llm, { adapter: undefined, error: undefined }, llm);
   s.config.model = llm.model;
