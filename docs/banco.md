@@ -367,7 +367,13 @@ histórico do Flue foi limpo (`purged_at`).
 Índice `(status, created_at)`.
 
 **`followups`** · retornos agendados (documento 11): conversa, quando
-(`due_at`), o que conferir (`note`) e `status` (`scheduled`, `fired` quando o retorno aconteceu, `cancelled` quando a conversa foi apagada).
+(`due_at`), o que conferir (`note`) e `status`: `scheduled` (esperando),
+`delivering` (venceu, sendo entregue), `delivered` (a conversa aceitou),
+`failed` (não chegou depois de 3 tentativas: vira Pendência) ou `cancelled`.
+Desde a migração 20: `attempts`, `run_id` e `step_id` (a execução e o passo que
+ele acorda), `created_at`, `delivered_at`, `cancelled_by` (`desenvolvedor`,
+`orbi`, `substituido`, `conversa apagada`) e `last_error`. Um ativo por conversa
+(o serviço garante). Índice `(status, due_at)`. Vira o evento `followups`.
 
 ### Configuração e uso
 
@@ -433,8 +439,9 @@ editada, sempre se cria outra.
 | 17 | `code_agents.run_in` (onde o agente roda) |
 | 18 | Agentes de código voltam a rodar em segundo plano por padrão |
 | 19 | Conceitos, fatos e procedimentos: `types.props`/`knows`, `entities.aliases`/`source` (apelidos entram no índice de busca), `playbooks.intent`/`inputs`/`tested_run`, `playbook_runs.kind`/`resolved` |
+| 20 | Retornos agendados com dono: `followups.attempts`/`run_id`/`step_id`/`created_at`/`delivered_at`/`cancelled_by`/`last_error`; `fired` vira `delivered` |
 
-O número é o `user_version` depois que a migração roda (hoje 19). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos

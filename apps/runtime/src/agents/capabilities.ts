@@ -12,7 +12,7 @@ import { useActiveRun, playbooks } from './tools/playbooks.ts';
 import { rehearsal } from './tools/rehearsal.ts';
 import { voice } from './tools/voice.ts';
 import { similar } from './tools/similar.ts';
-import { clock } from './tools/clock.ts';
+import { followupTools } from './tools/followups.ts';
 import { agentRequest } from './tools/requests.ts';
 import { secrets } from './tools/secrets.ts';
 import { pipelines } from './tools/pipelines.ts';
@@ -21,7 +21,7 @@ import { pipelines } from './tools/pipelines.ts';
  * Orbi's generic capabilities. Nothing here knows about CI, GMUD or portals:
  * those are playbooks Orbi learns and stores in the brain. Code only provides
  * hands (terminal, browser, the coding agent), memory (the brain), a voice
- * (components, questions) and a clock (follow-ups) — each in its own module
+ * (components, questions) and follow-ups — each in its own module
  * under tools/, declared with defineCapability (what it needs, how it registers) —
  * plus the autonomy gate around every action that changes something.
  * A new capability is a new module and one line here.
@@ -31,8 +31,8 @@ export const CAPABILITIES: readonly Capability[] = [
   terminal, scripts, browserCapability, code,
   // memory
   memory, similar, playbooks, rehearsal,
-  // voice and clock
-  voice, secrets, pipelines, clock,
+  // voice and follow-ups
+  voice, secrets, pipelines, followupTools,
   // a coding agent asked for this conversation (MCP)
   agentRequest,
 ];

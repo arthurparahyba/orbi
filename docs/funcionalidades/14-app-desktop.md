@@ -47,9 +47,9 @@ flowchart TB
   (`abort` do cliente do Flue, `POST /agents/<agente>/<conversa>/abort`); a conversa
   mostra "A execução foi interrompida". Com texto na caixa, o botão volta a ser
   enviar (a mensagem entra na fila).
-- **Recebi, trabalhando**: logo depois de enviar, e enquanto a resposta ainda não
-  tem nada para mostrar (só raciocínio ou ferramentas internas), aparece a linha
-  "Recebi. Trabalhando nisso…" com os três pontos, no lugar da resposta vazia.
+- **Trabalhando**: logo depois de enviar, e enquanto a resposta ainda não tem
+  nada para mostrar (só raciocínio ou ferramentas internas), aparecem os três
+  pontos animados, no lugar da resposta vazia.
 
 ### A casca (Tauri)
 
@@ -188,7 +188,7 @@ Orbi encerra os dois (e o Chrome que o Orbi abriu):
 
 ## Testes
 
-- `apps/desktop/test/message.test.ts`: quando aparece "Recebi. Trabalhando nisso…"
+- `apps/desktop/test/message.test.ts`: quando aparecem os três pontos de "trabalhando"
   e quando uma resposta ainda não tem o que mostrar.
 
 - `apps/runtime/test/compose.test.ts`: montagem das peças e configuração inválida.

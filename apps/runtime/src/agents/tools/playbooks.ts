@@ -2,6 +2,7 @@ import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-p
 import * as v from 'valibot';
 import type { BrainStore } from '../../brain/store.ts';
 import type { Inbox } from '../../conversations/inbox.ts';
+import type { Followups } from '../../followups/service.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
@@ -25,9 +26,9 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
   return [...playbooks].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, Math.max(0, size));
 }
 
-export const playbooks = defineCapability({ name: 'playbooks', needs: ['brain', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents'], register: usePlaybooks });
+export const playbooks = defineCapability({ name: 'playbooks', needs: ['brain', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents', 'followups'], register: usePlaybooks });
 
-function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes, inbox, config, codeAgents }: Deps<'brain' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents'>) {
+function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes, inbox, config, codeAgents, followups }: Deps<'brain' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents' | 'followups'>) {
 
   const showRun = (runId: string) => {
     const run = brain.run(runId);
@@ -171,7 +172,7 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       }
       // "Waiting" must be for something real: an approval card, a question or a scheduled follow-up.
       // Saying it before calling the tool left the developer with no button to press.
-      if (data.status === 'waiting' && !(await somethingWaits({ inbox, brain }, ctx.conversationId))) {
+      if (data.status === 'waiting' && !(await somethingWaits({ inbox, followups }, ctx.conversationId))) {
         return {
           output: {
             error: `nada está esperando nesta conversa: não há aprovação, pergunta nem retorno agendado para o passo ${data.stepId}.`,
@@ -231,10 +232,10 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
  * Whether the conversation waits for something: an open card (approval, question, learning,
  * passage) or a scheduled follow-up. Tools of the same batch may still be starting: a short look again.
  */
-async function somethingWaits({ inbox, brain }: { inbox: Inbox; brain: BrainStore }, conversationId: string, tries = 4): Promise<boolean> {
+async function somethingWaits({ inbox, followups }: { inbox: Inbox; followups: Followups }, conversationId: string, tries = 4): Promise<boolean> {
   for (let i = 0; i < tries; i++) {
-    const open = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversationId && x.kind !== 'level');
-    if (open || brain.hasScheduledFollowup(conversationId)) return true;
+    const open = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversationId && x.kind !== 'level' && x.kind !== 'followup');
+    if (open || followups.active(conversationId)) return true;
     await new Promise((r) => setTimeout(r, 200));
   }
   return false;

@@ -229,4 +229,18 @@ CREATE TRIGGER entities_fts_au AFTER UPDATE ON entities BEGIN
   INSERT INTO entities_fts (key, id, type, props, body) VALUES (NEW.id, NEW.id || ' ' || NEW.aliases, NEW.type, NEW.props, NEW.body);
 END;`,
   },
+  {
+    name: 'retornos agendados com dono: tentativas de entrega, quando chegou, quem cancelou, o erro, a execução e o passo que esperam',
+    sql: `
+ALTER TABLE followups ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE followups ADD COLUMN run_id TEXT;
+ALTER TABLE followups ADD COLUMN step_id TEXT;
+ALTER TABLE followups ADD COLUMN created_at TEXT;
+ALTER TABLE followups ADD COLUMN delivered_at TEXT;
+ALTER TABLE followups ADD COLUMN cancelled_by TEXT;
+ALTER TABLE followups ADD COLUMN last_error TEXT;
+UPDATE followups SET created_at = due_at WHERE created_at IS NULL;
+UPDATE followups SET status = 'delivered', delivered_at = due_at WHERE status = 'fired';
+CREATE INDEX IF NOT EXISTS followups_active ON followups (status, due_at);`,
+  },
 ];

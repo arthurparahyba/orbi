@@ -5,6 +5,8 @@ import { BrainStore } from './brain/store.ts';
 import { Inbox } from './conversations/inbox.ts';
 import { PolicyStore } from './autonomy/policy.ts';
 import { Conversations } from './conversations/conversations.ts';
+import { Followups } from './followups/service.ts';
+import { startFollowups } from './followups/scheduler.ts';
 import { Vault } from './vault/vault.ts';
 import { createStt } from './voice/stt.ts';
 import { VoiceModel } from './voice/model.ts';
@@ -67,6 +69,7 @@ export async function createOrbi(
   vault.onChange = () => events.emit('vault');
   const inbox = overrides.inbox ?? new Inbox(db);
   const conversations = overrides.conversations ?? new Conversations(db);
+  const followups = overrides.followups ?? new Followups(db);
   const policy = overrides.policy ?? new PolicyStore(db);
   importLegacyState(config, { inbox, conversations, policy });
   const brain = overrides.brain ?? new BrainStore(db);
@@ -85,6 +88,7 @@ export async function createOrbi(
     inbox,
     policy,
     conversations,
+    followups,
     vault,
     stt,
     voice,
@@ -165,7 +169,7 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
   });
   const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   warmVoice(s.voice, s.stt);
-  const timers = [startFollowups(s, agent), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
+  const timers = [startFollowups(s, agent, s.config.followupIntervalMs), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();
   // Whatever way the runtime ends (app closed, Ctrl+C, the parent gone), what it started ends
   // with it: the chrome-devtools-mcp process and the Chrome it opened. 'exit' runs only sync code.
@@ -219,20 +223,6 @@ function startChromeBridge(s: OrbiServices): { bridge?: RunningBridge; error?: s
 }
 
 /** Follow-ups: Orbi wakes itself up when a scheduled check-in is due. */
-function startFollowups(s: OrbiServices, agent: Agent): NodeJS.Timeout {
-  return setInterval(async () => {
-    for (const f of s.brain.claimDueFollowups()) {
-      try {
-        await tellAgent(s.events, agent, {
-          id: f.conversationId,
-          message: { kind: 'signal', type: 'followup', body: `Retorno agendado: ${f.note}`, attributes: { followupId: f.id } },
-        });
-      } catch (error) {
-        log.error('retorno agendado falhou', { conversation: f.conversationId, followup: f.id, error });
-      }
-    }
-  }, s.config.followupIntervalMs);
-}
 
 /**
  * Started by the desktop shell: exit when the window process is gone, even if it

@@ -20,7 +20,6 @@ import {
   type Deviation, type Level, type LevelChange, type LevelState, type RunAction,
 } from './domain/levels.ts';
 import { ProposalRepo } from './repo/proposals.ts';
-import { FollowupRepo, type DueFollowup } from './repo/followups.ts';
 import { exportMarkdown } from './export.ts';
 import { now } from './repo/rows.ts';
 
@@ -30,14 +29,13 @@ import { Procedures as ProceduresService } from './services/procedures.ts';
 import { Autonomy as AutonomyService } from './services/autonomy.ts';
 import { Execution as ExecutionService } from './services/execution.ts';
 import { PipelineDefs as PipelineDefsService } from './services/pipelineDefs.ts';
-import { Agenda as AgendaService } from './services/agenda.ts';
 
 export * from './domain/types.ts';
 export { EXAMPLE_TYPES } from './domain/ontology.ts';
 
 /**
  * The brain, as the rest of Orbi uses it. The work is split by subject in brain/services/ (facts,
- * procedures, autonomy, execution, esteiras, agenda); this class keeps learning (one batch in one
+ * procedures, autonomy, execution, esteiras); this class keeps learning (one batch in one
  * transaction, across subjects) and one-line shortcuts to the services for the code written before
  * the split. Rules stay pure in brain/domain, SQL in brain/repo.
  */
@@ -48,7 +46,6 @@ export class BrainStore {
   private readonly playbookRepo: PlaybookRepo;
   private readonly pipelineRepo: PipelineRepo;
   private readonly proposalRepo: ProposalRepo;
-  private readonly followups: FollowupRepo;
   private readonly levels: LevelRepo;
   /** The brain by subject (brain/services/): new code uses these directly (brain.execution.startRun…). */
   readonly facts: FactsService;
@@ -56,7 +53,6 @@ export class BrainStore {
   readonly autonomy: AutonomyService;
   readonly execution: ExecutionService;
   readonly pipelineDefs: PipelineDefsService;
-  readonly agenda: AgendaService;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -66,15 +62,13 @@ export class BrainStore {
     this.playbookRepo = new PlaybookRepo(this.db);
     this.pipelineRepo = new PipelineRepo(this.db);
     this.proposalRepo = new ProposalRepo(this.db);
-    this.followups = new FollowupRepo(this.db);
     this.levels = new LevelRepo(this.db);
-    const parts: BrainParts = { db: this.db, ontology: this.ontology, graphRepo: this.graphRepo, playbookRepo: this.playbookRepo, pipelineRepo: this.pipelineRepo, proposalRepo: this.proposalRepo, followups: this.followups, levels: this.levels };
+    const parts: BrainParts = { db: this.db, ontology: this.ontology, graphRepo: this.graphRepo, playbookRepo: this.playbookRepo, pipelineRepo: this.pipelineRepo, proposalRepo: this.proposalRepo, levels: this.levels };
     this.facts = new FactsService(parts, this);
     this.procedures = new ProceduresService(parts, this);
     this.autonomy = new AutonomyService(parts, this);
     this.execution = new ExecutionService(parts, this);
     this.pipelineDefs = new PipelineDefsService(parts, this);
-    this.agenda = new AgendaService(parts, this);
   }
 
   // ── facts (services/facts.ts) ──
@@ -138,10 +132,6 @@ export class BrainStore {
   passageStreaks: PipelineDefsService['passageStreaks'] = (...a) => this.pipelineDefs.passageStreaks(...a);
   pipelineWarnings: PipelineDefsService['pipelineWarnings'] = (...a) => this.pipelineDefs.pipelineWarnings(...a);
   pipelinesUsing: PipelineDefsService['pipelinesUsing'] = (...a) => this.pipelineDefs.pipelinesUsing(...a);
-  // ── agenda (services/agenda.ts) ──
-  hasScheduledFollowup: AgendaService['hasScheduledFollowup'] = (...a) => this.agenda.hasScheduledFollowup(...a);
-  scheduleFollowup: AgendaService['scheduleFollowup'] = (...a) => this.agenda.scheduleFollowup(...a);
-  claimDueFollowups: AgendaService['claimDueFollowups'] = (...a) => this.agenda.claimDueFollowups(...a);
 
   // ── learning (waits for the developer) ─────────────────────────────────
   check(kind: ProposalKind, payload: Record<string, unknown>): string[] {

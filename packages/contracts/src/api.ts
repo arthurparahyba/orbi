@@ -10,7 +10,7 @@ export interface ConversationInfo {
 }
 export interface ConversationOrigin { agent: string; requestId: string; procedure: string | null; repo?: string; branch?: string; session?: string }
 export interface InboxItem {
-  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change'; conversationId: string; title: string; detail: string;
+  id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change' | 'followup'; conversationId: string; title: string; detail: string;
   approvalId?: string; routine?: string; createdAt: string; status: 'open' | 'approved' | 'denied' | 'answered';
   /** What the developer answered, for answered questions. */
   answer?: string;
@@ -176,6 +176,14 @@ export interface AgentSuggestion {
   steps: Array<{ id: string; label: string; how: string }>; instructions: string; why: string;
   agents: string[]; count: number; similarTo: string[];
   status: 'open' | 'accepted' | 'rejected'; createdAt: string; updatedAt: string;
+}
+
+/** GET /api/followups — the Orbi coming back later to a conversation (docs/funcionalidades/11). */
+export interface Followup {
+  id: string; conversationId: string; dueAt: string; note: string;
+  status: 'scheduled' | 'delivering' | 'delivered' | 'failed' | 'cancelled';
+  attempts: number; runId?: string | null; stepId?: string | null; createdAt: string;
+  deliveredAt?: string | null; cancelledBy?: string | null; lastError?: string | null;
 }
 
 /** GET /api/voice — the local transcription model: which, where, what is missing, state. */

@@ -51,7 +51,7 @@ export class Conversations {
       this.db.prepare('DELETE FROM conversations WHERE id = ?').run(id);
       this.db.prepare('INSERT OR REPLACE INTO deleted_conversations (id, deleted_at) VALUES (?, ?)').run(id, now);
       this.db.prepare('DELETE FROM inbox_items WHERE conversation_id = ?').run(id);
-      this.db.prepare("UPDATE followups SET status = 'cancelled' WHERE conversation_id = ? AND status = 'scheduled'").run(id);
+      this.db.prepare("UPDATE followups SET status = 'cancelled', cancelled_by = 'conversa apagada' WHERE conversation_id = ? AND status IN ('scheduled', 'delivering')").run(id);
       this.db
         .prepare("UPDATE agent_requests SET status = 'failed', summary = 'O desenvolvedor apagou a conversa deste pedido.', finished_at = ? WHERE conversation_id = ? AND status IN ('running', 'waiting')")
         .run(now, id);

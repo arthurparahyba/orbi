@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { agentUrl, api, type Recording } from '../../api';
-import { usePoll } from '../../hooks';
+import { useLive, usePoll } from '../../hooks';
 import { CheckIcon, CopyIcon, RecordIcon, TrashIcon } from '../../components/Icons';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { OriginBanner } from './OriginBanner';
@@ -11,6 +11,7 @@ import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
 import { conversationMarkdown } from '../../components/chat/transcript';
 import { ChatPanel, chatPill } from '../../components/chat/ChatPanel';
+import { followupPill } from './followups';
 
 const SUGGESTIONS = [
   'Ensinar pelo navegador',
@@ -24,6 +25,7 @@ type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narra
 /** One conversation with Orbi: the shared chat plus what only conversations have (delivery bar, teaching, delete). */
 export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: string; title: string; origin?: ConversationOrigin; target?: { inboxId: string; n: number }; onTitled(): void; onDeleted(): void }) {
   const [deleting, setDeleting] = useState(false);
+  const followup = useLive(() => api.followups(id), ['followups'], [id]);
   const [demo, setDemo] = useState<Demo | undefined>();
 
   // Back to a conversation with a recording still running (e.g. after a reload).
@@ -47,7 +49,8 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
       target={target}
       beforeSend={beforeSend}
       header={(c) => {
-        const pill = chatPill(c);
+        // Not working and a follow-up waits: say when it comes back, not "Pronto".
+        const pill = (!c.busy && !c.catchingUp && followupPill(followup.data?.[0])) || chatPill(c);
         return (
           <header className="chat-head">
             <h1>{title || 'Conversa'}</h1>

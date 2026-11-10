@@ -58,6 +58,7 @@ src/
   conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
   autonomy/policy.ts        observar · perguntar · automático, por categoria e por playbook
   terminal/exec.ts          execução sem shell, com allowlist
+  followups/                retornos agendados: estados, serviço, agendador (entrega com nova tentativa)
   code-agents/              agentes de código da máquina: cadastro, catálogo, tarefas, descoberta, executor em worktree
   browser/                  Chrome compartilhado, gravador de demonstrações e
     mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
@@ -295,6 +296,8 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `GET /api/brain/entities/:id` · `GET /api/brain/search?q=` | Navegar o grafo |
 | `GET /api/brain/playbooks` · `PATCH /api/brain/playbooks/:name` | Playbooks e autonomia de cada um |
 | `GET /api/brain/runs` | Execuções de playbook (passo a passo) |
+| `GET /api/followups` (`?conversation=`) | Retornos agendados esperando, o mais próximo primeiro |
+| `DELETE /api/followups/:id` | Cancela um retorno agendado |
 | `POST /api/brain/runs/:id/resolved/:input/undo` | Desfaz o que uma execução aprendeu sozinha sobre uma entrada (fato novo ou outro nome) |
 | `POST /api/brain/export` | Exporta o cérebro em Markdown (Obsidian) |
 | `GET/PATCH /api/autonomy` | Níveis globais por categoria |

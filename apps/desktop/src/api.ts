@@ -1,6 +1,6 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
-  AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
+  AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
   ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
@@ -101,6 +101,9 @@ export const api = {
   decidePipeline: (runId: string, decision: 'continue' | 'retry' | 'skip' | 'stop', values?: Record<string, string>) =>
     request<PipelineRun>(`/api/pipeline-runs/${runId}/decide`, { method: 'POST', body: JSON.stringify({ decision, ...(values ? { values } : {}) }) }),
   voice: () => request<VoiceStatus>('/api/voice'),
+  /** Follow-ups waiting (all, or of one conversation), soonest first. */
+  followups: (conversation?: string) => request<Followup[]>(`/api/followups${conversation ? `?conversation=${encodeURIComponent(conversation)}` : ''}`),
+  cancelFollowup: (id: string) => request<Followup>(`/api/followups/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   prepareVoice: () => request<VoiceStatus>('/api/voice/prepare', { method: 'POST' }),
   chooseVoiceModel: (model: string | null) => request<VoiceStatus>('/api/voice/model', { method: 'PUT', body: JSON.stringify({ model }) }),
   async transcribe(wav: Blob): Promise<string> {

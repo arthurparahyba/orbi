@@ -28,6 +28,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
   src/code-agents/    agentes de código da máquina: cadastro, catálogo (dado), tarefas, executor na cópia descartável
+  src/followups/      retornos agendados: estados, um por conversa, agendador com nova tentativa
   src/{autonomy,browser,conversations,llm,observability,terminal,vault,voice}/
   test/               node:test (+ fixtures/search-eval.json)
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw

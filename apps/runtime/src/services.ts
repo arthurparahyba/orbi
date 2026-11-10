@@ -3,6 +3,7 @@ import type { BrainStore } from './brain/store.ts';
 import type { Inbox } from './conversations/inbox.ts';
 import type { PolicyStore } from './autonomy/policy.ts';
 import type { Conversations } from './conversations/conversations.ts';
+import type { Followups } from './followups/service.ts';
 import type { Vault } from './vault/vault.ts';
 import type { SttSlot } from './voice/stt.ts';
 import type { SharedChrome } from './browser/chrome.ts';
@@ -37,6 +38,8 @@ export interface OrbiServices {
   inbox: Inbox;
   policy: PolicyStore;
   conversations: Conversations;
+  /** The Orbi waking itself up later in a conversation: scheduled, delivered, failed, cancelled. */
+  followups: Followups;
   vault: Vault;
   stt: SttSlot;
   chrome: SharedChrome;

@@ -5,6 +5,7 @@ import { useOrbi } from './capabilities.ts';
 import { investigadorFor } from '../subagents/investigador.ts';
 import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
 import { composePrompt } from './prompt.ts';
+import { situationLine } from '../followups/domain.ts';
 
 /**
  * Orbi — one conversation per piece of work (the id names it: `chat:<ulid>`,
@@ -16,7 +17,7 @@ import { composePrompt } from './prompt.ts';
 export function Orbi({ id }: { id: string }) {
   // The edge: the conversation reads the Orbi's parts once and hands each capability what it declared.
   const all = services();
-  const { config, brain, vault, pipelines, agents, toolOutcomes, codeAgents } = all;
+  const { config, brain, vault, pipelines, agents, toolOutcomes, codeAgents, followups } = all;
   useModel(config.model, { thinkingLevel: 'low' });
   useMcpConnection(all.browser.connection);
   useSubagent({ ...investigadorFor(all), model: config.model });
@@ -40,6 +41,8 @@ export function Orbi({ id }: { id: string }) {
     instructions,
     `Cérebro agora: ${stats.types} tipos, ${stats.entities} entidades, ${stats.edges} ligações, ${stats.playbooks} playbooks, ${stats.openProposals} aprendizados aguardando aprovação.`,
     activeRun ? `Playbook em execução: ${activeRun.playbook} (run ${activeRun.runId}, autonomia ${activeRun.autonomy}).` : 'Nenhum playbook em execução.',
+    // From the database, every turn: the model never has to remember whether it scheduled one.
+    situationLine(followups.active(id)),
     pipelineContext(defs.map((p) => `${p.name} (${p.stages.map((s) => s.id).join(' → ')})`), delivery),
     secrets.length ? `Credenciais no cofre (use só a referência): ${secrets.join(', ')}.` : 'Nenhuma credencial no cofre.',
     `Workspace com os clones: ${config.workspace}. Conversa: ${id}.`,

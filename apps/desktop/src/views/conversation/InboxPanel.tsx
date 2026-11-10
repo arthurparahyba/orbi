@@ -1,6 +1,7 @@
 import type { InboxItem } from '../../api';
 import { groupInbox, needsYou } from './inbox';
 import { InboxEntry } from './InboxEntry';
+import { ScheduledFollowups } from './ScheduledFollowups';
 
 /**
  * What is open, in three groups: what waits for your approval (with Aprovar and Ir até),
@@ -25,6 +26,7 @@ export function InboxPanel(props: { items: InboxItem[]; current?: string; onOpen
           </ul>
         </section>
       ))}
+      <ScheduledFollowups onOpen={props.onOpen} />
     </aside>
   );
 }

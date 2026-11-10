@@ -741,3 +741,7 @@ table.facts td { padding: 4px 8px; border-bottom: 1px solid var(--line, #222631)
 .msg.working .working-row { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; text-align: left; align-self: center; }
 .msg.working .typing { padding: 4px 0; grid-column: auto; }
 .stop-btn { color: var(--red, #ffb4b4); border-color: currentColor; }
+
+/* Retornos agendados em Pendências */
+.followup-entry { display: flex; flex-direction: column; gap: 4px; }
+.followup-entry p { margin: 0; }

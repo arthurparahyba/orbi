@@ -155,10 +155,11 @@ test('agendar retorno: o Orbi encerra o turno e é acordado depois', async () =>
   const orbi = init(Orbi, { id: 'chat:teste-retorno' });
   await orbi.read(await orbi.dispatch('Acompanha o CI do api-pagamentos.'));
   const later = new Date(Date.now() + 6 * 60_000).toISOString();
-  const due = brain.claimDueFollowups(later);
+  const { followups } = (await import('../src/services.ts')).services();
+  const due = followups.claimDue(later);
   assert.equal(due.length, 1);
   assert.equal(due[0].conversationId, 'chat:teste-retorno');
-  assert.equal(brain.claimDueFollowups(later).length, 0, 'cada retorno dispara uma vez só');
+  assert.equal(followups.claimDue(later).length, 0, 'cada retorno dispara uma vez só');
 });
 
 test('pedido de agente (MCP): delega, o Orbi roda o procedimento e devolve o resultado', async () => {

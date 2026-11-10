@@ -117,7 +117,7 @@ export function Working() {
   return (
     <div className="msg assistant working" role="status">
       <div className="avatar" aria-hidden="true">O</div>
-      <div className="parts working-row"><span className="typing" aria-hidden="true"><i /><i /><i /></span><span className="muted small">Recebi. Trabalhando nisso…</span></div>
+      <div className="parts working-row"><span className="typing" aria-label="Trabalhando"><i /><i /><i /></span></div>
     </div>
   );
 }

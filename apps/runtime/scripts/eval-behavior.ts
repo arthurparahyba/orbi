@@ -37,7 +37,7 @@ const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
 const { default: app } = await import('../src/app.ts');
 const services = (await import('../src/services.ts')).services();
-const { brain, inbox, llm, config } = services;
+const { brain, inbox, llm, config, followups } = services;
 
 type Reply = { text: string; data: Record<string, unknown[]> };
 type Snapshot = import('./eval/core.ts').Snapshot;
@@ -93,7 +93,7 @@ async function runScenario(id: string) {
     // Stopped half-way: a procedure still open and nothing waiting for the developer (no card, no follow-up).
     const waiting = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversation && x.kind !== 'level');
     const open = brain.runs(50).some((r) => r.conversationId === conversation && (r.status === 'running' || r.status === 'waiting'));
-    const followup = brain.agenda.hasScheduledFollowup(conversation);
+    const followup = !!followups.active(conversation);
     snap.turns.push({ from: 'orbi', text: reply.text, cards: cards.map((c) => ({ component: String(c.component), summary: cardSummary(c) })), stalled: open && !waiting && !followup });
   };
   const results: Array<{ session: number; checks: Array<{ name: string; ok: boolean; why?: string }>; diff: unknown }> = [];

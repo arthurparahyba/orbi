@@ -7,7 +7,7 @@ import { ulid } from 'ulidx';
  * agent conversation as signals (see http/app.ts).
  */
 /** `level`: only informs (a level or passage changed); it waits for nothing. */
-export type InboxKind = 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change';
+export type InboxKind = 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change' | 'followup';
 
 export interface InboxItem {
   id: string;
