@@ -288,7 +288,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | --- | --- |
 | `POST /agents/orbi/:id` · `GET /agents/orbi/:id` | Conversa Flue: enviar mensagem, ler stream |
 | `POST /agents/configurador/:id` · `GET /agents/configurador/:id` | Chat de configuração (`config:…`, documento 17) |
-| `GET/POST/PATCH /api/conversations` | Lista, cria e renomeia conversas |
+| `GET/POST/PATCH /api/conversations` | Lista (com `state`: ensinando e a etapa, fazendo, aprendido), cria e renomeia conversas |
 | `GET /api/inbox` | Aprovações, perguntas e aprendizados pendentes |
 | `POST /api/inbox/:id/decision` `{decision}` | Aprovar/negar (vira sinal na conversa) |
 | `POST /api/inbox/:id/answer` `{text}` | Responder pergunta |

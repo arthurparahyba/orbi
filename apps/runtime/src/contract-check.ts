@@ -22,6 +22,7 @@ import type { AgentSuggestion } from './mcp/suggestions.ts';
 import type { CatalogEntry, CodeAgent, TaskAssignment } from './code-agents/index.ts';
 import type { ModelStatus } from './llm/setup.ts';
 import type { Followup } from './followups/domain.ts';
+import type { ConversationState } from './conversations/state.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -30,6 +31,7 @@ type Check<T extends true> = T;
 export type ContractChecks = [
   Check<Fits<ModelStatus, C.ModelStatus>>,
   Check<Same<Followup, C.Followup>>,
+  Check<Same<ConversationState, C.ConversationState>>,
   Check<Same<CodeAgent, C.CodeAgent>>,
   Check<Fits<TaskAssignment, C.CodeAgentAssignment>>,
   Check<Fits<CatalogEntry, C.CodeAgentCatalogEntry>>,

@@ -9,7 +9,7 @@ daquilo acontece, e o Orbi encerra o turno em vez de ficar esperando.
 
 ## Onde aparece
 
-- **Painel Pendências**, à direita da tela Conversa, em três grupos:
+- **Painel Pendências**, aberto pelo botão Pendências no topo da conversa (tela Ensinar), à direita, em três grupos:
   - **Falta você aprovar**: ações, aprendizados e decisões de esteira. Ação
     pode ser aprovada ali mesmo. **Ir até ↓** rola a conversa até o cartão e o
     destaca; se for de outra conversa, **Abrir conversa →** abre e rola.

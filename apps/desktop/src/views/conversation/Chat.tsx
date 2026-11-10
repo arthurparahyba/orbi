@@ -1,29 +1,32 @@
 import { useEffect, useState } from 'react';
 import { agentUrl, api, type Recording } from '../../api';
 import { useLive, usePoll } from '../../hooks';
-import { CheckIcon, CopyIcon, RecordIcon, TrashIcon } from '../../components/Icons';
+import { BellIcon, RecordIcon } from '../../components/Icons';
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { OriginBanner } from './OriginBanner';
 import { PipelineBar } from './PipelineBar';
-import type { ConversationOrigin } from '../../api';
+import type { ConversationOrigin, ConversationState } from '../../api';
 import { StartDemonstration } from '../../components/Demonstration';
 import { RecordingPanel } from '../../components/RecordingPanel';
 import type { Narrator } from '../../audio';
 import { conversationMarkdown } from '../../components/chat/transcript';
 import { ChatPanel, chatPill } from '../../components/chat/ChatPanel';
 import { followupPill } from './followups';
-
-const SUGGESTIONS = [
-  'Ensinar pelo navegador',
-  'Vou te ensinar como subir a versão de um front no portal.',
-  'Atualiza a versão do novo-front no portal para 2.4.0',
-  'O que você já sabe sobre o repositório pagamentos-api?',
-];
+import { ChatMenu } from './ChatMenu';
+import { StageBar } from './StageBar';
+import { TeachStart } from './TeachStart';
+import { stateLine } from './stage';
 
 type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator };
 
-/** One conversation with Orbi: the shared chat plus what only conversations have (delivery bar, teaching, delete). */
-export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: string; title: string; origin?: ConversationOrigin; target?: { inboxId: string; n: number }; onTitled(): void; onDeleted(): void }) {
+/**
+ * One conversation with Orbi: the shared chat plus what only conversations have — where the
+ * teaching is (stage bar), Pendências, showing in the browser, the delivery bar, copy and delete.
+ */
+export function Chat({ id, title, origin, state, target, waiting, inboxOpen, onToggleInbox, onTitled, onDeleted }: {
+  id: string; title: string; origin?: ConversationOrigin; state: ConversationState; target?: { inboxId: string; n: number };
+  waiting: number; inboxOpen: boolean; onToggleInbox(): void; onTitled(): void; onDeleted(): void;
+}) {
   const [deleting, setDeleting] = useState(false);
   const followup = useLive(() => api.followups(id), ['followups'], [id]);
   const [demo, setDemo] = useState<Demo | undefined>();
@@ -34,7 +37,6 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
   }, [id]);
 
   const beforeSend = (t: string, first: boolean) => {
-    if (t === 'Ensinar pelo navegador') { setDemo({ mode: 'start' }); return false; }
     if (title === 'Nova conversa' || first) {
       void api.renameConversation(id, t.length > 60 ? `${t.slice(0, 57)}…` : t).then(onTitled, () => {});
     }
@@ -53,13 +55,18 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
         const pill = (!c.busy && !c.catchingUp && followupPill(followup.data?.[0])) || chatPill(c);
         return (
           <header className="chat-head">
-            <h1>{title || 'Conversa'}</h1>
-            <CopyButton disabled={c.visible.length === 0} text={() => conversationMarkdown({ id, title }, c.messages)} />
-            <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
-              <RecordIcon size={13} /> Ensinar pelo navegador
-            </button>
-            <button type="button" className="icon-btn" onClick={() => setDeleting(true)} title="Apagar conversa" aria-label="Apagar conversa"><TrashIcon size={15} /></button>
+            <div className="chat-title">
+              <h1>{!title || title === 'Nova conversa' ? 'Ensinar algo novo' : title}</h1>
+              <span className="muted">{stateLine(state)}</span>
+            </div>
             <span className={`pill pill-${pill.tone}`}>{pill.text}</span>
+            <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
+              <RecordIcon size={13} /> Mostrar no navegador
+            </button>
+            <button type="button" className={`btn small ${inboxOpen ? 'on' : ''}`} onClick={onToggleInbox} aria-pressed={inboxOpen} title="O que espera por você em todas as conversas">
+              <BellIcon size={13} /> Pendências {waiting > 0 && <span className="badge">{waiting}</span>}
+            </button>
+            <ChatMenu canCopy={c.visible.length > 0} copy={() => conversationMarkdown({ id, title }, c.messages)} onDelete={() => setDeleting(true)} />
           </header>
         );
       }}
@@ -80,16 +87,13 @@ export function Chat({ id, title, origin, target, onTitled, onDeleted }: { id: s
               />
             </div>
           )}
+          <StageBar state={state} />
           {origin && <OriginBanner origin={origin} />}
           <PipelineBar conversationId={id} />
         </>
       )}
-      empty={(send) => (
-        <div className="suggest">
-          <p className="muted">O Orbi não vem sabendo fazer nada específico: ele aprende com você e guarda no cérebro. Tente:</p>
-          {SUGGESTIONS.map((s) => <button key={s} type="button" className="chip" onClick={() => send(s)}>{s}</button>)}
-        </div>
-      )}
+      placeholder="Explique o passo a passo, ou peça algo que eu já sei fazer…"
+      empty={(send) => <TeachStart send={send} onShow={() => setDemo({ mode: 'start' })} />}
       dock={demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}
     />
   );
@@ -111,25 +115,5 @@ function DemoDock({ id, demo, onChange }: { id: string; demo: Demo; onChange(d: 
         <RecordingPanel initial={demo.rec} narrator={demo.narrator} onClosed={() => onChange(undefined)} />
       )}
     </div>
-  );
-}
-
-/** Copies the whole conversation as Markdown; confirms for a moment. */
-function CopyButton({ text, disabled }: { text(): string; disabled: boolean }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text());
-      setState('copied');
-    } catch {
-      setState('failed');
-    }
-    setTimeout(() => setState('idle'), 1800);
-  };
-  return (
-    <button type="button" className="btn small" onClick={copy} disabled={disabled} title="Copia a conversa inteira em Markdown: mensagens, ferramentas, cartões e erros">
-      {state === 'copied' ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-      <span aria-live="polite">{state === 'copied' ? 'Copiada' : state === 'failed' ? 'Não deu para copiar' : 'Copiar conversa'}</span>
-    </button>
   );
 }

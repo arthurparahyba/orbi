@@ -7,7 +7,14 @@ export interface ConversationInfo {
   id: string; title: string; createdAt: string; updatedAt: string;
   /** Set when a coding agent asked for this conversation over MCP. */
   origin?: ConversationOrigin;
+  /** Where the conversation is: teaching (and the stage), doing something known, or done teaching. Derived by the runtime. */
+  state?: ConversationState;
 }
+export type TeachingStage = 'explicar' | 'ensaiar' | 'combinar' | 'aprender' | 'assumir';
+export type ConversationState =
+  | { mode: 'ensinando'; stage: Exclude<TeachingStage, 'assumir'> }
+  | { mode: 'aprendido'; stage: 'assumir'; playbook: string; level: 1 | 2 | 3 }
+  | { mode: 'fazendo'; playbook: string; status: 'running' | 'waiting' | 'done' | 'failed' };
 export interface ConversationOrigin { agent: string; requestId: string; procedure: string | null; repo?: string; branch?: string; session?: string }
 export interface InboxItem {
   id: string; kind: 'approval' | 'question' | 'learning' | 'secret' | 'pipeline' | 'level' | 'code-change' | 'followup'; conversationId: string; title: string; detail: string;

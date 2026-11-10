@@ -10,7 +10,7 @@ disse e propõe o procedimento para você aprovar.
 
 ## Onde aparece
 
-1. Na conversa, botão **Ensinar pelo navegador** (ou o atalho de mesmo nome nas sugestões).
+1. Na conversa, botão **Mostrar no navegador** no topo (ou o cartão de mesmo nome na conversa vazia).
 2. Um painel pede a página inicial e se você quer narrar. Ao começar, o Chrome do
    Orbi abre nessa página e o app pede o microfone.
 3. Enquanto você trabalha no Chrome, o painel mostra ao vivo, lado a lado,

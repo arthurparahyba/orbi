@@ -2,22 +2,40 @@
 
 ## Para que serve
 
-É onde você pede algo ao Orbi e acompanha o que ele faz. Cada conversa é uma
+É onde você ensina o Orbi e pede o que ele já sabe fazer (no app, a tela se chama
+**Ensinar**). A tela deixa claro o caminho de um ensino até a autonomia:
+Explicar → Ensaiar → Combinar → Aprender → Assumir. É também onde você pede algo e acompanha o que ele faz. Cada conversa é uma
 linha de trabalho separada ("subir o portal para dev", "deletar o repositório
 X"), com a própria memória de curto prazo: o que foi dito, as ferramentas que
 rodaram e o procedimento em andamento.
 
 ## Onde aparece
 
-- **Tela Conversa**: lista de conversas à esquerda, a conversa aberta no centro,
-  as pendências à direita.
-- **Botão +** cria uma conversa nova. O título vira o primeiro pedido.
+- **Tela Ensinar** (antes "Conversa"): a lista à esquerda, a conversa aberta no centro.
+  **Pendências** abre pelo botão no topo da conversa (com o número do que espera
+  você), como painel à direita; em janelas estreitas, por cima da conversa.
+- **Lista por estado**: Ensinando, Fazendo e Já sei fazer. Cada linha diz onde
+  está ("Ensaiando", "Esperando você aprovar o que aprendi", "atualizar-mfe ·
+  esperando você", "Aprendi: atualizar-mfe · N1"). O filtro Todas/Minhas/Dos agentes
+  continua quando há pedidos de agentes.
+- **Barra de etapas**, abaixo do título: Explicar · Ensaiar · Combinar · Aprender ·
+  Assumir, com a etapa atual destacada. Some enquanto ele faz algo que já sabe.
+  O runtime deriva a etapa (`conversations/state.ts`) do que o cérebro já guarda,
+  sem gravar nada novo: execução de verdade é a última coisa → Fazendo; procedimento
+  aprendido nesta conversa e nenhum cartão esperando → Assumir; cartão de
+  aprendizado aberto ou ensaio com acordo → Aprender; ensaio com todos os passos
+  feitos e sem acordo → Combinar; ensaio em curso → Ensaiar; nada disso → Explicar.
+- **Ensinar algo novo** cria uma conversa nova. O título vira o primeiro pedido.
+  Vazia, ela pergunta "O que você quer me ensinar?" e mostra os jeitos: explicar
+  com palavras, mostrar no navegador, pedir algo que já sei, com exemplos.
+- **Mostrar no navegador** (antes "Ensinar pelo navegador") fica no topo.
+  **Copiar conversa** e **Apagar conversa** ficam no menu "…".
 - **Ferramentas**: chamadas internas (checklist, consultas ao cérebro, interface)
   não aparecem, porque o checklist e os cartões já mostram. O resto aparece pelo
   propósito ("Obter a URL do Pages"); aberto, mostra o comando e o que ele
   imprimiu, não o JSON. Várias seguidas viram uma linha ("2 comandos · 1 ação no
   navegador"). Uma chamada que espera aprovação aparece só como o cartão.
-- **Copiar conversa**, no topo, copia tudo em Markdown (mensagens, ferramentas
+- **Copiar conversa**, no menu "…", copia tudo em Markdown (mensagens, ferramentas
   com entrada e resultado, cartões, falhas) para colar num chamado ou mandar a alguém.
 - **Microfone** ao lado de Enviar: dita a mensagem. A fala é cortada nas pausas,
   cada trecho é transcrito pelo runtime (`POST /api/transcribe`, a mesma
@@ -122,9 +140,12 @@ e as mensagens aparecem.
 
 | Onde | O quê |
 | --- | --- |
-| `apps/desktop/src/views/conversation/ConversationView.tsx` | Tela: lista, conversa aberta, pendências |
+| `apps/desktop/src/views/conversation/ConversationView.tsx` | Tela: lista, conversa aberta, Pendências sob demanda |
+| `apps/desktop/src/views/conversation/ConversationList.tsx`, `StageBar.tsx`, `TeachStart.tsx`, `ChatMenu.tsx` | Lista por estado, barra de etapas, começo vazio, menu "…" |
+| `apps/desktop/src/views/conversation/stage.ts` | Etapas, linha da lista e grupos (sem React) |
+| `apps/runtime/src/conversations/state.ts` | Onde a conversa está, derivado do último run, do cartão aberto e do que foi aprendido |
 | `apps/desktop/src/components/chat/ChatPanel.tsx` | O chat comum a todas as telas: mensagens, cartões, acompanhar turnos, compositor |
-| `apps/desktop/src/views/conversation/Chat.tsx` | O que só a conversa tem em volta do chat: botão copiar, ensinar pelo navegador, apagar, barra da esteira |
+| `apps/desktop/src/views/conversation/Chat.tsx` | O que só a conversa tem em volta do chat: etapas, Pendências, mostrar no navegador, menu "…", barra da esteira |
 | `apps/desktop/src/components/chat/Message.tsx` | Como cada mensagem e ferramenta é desenhada |
 | `apps/desktop/src/components/chat/transcript.ts` | Markdown do "Copiar conversa" |
 | `apps/desktop/src/components/UiComponents.tsx`, `SimilarCards.tsx` | Os cartões do canal `ui` |
@@ -176,5 +197,7 @@ e as mensagens aparecem.
 
 - `apps/runtime/test/flow-*.test.ts`: o ciclo inteiro pelo Flue real, com
   um modelo roteirizado (aprender, aprovar, executar, agendar, "já sei algo parecido").
+- `apps/runtime/test/conversation-state.test.ts` e `apps/desktop/test/stage.test.ts`:
+  a etapa derivada, a linha da lista e os grupos.
 - `apps/desktop/test/message.test.ts` e `transcript.test.ts`: agrupamento das
   ferramentas e o Markdown copiado.

@@ -38,10 +38,10 @@ export function StartDemonstration({ conversationId, defaultUrl, onStarted, onCa
   };
 
   return (
-    <section className="demo-start" aria-label="Ensinar pelo navegador">
+    <section className="demo-start" aria-label="Mostrar no navegador">
       <header className="row gap">
         <span className="ui-icon rec"><RecordIcon size={14} /></span>
-        <strong>Ensinar pelo navegador</strong>
+        <strong>Mostrar no navegador</strong>
         <span className="spacer" />
         <button type="button" className="icon-btn" onClick={onCancel} aria-label="Cancelar"><XIcon size={14} /></button>
       </header>

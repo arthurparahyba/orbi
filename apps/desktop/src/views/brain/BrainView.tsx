@@ -64,7 +64,7 @@ function EmptyBrain() {
       <h2>O cérebro ainda está vazio</h2>
       <p className="muted">
         O Orbi não vem sabendo nada do seu ambiente. Ele aprende enquanto trabalha com você: peça algo na conversa ou
-        use “Ensinar pelo navegador”. Cada coisa aprendida (um tipo novo, um repositório, um procedimento) chega para
+        use “Mostrar no navegador”. Cada coisa aprendida (um tipo novo, um repositório, um procedimento) chega para
         você aprovar antes de ficar guardada aqui.
       </p>
     </div>

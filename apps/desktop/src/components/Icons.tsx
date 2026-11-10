@@ -12,6 +12,9 @@ export const OrbiIcon = ({ size }: P) => (
 export const ChatIcon = ({ size }: P) => (<svg {...base(size)}><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" /></svg>);
 export const BrainIcon = ({ size }: P) => (<svg {...base(size)}><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="7" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8.3 7h7.4M7.3 8.2l3.6 7.6M16.8 9.2l-3.6 6.6" /></svg>);
 export const DialIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>);
+export const MoreIcon = ({ size }: P) => (<svg {...base(size)}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>);
+export const BellIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4" /></svg>);
+export const BookIcon = ({ size }: P) => (<svg {...base(size)}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z" /><path d="M4 19a2 2 0 0 1 2-2h13" /></svg>);
 export const PlusIcon = ({ size }: P) => (<svg {...base(size)}><path d="M12 5v14M5 12h14" /></svg>);
 export const CheckIcon = ({ size }: P) => (<svg {...base(size)}><path d="M5 12l5 5 9-10" /></svg>);
 export const XIcon = ({ size }: P) => (<svg {...base(size)}><path d="M6 6l12 12M18 6L6 18" /></svg>);
