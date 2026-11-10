@@ -41,7 +41,7 @@ flue.setProvider(faux.provider);
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
 const { default: app } = await import('../src/app.ts');
-const { brain } = (await import('../src/services.ts')).services();
+const { brain, policy, config } = (await import('../src/services.ts')).services();
 
 const runtime = await start({ agents: [Orbi, Configurador] });
 const http = serve({ fetch: app.fetch, port: RUNTIME_PORT, hostname: '127.0.0.1' });
@@ -52,6 +52,8 @@ const browser = await puppeteer.launch({ executablePath: chromeExecutable(), hea
 const page = await browser.newPage();
 const pageErrors: string[] = [];
 page.on('pageerror', (e) => pageErrors.push(String(e)));
+// React warnings (duplicate keys and the like) count as errors of the screen.
+page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) pageErrors.push(m.text()); });
 
 const ctx = (context: unknown) => JSON.stringify(context).replace(/\\"/g, '"');
 let n = 0;
@@ -208,6 +210,46 @@ try {
   await shows('.menu', /Copiar conversa[\s\S]*Apagar conversa/);
   await page.keyboard.press('Escape');
   await until('o menu fechar', async () => !(await page.$('.menu')));
+
+  // The composer: the microphone inside the box, Enviar outside, the model under it.
+  const micInside = await page.$eval('.composer-input', (box) => !!box.querySelector('.mic-btn'));
+  assert.ok(micInside, 'o microfone fica dentro da caixa');
+  assert.ok(await page.$('.composer-row > button[aria-label="Enviar"]'), 'o Enviar fica fora da caixa');
+  await shows('.composer-footer', /claude-haiku-5-5[\s\S]*barato[\s\S]*padrão/i);
+  await page.click('.model-chip');
+  await shows('.model-menu', /Barato[\s\S]*claude-haiku-5-5[\s\S]*Intermediário[\s\S]*claude-sonnet-5-5[\s\S]*Caro[\s\S]*claude-opus-5-5/);
+  await shot('modelos');
+  await clickButton('.model-menu', /claude-opus-5-5/);
+  await shows('.composer-footer', /claude-opus-5-5[\s\S]*caro/i);
+  await until('a escolha ficar só nesta conversa', async () => (((await (await fetch(`http://127.0.0.1:${RUNTIME_PORT}/api/conversations`)).json()) as any[])[0]?.model === 'claude-opus-5-5'));
+  await page.click('.model-chip');
+  await clickButton('.model-menu', /claude-haiku-5-5/);
+  await shows('.composer-footer', /claude-haiku-5-5[\s\S]*padrão/i);
+  await until('voltar ao padrão', async () => (((await (await fetch(`http://127.0.0.1:${RUNTIME_PORT}/api/conversations`)).json()) as any[])[0]?.model === undefined));
+
+  // Parar: says "Parando…" at once and the command that was running stops.
+  policy.set('comandos-escrita', 'auto');
+  const mark = join(config.workspace, 'marca-parar');
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('run_command', { binary: 'node', args: ['-e', `setTimeout(() => require('fs').writeFileSync(${JSON.stringify(mark)}, 'x'), 6000)`], purpose: 'Esperar o deploy' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Parei.')),
+  ]);
+  await say('Espera o deploy terminar.');
+  await until('o botão Parar', async () => !!(await page.$('.stop-btn')));
+  await new Promise((r) => setTimeout(r, 800));
+  const clicked = Date.now();
+  await page.click('.stop-btn');
+  // Right after the click: "Parando…" (or already stopped, when it is that quick).
+  await until('"Parando…" na hora', async () => /Parando/.test(await text('.composer')) || !(await page.$('.stop-btn')), 500);
+  await shows('.messages', /interrompida/i);
+  await shot('parado');
+  await idle();
+  const took = Date.now() - clicked;
+  assert.ok(took < 5000, `parou em ${took} ms`);
+  await new Promise((r) => setTimeout(r, 6000));
+  const { existsSync } = await import('node:fs');
+  assert.equal(existsSync(mark), false, 'o comando foi interrompido de verdade');
+  policy.set('comandos-escrita', 'ask');
 
   assert.deepEqual(pageErrors, [], 'a página não teve erros');
   console.log(`tela Ensinar: ok · telas em ${shots}`);

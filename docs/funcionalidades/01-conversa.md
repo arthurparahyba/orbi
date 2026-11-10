@@ -48,11 +48,19 @@ rodaram e o procedimento em andamento.
   navegador"). Uma chamada que espera aprovação aparece só como o cartão.
 - **Copiar conversa**, no menu "…", copia tudo em Markdown (mensagens, ferramentas
   com entrada e resultado, cartões, falhas) para colar num chamado ou mandar a alguém.
-- **Microfone** ao lado de Enviar: dita a mensagem. A fala é cortada nas pausas,
+- **Caixa de mensagem**: o microfone, pequeno, fica dentro da caixa; Enviar (ou
+  Parar, enquanto ele trabalha) fica fora. Embaixo, o **modelo desta conversa**
+  (documento 12): o padrão, com o custo (barato, intermediário, caro); a escolha vale
+  só para esta conversa, a partir da próxima mensagem.
+- **Parar** vira "Parando…" na hora, desligado, até o turno acabar de fato; a conversa
+  mostra que a execução foi interrompida. Parar interrompe também o que estava rodando:
+  o comando (`run_command`, `run_shell`) é morto e a chamada ao navegador é abandonada
+  (o portão repassa o sinal de parar a `execute`). Antes, o comando seguia sozinho.
+- **Microfone**: dita a mensagem. A fala é cortada nas pausas,
   cada trecho é transcrito pelo runtime (`POST /api/transcribe`, a mesma
   transcrição das demonstrações, documento 6) e entra na caixa. Nada é enviado
   sozinho: você confere e envia. O áudio não fica guardado.
-- **Apagar** (lixeira no topo da conversa) pede confirmação no próprio lugar e
+- **Apagar** (menu "…" no topo da conversa) pede confirmação no próprio lugar e
   apaga a conversa: ela some da lista na hora, as pendências dela saem do painel,
   os retornos agendados são cancelados e, se um agente pediu, ele vê o pedido
   como encerrado. O que o Orbi aprendeu e as execuções ficam no Cérebro.
@@ -154,7 +162,7 @@ e as mensagens aparecem.
 | `apps/desktop/src/views/conversation/ConversationView.tsx` | Tela: lista, conversa aberta, Pendências sob demanda |
 | `apps/desktop/src/views/conversation/ConversationList.tsx`, `StageBar.tsx`, `TeachStart.tsx`, `ChatMenu.tsx` | Lista por estado, barra de etapas, começo vazio, menu "…" |
 | `apps/desktop/src/views/conversation/stage.ts` | Etapas, linha da lista e grupos (sem React) |
-| `apps/desktop/src/views/conversation/Notebook.tsx`, `NotebookParts.tsx`, `notebook.ts` | O painel ao lado da conversa |
+| `apps/desktop/src/views/conversation/Notebook.tsx`, `NotebookParts.tsx`, `notebookLines.ts` | O painel ao lado da conversa |
 | `apps/runtime/src/conversations/notebook.ts` | O conteúdo do painel, derivado do cérebro |
 | `apps/runtime/src/conversations/state.ts` | Onde a conversa está, derivado do último run, do cartão aberto e do que foi aprendido |
 | `apps/desktop/src/components/chat/ChatPanel.tsx` | O chat comum a todas as telas: mensagens, cartões, acompanhar turnos, compositor |

@@ -11,7 +11,8 @@ export const InboxContext = createContext<InboxActions>({ items: new Map(), deci
 
 export const CATEGORY_LABEL: Record<string, string> = {
   'comandos-leitura': 'Comando de leitura',
-  'comandos-escrita': 'Comando que altera algo',
+  // Any command not known to only read: it may change something, or the Orbi just could not tell.
+  'comandos-escrita': 'Executar comando',
   'navegador-leitura': 'Navegador (leitura)',
   'navegador-escrita': 'Ação no navegador',
   'codigo-teste': 'Correção só em teste',

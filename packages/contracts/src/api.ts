@@ -7,6 +7,8 @@ export interface ConversationInfo {
   id: string; title: string; createdAt: string; updatedAt: string;
   /** Set when a coding agent asked for this conversation over MCP. */
   origin?: ConversationOrigin;
+  /** The model chosen for this conversation; none = the default. */
+  model?: string;
   /** Where the conversation is: teaching (and the stage), doing something known, or done teaching. Derived by the runtime. */
   state?: ConversationState;
 }
@@ -285,6 +287,11 @@ export interface ModelStatus {
   /** A key is set (never the key itself). */
   keySet: boolean;
   options: ModelOption[];
+}
+/** GET /api/model/choices — the models a conversation may use (the active provider's), the default first. */
+export interface ModelChoices {
+  default: string;
+  models: Array<{ id: string; tier?: 'cheap' | 'standard' | 'premium'; tierBy?: 'voce' | 'plugin' | 'conhecido' }>;
 }
 /** POST /api/model/test · PUT /api/model */
 export interface ModelTestResult { ok: boolean; detail: string; model?: string }

@@ -17,7 +17,7 @@ function currentStep(run: PlaybookRun | undefined): { id: string; text: string }
   if (at < 0) return null;
   return { id: run.steps[at]!.id, text: `passo ${at + 1} de ${run.steps.length} · ${run.steps[at]!.label}` };
 }
-type Executor = (args: unknown, approvalId: string, how: 'auto' | 'approved') => Promise<string>;
+type Executor = (args: unknown, approvalId: string, how: 'auto' | 'approved', signal?: AbortSignal) => Promise<string>;
 
 /**
  * The autonomy gate: one path for every tool that changes something.
@@ -38,7 +38,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
       description: `${def.description} Governed by the developer's autonomy settings: it may run now, wait for approval, or only be reported.`,
       input: def.input,
       timeoutMs: def.timeoutMs ?? 600_000,
-      async run({ data, toolCallId }) {
+      async run({ data, toolCallId, signal }) {
         const problems = def.precheck?.(data) ?? [];
         if (problems.length) {
           return { output: { status: 'invalid', problems, hint: 'Nada foi feito nem pedido ao desenvolvedor. Corrija e chame de novo com tudo.' } };
@@ -64,7 +64,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         const rehearsing = run?.kind === 'rehearsal' && (effect === 'publica' || effect === 'apaga');
         const level = decided === 'auto' && (def.alwaysAsk?.(data) || rehearsing) ? 'ask' : decided;
         if (level === 'auto') {
-          const result = await def.execute(data, toolCallId, 'auto');
+          const result = await def.execute(data, toolCallId, 'auto', signal);
           if (run) brain.recordRunAction(run.id, action);
           // How the call reads in the conversation travels with it: the app needs no list of tools.
           const shown = { ...(def.title ? { title: def.title(data) } : {}), ...(def.command ? { command: def.command(data) } : {}) };

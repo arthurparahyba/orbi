@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../api';
 import { useLoad } from '../../hooks';
 import { ModelChoice } from '../setup/ModelChoice';
+import { ModelTiersEditor } from '../../components/model/ModelTiersEditor';
 
 /** Autonomia › Modelo: the model in use, Testar, and Trocar (the same options as the first opening). */
 export function ModelPage({ onChanged }: { onChanged(): void }) {
@@ -36,6 +37,7 @@ export function ModelPage({ onChanged }: { onChanged(): void }) {
           <ModelChoice status={s} onChosen={() => { setChanging(false); void status.reload(); onChanged(); }} onRescan={async () => { await api.rescanPlugins(); await status.reload(); }} />
         </section>
       )}
+      <ModelTiersEditor key={`${s.kind}:${s.model}`} />
       <section className="auto-list">
         <h2>Plugins nesta máquina</h2>
         {plugins.length === 0 && <div className="auto-row muted">Nenhum plugin de modelo. Se a empresa tem um (como o Yara), coloque a pasta dele na pasta de plugins do Orbi.</div>}

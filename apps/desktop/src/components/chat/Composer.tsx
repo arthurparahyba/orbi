@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { MicIcon, SendIcon, StopIcon } from '../Icons';
 import { appendDictation, micAvailability } from '../dictation';
 import { useDictation } from '../useDictation';
@@ -10,11 +10,15 @@ import { useLive } from '../../hooks';
  * box (it does not send): speak, Enter (or the microphone) stops and transcribes, Enter again
  * sends. While the Orbi works, the stop button interrupts the turn.
  */
-export function Composer({ onSend, placeholder = 'Peça algo ou ensine um procedimento…', busy = false, onStop }: {
+export function Composer({ onSend, placeholder = 'Peça algo ou ensine um procedimento…', busy = false, stopping = false, onStop, footer }: {
   onSend(text: string): Promise<void>;
   placeholder?: string;
   busy?: boolean;
+  /** Parar was clicked: the turn is being stopped. */
+  stopping?: boolean;
   onStop?(): void;
+  /** Under the box (e.g. the model picker). */
+  footer?: ReactNode;
 }) {
   const [draft, setDraft] = useState('');
   const box = useRef<HTMLTextAreaElement>(null);
@@ -47,16 +51,40 @@ export function Composer({ onSend, placeholder = 'Peça algo ou ensine um proced
   return (
     <form className="composer" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <div className="composer-box">
-        <label htmlFor="composer" className="sr-only">Mensagem para o Orbi</label>
-        <textarea
-          id="composer"
-          ref={box}
-          rows={2}
-          value={draft}
-          placeholder={listening ? 'Pode falar… Enter (ou o microfone) termina e transcreve.' : placeholder}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKey}
-        />
+        <div className="composer-row">
+          <div className="composer-input">
+            <label htmlFor="composer" className="sr-only">Mensagem para o Orbi</label>
+            <textarea
+              id="composer"
+              ref={box}
+              rows={2}
+              value={draft}
+              placeholder={listening ? 'Pode falar… Enter (ou o microfone) termina e transcreve.' : placeholder}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={onKey}
+            />
+            {/* Inside the box, small: dictating fills the box, it does not send. */}
+            <button
+              type="button"
+              className={`mic-btn ${listening ? 'on' : ''}`}
+              onClick={() => (listening ? void dictation.stop().then(() => box.current?.focus()) : startDictation())}
+              disabled={working || (!listening && !mic.ready)}
+              aria-pressed={listening}
+              aria-label={listening ? 'Parar de ditar' : mic.ready ? 'Ditar mensagem' : mic.why}
+              title={listening ? 'Parar de ditar' : mic.ready ? 'Ditar: fale e o texto entra na caixa' : mic.why}
+            >
+              {working || (!listening && !mic.ready) ? <span className="spinner" aria-hidden="true" /> : <MicIcon size={14} />}
+              {listening && <span className="mic-level" style={{ transform: `scaleX(${dictation.level})` }} aria-hidden="true" />}
+            </button>
+          </div>
+          {busy && onStop && !draft.trim() ? (
+            stopping
+              ? <button type="button" className="btn stop-btn stopping" disabled aria-label="Parando"><span className="spinner" aria-hidden="true" /> Parando…</button>
+              : <button type="button" className="btn icon-only stop-btn" onClick={onStop} aria-label="Parar" title="Parar o que o Orbi está fazendo"><StopIcon size={14} /></button>
+          ) : (
+            <button type="submit" className="btn primary icon-only" disabled={!draft.trim() || dictation.state !== 'idle'} aria-label="Enviar"><SendIcon size={16} /></button>
+          )}
+        </div>
         {!listening && !working && !dictation.error && !mic.ready && <p className="composer-note small muted" role="status">{mic.why}</p>}
         {(listening || working || dictation.error) && (
           <p className={`composer-note small ${dictation.error ? 'err-text' : 'muted'}`} role="status">
@@ -65,24 +93,8 @@ export function Composer({ onSend, placeholder = 'Peça algo ou ensine um proced
               : listening ? 'Ouvindo. Enter termina e transcreve; Enter de novo envia.' : 'Transcrevendo o final…'}
           </p>
         )}
+        {footer && <div className="composer-footer">{footer}</div>}
       </div>
-      <button
-        type="button"
-        className={`btn icon-only mic-btn ${listening ? 'on' : ''}`}
-        onClick={() => (listening ? void dictation.stop().then(() => box.current?.focus()) : startDictation())}
-        disabled={working || (!listening && !mic.ready)}
-        aria-pressed={listening}
-        aria-label={listening ? 'Parar de ditar' : mic.ready ? 'Ditar mensagem' : mic.why}
-        title={listening ? 'Parar de ditar' : mic.ready ? 'Ditar: fale e o texto entra na caixa' : mic.why}
-      >
-        {working || (!listening && !mic.ready) ? <span className="spinner" aria-hidden="true" /> : <MicIcon size={16} />}
-        {listening && <span className="mic-level" style={{ transform: `scaleX(${dictation.level})` }} aria-hidden="true" />}
-      </button>
-      {busy && onStop && !draft.trim() ? (
-        <button type="button" className="btn icon-only stop-btn" onClick={onStop} aria-label="Parar" title="Parar o que o Orbi está fazendo"><StopIcon size={14} /></button>
-      ) : (
-        <button type="submit" className="btn primary icon-only" disabled={!draft.trim() || dictation.state !== 'idle'} aria-label="Enviar"><SendIcon size={16} /></button>
-      )}
     </form>
   );
 }

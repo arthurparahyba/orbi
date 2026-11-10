@@ -131,9 +131,9 @@ function useTerminal(ctx: AgentContext, deps: Deps<'config' | 'brain' | 'inbox'>
       return a.saveTo && e === 'leitura' ? 'local' : e;
     },
     fingerprint: (a) => `run_command ${a.binary} ${a.args.join(' ')}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
-    execute: async (a) => {
+    execute: async (a, _id, _how, signal) => {
       try {
-        return await execCommand(deps, a, ctx.conversationId);
+        return await execCommand(deps, a, ctx.conversationId, signal);
       } catch (error) {
         // npm/mvn on Windows without Git Bash: ask where it is, right in the conversation.
         if (error instanceof ShellNeededError) throw new Error(`${error.message}. ${askShellPath(deps.inbox, ctx.conversationId, ctx.ui)}`);
@@ -172,7 +172,7 @@ function useShell(ctx: AgentContext, { config, brain, inbox }: Deps<'config' | '
     title: (a) => a.purpose,
     command: (a) => shortCommand('', [a.line]).trim().replace(/^"|"$/g, ''),
     fingerprint: (a) => `run_shell ${a.line}${a.cwd ? ` (em ${a.cwd})` : ''}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
-    execute: async (a) => {
+    execute: async (a, _id, _how, signal) => {
       const shell = config.shell;
       if (!shell) throw new Error(askShellPath(inbox, ctx.conversationId, ctx.ui));
       const { report } = await runAndReport({
@@ -180,7 +180,7 @@ function useShell(ctx: AgentContext, { config, brain, inbox }: Deps<'config' | '
         conversationId: ctx.conversationId,
         shown: a.line,
         saveTo: a.saveTo ? savePath(a.saveTo, config.workspace) : undefined,
-        start: (o) => runShell(shell, a.line, { cwd: insideWorkspace(config.workspace, a.cwd), timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000, env: config.cliEnv, shell, ...o }),
+        start: (o) => runShell(shell, a.line, { cwd: insideWorkspace(config.workspace, a.cwd), timeoutMs: Math.min(a.timeoutSeconds ?? 120, 1800) * 1000, env: config.cliEnv, shell, signal, ...o }),
       });
       return report;
     },

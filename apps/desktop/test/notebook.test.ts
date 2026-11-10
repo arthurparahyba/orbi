@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelLine, readable, stepMark, usesLine } from '../src/views/conversation/notebook';
+import { levelLine, readable, stepMark, usesLine } from '../src/views/conversation/notebookLines';
 
 const proc = (over: Record<string, unknown> = {}) => ({ name: 'atualizar-mfe', description: '', level: 1 as const, levelMax: 3 as const, uses: 0, successes: 0, nextLevel: { level: 2 as const, cleanRunsLeft: 1 }, ...over });
 

@@ -20,6 +20,18 @@ SDK próprios. Por isso ele fala com o modelo por uma interface própria, o
 - **Tela Autonomia → Capacidades**: o provedor ativo, os plugins encontrados
   (e o erro, se algum não carregou) e se a correção de código está ligada.
 - **Painel "Uso do modelo"** (documento 13): tokens e custo por conversa.
+- **Embaixo da caixa de mensagem** de cada conversa: o modelo com que ela pensa.
+  Começa no padrão; a lista é a do provedor em uso (os modelos do plugin, ou os do
+  Claude), agrupada por custo: Barato, Intermediário, Caro e Sem categoria. A escolha
+  vale só para aquela conversa, a partir da próxima mensagem (`PUT
+  /api/conversations/:id/model`, coluna `conversations.model`); o subagente da conversa
+  usa o mesmo. Se o provedor mudar e não oferecer mais o modelo escolhido, a conversa
+  volta ao padrão.
+- **Autonomia → Modelo → Custo dos modelos**: a categoria de cada modelo. Vem, nesta
+  ordem, do que você classificou (guardado em `settings`, chave `model-tiers`), do que o
+  plugin informa (`tier` em cada modelo) ou da família conhecida do Claude (Haiku barato,
+  Sonnet intermediário, Opus caro). Modelo da empresa sem `tier` aparece sem categoria
+  até você classificar: o Orbi não adivinha pelo nome.
 
 ## Como funciona
 
@@ -83,6 +95,11 @@ Opcionais do `openai-compatible`: `ORBI_LLM_CONTEXT_WINDOW` (padrão 128000),
 `ORBI_LLM_MAX_TOKENS` (8192), `ORBI_LLM_TIMEOUT_MS` (120000).
 
 ## Plugins
+
+Cada modelo do adaptador pode dizer o custo, para a escolha na conversa:
+`models: [{ id: 'yara-mini', tier: 'cheap' }, { id: 'yara-pro', tier: 'premium' }]`
+(`cheap` barato, `standard` intermediário, `premium` caro). É opcional e não muda a
+versão do contrato.
 
 Um plugin é uma pasta em `plugins/<nome>` (no app instalado, na pasta de dados;
 documento 14) com um `index.mjs` que exporta:

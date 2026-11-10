@@ -72,7 +72,12 @@ export interface LlmModelInfo {
   contextWindow?: number;
   /** Max tokens per answer. Default 8 192. */
   maxTokens?: number;
+  /** How costly it is, so the app can say "barato / intermediário / caro" next to it. Optional. */
+  tier?: ModelTier;
 }
+
+/** cheap: quick and inexpensive · standard: the everyday one · premium: the most capable, most expensive. */
+export type ModelTier = 'cheap' | 'standard' | 'premium';
 
 export interface LlmAdapter {
   /** Short name shown in logs and in the Autonomia screen, e.g. "gateway-corporativo". */

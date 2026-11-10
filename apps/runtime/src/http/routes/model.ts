@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { ChooseModel } from '@orbi/contracts';
+import { ChooseModel, SetModelTier } from '@orbi/contracts';
+import { modelChoices } from '../../llm/choices.ts';
 import type { OrbiServices } from '../../services.ts';
 import { applyModel, modelStatus, testModel } from '../../llm/setup.ts';
 import { discoverPlugins, pluginDirs } from '../../llm/index.ts';
@@ -11,9 +12,16 @@ import { body } from '../errors.ts';
  * (tested again, saved to the .env of the data folder, applied without a restart). Keys come in
  * and are never sent back nor logged.
  */
-export function modelRoutes(s: Pick<OrbiServices, 'llm' | 'config'>) {
+export function modelRoutes(s: Pick<OrbiServices, 'llm' | 'config' | 'modelTiers'>) {
   return new Hono()
     .get('/', async (c) => c.json(await modelStatus(s.llm)))
+    // What a conversation may pick, the default first, with how costly each is.
+    .get('/choices', (c) => c.json(modelChoices(s.llm, s.modelTiers.all())))
+    .put('/tiers', async (c) => {
+      const { model, tier } = await body(c, SetModelTier);
+      s.modelTiers.set(model, tier);
+      return c.json(modelChoices(s.llm, s.modelTiers.all()));
+    })
     .post('/plugins/rescan', async (c) => {
       s.llm.plugins = await discoverPlugins(pluginDirs(process.env, s.config.cwd));
       return c.json(await modelStatus(s.llm));

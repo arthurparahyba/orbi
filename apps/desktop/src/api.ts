@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -43,6 +43,13 @@ export const api = {
   health: () => request<Health>('/api/health'),
   conversations: () => request<ConversationInfo[]>('/api/conversations'),
   createConversation: (title?: string) => request<ConversationInfo>('/api/conversations', { method: 'POST', body: JSON.stringify({ title }) }),
+  /** The model a conversation uses from its next turn; null = the default. */
+  setConversationModel: (id: string, model: string | null) =>
+    request<ConversationInfo>(`/api/conversations/${encodeURIComponent(id)}/model`, { method: 'PUT', body: JSON.stringify({ model }) }),
+  /** The models a conversation may pick (the active provider's), the default first, with their cost. */
+  modelChoices: () => request<ModelChoices>('/api/model/choices'),
+  setModelTier: (model: string, tier: 'cheap' | 'standard' | 'premium' | null) =>
+    request<ModelChoices>('/api/model/tiers', { method: 'PUT', body: JSON.stringify({ model, tier }) }),
   /** The "O que estou aprendendo" panel of a conversation, from the brain. */
   notebook: (id: string) => request<ConversationNotebook>(`/api/conversations/${encodeURIComponent(id)}/notebook`),
   deleteConversation: (id: string) => request<{ deleted: true }>(`/api/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),

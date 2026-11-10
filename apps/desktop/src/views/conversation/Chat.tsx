@@ -16,6 +16,7 @@ import { ChatMenu } from './ChatMenu';
 import { StageBar } from './StageBar';
 import { TeachStart } from './TeachStart';
 import { stateLine } from './stage';
+import { ModelPicker } from '../../components/model/ModelPicker';
 
 type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narrator };
 
@@ -23,8 +24,8 @@ type Demo = { mode: 'start' } | { mode: 'live'; rec: Recording; narrator?: Narra
  * One conversation with Orbi: the shared chat plus what only conversations have — where the
  * teaching is (stage bar), Pendências, showing in the browser, the delivery bar, copy and delete.
  */
-export function Chat({ id, title, origin, state, target, waiting, inboxOpen, onToggleInbox, onTitled, onDeleted }: {
-  id: string; title: string; origin?: ConversationOrigin; state: ConversationState; target?: { inboxId: string; n: number };
+export function Chat({ id, title, origin, state, model, target, waiting, inboxOpen, onToggleInbox, onTitled, onDeleted }: {
+  id: string; title: string; origin?: ConversationOrigin; state: ConversationState; model?: string; target?: { inboxId: string; n: number };
   waiting: number; inboxOpen: boolean; onToggleInbox(): void; onTitled(): void; onDeleted(): void;
 }) {
   const [deleting, setDeleting] = useState(false);
@@ -93,6 +94,7 @@ export function Chat({ id, title, origin, state, target, waiting, inboxOpen, onT
         </>
       )}
       placeholder="Explique o passo a passo, ou peça algo que eu já sei fazer…"
+      composerFooter={<ModelPicker conversationId={id} chosen={model} onChosen={onTitled} />}
       empty={(send) => <TeachStart send={send} onShow={() => setDemo({ mode: 'start' })} />}
       dock={demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}
     />

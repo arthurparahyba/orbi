@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
-import { CreateConversation, RenameConversation } from '@orbi/contracts';
+import { ChooseConversationModel, CreateConversation, RenameConversation } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
-import { body, notFound } from '../errors.ts';
+import { body, HttpError, notFound } from '../errors.ts';
 import { conversationState, type ConversationState } from '../../conversations/state.ts';
 import { buildNotebook } from '../../conversations/notebook.ts';
+import { modelChoices } from '../../llm/choices.ts';
 
 /** Where each conversation is, from the brain: open learning cards and the procedure learned in each one. */
 function stateReader({ brain, inbox }: OrbiServices): (id: string) => ConversationState {
@@ -56,6 +57,14 @@ export function conversationRoutes(s: OrbiServices) {
     .delete('/:id', (c) => {
       if (!conversations.delete(c.req.param('id'))) throw notFound('conversa');
       return c.json({ deleted: true });
+    })
+    .put('/:id/model', async (c) => {
+      const { model } = await body(c, ChooseConversationModel);
+      // Only a model the active provider offers: a name typed by hand never reaches the agent.
+      if (model && !modelChoices(s.llm, {}).models.some((m) => m.id === model)) throw new HttpError(400, 'unknown_model', `o modelo ${model} não está entre os oferecidos`);
+      const item = conversations.setModel(c.req.param('id'), model);
+      if (!item) throw notFound('conversa');
+      return c.json(item);
     })
     .patch('/:id', async (c) => {
       const { title } = await body(c, RenameConversation);

@@ -2,7 +2,7 @@ import { api, type ConversationNotebook } from '../../api';
 import { useLive } from '../../hooks';
 import { BookIcon } from '../../components/Icons';
 import { Agreed, Noted, Receives, Section, Steps } from './NotebookParts';
-import { LEVELS, levelLine, usesLine } from './notebook';
+import { LEVELS, levelLine, usesLine } from './notebookLines';
 
 /**
  * Beside the conversation: what the Orbi understood so far (teaching), the procedure it became

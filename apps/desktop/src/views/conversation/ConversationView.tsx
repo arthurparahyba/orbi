@@ -52,7 +52,7 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
       <ConversationList items={shown} current={current} openInbox={openInbox} error={list.error} onPick={setCurrent} onNew={newConversation}
         filter={fromAgents && <Segmented<Filter> label="Mostrar" value={filter} onChange={setFilter} options={[{ value: 'todas', label: 'Todas' }, { value: 'minhas', label: 'Minhas' }, { value: 'agentes', label: 'Dos agentes' }]} />} />
       {current ? (
-        <Chat key={current} id={current} target={target?.conversationId === current ? target : undefined} title={open?.title ?? ''} origin={open?.origin} state={stateOf(open)}
+        <Chat key={current} id={current} target={target?.conversationId === current ? target : undefined} title={open?.title ?? ''} origin={open?.origin} state={stateOf(open)} model={open?.model}
           waiting={openInbox.filter(needsYou).length} inboxOpen={inboxOpen} onToggleInbox={() => setInboxOpen((o) => !o)} onTitled={list.reload}
           onDeleted={() => { setCurrent(list.data?.find((c) => c.id !== current)?.id); void list.reload(); }} />
       ) : !list.data ? (
@@ -66,7 +66,7 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
       {/* Pendências takes the place of the panel while open. */}
       {inboxOpen
         ? <InboxPanel items={openInbox} current={current} onClose={() => setInboxOpen(false)} onOpen={(id) => (isConfigChat(id) ? onOpenConfig() : setCurrent(id))} onGoTo={goTo} />
-        : current && <Notebook key={current} id={current} />}
+        : current && <Notebook key={`painel-${current}`} id={current} />}
     </div>
   );
 }

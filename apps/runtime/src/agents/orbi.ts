@@ -6,6 +6,7 @@ import { investigadorFor } from '../subagents/investigador.ts';
 import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
 import { composePrompt } from './prompt.ts';
 import { situationLine } from '../followups/domain.ts';
+import { modelSpecFor } from '../llm/choices.ts';
 
 /**
  * Orbi — one conversation per piece of work (the id names it: `chat:<ulid>`,
@@ -18,9 +19,11 @@ export function Orbi({ id }: { id: string }) {
   // The edge: the conversation reads the Orbi's parts once and hands each capability what it declared.
   const all = services();
   const { config, brain, vault, pipelines, agents, toolOutcomes, codeAgents, followups } = all;
-  useModel(config.model, { thinkingLevel: 'low' });
+  // The model picked for this conversation (if the provider still offers it), else the default.
+  const model = modelSpecFor(all.llm, all.conversations.get(id)?.model);
+  useModel(model, { thinkingLevel: 'low' });
   useMcpConnection(all.browser.connection);
-  useSubagent({ ...investigadorFor(all), model: config.model });
+  useSubagent({ ...investigadorFor(all), model });
   useSkill(aprenderProcedimento);
   const { activeRun } = useOrbi(id, all);
 

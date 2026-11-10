@@ -57,7 +57,8 @@ export default {
   create(settings) {            // settings: model, baseUrl, apiKey, headers e env (todas as ORBI_LLM_*)
     return {
       name: 'gateway-empresa',
-      models: [{ id: settings.model, contextWindow: 128000, maxTokens: 8192 }],
+      // tier (opcional): cheap | standard | premium — aparece como barato/intermediário/caro na escolha do modelo
+      models: [{ id: settings.model, contextWindow: 128000, maxTokens: 8192, tier: 'standard' }],
       async chat(request, signal) {
         // request: { model, system, messages, tools, maxTokens, temperature }
         return { text, toolCalls };   // toolCalls: [{ id, name, arguments }]

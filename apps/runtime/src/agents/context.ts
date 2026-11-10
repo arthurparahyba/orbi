@@ -28,7 +28,8 @@ export interface GatedTool<T extends v.GenericSchema<Record<string, unknown>>> {
   /** Problems found before deciding (invalid input): the model fixes them; nothing is asked or run. */
   precheck?: (args: v.InferOutput<T>) => string[];
   /** The effect itself: runs now (`auto`), or later when the developer approves (`approved`). */
-  execute: (args: v.InferOutput<T>, approvalId: string, how: 'auto' | 'approved') => Promise<string>;
+  /** `signal`: the turn was stopped (the developer clicked Parar): stop what is running. */
+  execute: (args: v.InferOutput<T>, approvalId: string, how: 'auto' | 'approved', signal?: AbortSignal) => Promise<string>;
   timeoutMs?: number;
 }
 

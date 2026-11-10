@@ -243,4 +243,8 @@ UPDATE followups SET created_at = due_at WHERE created_at IS NULL;
 UPDATE followups SET status = 'delivered', delivered_at = due_at WHERE status = 'fired';
 CREATE INDEX IF NOT EXISTS followups_active ON followups (status, due_at);`,
   },
+  {
+    name: 'modelo escolhido por conversa (vazio = o padrão)',
+    sql: `ALTER TABLE conversations ADD COLUMN model TEXT;`,
+  },
 ];

@@ -11,6 +11,7 @@ import type { BrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import type { Recorder } from './browser/recorder.ts';
 import type { CodeAgents, CodeFixer } from './code-agents/index.ts';
 import type { ActiveLlm } from './llm/index.ts';
+import type { ModelTiers } from './llm/choices.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
 import type { ToolOutcomes } from './observability/tool-outcomes.ts';
@@ -50,6 +51,8 @@ export interface OrbiServices {
   /** Investigations and fixes by those agents, in throwaway copies. */
   codeFixer: CodeFixer;
   llm: ActiveLlm;
+  /** How costly each model is, as the developer classified them. */
+  modelTiers: ModelTiers;
   /** What changed, for the app (GET /api/events). */
   events: Events;
   /** Model and tool usage per conversation (fed by telemetry.ts). */

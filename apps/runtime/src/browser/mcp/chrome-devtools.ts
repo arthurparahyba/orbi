@@ -13,7 +13,8 @@ export interface BrowserMcp {
    */
   connection: ReturnType<typeof defineMcpConnection>;
   /** Calls one tool on the same bridge, for tools that gate or wrap calls. */
-  call(tool: string, args: Record<string, unknown>): Promise<string>;
+  /** `signal`: give up waiting (the developer stopped the turn). */
+  call(tool: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<string>;
   url: string;
 }
 
@@ -39,9 +40,9 @@ export function createBrowserMcp(opts: { port: number; token: string }): Browser
       throw error;
     }));
 
-  async function call(tool: string, args: Record<string, unknown>): Promise<string> {
+  async function call(tool: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<string> {
     const c = await connect();
-    const result = (await c.callTool({ name: tool, arguments: args })) as {
+    const result = (await c.callTool({ name: tool, arguments: args }, undefined, signal ? { signal } : undefined)) as {
       content?: Array<{ type: string; text?: string }>;
       isError?: boolean;
     };

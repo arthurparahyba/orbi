@@ -348,7 +348,7 @@ andamento** e a faixa da conversa.
 
 ### Conversas e o que espera você
 
-**`conversations`** · lista da tela **Conversa** (id `chat:…`, título, datas).
+**`conversations`** · lista da tela **Ensinar** (id `chat:…`, título, datas, `model` escolhido para a conversa).
 As mensagens ficam no `flue.db`.
 
 **`deleted_conversations`** · conversas apagadas (`deleted_at`) e quando o
@@ -440,6 +440,7 @@ editada, sempre se cria outra.
 | 18 | Agentes de código voltam a rodar em segundo plano por padrão |
 | 19 | Conceitos, fatos e procedimentos: `types.props`/`knows`, `entities.aliases`/`source` (apelidos entram no índice de busca), `playbooks.intent`/`inputs`/`tested_run`, `playbook_runs.kind`/`resolved` |
 | 20 | Retornos agendados com dono: `followups.attempts`/`run_id`/`step_id`/`created_at`/`delivered_at`/`cancelled_by`/`last_error`; `fired` vira `delivered` |
+| 21 | Modelo escolhido por conversa: `conversations.model` (vazio = o padrão) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

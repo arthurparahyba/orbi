@@ -311,6 +311,8 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `/api/pipelines/...` · `/api/pipeline-runs/...` | Esteiras e entregas (documento 16) |
 | `/api/code-agents/...` | Agentes de código desta máquina e quem faz cada tarefa (documento 17) |
 | `GET /api/model` · `POST /api/model/test` · `PUT /api/model` · `POST /api/model/plugins/rescan` | O modelo: situação, teste, escolher e aplicar (documento 12) |
+| `GET /api/model/choices` · `PUT /api/model/tiers` | Os modelos que uma conversa pode usar, com o custo; classificar o custo de um modelo |
+| `PUT /api/conversations/:id/model` | O modelo desta conversa (`null` volta ao padrão) |
 | `PATCH /api/brain/playbooks/:name` `{autonomy?, level?, levelMax?}` · `GET …/:name/autonomy` | Nível de autonomia, ações conhecidas e histórico (documento 3) |
 | `POST /api/inbox/:id/dismiss` · `POST /api/inbox/:id/keep` | Aviso de nível: visto, ou desfazer a mudança |
 | `POST /api/pipelines/:name/fix` | O Orbi propõe a correção da configuração de uma esteira (documento 16) |

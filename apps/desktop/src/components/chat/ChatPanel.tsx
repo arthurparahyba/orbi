@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useFlueAgent, type FlueConversationMessage } from '@flue/react';
 import { createFlueClient } from '@flue/sdk';
 import { useChanges } from '../../hooks';
@@ -43,6 +43,8 @@ export function ChatPanel(props: {
   target?: { inboxId: string; n: number };
   /** What the message box says when empty. */
   placeholder?: string;
+  /** Under the message box (e.g. the model picker of a conversation). */
+  composerFooter?: ReactNode;
   /** Runs before a message is sent: return false to keep it (e.g. a chip that opens a panel). */
   beforeSend?(text: string, firstMessage: boolean): boolean;
 }) {
@@ -75,7 +77,16 @@ export function ChatPanel(props: {
 
   // Stop: aborts the turn that is running (and what is queued behind it); it settles as "interrompida".
   const client = useMemo(() => createFlueClient({ url: new URL(url, window.location.href).toString() }), [url]);
-  const stop = async () => { await client.abort().catch(() => undefined); refresh(); };
+  // Says "Parando…" at once and keeps the button off until the turn really settles.
+  const [stopping, setStopping] = useState(false);
+  const stop = async () => {
+    if (stopping) return;
+    setStopping(true);
+    await client.abort().catch(() => undefined);
+    refresh();
+  };
+  const running = busy || catchUp.catchingUp;
+  useEffect(() => { if (!running) setStopping(false); }, [running]);
   const working = workingState(visible, busy || catchUp.catchingUp);
 
   const send = async (text: string) => {
@@ -104,7 +115,7 @@ export function ChatPanel(props: {
         </div>
       </ChatContext.Provider>
       {props.dock}
-      <Composer onSend={send} placeholder={props.placeholder} busy={busy || catchUp.catchingUp} onStop={stop} />
+      <Composer onSend={send} placeholder={props.placeholder} busy={running} stopping={stopping} onStop={stop} footer={props.composerFooter} />
     </section>
   );
 }

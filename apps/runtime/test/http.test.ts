@@ -188,3 +188,26 @@ test('health, rota inexistente e token', async () => {
   assert.equal(missing.status, 404);
   isApiError(missing.json, 'not_found');
 });
+
+test('modelo por conversa: opções do provedor com custo, escolher, voltar ao padrão, classificar', async () => {
+  const { call } = await setup();
+  const choices = await call('GET', '/api/model/choices');
+  const def = choices.json.default;
+  assert.equal(choices.json.models[0].id, def, 'o padrão vem primeiro');
+  assert.deepEqual(choices.json.models.find((m: any) => m.id === 'claude-sonnet-5-5'), { id: 'claude-sonnet-5-5', tier: 'standard', tierBy: 'conhecido' });
+
+  const conv = (await call('POST', '/api/conversations', {})).json;
+  const chosen = await call('PUT', `/api/conversations/${conv.id}/model`, { model: 'claude-opus-5-5' });
+  assert.equal(chosen.json.model, 'claude-opus-5-5');
+  assert.equal((await call('GET', '/api/conversations')).json[0].model, 'claude-opus-5-5');
+  const unknown = await call('PUT', `/api/conversations/${conv.id}/model`, { model: 'gpt-qualquer' });
+  assert.equal(unknown.status, 400);
+  isApiError(unknown.json, 'unknown_model');
+  const back = await call('PUT', `/api/conversations/${conv.id}/model`, { model: null });
+  assert.equal(back.json.model, undefined);
+
+  const tiered = await call('PUT', '/api/model/tiers', { model: 'claude-opus-5-5', tier: 'standard' });
+  assert.deepEqual(tiered.json.models.find((m: any) => m.id === 'claude-opus-5-5'), { id: 'claude-opus-5-5', tier: 'standard', tierBy: 'voce' });
+  const bad = await call('PUT', '/api/model/tiers', { model: 'x', tier: 'caríssimo' });
+  assert.equal(bad.status, 400);
+});

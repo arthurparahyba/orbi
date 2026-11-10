@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ConversationNotebook } from '../../api';
 import { CheckIcon, XIcon } from '../../components/Icons';
-import { readable, stepMark } from './notebook';
+import { readable, stepMark } from './notebookLines';
 
 /** One block of the panel: a small caps title and what goes under it. */
 export function Section({ title, children }: { title: string; children: ReactNode }) {

@@ -8,10 +8,12 @@ export interface ConversationInfo {
   title: string;
   createdAt: string;
   updatedAt: string;
+  /** The model chosen for it; none = the default. */
+  model?: string;
 }
 
 type Row = Record<string, unknown>;
-const toInfo = (r: Row): ConversationInfo => ({ id: String(r.id), title: String(r.title), createdAt: String(r.created_at), updatedAt: String(r.updated_at) });
+const toInfo = (r: Row): ConversationInfo => ({ id: String(r.id), title: String(r.title), createdAt: String(r.created_at), updatedAt: String(r.updated_at), ...(r.model ? { model: String(r.model) } : {}) });
 
 export class Conversations {
   constructor(private readonly db: DatabaseSync) {}
@@ -57,6 +59,13 @@ export class Conversations {
         .run(now, id);
     });
     return true;
+  }
+
+  /** The model this conversation uses from its next turn; null = back to the default. */
+  setModel(id: string, model: string | null): ConversationInfo | undefined {
+    if (!this.get(id)) return undefined;
+    this.db.prepare('UPDATE conversations SET model = ? WHERE id = ?').run(model, id);
+    return this.get(id);
   }
 
   touch(id: string, title?: string): ConversationInfo | undefined {

@@ -18,6 +18,7 @@ import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
 import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
 import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './llm/index.ts';
+import { ModelTiers } from './llm/choices.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
 import { createEvents } from './events.ts';
@@ -79,6 +80,7 @@ export async function createOrbi(
   return {
     config: finalConfig,
     llm,
+    modelTiers: new ModelTiers(db),
     events,
     usage: overrides.usage ?? new UsageStore(db),
     toolOutcomes: overrides.toolOutcomes ?? new ToolOutcomes(),

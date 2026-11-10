@@ -18,9 +18,9 @@ export const browserRead = (browser: Pick<BrowserMcp, 'call'>) => defineTool({
     'Read-only browser access (Chrome DevTools MCP): list_pages, new_page, navigate_page, take_snapshot, take_screenshot, wait_for, console and network listing. Pass the page-scoped tools a `pageId` from list_pages.',
   input: v.object({ tool: v.string(), args: v.optional(v.record(v.string(), v.unknown())) }),
   timeoutMs: 120_000,
-  async run({ data }) {
+  async run({ data, signal }) {
     if (browserCategory(data.tool) !== 'navegador-leitura') return { output: { refused: 'Ação de escrita no navegador.' } };
-    return { output: await browser.call(data.tool, data.args ?? {}) };
+    return { output: await browser.call(data.tool, data.args ?? {}, signal) };
   },
 });
 
@@ -37,10 +37,10 @@ function useBrowser(ctx: AgentContext, { vault, browser }: Deps<'vault' | 'brows
     summary: (a) => `${a.purpose} (navegador: ${a.tool})`,
     title: (a) => a.purpose,
     command: (a) => `navegador: ${a.tool}`,
-    execute: async (a) => {
+    execute: async (a, _id, _how, signal) => {
       const { value: args, used } = await vault.resolve(a.args);
       try {
-        return redact(await browser.call(a.tool, args), used);
+        return redact(await browser.call(a.tool, args, signal), used);
       } catch (error) {
         throw new Error(redact(error instanceof Error ? error.message : String(error), used));
       }
