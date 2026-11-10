@@ -165,7 +165,12 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
   const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   const timers = [startFollowups(s, agent), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();
-  process.once('exit', () => s.chrome.stop());
+  // Whatever way the runtime ends (app closed, Ctrl+C, the parent gone), what it started ends
+  // with it: the chrome-devtools-mcp process and the Chrome it opened. 'exit' runs only sync code.
+  process.once('exit', () => {
+    chrome?.bridge?.killNow();
+    s.chrome.stop();
+  });
 
   return {
     bridge: () => chrome?.bridge,
@@ -235,9 +240,11 @@ function watchParent(parent: number): NodeJS.Timeout {
   return setInterval(() => {
     try {
       process.kill(parent, 0);
-    } catch {
+    } catch (error) {
+      // EPERM: it exists, it is just not ours to signal. Only "no such process" means it is gone.
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') return;
       log.info('app desktop encerrado; parando o runtime', { parent });
-      process.exit(0);
+      process.exit(0); // the 'exit' handler ends chrome-devtools-mcp and Chrome too
     }
   }, 2_000);
 }

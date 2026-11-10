@@ -151,6 +151,17 @@ assinatura: [../empacotamento.md](../empacotamento.md).
 - O runtime é um programa de console: ele inicia com `CREATE_NO_WINDOW`, senão uma
   janela pisca a cada abertura.
 
+## Processos
+
+Com o app aberto há dois processos `orbi-node` (ou `node`): o **runtime** e o
+**chrome-devtools-mcp**, que o runtime inicia para controlar o Chrome. Fechar o
+Orbi encerra os dois (e o Chrome que o Orbi abriu):
+
+- O app, ao sair, encerra a árvore do runtime (`taskkill /T` no Windows).
+- O runtime, ao terminar de qualquer jeito (app fechado, Ctrl+C, o app sumiu sem
+  avisar: ele confere o processo do app a cada 2 s), encerra o chrome-devtools-mcp
+  e o Chrome que abriu (`process.on('exit')` em `compose.ts`).
+
 ## Limites conhecidos
 
 - O app ocupa uns 430 MB instalado, a maior parte do onnxruntime e do Node (veja como reduzir em [../empacotamento.md](../empacotamento.md)).

@@ -32,6 +32,8 @@ export interface RunningBridge {
   port: number;
   toolNames: string[];
   close(): Promise<void>;
+  /** Ends the chrome-devtools-mcp process now, synchronously (for process exit, when async work no longer runs). */
+  killNow(): void;
 }
 
 function chromeDevtoolsCommand(chrome: NonNullable<BridgeOptions['chrome']>): { command: string; args: string[] } {
@@ -70,14 +72,14 @@ export async function startBridge(options: BridgeOptions): Promise<RunningBridge
     : chromeDevtoolsCommand(options.chrome ?? {});
 
   const upstream = new Client({ name: 'orbi-bridge', version: '0.1.0' });
-  await upstream.connect(
-    new StdioClientTransport({
-      command: launch.command,
-      args: launch.args,
-      env: { ...process.env, CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: '1' } as Record<string, string>,
-      stderr: 'pipe',
-    }),
-  );
+  // The second node process next to the runtime: chrome-devtools-mcp, spoken to over stdio.
+  const stdio = new StdioClientTransport({
+    command: launch.command,
+    args: launch.args,
+    env: { ...process.env, CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: '1' } as Record<string, string>,
+    stderr: 'pipe',
+  });
+  await upstream.connect(stdio);
   const { tools } = await upstream.listTools();
 
   // Stateless streamable HTTP: one short-lived MCP server per request, all
@@ -135,6 +137,15 @@ export async function startBridge(options: BridgeOptions): Promise<RunningBridge
     async close() {
       await new Promise<void>((resolve) => http.close(() => resolve()));
       await upstream.close();
+    },
+    killNow() {
+      const pid = stdio.pid;
+      if (!pid) return;
+      try {
+        process.kill(pid);
+      } catch {
+        /* already gone */
+      }
     },
   };
 }

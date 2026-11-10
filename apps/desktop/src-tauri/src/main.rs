@@ -162,6 +162,26 @@ fn start_runtime(app: &App) -> Option<Child> {
     }
 }
 
+/// Closing the app ends the runtime and everything it started (the chrome-devtools-mcp node
+/// process). On Windows, killing the runtime alone would leave its children running, so the
+/// whole tree goes (taskkill /T). Elsewhere the runtime ends its children on exit.
+fn stop_runtime(mut child: Child) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let _ = Command::new("taskkill")
+            .args(["/PID", &child.id().to_string(), "/T", "/F"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
 #[cfg(test)]
 mod tests {
     use super::plain;
@@ -188,9 +208,8 @@ fn main() {
 
     app.run(|handle, event| {
         if let RunEvent::Exit = event {
-            if let Some(mut child) = handle.state::<Runtime>().0.lock().unwrap().take() {
-                let _ = child.kill();
-                let _ = child.wait();
+            if let Some(child) = handle.state::<Runtime>().0.lock().unwrap().take() {
+                stop_runtime(child);
             }
         }
     });
