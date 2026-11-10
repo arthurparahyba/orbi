@@ -91,6 +91,25 @@ Chamadas de ferramenta aparecem como linhas recolhidas ("2 ações: Comando,
 Consulta ao cérebro"); as que já viram cartão (`show_ui`, passos de procedimento,
 `similar_found`) ficam escondidas para não repetir.
 
+### Como um turno termina
+
+Um turno acaba quando o modelo responde sem chamar ferramenta. Para não parecer
+que acabou quando não acabou, o prompt (`prompts/orbi/base.md`, "Como terminar um
+turno") só aceita três finais:
+
+- **Terminei**: o pedido está feito, com o resultado;
+- **Preciso de você**: há um cartão esperando (aprovação do portão ou pergunta com
+  `ask_developer`), que entra em Pendências;
+- **Continuo depois**: um retorno agendado (`schedule_followup`), dizendo quando.
+
+O que não pode é anunciar o próximo passo ("é preciso rodar X") e parar. Se o
+próximo passo faz parte do pedido, o Orbi chama a ferramenta e o portão decide se
+roda ou pede aprovação; se é uma escolha sua, ele pergunta com opções. É só uma
+regra de prompt: a avaliação de comportamento mede quantos turnos ainda param no
+meio (documento 18). Se continuar acontecendo, o próximo passo combinado é um
+gancho no fim do turno, primeiro só observando (protótipo em
+[Fim de turno](https://claude.ai/artifact/N7NyRXFqMHgEhmK3gbQknb)).
+
 ### Conversas que começam por fora
 
 Quando o runtime manda uma mensagem sozinho (aprovação decidida, demonstração

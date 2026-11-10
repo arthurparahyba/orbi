@@ -90,7 +90,11 @@ async function runScenario(id: string) {
   const record = (reply: Reply) => {
     const cards = components(reply);
     for (const c of cards) if (c.inboxId) shown.set(c.inboxId, c);
-    snap.turns.push({ from: 'orbi', text: reply.text, cards: cards.map((c) => ({ component: String(c.component), summary: cardSummary(c) })) });
+    // Stopped half-way: a procedure still open and nothing waiting for the developer (no card, no follow-up).
+    const waiting = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversation && x.kind !== 'level');
+    const open = brain.runs(50).some((r) => r.conversationId === conversation && (r.status === 'running' || r.status === 'waiting'));
+    const followup = brain.agenda.hasScheduledFollowup(conversation);
+    snap.turns.push({ from: 'orbi', text: reply.text, cards: cards.map((c) => ({ component: String(c.component), summary: cardSummary(c) })), stalled: open && !waiting && !followup });
   };
   const results: Array<{ session: number; checks: Array<{ name: string; ok: boolean; why?: string }>; diff: unknown }> = [];
 
@@ -135,7 +139,9 @@ async function runScenario(id: string) {
       if (receipt && typeof receipt === 'object' && !('error' in receipt)) record((await orbi.read(receipt as never)) as Reply);
     }
     const after = take();
-    const checks = session.checks.map((c) => {
+    // Every session: no turn may end announcing the next step without doing it or asking (docs: "Como terminar um turno").
+    const endings = { name: 'nenhum turno parou no meio', test: (a: Snapshot, b: Snapshot) => core.stalledTurns(a, b).length === 0 || `${core.stalledTurns(a, b).length} turno(s) pararam com o procedimento aberto e nada esperando` };
+    const checks = [...session.checks, endings].map((c) => {
       const r = c.test(after, before);
       return { name: c.name, ok: r === true, ...(r === true ? {} : { why: String(r) }) };
     });

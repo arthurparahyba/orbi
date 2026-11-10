@@ -92,3 +92,15 @@ test('avaliação: o painel de serviços mostra os recursos e o catálogo exige 
   }
   assert.deepEqual(SCENARIOS.map((s) => s.id), ['loja', 'portal', 'repositorio', 'ambiente', 'falhas']);
 });
+
+test('avaliação: turno que parou no meio é contado e aparece para o juiz', async () => {
+  const { stalledTurns } = await import('../scripts/eval/core.ts');
+  const before = empty();
+  const after: Snapshot = { ...empty(), turns: [
+    { from: 'desenvolvedor', text: 'sobe a 2.15' },
+    { from: 'orbi', text: 'Para publicar é preciso rodar o release.yml.', stalled: true },
+  ] };
+  assert.equal(stalledTurns(after, before).length, 1);
+  assert.match(transcriptOf(after), /terminou com o procedimento aberto e nada esperando/);
+  assert.ok(RUBRIC.some((r) => r.id === 'fim_de_turno'));
+});
