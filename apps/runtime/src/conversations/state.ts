@@ -14,7 +14,9 @@ export type ConversationState =
   | { mode: 'conversa' }
   | { mode: 'ensinando'; stage: Exclude<TeachingStage, 'assumir'> }
   | { mode: 'aprendido'; stage: 'assumir'; playbook: string; level: 1 | 2 | 3 }
-  | { mode: 'fazendo'; playbook: string; status: PlaybookRun['status'] };
+  | { mode: 'fazendo'; playbook: string; status: PlaybookRun['status'] }
+  /** The conversation delivers an esteira: the delivery is what it is about. */
+  | { mode: 'esteira'; pipeline: string; status: 'running' | 'waiting' | 'done' | 'cancelled' };
 
 export interface StateFacts {
   /** The latest run started in the conversation (a rehearsal or a real run). */
@@ -23,9 +25,12 @@ export interface StateFacts {
   learningOpen: boolean;
   /** The procedure learned in this conversation, if any (the latest one). */
   learned?: { name: string; level: 1 | 2 | 3 };
+  /** The esteira delivered in this conversation, if any. */
+  delivery?: { pipeline: string; status: 'running' | 'waiting' | 'done' | 'cancelled' };
 }
 
-export function conversationState({ lastRun, learningOpen, learned }: StateFacts): ConversationState {
+export function conversationState({ lastRun, learningOpen, learned, delivery }: StateFacts): ConversationState {
+  if (delivery) return { mode: 'esteira', pipeline: delivery.pipeline, status: delivery.status };
   // A real run is the newest thing: whatever was taught before, now it is doing.
   if (lastRun && lastRun.kind !== 'rehearsal') return { mode: 'fazendo', playbook: lastRun.playbook, status: lastRun.status };
   if (learned && !learningOpen) return { mode: 'aprendido', stage: 'assumir', playbook: learned.name, level: learned.level };

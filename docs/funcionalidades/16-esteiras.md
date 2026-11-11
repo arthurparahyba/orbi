@@ -26,8 +26,14 @@ modelo: qual ramo, com quais dados, se precisa perguntar.
     seguir"). Avisa os dados que nenhuma etapa entrega (o Orbi pergunta quando
     chegar lá). **Começar uma entrega** (entradas e destino), **Editar** e
     **Apagar**.
-- **Conversa**: uma faixa no topo com as etapas e o estado, os **dados** já
-  entregues e, quando espera você, o cartão da decisão: **Seguir para…** /
+- **Conversa**: o **painel da esteira**, ao lado do chat (`EsteiraPanel`), acompanha a entrega
+  inteira: onde está ("Etapa 3 de 5 · até GMUD") e há quanto tempo; cada etapa que terminou numa
+  linha, com o tempo e o que entregou; a etapa atual aberta, com os passos do procedimento dela
+  (assim que ele começa) e a decisão que espera; as próximas apagadas, com ⚑ no destino; os
+  **dados** passados entre etapas recolhidos; e **Encerrar**. Em janelas estreitas (sem painel), a
+  faixa no topo da conversa mostra o mesmo, como antes. A lista diz "Esteira … · esperando você"
+  e a deixa em Em andamento até a entrega terminar. No chat, uma linha marca o começo ("A partir
+  daqui: esteira …"). Quando espera você, o cartão da decisão: **Seguir para…** /
   **Encerrar aqui** numa passagem; **Tentar de novo** / **Pular** / **Encerrar**
   numa falha; os campos que faltam quando um dado não veio. A decisão também
   aparece em **Pendências** (tipo "Esteira").
@@ -95,7 +101,7 @@ sequenceDiagram
 - **Etapa por etapa**: enquanto a etapa atual não termina, o Orbi não consegue
   começar o procedimento de outra etapa da mesma esteira: `playbook_start` devolve o
   que falta (os passos abertos) e que a esteira diz a próxima.
-- **Encerrar** (na faixa da esteira, na conversa): termina uma entrega rodando ou
+- **Encerrar** (no painel da esteira, ou na faixa em janelas estreitas): termina uma entrega rodando ou
   presa (uma etapa que nunca fechou). A revisão que vem em seguida aponta o que
   ficou aberto.
 - **Padrão sugerido**: na revisão do fim da entrega, uma entrada sem padrão que

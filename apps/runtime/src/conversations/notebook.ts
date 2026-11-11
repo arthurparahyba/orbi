@@ -62,7 +62,7 @@ export function buildNotebook(f: NotebookFacts): ConversationNotebook {
   const run = f.lastRun;
   const tried = (r: PlaybookRun) => r.steps.map((s) => ({ label: s.label, status: s.status, ...(s.note ? { note: s.note } : {}) }));
 
-  if (f.state.mode === 'fazendo' && run) {
+  if ((f.state.mode === 'fazendo' || f.state.mode === 'esteira') && run && run.kind !== 'rehearsal') {
     return { state: f.state, ...fromProcedure, steps: tried(run), noted, readiness: f.readiness, ...(procedure ? { procedure } : {}) };
   }
   if (f.state.mode === 'aprendido' && pb) {

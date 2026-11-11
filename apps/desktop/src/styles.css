@@ -842,3 +842,19 @@ button.teach-way:hover { border-color: var(--amber); }
 .mode-mark { margin: 6px 0; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .mode-mark::before, .mode-mark::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 .teach-start .link-btn { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ── esteira no painel (substitui a barra de cima em janelas largas) ── */
+.es-where { display: flex; justify-content: space-between; margin: -6px 0 0; }
+.es-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.es-stage { border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.es-stage.is-now { border-color: rgba(242, 177, 60, 0.5); background: rgba(242, 177, 60, 0.05); }
+.es-stage.is-next { opacity: 0.6; }
+.es-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.es-mark { display: inline-block; width: 14px; color: var(--muted); }
+.es-stage.is-done .es-mark { color: var(--green); }
+.es-stage.is-failed .es-mark { color: var(--red); }
+.es-stage.is-now .es-mark { color: var(--amber); }
+.es-handed { margin: 0; font-size: 11.5px; color: var(--muted); word-break: break-all; }
+.es-stage .pl-decision { margin: 2px 0 0; }
+@media (min-width: 1101px) { .conversa.has-esteira .pl-bar { display: none; } }
+.es-data summary { cursor: pointer; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }

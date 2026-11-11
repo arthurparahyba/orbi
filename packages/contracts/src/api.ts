@@ -17,7 +17,8 @@ export type ConversationState =
   | { mode: 'conversa' }
   | { mode: 'ensinando'; stage: Exclude<TeachingStage, 'assumir'> }
   | { mode: 'aprendido'; stage: 'assumir'; playbook: string; level: 1 | 2 | 3 }
-  | { mode: 'fazendo'; playbook: string; status: 'running' | 'waiting' | 'done' | 'failed' };
+  | { mode: 'fazendo'; playbook: string; status: 'running' | 'waiting' | 'done' | 'failed' }
+  | { mode: 'esteira'; pipeline: string; status: 'running' | 'waiting' | 'done' | 'cancelled' };
 /** The "O que estou aprendendo" panel: what the Orbi understood in a conversation, from the brain. */
 export interface ConversationNotebook {
   state: ConversationState;

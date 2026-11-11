@@ -36,3 +36,11 @@ describe('Conversas: uma caixa só, a cara de ensino só quando é ensino', () =
     expect(groups.map((g) => [g.title, g.items.map((c) => c.id)])).toEqual([['Em andamento', ['b', 'c']], ['Já assumi', ['e']], ['Recentes', ['a', 'd']]]);
   });
 });
+
+describe('esteira na lista', () => {
+  it('rodando fica em andamento; concluída vai para recentes', () => {
+    expect(stateLine({ mode: 'esteira', pipeline: 'entrega-do-portal', status: 'waiting' })).toBe('Esteira entrega-do-portal · esperando você');
+    expect(groupConversations([conv('x', { mode: 'esteira', pipeline: 'e', status: 'running' }), conv('y', { mode: 'esteira', pipeline: 'e', status: 'done' })]).map((g) => [g.key, g.items.map((c) => c.id)])).toEqual([['andamento', ['x']], ['recentes', ['y']]]);
+    expect(stageIndex({ mode: 'esteira', pipeline: 'e', status: 'running' })).toBeUndefined();
+  });
+});

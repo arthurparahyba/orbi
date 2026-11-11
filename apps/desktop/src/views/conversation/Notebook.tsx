@@ -11,7 +11,7 @@ import { LEVELS, levelLine, usesLine } from './notebookLines';
 export function Notebook({ id }: { id: string }) {
   const nb = useLive(() => api.notebook(id), ['runs', 'inbox', 'brain', 'conversations'], [id]);
   const n = nb.data;
-  const title = !n || n.state.mode === 'ensinando' ? 'O que estou aprendendo' : n.state.mode === 'aprendido' ? 'O que aprendi' : 'O que estou fazendo';
+  const title = !n || n.state.mode === 'ensinando' || n.state.mode === 'conversa' ? 'O que estou aprendendo' : n.state.mode === 'aprendido' ? 'O que aprendi' : 'O que estou fazendo';
   return (
     <aside className="notebook" aria-label={title}>
       <h2><BookIcon size={15} /> {title}</h2>

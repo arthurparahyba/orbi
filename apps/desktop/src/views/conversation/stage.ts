@@ -23,6 +23,9 @@ export function stageIndex(state: ConversationState): number | undefined {
 const DOING: Record<Extract<ConversationState, { mode: 'fazendo' }>['status'], string> = {
   running: 'fazendo', waiting: 'esperando você', done: 'feito', failed: 'não deu certo',
 };
+const DELIVERY: Record<Extract<ConversationState, { mode: 'esteira' }>['status'], string> = {
+  running: 'rodando', waiting: 'esperando você', done: 'concluída', cancelled: 'encerrada',
+};
 const TEACHING: Record<Extract<ConversationState, { mode: 'ensinando' }>['stage'], string> = {
   explicar: 'Aprendendo com você', ensaiar: 'Aprendendo com você · ensaiando', combinar: 'Aprendendo com você · combinando início e fim', aprender: 'Esperando você aprovar o que aprendi',
 };
@@ -31,6 +34,7 @@ const TEACHING: Record<Extract<ConversationState, { mode: 'ensinando' }>['stage'
 export function stateLine(state: ConversationState): string {
   if (state.mode === 'conversa') return 'Conversa';
   if (state.mode === 'fazendo') return `${state.playbook} · ${DOING[state.status]}`;
+  if (state.mode === 'esteira') return `Esteira ${state.pipeline} · ${DELIVERY[state.status]}`;
   if (state.mode === 'aprendido') return `Assumi: ${state.playbook} · N${state.level}`;
   return TEACHING[state.stage];
 }
@@ -45,7 +49,7 @@ const GROUPS: Array<{ key: GroupKey; title: string }> = [
 /** Teaching, or doing and not finished: in progress. Learned: taken over. The rest: recent. */
 export function groupOf(state: ConversationState): GroupKey {
   if (state.mode === 'ensinando') return 'andamento';
-  if (state.mode === 'fazendo') return state.status === 'running' || state.status === 'waiting' ? 'andamento' : 'recentes';
+  if (state.mode === 'fazendo' || state.mode === 'esteira') return state.status === 'running' || state.status === 'waiting' ? 'andamento' : 'recentes';
   if (state.mode === 'aprendido') return 'assumi';
   return 'recentes';
 }

@@ -6,6 +6,7 @@ import { Chat } from './Chat';
 import { ConversationList } from './ConversationList';
 import { InboxPanel } from './InboxPanel';
 import { Notebook } from './Notebook';
+import { EsteiraPanel } from './EsteiraPanel';
 import { needsYou } from './inbox';
 import { showsPanel, stateOf } from './stage';
 
@@ -32,6 +33,10 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
   const fromAgents = (list.data ?? []).some((c) => c.origin);
   const shown = list.data?.filter((c) => filter === 'todas' || (filter === 'agentes') === !!c.origin);
   const open = list.data?.find((c) => c.id === current);
+  // A conversation that delivers an esteira: the panel follows the delivery as a whole.
+  const delivery = useLive(() => (current ? api.pipelineRunIn(current) : Promise.resolve(null)), ['pipelines'], [current]);
+  const esteira = delivery.data ?? undefined;
+  const panel = !!open && (!!esteira || showsPanel(stateOf(open)));
 
   useEffect(() => {
     if (focus) setCurrent(focus.id);
@@ -48,7 +53,7 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
   };
 
   return (
-    <div className={`conversa ${inboxOpen || (open && showsPanel(stateOf(open))) ? 'with-side' : ''}`}>
+    <div className={`conversa ${inboxOpen || panel ? 'with-side' : ''} ${esteira && !inboxOpen ? 'has-esteira' : ''}`}>
       <ConversationList items={shown} current={current} openInbox={openInbox} error={list.error} onPick={setCurrent} onNew={newConversation}
         filter={fromAgents && <Segmented<Filter> label="Mostrar" value={filter} onChange={setFilter} options={[{ value: 'todas', label: 'Todas' }, { value: 'minhas', label: 'Minhas' }, { value: 'agentes', label: 'Dos agentes' }]} />} />
       {current ? (
@@ -66,7 +71,7 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
       {/* Pendências takes the place of the panel while open. */}
       {inboxOpen
         ? <InboxPanel items={openInbox} current={current} onClose={() => setInboxOpen(false)} onOpen={(id) => (isConfigChat(id) ? onOpenConfig() : setCurrent(id))} onGoTo={goTo} />
-        : open && showsPanel(stateOf(open)) && <Notebook key={`painel-${open.id}`} id={open.id} />}
+        : open && (esteira ? <EsteiraPanel key={`esteira-${open.id}`} run={esteira} conversationId={open.id} /> : panel && <Notebook key={`painel-${open.id}`} id={open.id} />)}
     </div>
   );
 }

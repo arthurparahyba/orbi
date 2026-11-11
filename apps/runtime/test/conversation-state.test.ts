@@ -37,3 +37,7 @@ test('etapa: procedimento aprendido aqui e nada esperando é Já sei fazer, com 
 test('etapa: uma execução de verdade é a última coisa: Fazendo, com o estado', () => {
   assert.deepEqual(conversationState({ lastRun: run('waiting'), learningOpen: false, learned: { name: 'atualizar-mfe', level: 1 } }), { mode: 'fazendo', playbook: 'atualizar-mfe', status: 'waiting' });
 });
+
+test('etapa: conversa de uma entrega é a esteira, com o estado dela', () => {
+  assert.deepEqual(conversationState({ lastRun: run('running'), learningOpen: false, delivery: { pipeline: 'entrega-do-portal', status: 'waiting' } }), { mode: 'esteira', pipeline: 'entrega-do-portal', status: 'waiting' });
+});

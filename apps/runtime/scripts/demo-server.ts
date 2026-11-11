@@ -477,7 +477,7 @@ function pipelineScenario(msgs: Msg[], said: string, lastUser: number) {
     const outputs = lastStep && started.outputs?.length ? Object.fromEntries(started.outputs.map((o) => [o.name, fakeValue(o.name)])) : undefined;
     return call('playbook_step', { stepId: started.steps[done].id, status: 'done', ...(outputs ? { outputs } : {}) });
   }
-  if (/Resuma|chegou/.test(lastText)) return fauxAssistantMessage(fauxText('Pronto: a entrega chegou onde você pediu. Os dados estão na faixa no topo da conversa.'));
-  if (/autorização|faltam|parou/.test(lastText)) return fauxAssistantMessage(fauxText('Parei aqui: a próxima etapa espera você na faixa no topo da conversa.'));
+  if (/Resuma|chegou/.test(lastText)) return fauxAssistantMessage(fauxText('Pronto: a entrega chegou onde você pediu. Os dados estão no painel da esteira, ao lado.'));
+  if (/autorização|faltam|parou/.test(lastText)) return fauxAssistantMessage(fauxText('Parei aqui: a próxima etapa espera você no painel da esteira, ao lado.'));
   return undefined;
 }

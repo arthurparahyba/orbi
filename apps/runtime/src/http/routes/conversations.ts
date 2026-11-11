@@ -7,7 +7,7 @@ import { buildNotebook } from '../../conversations/notebook.ts';
 import { modelChoices } from '../../llm/choices.ts';
 
 /** Where each conversation is, from the brain: open learning cards and the procedure learned in each one. */
-function stateReader({ brain, inbox }: OrbiServices): (id: string) => ConversationState {
+function stateReader({ brain, inbox, pipelines }: OrbiServices): (id: string) => ConversationState {
   const learning = new Set(inbox.list({ status: 'open' }).filter((i) => i.kind === 'learning').map((i) => i.conversationId));
   const learned = new Map<string, { name: string; level: 1 | 2 | 3; at: string }>();
   for (const pb of brain.procedures.playbooks()) {
@@ -16,7 +16,8 @@ function stateReader({ brain, inbox }: OrbiServices): (id: string) => Conversati
   }
   return (id) => {
     const l = learned.get(id);
-    return conversationState({ lastRun: brain.execution.lastRunIn(id), learningOpen: learning.has(id), learned: l && { name: l.name, level: l.level } });
+    const d = pipelines.runs.inConversation(id);
+    return conversationState({ lastRun: brain.execution.lastRunIn(id), learningOpen: learning.has(id), learned: l && { name: l.name, level: l.level }, ...(d ? { delivery: { pipeline: d.pipeline, status: d.status } } : {}) });
   };
 }
 
@@ -42,12 +43,14 @@ export function conversationRoutes(s: OrbiServices) {
       if (!conversations.get(id)) throw notFound('conversa');
       const state = stateReader(s)(id);
       const lastRun = brain.execution.lastRunIn(id);
-      const procedure = state.mode === 'aprendido' || state.mode === 'fazendo' ? brain.procedures.playbook(state.playbook) : undefined;
+      // In an esteira, the panel's steps are those of the stage running now (the latest run).
+      const procedureName = state.mode === 'aprendido' || state.mode === 'fazendo' ? state.playbook : state.mode === 'esteira' && lastRun ? lastRun.playbook : undefined;
+      const procedure = procedureName ? brain.procedures.playbook(procedureName) : undefined;
       return c.json(buildNotebook({
         conversationId: id, state, lastRun, procedure,
         entities: brain.facts.graph().entities,
         runIds: brain.execution.runsIn(id).map((r) => r.id),
-        readiness: state.mode === 'fazendo' && lastRun ? brain.execution.readiness(lastRun.id) : [],
+        readiness: (state.mode === 'fazendo' || state.mode === 'esteira') && lastRun ? brain.execution.readiness(lastRun.id) : [],
       }));
     })
     .post('/', async (c) => {

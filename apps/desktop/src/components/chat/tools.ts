@@ -157,5 +157,6 @@ export function modeMark(t: ToolCall): string | undefined {
   const i = inputOf(t);
   if (t.toolName === 'rehearsal_start') return `A partir daqui: aprendendo com você${typeof i.goal === 'string' && i.goal.trim() ? ` · ${i.goal.trim()}` : ''}`;
   if (t.toolName === 'playbook_start' && typeof i.name === 'string') return `A partir daqui: fazendo ${i.name}`;
+  if (t.toolName === 'pipeline_start' && typeof i.name === 'string') return `A partir daqui: esteira ${i.name}${typeof i.destination === 'string' ? `, até ${i.destination}` : ''}`;
   return undefined;
 }
