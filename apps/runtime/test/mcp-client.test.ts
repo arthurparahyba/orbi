@@ -86,6 +86,12 @@ test('mcp: ferramenta nova entra ligada e sinalizada; a que apaga entra desligad
   assert.deepEqual(store.summary(store.get('jira')!, 'conectado').counts, { leitura: 2, escrita: 1, novas: 2 });
   store.setTool('jira', 'comentar', { kind: 'escrita' });
   assert.equal(store.tools('jira').find((x) => x.name === 'comentar')!.isNew, false, 'marcou, deixa de ser nova');
+  store.setTool('jira', 'apagar', { alone: true });
+  assert.equal(store.tools('jira').find((x) => x.name === 'apagar')!.alone, false, '"sempre sozinho" não vale para quem apaga');
+  store.sync('jira', [t('buscar', 'leitura'), t('criar', 'escrita'), t('nova', null)]);
+  store.reviewAll('jira');
+  assert.equal(store.tools('jira').find((x) => x.name === 'nova')!.isNew, false, '"manter como estão" tira o destaque');
+  assert.equal(store.tools('jira').find((x) => x.name === 'nova')!.effective, 'escrita', 'e continua pedindo aprovação');
   store.sync('jira', [t('buscar', 'leitura')]);
   assert.deepEqual(store.tools('jira').map((x) => x.name), ['buscar'], 'sumiu do servidor, sai daqui');
 });

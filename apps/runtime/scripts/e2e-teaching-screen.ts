@@ -52,6 +52,12 @@ const vite = await createServer({ root: desktop, configFile: join(desktop, 'vite
 await vite.listen();
 const browser = await puppeteer.launch({ executablePath: chromeExecutable(), headless: true, args: ['--no-sandbox', '--no-first-run'], defaultViewport: { width: 1440, height: 900 } });
 const page = await browser.newPage();
+// Requests the page has open: at the end only the change feed and one wait per conversation may be
+// left. Streams that pile up hold the browser's 6 connections to the runtime and the app freezes.
+const openReq = new Map<unknown, string>();
+page.on('request', (r) => openReq.set(r, `${r.method()} ${r.url()}`));
+page.on('requestfinished', (r) => openReq.delete(r));
+page.on('requestfailed', (r) => openReq.delete(r));
 const pageErrors: string[] = [];
 page.on('pageerror', (e) => pageErrors.push(String(e)));
 // React warnings (duplicate keys and the like) count as errors of the screen.
@@ -319,6 +325,28 @@ try {
   assert.ok(!(await text('.mcp-server')).includes('tok-programa-nao-vaza'));
   await clickButton('.subnav', /Regras/);
   await shows('.auto-list', /Issues: ler[\s\S]*Issues: alterar[\s\S]*Chamados: ler/);
+
+  // "Sempre sozinho" from the card (fase 5): saved for the tool, this call approved; undone on the server page.
+  await clickButton('.rail', /Conversas/);
+  await page.click('.convs-new');
+  await shows('main', /O que você precisa\?/);
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('chamados__abrir_chamado', {}), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Chamado aberto.')),
+  ]);
+  await say('abre um chamado');
+  await shows('.messages', /Chamados · abrir_chamado[\s\S]*Sempre sozinho para abrir_chamado/);
+  await shot('mcp-cartao');
+  await clickButton('.messages', /Sempre sozinho para abrir_chamado/);
+  await shows('.messages', /Chamado aberto/);
+  const tools = ((await (await fetch(`http://127.0.0.1:${RUNTIME_PORT}/api/mcp-servers/chamados`)).json()) as { tools: Array<{ name: string; alone: boolean }> }).tools;
+  assert.equal(tools.find((t) => t.name === 'abrir_chamado')?.alone, true);
+  await clickButton('.rail', /Autonomia/);
+  await clickButton('.subnav', /Ferramentas \(MCP\)/);
+  await clickButton('.mcp-tools', /^Chamados$/);
+  await shows('.mcp-server', /sozinho \(você escolheu\)/);
+  await clickButton('.mcp-server', /voltar a perguntar/);
+  await until('voltou a perguntar', async () => !/sozinho \(você escolheu\)/.test(await text('.mcp-server')));
   await clickButton('.subnav', /Agentes que pedem/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);
   await shot('agentes-que-pedem');
@@ -327,6 +355,8 @@ try {
   await shows('.cerebro', /sugestão|Sugest/i);
   await shot('sugestoes-no-cerebro');
 
+  const held = [...openReq.values()].filter((u) => u.includes(`127.0.0.1:${UI_PORT}`) && !/\.(tsx?|css|js|svg)(\?|$)|@vite|node_modules/.test(u));
+  assert.ok(held.length <= 3, `conexões presas no fim: ${JSON.stringify(held)}`);
   assert.deepEqual(pageErrors, [], 'a página não teve erros');
   console.log(`tela Conversas: ok · telas em ${shots}`);
 } finally {

@@ -85,12 +85,20 @@ export class McpServers {
     for (const old of this.tools(serverId)) if (!names.includes(old.name)) this.db.prepare('DELETE FROM mcp_tools WHERE server_id = ? AND name = ?').run(serverId, old.name);
   }
 
-  setTool(serverId: string, name: string, p: { kind?: 'leitura' | 'escrita' | null; enabled?: boolean }): boolean {
+  /** Your choices for a tool. Looking at it counts as reviewed; "sempre sozinho" never sticks to one that deletes. */
+  setTool(serverId: string, name: string, p: { kind?: 'leitura' | 'escrita' | null; enabled?: boolean; alone?: boolean; reviewed?: boolean }): boolean {
     const cur = this.tools(serverId).find((x) => x.name === name);
     if (!cur) return false;
-    this.db.prepare('UPDATE mcp_tools SET kind = ?, enabled = ?, reviewed = 1 WHERE server_id = ? AND name = ?')
-      .run(p.kind === undefined ? cur.kind : p.kind, (p.enabled ?? cur.enabled) ? 1 : 0, serverId, name);
+    const kind = p.kind === undefined ? cur.kind : p.kind;
+    const alone = (p.alone ?? cur.alone) && effectiveKind(cur.hint, kind) !== 'apaga';
+    this.db.prepare('UPDATE mcp_tools SET kind = ?, enabled = ?, alone = ?, reviewed = 1 WHERE server_id = ? AND name = ?')
+      .run(kind, (p.enabled ?? cur.enabled) ? 1 : 0, alone ? 1 : 0, serverId, name);
     return true;
+  }
+
+  /** Every new tool of a server marked as seen, as it is (escrita if unmarked). */
+  reviewAll(serverId: string): void {
+    this.db.prepare('UPDATE mcp_tools SET reviewed = 1 WHERE server_id = ? AND reviewed = 0').run(serverId);
   }
 
   /** The list's line: counts and state (state comes from the hub). */
@@ -118,6 +126,6 @@ function toolOf(r: Raw): ToolRow {
   const kind = (r.kind as 'leitura' | 'escrita' | null) ?? null;
   return {
     name: String(r.name), description: String(r.description ?? ''), hint, kind, effective: effectiveKind(hint, kind),
-    enabled: r.enabled === 1, isNew: r.reviewed !== 1 && kind === null, inputSchema: JSON.parse(String(r.input_schema ?? '{}')),
+    enabled: r.enabled === 1, alone: r.alone === 1 && effectiveKind(hint, kind) !== 'apaga', isNew: r.reviewed !== 1 && kind === null, inputSchema: JSON.parse(String(r.input_schema ?? '{}')),
   };
 }

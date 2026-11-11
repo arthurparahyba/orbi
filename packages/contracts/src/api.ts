@@ -325,6 +325,8 @@ export interface McpTool {
   /** What counts: what you marked, else the hint, else escrita. */
   effective: McpToolKind;
   enabled: boolean;
+  /** You chose "sempre sozinho": it runs without asking (never for one that deletes; "observar" still holds). */
+  alone: boolean;
   /** Appeared after you saved the server and you have not marked it yet. */
   isNew: boolean;
 }

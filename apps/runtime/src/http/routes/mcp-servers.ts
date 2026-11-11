@@ -88,6 +88,13 @@ export function mcpServerRoutes(s: S) {
       if (!s.mcpServers.setTool(id, c.req.param('tool'), await body(c, SetMcpTool))) throw new HttpError(404, 'not_found', 'ferramenta não existe');
       return c.json(detail(id));
     })
+    // "Já vi": the new tools stay as they are (escrita when unmarked) and stop being flagged.
+    .post('/:id/review', (c) => {
+      const id = c.req.param('id');
+      detail(id);
+      s.mcpServers.reviewAll(id);
+      return c.json(detail(id));
+    })
     .delete('/:id', async (c) => {
       const id = c.req.param('id');
       detail(id);

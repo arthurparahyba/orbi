@@ -36,11 +36,18 @@ export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): vo
       {d.state === 'aprovar' && (
         <ConfirmCommand line={howLine(d)} action="Aprovar e iniciar" onRun={() => void act(() => api.approveMcpServer(id))} />
       )}
+      {d.counts.novas > 0 && (
+        <div className="note-warn row mcp-head">
+          <span className="small">{d.counts.novas === 1 ? 'Uma ferramenta nova apareceu' : `${d.counts.novas} ferramentas novas apareceram`} desde que você salvou. Enquanto não marca, {d.counts.novas === 1 ? 'ela conta' : 'elas contam'} como escrita e {d.counts.novas === 1 ? 'pede' : 'pedem'} aprovação.</span>
+          <button type="button" className="btn small" onClick={() => void act(() => api.reviewMcpServer(id))}>Manter como estão</button>
+        </div>
+      )}
       <p className="small">{countsLine(d.counts)}. <span className="muted">As regras deste servidor (leitura e escrita) ficam em Autonomia › Regras.</span></p>
       <ToolMarks
         rows={d.tools.map((t) => ({ ...t, kind: t.effective === 'leitura' ? 'leitura' : 'escrita', deletes: t.effective === 'apaga' }))}
         onKind={(n, kind) => void act(() => api.setMcpTool(id, n, { kind }))}
         onEnabled={(n, enabled) => void act(() => api.setMcpTool(id, n, { enabled }))}
+        onAsk={(n) => void act(() => api.setMcpTool(id, n, { alone: false }))}
       />
     </div>
   );

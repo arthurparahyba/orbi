@@ -1,6 +1,6 @@
 # 20. Ferramentas MCP e a nova Autonomia (refinamento técnico)
 
-Estado: **fases 1 a 4 feitas** (telas no lugar, Chrome configurável, servidores por endereço e por comando); a 5 é proposta. Telas no canvas "Orbi · Autonomia:
+Estado: **feito** (fases 1 a 5). O Chrome continua fora do cadastro; veja "Como ficou (fase 5)". Telas no canvas "Orbi · Autonomia:
 ferramentas MCP e agentes" (boards A a F).
 
 ## O que muda para o desenvolvedor
@@ -240,6 +240,24 @@ continua em `/api/agents/suggestions/:id/accept`; só a tela muda de lugar.
   credencial e ela não volta; variável do runtime não declarada não chega; roda na pasta dele;
   comando mudado pede de novo), `test/support/fake-mcp-stdio.mjs`, `mcpForm.test.ts` e o e2e da
   tela (adiciona por comando, confirma, muda o comando e aprova de novo).
+
+## Como ficou (fase 5)
+
+- **Sempre sozinho**, por ferramenta: o cartão de uma ferramenta MCP que não apaga traz o botão
+  "Sempre sozinho para <ferramenta>" (`alwaysAlone` no componente `approval`). Ele guarda
+  `mcp_tools.alone` e aprova a chamada. No portão, `GatedTool.alone` troca "perguntar" por
+  "sozinho" só para aquela ferramenta; "observar" continua valendo, e o que apaga nunca entra
+  (nem guardado: `setTool` recusa). Na página do servidor aparece "sozinho (você escolheu)" com
+  **voltar a perguntar**.
+- **Ferramentas novas**: além do destaque na lista e na tabela, a página do servidor diz quantas
+  apareceram e oferece **Manter como estão** (`POST /:id/review`): deixam de ser destacadas e
+  continuam valendo como escrita até você marcar.
+- **O Chrome fica como está**, fora do cadastro: as leituras dele passariam a ir pelo portão, e o
+  gravador de demonstrações divide o mesmo navegador. O ganho (uma tela só) não paga o risco
+  agora. A tela já mostra o Chrome junto dos outros servidores, com a página de configurações.
+- Testes: `flow-mcp-tools.test.ts` (o cartão oferece; marcado, a próxima chamada roda sem cartão;
+  apagar não aceita nem oferece), `mcp-client.test.ts` (`reviewAll`, `alone` recusado para quem
+  apaga) e o e2e da tela (cartão → Sempre sozinho → aprovado → voltar a perguntar na página).
 
 ## Fora do escopo
 

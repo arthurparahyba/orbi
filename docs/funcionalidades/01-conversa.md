@@ -71,7 +71,10 @@ O agente roda no **Flue**, um framework de agentes que guarda cada conversa como
 um stream durável num SQLite próprio (`data/flue.db`). O app conversa com ele
 pela rota `/agents/orbi/<id da conversa>`, usando o cliente React do Flue
 (`useFlueAgent`), que recebe a resposta aos pedaços (streaming) e reconstrói as
-mensagens.
+mensagens. O app pede as atualizações por **long-poll**, não por SSE: com SSE, a biblioteca de
+streams reconectava sem fechar a conexão anterior, e depois de alguns turnos as 6 conexões do
+navegador com o runtime ficavam presas e o app parava de responder. O e2e da tela confere que
+nenhuma conexão fica presa no fim.
 
 ```mermaid
 sequenceDiagram

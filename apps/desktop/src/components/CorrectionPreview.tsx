@@ -1,21 +1,21 @@
-import { correctionView, rewritten, trimSame, wordDiff, type Step } from './stepDiff';
+import { correctionView, diffLayout, trimSame, wordDiff, type Step } from './stepDiff';
 import { ScriptsPreview } from './ScriptsPreview';
 import type { Script } from './stepDiff';
 
 type Procedure = Parameters<typeof correctionView>[0] & { name: string; scripts?: Script[] };
 
 /**
- * One change, merged as in a code review: what enters highlighted, what leaves struck through,
- * long unchanged stretches cut to "…". A text rewritten almost entirely shows the new one, with
- * the old one a click away.
+ * One change. A small edit is merged in the line (what leaves struck in red, what enters in green,
+ * long unchanged stretches cut to "…"). A rewrite shows the text before, in red, above the text
+ * after, in green, each whole: the one below replaces the one above.
  */
 function Merged({ before, after }: { before?: string; after?: string }) {
   const pieces = wordDiff(before ?? '', after ?? '');
-  if (before && after && rewritten(pieces) > 0.7) {
+  if (before && after && diffLayout(pieces) === 'stacked') {
     return (
-      <div className="merged">
-        <p><span className="m-tag">reescrito</span> <ins>{after}</ins></p>
-        <details className="small muted"><summary>Como era</summary><p><del>{before}</del></p></details>
+      <div className="merged stacked">
+        <div className="m-before"><span className="m-tag">Antes</span><p>{before}</p></div>
+        <div className="m-after"><span className="m-tag">Depois</span><p>{after}</p></div>
       </div>
     );
   }

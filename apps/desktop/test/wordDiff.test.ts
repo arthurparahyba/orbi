@@ -26,3 +26,20 @@ describe('correção de procedimento: só o que muda, mesclado', () => {
     expect(rewritten(wordDiff('curto', 'um texto totalmente diferente e bem maior'))).toBeGreaterThan(0.8);
   });
 });
+
+describe('como mostrar a mudança', () => {
+  it('poucas palavras em poucos lugares: na linha; reescrita: antes em cima, depois embaixo', async () => {
+    const { diffLayout, changeIslands, wordDiff: diff } = await import('../src/components/stepDiff');
+    const small = diff('Abrir o portal de clientes e entrar com o usuário de serviço', 'Abrir o portal de pagamentos e entrar com o usuário de serviço');
+    expect(changeIslands(small)).toBe(1);
+    expect(diffLayout(small)).toBe('inline');
+    const rewrite = diff(
+      'Obter o HTML da página de resultados filtrada (URL de filtro de promoção) com run_command curl, gravando em busca_pagina_1.html.',
+      'curl não é permitido nesta máquina: não usar. Criar a pasta com run_command mkdir -p e rodar browser_act evaluate_script com saveTo.',
+    );
+    expect(diffLayout(rewrite)).toBe('stacked');
+    const scattered = diff('a b c d e f g h i j k l m n o p', 'a X c d Y f g Z i j W l m n o p');
+    expect(changeIslands(scattered)).toBe(4);
+    expect(diffLayout(scattered)).toBe('stacked');
+  });
+});

@@ -147,3 +147,25 @@ export function rewritten(pieces: DiffPiece[]): number {
   const total = pieces.reduce((n, p) => n + (p.kind === 'del' ? 0 : p.text.length), 0) || 1;
   return pieces.reduce((n, p) => n + (p.kind === 'add' ? p.text.length : 0), 0) / total;
 }
+
+/** Separate places where the text changes (a run of additions and removals counts once). */
+export function changeIslands(pieces: DiffPiece[]): number {
+  let n = 0;
+  let inChange = false;
+  for (const p of pieces) {
+    const changed = p.kind !== 'same' && p.text.trim() !== '';
+    if (changed && !inChange) n++;
+    if (p.kind === 'same' && p.text.trim() !== '') inChange = false;
+    else if (changed) inChange = true;
+  }
+  return n;
+}
+
+/**
+ * How a change reads best. A few words in up to three places: merged in the line, red out and
+ * green in. Anything bigger is a rewrite: the text before (red) above the text after (green),
+ * each whole, because red and green mixed word by word cannot be read.
+ */
+export function diffLayout(pieces: DiffPiece[]): 'inline' | 'stacked' {
+  return rewritten(pieces) <= 0.3 && changeIslands(pieces) <= 3 ? 'inline' : 'stacked';
+}

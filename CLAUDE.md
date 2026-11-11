@@ -151,6 +151,9 @@ cofre ou ponte MCP, `npm run e2e`.
 
 ## Armadilhas conhecidas
 
+- **Chat por long-poll** (`useFlueAgent({ live: 'long-poll' })` em `ChatPanel`): com SSE, o
+  `@durable-streams/client` reconecta sem fechar a conexão velha e o app trava ao esgotar as 6
+  conexões do navegador. Não volte para SSE sem rodar o e2e da tela (ele acusa conexão presa).
 - **Pi fixado em 1.1.0** (`overrides` na raiz): o Flue 2.3 quebra com o Pi 1.2+. Não atualize
   `@earendil-works/pi-ai` nem `pi-agent-core` sem testar o fluxo inteiro.
 - **`@orbi/contracts` e `@orbi/plugin-sdk` não podem estar nas dependências do runtime**: o

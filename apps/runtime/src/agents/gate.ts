@@ -59,7 +59,9 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           step: step?.id ?? null,
         };
         const known = pb ? brain.isKnownAction(pb.name, action.fingerprint) : false;
-        const decided = decide(policy.get(), category, pb ?? null, { known, effect });
+        const byRule = decide(policy.get(), category, pb ?? null, { known, effect });
+        const alone = def.alone?.();
+        const decided = byRule === 'ask' && alone?.set && effect !== 'apaga' ? 'auto' : byRule;
         // In a rehearsal (trying out an explanation) whatever publishes or deletes always asks, whatever the level.
         const rehearsing = run?.kind === 'rehearsal' && (effect === 'publica' || effect === 'apaga');
         const level = decided === 'auto' && (def.alwaysAsk?.(data) || rehearsing) ? 'ask' : decided;
@@ -85,6 +87,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           // Learning is not an action of the running procedure: no level reason, no step.
           ...(pb && category !== 'aprender' ? { reason: askReason(pb, { known, effect }) } : {}),
           ...(step && category !== 'aprender' ? { step: step.text } : {}),
+          ...(alone?.offer && effect !== 'apaga' ? { alwaysAlone: alone.offer } : {}),
         });
         return { output: { status: 'pending_approval', approvalId: toolCallId, category }, terminate: true };
       },

@@ -25,6 +25,12 @@ export interface GatedTool<T extends v.GenericSchema<Record<string, unknown>>> {
   fingerprint?: (args: v.InferOutput<T>) => string;
   /** Asks even where the level or the global rule would run it alone (e.g. investigating an error nobody knows). */
   alwaysAsk?: (args: v.InferOutput<T>) => boolean;
+  /**
+   * The developer chose "sempre sozinho" for this exact tool: where the rule or the level would
+   * ask, it runs. Never for what deletes, never where the rule is "observar", never in a rehearsal
+   * that publishes. `offer`: the card may offer that choice (an MCP tool that does not delete).
+   */
+  alone?: () => { set: boolean; offer?: { server: string; tool: string } };
   /** Problems found before deciding (invalid input): the model fixes them; nothing is asked or run. */
   precheck?: (args: v.InferOutput<T>) => string[];
   /** The effect itself: runs now (`auto`), or later when the developer approves (`approved`). */

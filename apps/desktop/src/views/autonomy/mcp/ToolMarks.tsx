@@ -1,10 +1,10 @@
 import { Segmented } from '../../../components/Segmented';
 import { hintLabel } from './mcpForm';
 
-type Row = { name: string; description: string; hint: 'leitura' | 'escrita' | 'apaga' | null; kind: 'leitura' | 'escrita'; deletes: boolean; enabled: boolean; isNew?: boolean };
+type Row = { name: string; description: string; hint: 'leitura' | 'escrita' | 'apaga' | null; kind: 'leitura' | 'escrita'; deletes: boolean; enabled: boolean; isNew?: boolean; alone?: boolean };
 
 /** Each tool: what it does, how Orbi knows, leitura or escrita, on or off. */
-export function ToolMarks({ rows, onKind, onEnabled }: { rows: Row[]; onKind(name: string, kind: 'leitura' | 'escrita'): void; onEnabled(name: string, on: boolean): void }) {
+export function ToolMarks({ rows, onKind, onEnabled, onAsk }: { rows: Row[]; onKind(name: string, kind: 'leitura' | 'escrita'): void; onEnabled(name: string, on: boolean): void; onAsk?(name: string): void }) {
   return (
     <table className="agents-table mcp-tool-table">
       <thead><tr><th scope="col">Ferramenta</th><th scope="col">O que faz</th><th scope="col">Como sei</th><th scope="col">Tipo</th><th scope="col">Usar</th></tr></thead>
@@ -13,7 +13,10 @@ export function ToolMarks({ rows, onKind, onEnabled }: { rows: Row[]; onKind(nam
           <tr key={t.name}>
             <td className="mono">{t.name}{t.isNew && <span className="pill warn-text"> nova</span>}</td>
             <td className="muted small">{t.description}</td>
-            <td className="muted small">{hintLabel(t.hint)}</td>
+            <td className="muted small">
+              {hintLabel(t.hint)}
+              {t.alone && <span className="block warn-text">sozinho (você escolheu) {onAsk && <button type="button" className="link-btn small" onClick={() => onAsk(t.name)}>voltar a perguntar</button>}</span>}
+            </td>
             <td>
               <Segmented label={`Tipo de ${t.name}`} value={t.kind} onChange={(k) => onKind(t.name, k)}
                 options={[{ value: 'leitura', label: 'Leitura' }, { value: 'escrita', label: t.deletes ? 'Apaga' : 'Escrita' }]} />

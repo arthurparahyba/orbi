@@ -47,6 +47,7 @@ export const api = {
   mcpServers: () => request<McpServer[]>('/api/mcp-servers'),
   mcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}`),
   testMcpServer: (t: TestMcpServer) => request<McpTestResult>('/api/mcp-servers/test', { method: 'POST', body: JSON.stringify(t) }),
+  reviewMcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/review`, { method: 'POST' }),
   approveMcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/approve`, { method: 'POST' }),
   addMcpServer: (s: AddMcpServer) => request<McpServerDetail>('/api/mcp-servers', { method: 'POST', body: JSON.stringify(s) }),
   editMcpServer: (id: string, s: EditMcpServer) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(s) }),

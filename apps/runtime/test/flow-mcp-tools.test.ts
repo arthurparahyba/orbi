@@ -78,6 +78,28 @@ test('servidor MCP: leitura roda sozinha, escrita vira cartão, apagar fica de f
   assert.equal(written.join('').includes(TOKEN), false, 'nem no log');
   assert.equal(mcpServers.tools('issues').find((t) => t.name === 'apagar_issue')?.enabled, false, 'a que apaga ficou desligada');
 
+  // "Sempre sozinho para criar_issue", from the card: the next call runs without asking.
+  assert.deepEqual(card.alwaysAlone, { server: 'issues', tool: 'criar_issue' });
+  const alone = await app.request('/api/mcp-servers/issues/tools/criar_issue', json('PUT', { alone: true }));
+  assert.equal(((await alone.json()) as any).tools.find((t: any) => t.name === 'criar_issue').alone, true);
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('issues__criar_issue', { projeto: 'PAG', titulo: 'Outra falha' }), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Criei.')),
+  ]);
+  const second = await orbi.read(await orbi.dispatch('abre outro chamado'));
+  assert.equal(components(second).some((c: any) => c.component === 'approval'), false, 'rodou sem cartão');
+  assert.equal(fake.calls.at(-1)!.tool, 'criar_issue');
+
+  // The tool that deletes: turned on, it still asks, and "sempre sozinho" never sticks to it nor is offered.
+  await app.request('/api/mcp-servers/issues/tools/apagar_issue', json('PUT', { enabled: true, alone: true }));
+  assert.equal(mcpServers.tools('issues').find((t) => t.name === 'apagar_issue')!.alone, false);
+  faux.setResponses([fauxAssistantMessage(fauxToolCall('issues__apagar_issue', { id: 'PAG-13' }), { stopReason: 'toolUse' })]);
+  const third = await orbi.read(await orbi.dispatch('apaga o PAG-13'));
+  const del = components(third).find((c: any) => c.component === 'approval') as any;
+  assert.equal(del?.effect, 'apaga');
+  assert.equal(del?.alwaysAlone, undefined, 'apagar nunca oferece "sempre sozinho"');
+  assert.equal(fake.calls.at(-1)!.tool, 'criar_issue', 'não apagou nada');
+
   // Removed: the server and its two rules go.
   assert.equal((await app.request('/api/mcp-servers/issues', json('DELETE'))).status, 200);
   const after = (await (await app.request('/api/autonomy')).json()) as any;

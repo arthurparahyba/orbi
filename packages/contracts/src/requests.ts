@@ -43,7 +43,7 @@ export const EditMcpServer = v.object({
   env: v.optional(McpEnv),
   enabled: v.optional(v.boolean()),
 });
-export const SetMcpTool = v.object({ kind: v.optional(v.nullable(v.picklist(['leitura', 'escrita']))), enabled: v.optional(v.boolean()) });
+export const SetMcpTool = v.object({ kind: v.optional(v.nullable(v.picklist(['leitura', 'escrita']))), enabled: v.optional(v.boolean()), alone: v.optional(v.boolean()), reviewed: v.optional(v.boolean()) });
 /** PUT /api/browser/settings — the Chrome DevTools settings (Autonomia › Ferramentas MCP). */
 export const SetChromeSettings = v.object({
   browser: v.picklist(['proprio', 'seu']),

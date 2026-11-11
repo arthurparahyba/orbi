@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import type { UiComponent } from '@orbi/contracts';
+import { api } from '../api';
 import { AlertIcon, CheckIcon, XIcon } from './Icons';
 import { categoryLabel, InboxContext } from './inboxContext';
 import { LearningPreview } from './ui/LearningPreview';
@@ -26,6 +27,16 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
     catch (e) { setError(`Não chegou ao Orbi: ${(e as Error).message}. Tente de novo.`); }
     finally { setBusy(false); }
   };
+  // "Sempre sozinho" (an MCP tool that does not delete): saved for the tool, then this one is approved.
+  const alwaysAlone = async () => {
+    if (!c.alwaysAlone) return;
+    setBusy(true);
+    setError(undefined);
+    try { await api.setMcpTool(c.alwaysAlone.server, c.alwaysAlone.tool, { alone: true }); }
+    catch (e) { setBusy(false); setError(`Não guardou: ${(e as Error).message}.`); return; }
+    setBusy(false);
+    await act('approve');
+  };
   return (
     <section className={`ui-card approval is-${status}`} data-inbox={c.inboxId}>
       <header className="ui-card-head">
@@ -50,6 +61,7 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
         <div className="row gap">
           <button type="button" className="btn primary" disabled={busy} onClick={() => act('approve')}><CheckIcon size={14} /> Aprovar</button>
           <button type="button" className="btn" disabled={busy} onClick={() => act('deny')}><XIcon size={14} /> Negar</button>
+          {c.alwaysAlone && <button type="button" className="btn" disabled={busy} onClick={() => void alwaysAlone()} title="Aprova esta e as próximas chamadas desta ferramenta. Dá para voltar em Autonomia › Ferramentas (MCP).">Sempre sozinho para {c.alwaysAlone.tool}</button>}
         </div>
       ) : (
         <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>

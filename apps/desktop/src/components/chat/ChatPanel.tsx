@@ -49,7 +49,10 @@ export function ChatPanel(props: {
   beforeSend?(text: string, firstMessage: boolean): boolean;
 }) {
   const { url, id, label } = props;
-  const agent = useFlueAgent({ url });
+  // Long-poll, not SSE: with SSE the stream library reconnects without closing the old connection,
+  // and after a few turns the browser's 6 connections to the runtime are all held open and the app
+  // stops answering (no new conversation, no health). Each long-poll request ends on its own.
+  const agent = useFlueAgent({ url, live: 'long-poll' });
   const busy = agent.status === 'submitted' || agent.status === 'streaming';
   const visible = agent.messages.filter((m) => m.display !== 'hidden');
   // Only follow new messages while the reader is at the bottom.

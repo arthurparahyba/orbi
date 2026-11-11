@@ -37,6 +37,7 @@ function useMcpTools(ctx: AgentContext, { mcpServers, mcpHub }: Deps<'mcpServers
         summary: () => `${server.name} · ${tool.name}`,
         title: () => `${server.name} · ${tool.name}`,
         command: (args) => `${tool.name} ${JSON.stringify(args)}`.slice(0, 300),
+        alone: () => ({ set: tool.alone, ...(kind === 'apaga' ? {} : { offer: { server: server.id, tool: tool.name } }) }),
         execute: (args, _id, _how, signal) => mcpHub.call(server.id, tool.name, args, signal),
       });
     }
