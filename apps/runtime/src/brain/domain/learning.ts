@@ -20,7 +20,7 @@ export function proposalProblems(kind: ProposalKind, payload: Record<string, unk
     case 'type':
       return isTypeName(payload.name) ? [] : ['nome de tipo inválido'];
     case 'entity':
-      return entityProblems({ id: String(payload.id ?? ''), type: String(payload.type ?? '') }, ctx.typeOf);
+      return [...entityProblems({ id: String(payload.id ?? ''), type: String(payload.type ?? '') }, ctx.typeOf), ...credentialProblems(payload.props)];
     case 'edge': {
       // The endpoints may be created by an earlier proposal in the same batch; only check the relation name then.
       const from = ctx.entity(String(payload.from));
@@ -146,4 +146,26 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
     case 'pipeline':
       return { kind, label: `esteira ${p.name}`, pipeline: pipelineFromPayload(p) };
   }
+}
+
+const SECRET_NAME = /^(?:.*[_-])?(senha|password|passwd|pwd|secret|segredo|token|api[_-]?key|apikey|private[_-]?key|credencial|credential)s?$/i;
+const SECRET_VALUE = /(-----BEGIN [A-Z ]*PRIVATE KEY-----|\bAKIA[0-9A-Z]{16}\b|\bsk-[A-Za-z0-9_-]{16,}|\bgh[pousr]_[A-Za-z0-9]{20,}|\bxox[abpr]-[A-Za-z0-9-]{10,}|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.)/;
+const REFERENCE = /^\s*\{\{segredo:[^}]+\}\}\s*$/;
+
+/**
+ * Credentials never go to the brain: a fact whose property is named like one, or whose value
+ * looks like one (a private key, an access key, a token), is refused. A {{segredo:name}}
+ * reference is fine: the value stays in the vault.
+ */
+export function credentialProblems(props: unknown): string[] {
+  if (!props || typeof props !== 'object') return [];
+  const out: string[] = [];
+  for (const [k, v] of Object.entries(props as Record<string, unknown>)) {
+    const text = typeof v === 'string' ? v : JSON.stringify(v ?? '');
+    if (REFERENCE.test(text)) continue;
+    if (SECRET_NAME.test(k) || SECRET_VALUE.test(text)) {
+      out.push(`a propriedade ${k} parece uma credencial: credenciais ficam no cofre (ask_secret), nunca no cérebro`);
+    }
+  }
+  return out;
 }

@@ -22,6 +22,12 @@ export interface KnownProblem {
   quemCorrige?: string;
   /** How to check a fix before applying it (e.g. the test command). */
   conferir?: string;
+  /**
+   * The fix at the root, done once (and who does it), as opposed to `solucao`, what the Orbi
+   * does each time to get past it. A problem that keeps coming back is proposed to be fixed
+   * this way (domain/judge.ts).
+   */
+  raiz?: string;
 }
 
 const prop = (props: Record<string, unknown>, ...names: string[]): string | undefined => {
@@ -41,7 +47,8 @@ export function asKnownProblem(e: Entity): KnownProblem | undefined {
   const onde = prop(e.props, 'onde', 'where', 'passo');
   const quemCorrige = prop(e.props, 'quem_corrige', 'quemcorrige', 'corrige_com', 'fixed_by');
   const conferir = prop(e.props, 'conferir', 'como_conferir', 'check');
-  return { id: e.id, type: e.type, sintoma, solucao, ...(causa ? { causa } : {}), ...(onde ? { onde } : {}), ...(quemCorrige ? { quemCorrige } : {}), ...(conferir ? { conferir } : {}) };
+  const raiz = prop(e.props, 'raiz', 'correcao_de_vez', 'correcao_definitiva', 'root_fix');
+  return { id: e.id, type: e.type, sintoma, solucao, ...(causa ? { causa } : {}), ...(onde ? { onde } : {}), ...(quemCorrige ? { quemCorrige } : {}), ...(conferir ? { conferir } : {}), ...(raiz ? { raiz } : {}) };
 }
 
 /** Whether the problem is fixed in code by the coding agent (the Orbi delegates, it does not edit). */
@@ -108,4 +115,23 @@ export function knowledgeSuggestions(run: { deviations: Deviation[]; steps: Arra
     }
   }
   return out;
+}
+
+/** The known problems a run ran into (by entity id), whether it got past them or not. */
+export function problemsIn(run: { deviations: Deviation[] }): Set<string> {
+  return new Set(run.deviations.flatMap((d) => (d.problem ? [d.problem] : [])));
+}
+
+/**
+ * How many runs in a row, from the latest back, ran into this problem: 2 or more is a problem
+ * that comes back every time, to be fixed at the root rather than got past again.
+ * `runs` are the procedure's finished runs, newest first.
+ */
+export function recurrence(runs: ReadonlyArray<{ deviations: Deviation[] }>, problem: string): number {
+  let n = 0;
+  for (const run of runs) {
+    if (!problemsIn(run).has(problem)) break;
+    n++;
+  }
+  return n;
 }

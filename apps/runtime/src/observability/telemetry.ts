@@ -11,12 +11,15 @@ export interface TelemetryDeps {
   usage: Pick<UsageStore, 'recordTurn' | 'recordTool'>;
   log: Logger;
   /** Every tool call's outcome, per conversation (failed steps, deviations of a run). */
-  onTool?: (conversationId: string, outcome: { tool: string; failed: boolean; error?: string }) => void;
+  /** `result`: what a successful tool returned (text, up to 4 000 characters), for the review of what was learned. */
+  onTool?: (conversationId: string, outcome: { tool: string; failed: boolean; error?: string; result?: string }) => void;
+  /** Every model turn's tokens and cost, per conversation (they also count in the open run). */
+  onTurn?: (conversationId: string, usage: { tokensIn: number; tokensOut: number; costUsd: number }) => void;
   /** A conversation's turn ended (every tool outcome of it has been reported). */
   onSettled?: (conversationId: string, outcome: 'completed' | 'failed' | 'aborted') => void;
 }
 
-export function handleObservation(event: FlueObservation, { usage, log, onTool, onSettled }: TelemetryDeps): void {
+export function handleObservation(event: FlueObservation, { usage, log, onTool, onSettled, onTurn }: TelemetryDeps): void {
   // Orbi's conversations are Flue agent instances (`chat:…`); Flue's own conversationId is an
   // internal stream id. Subagent work carries the parent's instance, so it counts there too.
   const conversation = event.instanceId ?? event.conversationId;
@@ -29,6 +32,7 @@ export function handleObservation(event: FlueObservation, { usage, log, onTool, 
           conversationId: conversation, model, durationMs: event.durationMs, failed: event.isError,
           tokensIn: u?.input, tokensOut: u?.output, cacheRead: u?.cacheRead, cacheWrite: u?.cacheWrite, costUsd: u?.cost.total,
         });
+        if (u) onTurn?.(conversation, { tokensIn: u.input ?? 0, tokensOut: u.output ?? 0, costUsd: u.cost?.total ?? 0 });
       }
       const attrs = {
         conversation, model, purpose: event.purpose === 'agent' ? undefined : event.purpose, ms: event.durationMs,
@@ -40,7 +44,10 @@ export function handleObservation(event: FlueObservation, { usage, log, onTool, 
     }
     case 'tool': {
       if (conversation) usage.recordTool({ conversationId: conversation, durationMs: event.durationMs, failed: event.isError });
-      if (conversation) onTool?.(conversation, { tool: event.toolName, failed: event.isError, ...(event.isError ? { error: toolError(event.result) } : {}) });
+      if (conversation) {
+        const result = event.isError ? undefined : toolText(event.result, 4000);
+        onTool?.(conversation, { tool: event.toolName, failed: event.isError, ...(event.isError ? { error: toolError(event.result) } : {}), ...(result ? { result } : {}) });
+      }
       const attrs = { conversation, tool: event.toolName, ms: event.durationMs };
       if (event.isError) log.warn('ferramenta falhou', { ...attrs, error: toolError(event.result) });
       else log.debug('ferramenta', attrs);
@@ -63,9 +70,14 @@ export function handleObservation(event: FlueObservation, { usage, log, onTool, 
 
 /** The text of a failed tool's result, when there is one. */
 function toolError(result: unknown): string | undefined {
+  return toolText(result, 300);
+}
+
+/** The text a tool returned, cut to `max` characters. */
+function toolText(result: unknown, max: number): string | undefined {
   const content = (result as { content?: Array<{ type?: string; text?: string }> } | undefined)?.content;
   const text = content?.find((c) => c.type === 'text')?.text;
-  return text ? text.slice(0, 300) : undefined;
+  return text ? text.slice(0, max) : undefined;
 }
 
 /** Starts watching; returns the function that stops. */

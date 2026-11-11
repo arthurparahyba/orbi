@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ReviewNote, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -43,6 +43,11 @@ export const api = {
   health: () => request<Health>('/api/health'),
   conversations: () => request<ConversationInfo[]>('/api/conversations'),
   createConversation: (title?: string) => request<ConversationInfo>('/api/conversations', { method: 'POST', body: JSON.stringify({ title }) }),
+  /** What the end-of-run review kept: ideas for a procedure, environments to fix. */
+  reviewNotes: (filter: { playbook?: string; kind?: ReviewNote['kind']; status?: ReviewNote['status'] } = {}) =>
+    request<ReviewNote[]>(`/api/review-notes?${new URLSearchParams(Object.entries(filter).filter(([, v]) => v) as Array<[string, string]>)}`),
+  setReviewNote: (id: string, status: 'dismissed' | 'done' | 'kept') =>
+    request<ReviewNote>(`/api/review-notes/${encodeURIComponent(id)}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
   /** The model a conversation uses from its next turn; null = the default. */
   setConversationModel: (id: string, model: string | null) =>
     request<ConversationInfo>(`/api/conversations/${encodeURIComponent(id)}/model`, { method: 'PUT', body: JSON.stringify({ model }) }),

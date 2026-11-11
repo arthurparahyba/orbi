@@ -90,6 +90,17 @@ export interface ExecutionReview {
   }>;
   config: Array<{ stage: string; playbook: string; text: string }>;
   pipeline?: string;
+  /** What the judge let change: only these steps of the procedure (docs/funcionalidades/19). */
+  change?: Array<{ playbook: string; why: string; steps: string[] }>;
+  /** A known problem that comes back every run: fix it once, at the root. */
+  environment?: Array<{ noteId: string; playbook: string; problem: string; sintoma: string; causa?: string; solucao: string; raiz?: string; quemCorrige?: string; runs: number }>;
+  /** Ideas not worth a change now: kept in the Cérebro, no card. */
+  ideas?: Array<{ noteId: string; playbook: string; text: string; why: string }>;
+}
+/** GET /api/review-notes — what the review kept: ideas and environments to fix. */
+export interface ReviewNote {
+  id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
+  conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
 }
 export interface PlaybookAutonomy { knownActions: KnownAction[]; events: AutonomyEvent[]; runsForN3: number }
 export interface PlaybookOutput { name: string; description: string }

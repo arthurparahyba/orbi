@@ -7,6 +7,8 @@ export interface ToolOutcome {
   tool: string;
   failed: boolean;
   error?: string;
+  /** What a successful tool returned (text, cut): what the run read, for the review of knowledge. */
+  result?: string;
 }
 
 /** Tools that report progress, not work: they never count as the step's last tool. */

@@ -4,6 +4,8 @@ import { provideServices } from './services.ts';
 import { createHttpApp } from './http/app.ts';
 import { Orbi } from './agents/orbi.ts';
 import { CONFIG_PREFIX, Configurador } from './agents/configurador.ts';
+import { Revisor } from './agents/revisor.ts';
+import { KNOWLEDGE_PREFIX } from './review/knowledge.ts';
 import { routeConversations } from './agents/directory.ts';
 import { createLogger, logOptionsFromEnv, setLogger } from './observability/log.ts';
 
@@ -18,6 +20,8 @@ const orbi = await createOrbi(loadConfig());
 provideServices(orbi);
 // Configuration chats (config:…) are answered by their own agent; everything else by the Orbi.
 routeConversations(CONFIG_PREFIX, Configurador);
+// The knowledge review of a finished run (revisao:<runId>) has its own agent, on the cheap model.
+routeConversations(KNOWLEDGE_PREFIX, Revisor);
 const background = startBackground(orbi, Orbi);
 
 export default createHttpApp(orbi, background, Orbi, { configurador: Configurador });

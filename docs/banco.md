@@ -275,6 +275,13 @@ a antiga (`valid_to`) e abrindo outra; o passado continua consultável.
 | `learned_from` | De onde veio ("conversa …", "agente: Claude Code") |
 | `uses`, `successes` | Contadores; os mais usados entram como skills |
 
+**`review_notes`** · o que a revisão no fim da execução guardou (documento 19): `kind`
+`idea` (ideia que não vale mudar agora, mostrada no Cérebro), `environment` (problema conhecido
+recorrente: "Vamos corrigir o seu ambiente?") ou `change` (os passos que a mudança pedida pode
+tocar, por 2 horas, na mesma conversa). `subject` é o analisador, o problema ou os passos (JSON);
+`status` `kept`, `open`, `dismissed`, `done` ou `applied`; `times` conta quantas vezes apareceu.
+Vira evento `brain`.
+
 **`playbook_runs`** · cada execução de um procedimento. Checklist ao vivo na
 conversa, **Cérebro → Execuções**.
 
@@ -441,6 +448,7 @@ editada, sempre se cria outra.
 | 19 | Conceitos, fatos e procedimentos: `types.props`/`knows`, `entities.aliases`/`source` (apelidos entram no índice de busca), `playbooks.intent`/`inputs`/`tested_run`, `playbook_runs.kind`/`resolved` |
 | 20 | Retornos agendados com dono: `followups.attempts`/`run_id`/`step_id`/`created_at`/`delivered_at`/`cancelled_by`/`last_error`; `fired` vira `delivered` |
 | 21 | Modelo escolhido por conversa: `conversations.model` (vazio = o padrão) |
+| 22 | Revisão no fim da execução: `playbook_runs.asked`/`tokens_in`/`tokens_out`/`cost_usd`; tabela `review_notes` (ideias guardadas, ambiente a corrigir, escopo da mudança) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

@@ -19,6 +19,8 @@ import { createRecorder } from './browser/recorder.ts';
 import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
 import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './llm/index.ts';
 import { ModelTiers } from './llm/choices.ts';
+import { RunObservations } from './observability/run-observations.ts';
+import { KnowledgeCandidates, deliverKnowledge, KNOWLEDGE_PREFIX } from './review/knowledge.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
 import { createEvents } from './events.ts';
@@ -81,6 +83,8 @@ export async function createOrbi(
     config: finalConfig,
     llm,
     modelTiers: new ModelTiers(db),
+    observations: new RunObservations(),
+    knowledge: new KnowledgeCandidates(),
     events,
     usage: overrides.usage ?? new UsageStore(db),
     toolOutcomes: overrides.toolOutcomes ?? new ToolOutcomes(),
@@ -106,20 +110,33 @@ export async function createOrbi(
  * A tool call ended. A failure inside a running playbook is a deviation of that run: the run
  * does not count toward the next level, and the Orbi is asked to propose a fix at the end.
  */
-export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'>, conversationId: string, outcome: ToolOutcome): void {
+export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'> & Partial<Pick<OrbiServices, 'observations'>>, conversationId: string, outcome: ToolOutcome): void {
   s.toolOutcomes.record(conversationId, outcome);
   if (outcome.tool === 'playbook_step' || outcome.tool === 'playbook_start') return;
+  // What a running procedure read: the knowledge reviewer looks for facts in it at the end.
+  // A call that only waits for approval or was not run read nothing.
+  if (!outcome.failed && outcome.result && s.observations && RunObservations.reads(outcome.tool) && !/^\{"status":"(pending_approval|not_executed|invalid)"/.test(outcome.result)) {
+    const open = s.brain.openRunIn(conversationId);
+    if (open && open.kind !== 'rehearsal') {
+      const step = open.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? open.steps.find((x) => x.status === 'pending');
+      s.observations.add(open.id, { step: step?.id ?? null, tool: outcome.tool, text: outcome.result });
+    }
+  }
   const run = s.brain.runForFailureIn(conversationId);
   if (!run) return;
   // A run that already ended (the failing call ran alongside the last step): the last step it closed.
   const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? run.steps.at(-1);
   // Worked this time: an earlier failure of the same tool in this step was fixed on the spot.
   if (!outcome.failed) return s.brain.recoverRunDeviation(run.id, outcome.tool, step?.id ?? null);
+  // A failure the brain already knows: remembered with its problem, so getting past it with the
+  // known solution does not hold the level back, and coming back every time is counted.
+  const known = outcome.error ? s.brain.knownProblems(`${outcome.tool}\n${outcome.error}`, 1)[0] : undefined;
   s.brain.addRunDeviation(run.id, {
     kind: 'falha',
     detail: `${outcome.tool} falhou${outcome.error ? `: ${outcome.error.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,
     tool: outcome.tool,
     step: step?.id ?? null,
+    ...(known ? { problem: known.id } : {}),
   });
 }
 
@@ -166,8 +183,13 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
     usage: s.usage,
     log,
     onTool: (conversationId, outcome) => recordToolOutcome(s, conversationId, outcome),
+    onTurn: (conversationId, u) => s.brain.execution.addUsage(conversationId, u),
     // When a turn ends: review the runs that ended in it (problems, level, configuration).
-    onSettled: (conversationId) => void sendReview(s, agent, conversationId),
+    onSettled: (conversationId) => {
+      // The knowledge reviewer finished: what it found goes to the run's conversation, as facts to propose.
+      if (conversationId.startsWith(KNOWLEDGE_PREFIX)) return void deliverKnowledge(s, agent, conversationId);
+      void sendReview(s, agent, conversationId);
+    },
   });
   const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   warmVoice(s.voice, s.stt);

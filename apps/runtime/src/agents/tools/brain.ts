@@ -1,3 +1,4 @@
+import { outOfScope } from '../../brain/domain/judge.ts';
 import { defineTool, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import type { BrainStore } from '../../brain/store.ts';
@@ -164,11 +165,36 @@ function useBrain(ctx: AgentContext, { brain }: Deps<'brain'>) {
     summary: (a) => learnTitle(a.items as Array<{ kind: string; payload: { name?: string } }>, a.reason, (name) => !!brain.playbook(name)),
     precheck: (a) => {
       const problems = brain.learnProblems(inLearningOrder(a.items) as never);
-      return problems.length ? [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'] : [];
+      if (problems.length) return [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'];
+      return scopeProblems(brain, a.items as LearnItems, ctx.conversationId);
     },
     execute: async (a) => {
       const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
+      for (const item of a.items as LearnItems) if (item.kind === 'playbook' && item.payload.name) brain.review.changeApplied(String(item.payload.name));
       return `Guardado no cérebro: ${applied.join('; ')}`;
     },
   });
+}
+
+type LearnItems = Array<{ kind: string; payload: Record<string, unknown> }>;
+
+/**
+ * When the end-of-run review asked to change only some steps of a procedure (docs/funcionalidades/19),
+ * a new version that touches others is refused before any card: autonomy before perfection.
+ */
+function scopeProblems(brain: Deps<'brain'>['brain'], items: LearnItems, conversationId: string): string[] {
+  const out: string[] = [];
+  for (const item of items) {
+    if (item.kind !== 'playbook' || !Array.isArray(item.payload.steps)) continue;
+    const name = String(item.payload.name ?? '');
+    const before = brain.playbook(name);
+    const scope = before && brain.review.changeScope(name, conversationId);
+    if (!before || !scope) continue;
+    const after = (item.payload.steps as Array<Record<string, unknown>>).map((st) => ({ id: String(st.id ?? ''), label: String(st.label ?? ''), how: String(st.how ?? '') }));
+    const outside = outOfScope(before.steps, after, scope);
+    if (outside.length) {
+      out.push(`${name}: a revisão pediu para mudar só os passos ${scope.join(', ')}; esta versão muda também ${outside.join(', ')}. Deixe esses passos exatamente como estão (mesmo id, label e how).`);
+    }
+  }
+  return out;
 }

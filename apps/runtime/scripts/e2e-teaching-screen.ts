@@ -40,10 +40,11 @@ const faux = pi.fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-hai
 flue.setProvider(faux.provider);
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
+const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
 const { brain, policy, config } = (await import('../src/services.ts')).services();
 
-const runtime = await start({ agents: [Orbi, Configurador] });
+const runtime = await start({ agents: [Orbi, Configurador, Revisor] });
 const http = serve({ fetch: app.fetch, port: RUNTIME_PORT, hostname: '127.0.0.1' });
 const desktop = resolve(import.meta.dirname, '../../desktop');
 const vite = await createServer({ root: desktop, configFile: join(desktop, 'vite.config.ts'), server: { port: UI_PORT, strictPort: true }, logLevel: 'error' });

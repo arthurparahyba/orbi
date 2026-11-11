@@ -106,6 +106,10 @@ export interface PlaybookRun {
   resolved?: Record<string, ResolvedInput>;
   /** The {{parameters}} it ran with. */
   params: Record<string, string>;
+  /** Approvals the gate asked for during the run. */
+  asked?: number;
+  /** Model tokens and cost spent while the run was open. */
+  usage?: { tokensIn: number; tokensOut: number; costUsd: number };
   /** What it handed over (declared outputs only). */
   outputs: Record<string, string>;
   /** Actions it ran (they become known when the run ends without deviation). */

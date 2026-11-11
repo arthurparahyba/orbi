@@ -7,6 +7,8 @@ import * as v from 'valibot';
 
 export const CreateConversation = v.object({ title: v.optional(v.pipe(v.string(), v.maxLength(200))) });
 export const RenameConversation = v.object({ title: v.pipe(v.string(), v.minLength(1), v.maxLength(200)) });
+/** POST /api/review-notes/:id/status — "Agora não", fixed, an idea dismissed. */
+export const SetReviewNoteStatus = v.object({ status: v.picklist(['dismissed', 'done', 'kept']) });
 /** PUT /api/conversations/:id/model — null goes back to the default. */
 export const ChooseConversationModel = v.object({ model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
 /** PUT /api/model/tiers — how costly a model is, set by the developer (null: back to what the plugin says). */
@@ -168,6 +170,7 @@ export type CreateConversation = v.InferOutput<typeof CreateConversation>;
 export type RenameConversation = v.InferOutput<typeof RenameConversation>;
 export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationModel>;
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
+export type SetReviewNoteStatus = v.InferOutput<typeof SetReviewNoteStatus>;
 export type Decision = v.InferOutput<typeof Decision>;
 export type Answer = v.InferOutput<typeof Answer>;
 export type StartRecording = v.InferOutput<typeof StartRecording>;

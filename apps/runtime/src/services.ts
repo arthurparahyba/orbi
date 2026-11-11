@@ -12,6 +12,8 @@ import type { Recorder } from './browser/recorder.ts';
 import type { CodeAgents, CodeFixer } from './code-agents/index.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { ModelTiers } from './llm/choices.ts';
+import type { RunObservations } from './observability/run-observations.ts';
+import type { KnowledgeCandidates } from './review/knowledge.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
 import type { ToolOutcomes } from './observability/tool-outcomes.ts';
@@ -51,6 +53,10 @@ export interface OrbiServices {
   /** Investigations and fixes by those agents, in throwaway copies. */
   codeFixer: CodeFixer;
   llm: ActiveLlm;
+  /** What running procedures read, until the end-of-run review looks for facts in it. */
+  observations: RunObservations;
+  /** Facts the knowledge reviewer found, per run, until the Orbi proposes them. */
+  knowledge: KnowledgeCandidates;
   /** How costly each model is, as the developer classified them. */
   modelTiers: ModelTiers;
   /** What changed, for the app (GET /api/events). */

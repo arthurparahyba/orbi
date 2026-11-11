@@ -32,6 +32,7 @@ const { start } = await import('@flue/runtime/node');
 const { serve } = await import('@hono/node-server');
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
+const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
 const { brain, conversations, stt, agents } = (await import('../src/services.ts')).services();
 const { EXAMPLE_TYPES } = await import('../src/brain/domain/ontology.ts');
@@ -354,7 +355,7 @@ async function runMfe(said: string, toolsSince: number) {
 faux.setResponses(Array.from({ length: 500 }, () => respond as never));
 setProvider(faux.provider);
 
-await start({ agents: [Orbi, Configurador] });
+await start({ agents: [Orbi, Configurador, Revisor] });
 if (conversations.list().length === 0) conversations.create('Boas-vindas');
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port, hostname: '127.0.0.1' });

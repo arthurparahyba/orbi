@@ -73,6 +73,8 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         if (level === 'observe') {
           return { output: { status: 'not_executed', category, reason: `"${category}" está em modo observar: relate o que faria e não tente de novo.` } };
         }
+        // Counted in the run: the review weighs a change by the approvals it would save.
+        if (run) brain.execution.countAsk(conversationId);
         setPending((prev) => ({ ...prev, [toolCallId]: { tool: def.name, args: data, category, requestedAt: new Date().toISOString(), ...(run ? { runId: run.id, action } : {}) } }));
         const detail = JSON.stringify(data, null, 2);
         const title = def.title?.(data) ?? def.summary(data);

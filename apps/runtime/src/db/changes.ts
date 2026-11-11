@@ -10,6 +10,7 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   playbook_known_actions: { topic: 'brain' },
   autonomy_events: { topic: 'brain' },
   proposals: { topic: 'brain' },
+  review_notes: { topic: 'brain' },
   playbook_runs: { topic: 'runs', id: 'id' },
   inbox_items: { topic: 'inbox', id: 'id' },
   conversations: { topic: 'conversations', id: 'id' },

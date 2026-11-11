@@ -51,13 +51,13 @@ export class Execution {
    * A command that ran inside a procedure: failed (it goes to the trail as `comando`) or worked
    * (an earlier failure of the same command in this step was got past: it becomes knowledge).
    */
-  noteCommand(conversationId: string, c: { command: string; exitCode: number | null; error: string; known: boolean }): void {
+  noteCommand(conversationId: string, c: { command: string; exitCode: number | null; error: string; known: boolean; problem?: string }): void {
     const run = this.openRunIn(conversationId);
     if (!run) return;
     const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? null;
     const stepId = step?.id ?? null;
     if (c.exitCode !== 0) {
-      this.addRunDeviation(run.id, { kind: 'comando', command: c.command, known: c.known, detail: `saiu com ${c.exitCode ?? 'tempo esgotado'}: ${c.error.slice(-300)}`, tool: 'comando', step: stepId });
+      this.addRunDeviation(run.id, { kind: 'comando', command: c.command, known: c.known, ...(c.problem ? { problem: c.problem } : {}), detail: `saiu com ${c.exitCode ?? 'tempo esgotado'}: ${c.error.slice(-300)}`, tool: 'comando', step: stepId });
       return;
     }
     let changed = false;
@@ -283,6 +283,18 @@ export class Execution {
 
   runs(limit = 20): PlaybookRun[] {
     return this.p.playbookRepo.runs(limit);
+  }
+
+  /** The gate asked the developer for an action: counts in the open run of the conversation. */
+  countAsk(conversationId: string): void {
+    const run = this.openRunIn(conversationId);
+    if (run && run.kind !== 'rehearsal') this.p.playbookRepo.countAsk(run.id);
+  }
+
+  /** A model turn: its tokens count in the open run of the conversation. */
+  addUsage(conversationId: string, u: { tokensIn: number; tokensOut: number; costUsd: number }): void {
+    const run = this.openRunIn(conversationId);
+    if (run && run.kind !== 'rehearsal') this.p.playbookRepo.addUsage(run.id, u);
   }
 
   runsIn(conversationId: string): PlaybookRun[] {

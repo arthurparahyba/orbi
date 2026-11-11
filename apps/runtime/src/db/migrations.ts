@@ -247,4 +247,17 @@ CREATE INDEX IF NOT EXISTS followups_active ON followups (status, due_at);`,
     name: 'modelo escolhido por conversa (vazio = o padrão)',
     sql: `ALTER TABLE conversations ADD COLUMN model TEXT;`,
   },
+  {
+    name: 'revisão no fim da execução: aprovações e tokens por execução, ideias guardadas, ambiente a corrigir e o escopo da mudança',
+    sql: `
+ALTER TABLE playbook_runs ADD COLUMN asked INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE playbook_runs ADD COLUMN tokens_in INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE playbook_runs ADD COLUMN tokens_out INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE playbook_runs ADD COLUMN cost_usd REAL NOT NULL DEFAULT 0;
+CREATE TABLE review_notes (
+  id TEXT PRIMARY KEY, playbook TEXT NOT NULL, kind TEXT NOT NULL, subject TEXT NOT NULL,
+  text TEXT NOT NULL, run_id TEXT, conversation_id TEXT NOT NULL DEFAULT '', status TEXT NOT NULL,
+  times INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX review_notes_playbook ON review_notes (playbook, kind, status);`,
+  },
 ];

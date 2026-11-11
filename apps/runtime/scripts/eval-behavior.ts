@@ -35,6 +35,7 @@ const { init } = await import('@flue/runtime');
 const { start } = await import('@flue/runtime/node');
 const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
+const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
 const services = (await import('../src/services.ts')).services();
 const { brain, inbox, llm, config, followups } = services;
@@ -186,7 +187,7 @@ if (ids.length > 1) {
   process.exit(ok ? 0 : 1);
 }
 
-const flue = (await start({ agents: [Orbi, Configurador] })) as unknown as { [Symbol.asyncDispose](): Promise<void> };
+const flue = (await start({ agents: [Orbi, Configurador, Revisor] })) as unknown as { [Symbol.asyncDispose](): Promise<void> };
 let ok = false;
 try {
   ok = await runScenario(ids[0]);

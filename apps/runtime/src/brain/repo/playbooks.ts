@@ -41,6 +41,8 @@ const toRun = (r: Row): PlaybookRun => ({
   deviations: parse(r.deviations, []),
   startedAt: String(r.started_at),
   finishedAt: nullable(r.finished_at),
+  asked: Number(r.asked ?? 0),
+  usage: { tokensIn: Number(r.tokens_in ?? 0), tokensOut: Number(r.tokens_out ?? 0), costUsd: Number(r.cost_usd ?? 0) },
 });
 
 /** Playbooks and their runs. Uses/successes counters are kept on save. */
@@ -164,6 +166,25 @@ export class PlaybookRepo {
 
   runs(limit: number): PlaybookRun[] {
     return (this.db.prepare('SELECT * FROM playbook_runs ORDER BY started_at DESC LIMIT ?').all(limit) as Row[]).map(toRun);
+  }
+
+  /** The gate asked the developer for an action of this run. */
+  countAsk(id: string): void {
+    this.db.prepare('UPDATE playbook_runs SET asked = asked + 1 WHERE id = ?').run(id);
+  }
+
+  /** A model turn spent while the run was open. */
+  addUsage(id: string, u: { tokensIn: number; tokensOut: number; costUsd: number }): void {
+    this.db.prepare('UPDATE playbook_runs SET tokens_in = tokens_in + ?, tokens_out = tokens_out + ?, cost_usd = cost_usd + ? WHERE id = ?').run(u.tokensIn, u.tokensOut, u.costUsd, id);
+  }
+
+  /** A procedure's finished runs (not rehearsals), newest first. */
+  finishedOf(playbook: string, limit: number): PlaybookRun[] {
+    return (
+      this.db
+        .prepare("SELECT * FROM playbook_runs WHERE playbook = ? AND COALESCE(kind, 'run') != 'rehearsal' AND status IN ('done', 'failed') ORDER BY started_at DESC, id DESC LIMIT ?")
+        .all(playbook, limit) as Row[]
+    ).map(toRun);
   }
 
   /** Runs started in a conversation, oldest first. */

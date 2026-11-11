@@ -29,6 +29,8 @@ import { Procedures as ProceduresService } from './services/procedures.ts';
 import { Autonomy as AutonomyService } from './services/autonomy.ts';
 import { Execution as ExecutionService } from './services/execution.ts';
 import { PipelineDefs as PipelineDefsService } from './services/pipelineDefs.ts';
+import { Review as ReviewService } from './services/review.ts';
+import { ReviewNoteRepo } from './repo/review-notes.ts';
 
 export * from './domain/types.ts';
 export { EXAMPLE_TYPES } from './domain/ontology.ts';
@@ -53,6 +55,8 @@ export class BrainStore {
   readonly autonomy: AutonomyService;
   readonly execution: ExecutionService;
   readonly pipelineDefs: PipelineDefsService;
+  /** What the end-of-run review keeps: ideas, environments to fix, the scope of a change (docs/funcionalidades/19). */
+  readonly review: ReviewService;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -69,6 +73,7 @@ export class BrainStore {
     this.autonomy = new AutonomyService(parts, this);
     this.execution = new ExecutionService(parts, this);
     this.pipelineDefs = new PipelineDefsService(parts, this);
+    this.review = new ReviewService({ ...parts, reviewNotes: new ReviewNoteRepo(this.db) }, this);
   }
 
   // ── facts (services/facts.ts) ──

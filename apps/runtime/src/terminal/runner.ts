@@ -58,7 +58,7 @@ export function afterCommand(brain: Pick<BrainStore, 'knownProblems' | 'noteComm
   const failed = result.exitCode !== 0 || !!result.timedOut;
   const error = failed ? errorTail(result) : '';
   const known = failed ? brain.knownProblems(`${command}\n${error}`) : [];
-  brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0 });
+  brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0, ...(known[0] ? { problem: known[0].id } : {}) });
   // Inside a procedure, an error the brain has never seen is outside what the Orbi knows: it says so
   // and brings the developer in, instead of improvising a fix (docs/funcionalidades/18, "sei / não sei").
   if (failed && !known.length && brain.openRunIn(conversationId)?.kind !== 'rehearsal' && brain.openRunIn(conversationId)) {
@@ -66,7 +66,7 @@ export function afterCommand(brain: Pick<BrainStore, 'knownProblems' | 'noteComm
   }
   if (!known.length) return {};
   return {
-    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}), ...(p.quemCorrige ? { quemCorrige: p.quemCorrige } : {}), ...(p.conferir ? { conferir: p.conferir } : {}) })),
+    knownProblems: known.map((p) => ({ id: p.id, sintoma: p.sintoma, ...(p.causa ? { causa: p.causa } : {}), solucao: p.solucao, ...(p.onde ? { onde: p.onde } : {}), ...(p.quemCorrige ? { quemCorrige: p.quemCorrige } : {}), ...(p.conferir ? { conferir: p.conferir } : {}), ...(p.raiz ? { raiz: p.raiz } : {}) })),
     hint: 'Problema conhecido no cérebro: siga a solução dele antes de investigar do zero.',
   };
 }

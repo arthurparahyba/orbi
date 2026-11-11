@@ -2,6 +2,8 @@ import type { ExecutionReview } from '@orbi/contracts';
 import { CheckIcon, AlertIcon } from './Icons';
 import { LevelCard } from './LevelCard';
 import { FINDING_SECTIONS, findingsOf } from './review';
+import { FixEnvironment } from './review/FixEnvironment';
+import { changeLine, ideasLine } from './review/reviewLines';
 
 export { reviewOf } from './review';
 
@@ -46,7 +48,15 @@ export function ReviewCard({ r }: { r: ExecutionReview }) {
           <ul>{sec.items.map(({ run, text }) => <li key={`${run.runId}-${text}`}><span className="muted">{run.playbook}:</span> {text}</li>)}</ul>
         </div>
       ))}
-      {(problems || others.length > 0) && <p className="muted small">O Orbi propõe as correções logo abaixo; nada muda sem você aprovar.</p>}
+      {(r.change?.length ?? 0) > 0 && (
+        <div className="review-config small">
+          <strong>Vale mudar</strong>
+          <ul>{r.change!.map((c) => <li key={c.playbook}>{changeLine(c)}</li>)}</ul>
+        </div>
+      )}
+      {r.environment?.map((e) => <FixEnvironment key={e.noteId} e={e} />)}
+      {ideasLine(r.ideas) && <p className="muted small">{ideasLine(r.ideas)}</p>}
+      {((r.change?.length ?? 0) > 0 || others.some((s) => s.kind === 'aprender')) && <p className="muted small">O Orbi propõe logo abaixo; nada muda sem você aprovar.</p>}
       {r.runs.filter((x) => x.level).map((x) => (
         <LevelCard key={`l-${x.runId}`} c={{ component: 'level', id: `level-${x.runId}`, playbook: x.playbook, ...x.level! }} />
       ))}

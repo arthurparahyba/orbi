@@ -6,6 +6,7 @@ import { PencilIcon, TrashIcon } from '../../components/Icons';
 import { PlaybookEditor } from './PlaybookEditor';
 import { PlaybookData } from './PlaybookData';
 import { PlaybookAutonomyPanel } from './PlaybookAutonomy';
+import { PlaybookIdeas } from './PlaybookIdeas';
 import { levelPill } from './levels';
 
 /** Each variation right after the playbook it came from. */
@@ -67,6 +68,7 @@ export function Playbooks() {
                 {p.steps.map((s, i) => <li key={s.id} className="step"><span className="step-dot">{i + 1}</span><span className="step-body"><span className="step-label">{s.label}</span><span className="step-note">{s.how}</span></span></li>)}
               </ol>
               {p.instructions && <pre className="code small">{p.instructions}</pre>}
+              <PlaybookIdeas name={p.name} />
             </div>
           )}
         </article>

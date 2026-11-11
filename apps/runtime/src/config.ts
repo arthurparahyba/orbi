@@ -85,6 +85,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     parentPid: env.ORBI_PARENT_PID ? Number(env.ORBI_PARENT_PID) : undefined,
     /** Seconds between checks for due follow-ups. */
     followupIntervalMs: Number(env.ORBI_FOLLOWUP_INTERVAL_MS ?? '15000'),
+    /** The knowledge review at the end of a run (agents/revisor.ts, the cheap model): off with ORBI_KNOWLEDGE_REVIEW=off. */
+    knowledgeReview: (env.ORBI_KNOWLEDGE_REVIEW ?? 'on').toLowerCase() !== 'off',
     /** How many playbooks (the most used) are mounted as skills; the rest are found with playbook_similar. */
     skillCatalogSize: Number(env.ORBI_SKILL_CATALOG_SIZE ?? '15'),
 

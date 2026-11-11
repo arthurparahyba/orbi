@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, stepClaimProblemsOf, components, playbook } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, stepClaimProblemsOf, components, playbook, waitFor } from './support/flow.ts';
 
 test('revisão no fim: falha em paralelo com o passo é pega, pede correção e não sobe; execução limpa sobe; Manter desfaz', async () => {
   brain.savePlaybook({
@@ -50,7 +50,8 @@ test('revisão no fim: falha em paralelo com o passo é pega, pede correção e 
   const second = init(Orbi, { id: 'chat:teste-revisao-2' });
   await second.read(await second.dispatch('mostra o top de novo'));
   await until(() => clean !== '', 'a revisão da execução limpa chega');
-  assert.match(clean, /mostrar-top sem problemas/);
+  assert.match(clean, /mostrar-top sem nada para mudar/);
+  assert.match(clean, /Não proponha melhorias/);
   assert.equal(brain.playbook('mostrar-top')!.level, 2);
   const note = inbox.list({ status: 'open' }).find((i) => i.kind === 'level' && i.routine === 'playbook:mostrar-top')!;
   assert.equal(note.title, 'mostrar-top subiu para N2 · Assistido');
@@ -108,9 +109,7 @@ test('esperar só o que existe; falha corrigida na hora não é problema; tabela
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'publicar', status: 'waiting', note: 'aguardando aprovação' }), { stopReason: 'toolUse' }),
     (context) => { refused = JSON.stringify(context); return fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'publicar', status: 'done', note: 'nada novo a publicar' }), { stopReason: 'toolUse' }); },
     fauxAssistantMessage(fauxText('Pronto.')),
-    (context) => { review = JSON.stringify(context); return fauxAssistantMessage(fauxText('Proponho o script com show.')); },
   ]);
-  let review = '';
   const orbi = init(Orbi, { id: 'chat:teste-esperar' });
   const reply = await orbi.read(await orbi.dispatch('mostra a lista'));
   assert.match(shownResult, /shown.*table.*rows.*2/);
@@ -119,10 +118,12 @@ test('esperar só o que existe; falha corrigida na hora não é problema; tabela
   assert.match(refused, /nada está esperando nesta conversa/);
   const run = brain.lastRunIn('chat:teste-esperar')!;
   assert.equal(run.status, 'done');
-  // The slip is not a problem, but copying the table by hand is worth changing once: a suggestion.
-  for (let i = 0; i < 100 && !review; i++) await new Promise((r) => setTimeout(r, 50));
-  assert.match(review, /melhoria em mostrar-lista: o passo mostrar mostrou a tabela copiando/);
-  assert.doesNotMatch(review, /mostrar-lista: show_ui falhou/);
+  // The slip is not a problem; copying the table by hand is a good idea but changes nothing in the
+  // result or the autonomy: the judge keeps it in the Cérebro, quietly, without asking for a rewrite.
+  await waitFor(() => brain.review.notes({ playbook: 'mostrar-lista', kind: 'idea' }).length > 0, 'a ideia guardada');
+  const [idea] = brain.review.notes({ playbook: 'mostrar-lista', kind: 'idea' });
+  assert.match(idea.text, /o passo mostrar mostrou a tabela copiando/);
+  assert.equal(idea.status, 'kept');
   assert.deepEqual(run.deviations.map((d) => [d.tool, d.recovered]), [['show_ui', true]], 'a falha ficou marcada como corrigida na hora');
   assert.deepEqual(stepClaimProblemsOf(run), []);
 });

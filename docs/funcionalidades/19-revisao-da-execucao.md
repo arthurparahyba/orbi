@@ -1,7 +1,8 @@
 # 19. Revisão no fim da execução: autonomia antes de perfeição (refinamento técnico)
 
-> Situação: **refinamento, nada implementado**. Este documento diz o que muda no código e
-> em que ordem. O quadro visual está no Whiteboard "Orbi · Revisão no fim da execução".
+> Situação: **fases 1 a 3 implementadas**; a fase 4 (ajuste fino dos números) espera o uso
+> real. O quadro visual está no Whiteboard "Orbi · Revisão no fim da execução". As diferenças
+> do que foi planejado estão em "Como ficou", no fim.
 
 ## O problema, nas palavras do uso real
 
@@ -223,3 +224,34 @@ A sua ideia de três subagentes fica mais simples no código: **só um agente no
 
 - Corrigir o ambiente sozinho: o Orbi explica e conduz, com aprovação, como qualquer ação.
 - Mudar a regra de subida N2 → N3 (`RUNS_FOR_N3`).
+
+## Como ficou (fases 1 a 3)
+
+- **Nível justo**: `Deviation.problem` guarda o problema conhecido que bateu (falha de ferramenta em
+  `compose.ts`, comando em `terminal/runner.ts`); `workedAround` (`levels.ts`) tira da conta o
+  contornado em passo que terminou bem. `recurrence` (`knowledge.ts`) conta as execuções seguidas;
+  o problema conhecido ganhou `raiz`.
+- **Juiz**: `brain/domain/judge.ts` (`judge`, `outOfScope`, `HIGH_GAIN = 0.3`, `RECURRING_AFTER = 2`,
+  `CHANGE_SCOPE_MS = 2 h`). O ganho medido hoje é o de aprovações (Python escrito na hora que
+  pediria aprovação toda vez); tempo e tokens já são guardados por execução para a fase 4.
+- **Guardado**: tabela `review_notes` (migração 22), serviço `brain.review`
+  (`brain/services/review.ts`), rotas `/api/review-notes`. O escopo da mudança vale só na
+  conversa da revisão, por 2 horas, e é verificado no `brain_learn` (`scopeProblems` em
+  `agents/tools/brain.ts`) antes de qualquer cartão.
+- **Revisão** (`review/review.ts`): o veredito decide a instrução ao Orbi; ideia guardada não manda
+  sinal nenhum; o cartão mostra "Vale mudar", "Vamos corrigir o seu ambiente?" (`Corrigir agora`
+  manda a mensagem para o Orbi conduzir; `Agora não` não pergunta de novo) e a linha das ideias.
+  O Cérebro mostra "Ideias guardadas" em cada procedimento, com Descartar.
+- **Conhecimento**: as saídas ficam **em memória** (`observability/run-observations.ts`, até 40 por
+  execução, 4 000 caracteres), não numa tabela: a revisão é no fim do mesmo turno, e assim nada
+  com credencial toca o disco. Antes de ir ao modelo, `scrub` (`review/knowledge.ts`) tira os
+  valores do cofre e o que parece credencial. O agente `Revisor` (`agents/revisor.ts`, conversa
+  `revisao:<execução>`, modelo `cheap` de `modelChoices`) propõe com `propose_facts`, que confere
+  como qualquer aprendizado (tipo existente, ligação válida, `credentialProblems`). Quando ele
+  termina, o runtime manda os fatos à conversa da execução e o Orbi os propõe com `brain_learn`
+  (cartão de aprendizado). Sem nenhum tipo no cérebro, ou com `ORBI_KNOWLEDGE_REVIEW=off`, não roda.
+- **Testes**: `judge.test.ts` (nível, recorrência, juiz, escopo, credenciais);
+  `flow-review-autonomy.test.ts` (duas execuções com o mesmo problema conhecido: sobe para N2,
+  pergunta para corrigir o ambiente, fatos lidos viram cartão e a senha não chega ao revisor);
+  `flow-review.test.ts` (melhoria vira ideia guardada, sem pedido de reescrita);
+  `apps/desktop/test/reviewLines.test.ts`.

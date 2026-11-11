@@ -18,7 +18,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/compose.ts      raiz de composição: createOrbi(config) monta todas as peças; startBackground
   src/services.ts     services(): o agente (orbi.ts) e as rotas pegam as peças; ferramentas não
   src/config.ts       loadConfig(env, cwd) puro + validateConfig
-  src/agents/         um agente por contexto de chat (orbi.ts, configurador.ts; directory.ts roteia por prefixo);
+  src/agents/         um agente por contexto de chat (orbi.ts, configurador.ts, revisor.ts; directory.ts roteia por prefixo);
                       tools/ uma capacidade por arquivo (defineCapability); gate.ts é o portão;
                       runtime-port.ts é a única porta para o Flue
   src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
@@ -133,9 +133,13 @@ cofre ou ponte MCP, `npm run e2e`.
   ser no N3 posto pelo desenvolvedor com a ação conhecida. Subir e descer é do runtime
   (`settleRun`), nunca do modelo, e sempre avisa (cartão e Pendências, com Manter).
 - **Revisão no fim da execução** (`review/review.ts`): o nível só muda quando o turno
-  termina (todas as falhas já chegaram, inclusive de chamadas em paralelo). Problemas e
-  configuração da esteira viram o cartão de revisão e um pedido de correção ao modelo, que
-  passa pelo cartão de aprendizado.
+  termina (todas as falhas já chegaram, inclusive de chamadas em paralelo). Autonomia antes de
+  perfeição: o juiz (`brain/domain/judge.ts`, regras puras) decide o que vira pedido ao modelo:
+  mudar só os passos com problema (o `brain_learn` recusa mexer fora do escopo), aprender um
+  problema novo, ou propor corrigir o ambiente de um problema recorrente; melhoria que não muda
+  resultado nem autonomia vira ideia guardada, sem cartão. O revisor de conhecimento
+  (`agents/revisor.ts`) lê as saídas já limpas de credenciais e só propõe fatos, que passam pelo
+  cartão de aprendizado (documento 19).
 - **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
   modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
   ou com a permissão do agente.

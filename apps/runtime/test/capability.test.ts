@@ -21,5 +21,5 @@ test('dentro de agents/ e terminal/, só os agentes leem services()', () => {
   const src = join(import.meta.dirname, '..', 'src');
   const files = (readdirSync(src, { recursive: true }) as string[]).map((f) => f.replaceAll('\\', '/')).filter((f) => /^(agents|terminal|subagents)\/.*\.ts$/.test(f));
   const readers = files.filter((f) => /services\(\)/.test(readFileSync(join(src, f), 'utf8')));
-  assert.deepEqual(readers.sort(), ['agents/configurador.ts', 'agents/orbi.ts']);
+  assert.deepEqual(readers.sort(), ['agents/configurador.ts', 'agents/orbi.ts', 'agents/revisor.ts']);
 });

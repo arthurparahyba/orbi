@@ -38,6 +38,8 @@ export interface Deviation {
   command?: string;
   /** For `comando`: the error matched a known problem of the brain. */
   known?: boolean;
+  /** The known problem the error matched (its entity id): to count how often it comes back. */
+  problem?: string;
   tool?: string;
   step?: string | null;
   at: string;
@@ -86,9 +88,18 @@ export function askReason(pb: { level: Level; name: string }, action: { known: b
   return `${pb.name} está no N${pb.level}`;
 }
 
+/**
+ * A failure the brain already knew, in a step that went on and ended well: the Orbi applied the
+ * known solution. It is not a problem of the procedure, so it does not hold the level back; if
+ * it keeps coming back, the review proposes fixing it at the root (domain/judge.ts).
+ */
+export function workedAround(d: Deviation, steps: ReadonlyArray<{ id: string; status: string }>): boolean {
+  return !!d.problem && (d.kind === 'falha' || d.kind === 'comando') && steps.some((s) => s.id === d.step && s.status === 'done');
+}
+
 /** A run's problems that keep it from counting toward the next level. */
 export function runDeviations(run: { status: string; steps: Array<{ id: string; status: string }>; deviations: Deviation[] }): string[] {
-  const out = activeDeviations(run.deviations).map((d) => d.detail);
+  const out = activeDeviations(run.deviations).filter((d) => !workedAround(d, run.steps)).map((d) => d.detail);
   if (run.status === 'failed') out.push('a execução falhou');
   for (const s of run.steps) if (s.status === 'failed' || s.status === 'skipped') out.push(`passo ${s.id} ${s.status === 'failed' ? 'falhou' : 'foi pulado'}`);
   return out;

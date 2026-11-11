@@ -16,6 +16,9 @@ Object.assign(process.env, {
   CHROME_MCP_AUTOSTART: 'false',
   CHROME_MCP_PORT: '1', // nothing listens: the optional MCP mount degrades gracefully
   ANTHROPIC_API_KEY: 'faux',
+  // The knowledge reviewer runs its own model turns: off, so it takes no scripted response; the
+  // scenario that tests it turns it on (flow-review-autonomy).
+  ORBI_KNOWLEDGE_REVIEW: 'off',
 });
 
 const pi = await import('@earendil-works/pi-ai');
@@ -25,6 +28,7 @@ export const { init } = flueRuntime;
 const { start } = await import('@flue/runtime/node');
 export const { Orbi } = await import('../../src/agents/orbi.ts');
 export const { Configurador } = await import('../../src/agents/configurador.ts');
+export const { Revisor } = await import('../../src/agents/revisor.ts');
 export const { default: app } = await import('../../src/app.ts');
 export const { brain, inbox } = (await import('../../src/services.ts')).services();
 export const { stepClaimProblems: stepClaimProblemsOf } = await import('../../src/brain/domain/review.ts');
@@ -35,7 +39,7 @@ flueRuntime.setProvider(faux.provider);
 // app.ts runs startBackground: tool outcomes and the review at the end of each turn are wired.
 let flue: { [Symbol.asyncDispose](): Promise<void> };
 before(async () => {
-  flue = (await start({ agents: [Orbi, Configurador] })) as never;
+  flue = (await start({ agents: [Orbi, Configurador, Revisor] })) as never;
 });
 after(async () => {
   await flue[Symbol.asyncDispose]();

@@ -21,6 +21,7 @@ import { voiceRoutes } from './routes/voice.ts';
 import { pipelineRoutes, pipelineRunRoutes } from './routes/pipelines.ts';
 import { codeAgentRoutes } from './routes/code-agents.ts';
 import { followupRoutes } from './routes/followups.ts';
+import { reviewNoteRoutes } from './routes/review-notes.ts';
 import { modelRoutes } from './routes/model.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
@@ -81,6 +82,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/pipeline-runs', pipelineRunRoutes(s, agent));
   app.route('/api/code-agents', codeAgentRoutes(s));
   app.route('/api/followups', followupRoutes(s));
+  app.route('/api/review-notes', reviewNoteRoutes(s));
   app.route('/api/model', modelRoutes(s));
   app.route('/mcp', mcpRoutes(s, agent));
   return app;

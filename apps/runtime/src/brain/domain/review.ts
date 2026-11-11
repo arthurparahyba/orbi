@@ -7,13 +7,15 @@
 import type { Playbook, PlaybookRun } from './types.ts';
 import type { Pipeline, PipelineInputDef } from './pipelines.ts';
 import { playbookParams } from './playbooks.ts';
+import { workedAround } from './levels.ts';
 
 /** "passo entregar foi dado como feito, mas show_ui falhou". */
 export function stepClaimProblems(run: Pick<PlaybookRun, 'steps' | 'deviations'>): string[] {
   const out: string[] = [];
   for (const s of run.steps) {
     if (s.status !== 'done') continue;
-    const failed = [...new Set(run.deviations.filter((d) => d.kind === 'falha' && !d.recovered && d.step === s.id).map((d) => d.tool ?? 'uma ferramenta'))];
+    // A known problem got past with its known solution is not a false claim.
+    const failed = [...new Set(run.deviations.filter((d) => d.kind === 'falha' && !d.recovered && d.step === s.id && !workedAround(d, run.steps)).map((d) => d.tool ?? 'uma ferramenta'))];
     if (failed.length) out.push(`passo ${s.id} foi dado como feito${s.note ? ` ("${s.note.slice(0, 80)}")` : ''}, mas ${failed.join(' e ')} falhou`);
   }
   return out;

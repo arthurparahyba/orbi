@@ -53,6 +53,9 @@ repetitivas rodem sem você, e o Orbi só chame quando há uma decisão nova.
   as falhas daquele turno chegaram, nunca no meio.
 - **Sobe sozinho**: N1 → N2 com uma execução de ponta a ponta sem desvio; N2 → N3
   com mais três seguidas. Nunca passa do **nível máximo** que você escolher.
+  Um **problema conhecido contornado** com a solução guardada, num passo que terminou
+  bem, não conta como desvio; se ele volta em execuções seguidas, a revisão propõe
+  corrigir o ambiente de vez (documento 19).
 - **Desce um nível** quando a execução falha ou você nega uma ação. Editar os passos
   (por exemplo, uma correção vinda da revisão) **não** muda o nível: um passo que
   mudou roda outras ações, e ação nova pede aprovação de qualquer jeito.
