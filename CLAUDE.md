@@ -121,6 +121,10 @@ cofre ou ponte MCP, `npm run e2e`.
   ambiente do usuário. A única exceção é o shell do desenvolvedor (`terminal/shell.ts`, Git
   Bash no Windows): `run_shell` (uma linha aprovada; o efeito sai do texto, linha nova sempre
   pede) e, no Windows, os programas `.cmd` (npm, mvn), com cada argumento entre aspas simples.
+  Outra: o **servidor MCP por comando** (documento 20), cadastrado pelo desenvolvedor. Roda sem
+  shell, só com as variáveis que ele declarou (credencial só por `{{segredo:nome}}`), na pasta
+  `dados/mcp/<id>`, e só com o comando aprovado na tela (hash de programa, argumentos e
+  ambiente); comando mudado espera nova aprovação e suas ferramentas saem do agente.
 - Nunca peça nem cole chaves de API; elas ficam em `apps/runtime/.env` (ignorado pelo git).
 - Credencial que o Orbi precisa é pedida com `ask_secret`: o cartão grava direto no cofre
   (`POST /api/inbox/:id/secret`) e o modelo recebe só a referência. Nunca leve um valor

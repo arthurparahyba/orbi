@@ -331,11 +331,18 @@ export interface McpTool {
 export interface McpServer {
   id: string;
   name: string;
+  /** http: an address; command: a program Orbi starts on this machine (stdio). */
+  transport: 'http' | 'command';
   url: string;
   /** Header values carry only vault references ({{segredo:nome}}). */
   headers: Record<string, string>;
+  /** The program and its arguments, for transport command. */
+  command: { program: string; args: string[] } | null;
+  /** Environment of the program: values with credentials only as vault references. */
+  env: Record<string, string>;
   enabled: boolean;
-  state: 'conectado' | 'erro' | 'desligado' | 'conectando';
+  /** aprovar: the command is new or changed and waits for you before it runs. */
+  state: 'conectado' | 'erro' | 'desligado' | 'conectando' | 'aprovar';
   error: string | null;
   counts: { leitura: number; escrita: number; novas: number };
 }

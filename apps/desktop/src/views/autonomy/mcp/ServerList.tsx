@@ -1,6 +1,6 @@
 import { api, type Health } from '../../../api';
 import { useLive } from '../../../hooks';
-import { countsLine, STATE_LABEL } from './mcpForm';
+import { countsLine, howLine, STATE_LABEL } from './mcpForm';
 
 /** The servers: the built-in Chrome first, then the ones you added. */
 export function ServerList({ health, onAdd, onOpen, onChrome }: { health?: Health; onAdd(): void; onOpen(id: string): void; onChrome(): void }) {
@@ -26,7 +26,7 @@ export function ServerList({ health, onAdd, onOpen, onChrome }: { health?: Healt
           {servers.data?.map((s) => (
             <tr key={s.id}>
               <td><button type="button" className="link-btn" onClick={() => onOpen(s.id)}><strong>{s.name}</strong></button></td>
-              <td className="muted small mono">{s.url}</td>
+              <td className="muted small mono">{s.transport === 'command' && <span className="block">comando local</span>}{howLine(s)}</td>
               <td className={s.counts.novas ? 'warn-text' : ''}>{countsLine(s.counts)}</td>
               <td>
                 <span className={`pill ${STATE_LABEL[s.state].pill}`}>{STATE_LABEL[s.state].text}</span>

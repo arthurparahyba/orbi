@@ -422,9 +422,9 @@ programa (`binary`), comando de uso único (`command`, com `{prompt}` e
 ### Ferramentas MCP (documento 20)
 
 **`mcp_servers`** · os servidores MCP que o desenvolvedor adicionou: `id` (do nome, usado nas
-regras `mcp:<id>:leitura|escrita` e no nome das ferramentas), `name`, `transport` (`http`; `command`
-fica para a fase 4), `url`, `headers` (JSON; credencial só como `{{segredo:nome}}`), `enabled`,
-`last_error` (já sem valores do cofre). `command`, `env` e `approved_command` são da fase 4.
+regras `mcp:<id>:leitura|escrita` e no nome das ferramentas), `name`, `transport` (`http` ou `command`), `url`, `headers` (JSON; credencial só como `{{segredo:nome}}`), `enabled`,
+`last_error` (já sem valores do cofre). Por comando: `command` (JSON, programa e argumentos), `env`
+(JSON, credencial só como referência) e `approved_command` (hash do comando aprovado).
 
 **`mcp_tools`** · as ferramentas de cada servidor, como ele lista: `description`, `input_schema`
 (JSON Schema), `hint` (o que o servidor diz: `leitura`, `escrita`, `apaga` ou nulo), `kind` (o

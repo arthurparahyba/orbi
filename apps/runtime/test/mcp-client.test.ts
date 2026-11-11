@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import * as v from 'valibot';
 import { agentToolName, categoryOf, effectiveKind, effectOf, headerProblems, hintOf, serverIdFor, urlProblem } from '../src/mcp-client/domain.ts';
 import { toValibot } from '../src/mcp-client/schema.ts';
@@ -94,12 +97,12 @@ test('mcp: o hub conecta com a credencial do cofre e nada dela volta', async () 
     migrate(db);
     const store = new McpServers(db);
     const vault = { resolve: async <T>(x: T) => ({ value: JSON.parse(JSON.stringify(x).replaceAll('{{segredo:issues/token}}', 'tok-nao-pode-vazar')) as T, used: ['tok-nao-pode-vazar'] }) };
-    const hub = new McpHub(store, vault);
+    const hub = new McpHub(store, vault, mkdtempSync(join(tmpdir(), 'orbi-mcp-')));
     const headers = { Authorization: 'Bearer {{segredo:issues/token}}' };
-    const tested = await hub.test(fake.url, headers);
+    const tested = await hub.test({ transport: 'http', url: fake.url, headers });
     assert.ok(tested.ok);
     assert.deepEqual(tested.tools.map((t) => [t.name, t.effective]).sort(), [['apagar_issue', 'apaga'], ['buscar_issue', 'leitura'], ['comentar', 'escrita'], ['criar_issue', 'escrita']]);
-    const bad = await hub.test(fake.url, { Authorization: 'Bearer errado' });
+    const bad = await hub.test({ transport: 'http', url: fake.url, headers: { Authorization: 'Bearer errado' } });
     assert.equal(bad.ok, false);
 
     store.add({ id: 'issues', name: 'Issues', url: fake.url, headers });
@@ -112,5 +115,48 @@ test('mcp: o hub conecta com a credencial do cofre e nada dela volta', async () 
     await hub.closeAll();
   } finally {
     await fake.close();
+  }
+});
+
+test('mcp por comando: só roda aprovado, mudou pede de novo, ambiente só o declarado, credencial limpa', async () => {
+  const { commandApproval, splitCommand, commandText } = await import('../src/mcp-client/domain.ts');
+  assert.deepEqual(splitCommand('npx -y servicenow-mcp --instance "minha empresa"'), { program: 'npx', args: ['-y', 'servicenow-mcp', '--instance', 'minha empresa'] });
+  assert.deepEqual(splitCommand("node 'C:\\\\mcp\\\\srv.js' ''"), { program: 'node', args: ['C:\\\\mcp\\\\srv.js', ''] });
+  assert.equal(splitCommand('npx "sem fim'), undefined);
+  assert.equal(commandText({ program: 'npx', args: ['-y', 'minha empresa'] }), 'npx -y "minha empresa"');
+  assert.notEqual(commandApproval({ program: 'npx', args: ['a'] }, { X: '1' }), commandApproval({ program: 'npx', args: ['a'] }, { X: '2' }), 'o ambiente faz parte do que você aprovou');
+
+  const db = new DatabaseSync(':memory:');
+  migrate(db);
+  const store = new McpServers(db);
+  const secret = 'tok-do-programa-nao-vaza';
+  const vault = { resolve: async <T>(x: T) => ({ value: JSON.parse(JSON.stringify(x).replaceAll('{{segredo:chamados/token}}', secret)) as T, used: [secret] }) };
+  const work = mkdtempSync(join(tmpdir(), 'orbi-mcp-cmd-'));
+  const hub = new McpHub(store, vault, work);
+  process.env.ORBI_TESTE_PRIVADO = 'segredo-do-runtime';
+  const command = { program: process.execPath, args: [join(import.meta.dirname, 'support', 'fake-mcp-stdio.mjs')] };
+  const env = { CHAMADOS_TOKEN: '{{segredo:chamados/token}}' };
+  try {
+    store.add({ id: 'chamados', name: 'Chamados', transport: 'command', command, env });
+    assert.equal(hub.state('chamados'), 'aprovar', 'nunca aprovado: espera você');
+    await assert.rejects(hub.refresh('chamados'), /ainda não foi aprovado/);
+
+    store.approve('chamados');
+    await hub.refresh('chamados');
+    assert.equal(hub.state('chamados'), 'conectado');
+    assert.deepEqual(store.tools('chamados').map((t) => [t.name, t.effective]), [['abrir_chamado', 'escrita'], ['ver_ambiente', 'leitura']]);
+    const seen = await hub.call('chamados', 'ver_ambiente', {});
+    assert.match(seen, /token=\[redacted\]|token=\*+|token=(?!-)/, 'o programa recebeu a credencial');
+    assert.equal(seen.includes(secret), false, 'e ela não volta na resposta');
+    assert.match(seen, /vazou=nao/, 'o que não foi declarado não chega ao programa');
+    assert.match(seen, new RegExp(`pasta=${work.replace(/[\\\\^$.*+?()[\\]{}|]/g, '\\\\$&')}.chamados`), 'roda na pasta dele');
+
+    // The command changed: it stops and asks again.
+    store.edit('chamados', { command: { ...command, args: [...command.args, '--outro'] } });
+    assert.equal(hub.state('chamados'), 'aprovar');
+    await assert.rejects(hub.refresh('chamados'), /mudou ou ainda não foi aprovado/);
+  } finally {
+    delete process.env.ORBI_TESTE_PRIVADO;
+    await hub.closeAll();
   }
 });

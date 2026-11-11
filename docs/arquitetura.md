@@ -313,6 +313,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `GET /api/model` · `POST /api/model/test` · `PUT /api/model` · `POST /api/model/plugins/rescan` | O modelo: situação, teste, escolher e aplicar (documento 12) |
 | `GET /api/model/choices` · `PUT /api/model/tiers` | Os modelos que uma conversa pode usar, com o custo; classificar o custo de um modelo |
 | `GET` · `POST /api/mcp-servers` · `POST /api/mcp-servers/test` | Servidores MCP que o Orbi usa: listar, testar sem salvar (lista as ferramentas), adicionar |
+| `POST /api/mcp-servers/:id/approve` | Aprovar o comando de um servidor local como ele está agora (comando novo ou mudado não roda sem isso) |
 | `GET` · `PUT` · `DELETE /api/mcp-servers/:id` · `POST …/:id/refresh` · `PUT …/:id/tools/:tool` | Um servidor: ver, mudar (endereço, cabeçalhos, ligado), remover (leva as regras), reconectar, marcar uma ferramenta (leitura ou escrita, ligada) |
 | `GET` · `PUT /api/browser/settings` | As configurações do navegador do Orbi (Chrome DevTools); salvar grava no `.env` e reinicia a ponte |
 | `GET` · `PUT /api/model/roles` | O modelo de cada tipo de trabalho: conversa, executar, aprender e corrigir, revisor de conhecimento |

@@ -1,3 +1,4 @@
+import { commandText, splitCommand } from '@orbi/contracts';
 import type { McpServer, McpTestResult, McpToolKind } from '../../../api';
 
 /** The MCP server screens (Autonomia › Ferramentas MCP), without React. */
@@ -48,8 +49,30 @@ export function countsLine(c: McpServer['counts']): string {
 }
 
 export const STATE_LABEL: Record<McpServer['state'], { text: string; pill: string }> = {
+  aprovar: { text: 'esperando você aprovar', pill: 'pill-waiting' },
   conectado: { text: 'conectado', pill: 'pill-done' },
   conectando: { text: 'conectando', pill: 'pill-running' },
   erro: { text: 'não conectou', pill: 'pill-failed' },
   desligado: { text: 'desligado', pill: '' },
 };
+
+export type Transport = 'http' | 'command';
+
+/** The command field: one line, split like a terminal would, but nothing runs through a shell. */
+export function commandHint(line: string): string | undefined {
+  if (!line.trim()) return 'Informe o comando. Ex.: npx -y servicenow-mcp';
+  return splitCommand(line) ? undefined : 'Aspas sem fechar.';
+}
+
+/** What the runtime gets to test or save, for each way of connecting. */
+export function targetOf(t: Transport, url: string, headers: HeaderRow[], line: string, env: HeaderRow[]) {
+  return t === 'http'
+    ? { transport: t, url: url.trim(), headers: headersOf(headers) }
+    : { transport: t, command: splitCommand(line), env: headersOf(env) };
+}
+
+/** How a server connects, in one line. */
+export function howLine(s: Pick<McpServer, 'transport' | 'url' | 'command'>): string {
+  return s.transport === 'command' && s.command ? commandText(s.command) : s.url;
+}
+

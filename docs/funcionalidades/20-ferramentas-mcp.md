@@ -1,6 +1,6 @@
 # 20. Ferramentas MCP e a nova Autonomia (refinamento técnico)
 
-Estado: **fases 1 a 3 feitas** (telas no lugar, Chrome configurável, servidores por endereço); as outras são proposta. Telas no canvas "Orbi · Autonomia:
+Estado: **fases 1 a 4 feitas** (telas no lugar, Chrome configurável, servidores por endereço e por comando); a 5 é proposta. Telas no canvas "Orbi · Autonomia:
 ferramentas MCP e agentes" (boards A a F).
 
 ## O que muda para o desenvolvedor
@@ -217,6 +217,29 @@ continua em `/api/agents/suggestions/:id/accept`; só a tela muda de lugar.
   `flow-mcp-tools.test.ts` (leitura sozinha, escrita vira cartão e roda aprovada, apagar desligada,
   o token fora do modelo, da conversa, da lista e do log), `mcpForm.test.ts`, e o e2e da tela
   adiciona um servidor pela interface (`test/support/fake-mcp.ts`).
+
+## Como ficou (fase 4)
+
+- **Sem a ponte HTTP**: a proposta era reaproveitar a ponte do Chrome, mas ela só existe porque o
+  Flue monta MCP por endereço. As ferramentas dos servidores cadastrados passam pelo `McpHub`, que
+  é um cliente MCP próprio: ele fala stdio direto com o programa (`StdioClientTransport` do SDK).
+  Menos uma porta aberta e menos um processo.
+- O SDK inicia o programa sem shell (`cross-spawn`, que também resolve `.cmd` no Windows), herda só
+  `PATH`, `HOME` e poucas outras do runtime, e recebe as variáveis declaradas, resolvidas do cofre.
+  Pasta de trabalho `dados/mcp/<id>`. A saída de erro do programa entra (curta e limpa) na
+  mensagem de erro, nunca inteira no log.
+- **Aprovação**: `commandApproval` (`mcp-client/domain.ts`) é o hash de programa, argumentos e
+  ambiente (nomes e referências, nunca valores). `mcp_servers.approved_command` guarda o aprovado;
+  `needsApproval` compara. Testar e adicionar por comando exigem `approve` (a tela pergunta antes,
+  em `ConfirmCommand`); comando ou ambiente mudado deixa o servidor em `aprovar`: o hub não inicia,
+  as ferramentas saem do agente e a página mostra **Aprovar e iniciar** (`POST /:id/approve`).
+- Os programas filhos morrem com o runtime (`McpHub.killNow` no `exit`).
+- `splitCommand` e `commandText` ficam em `packages/contracts/src/mcp.ts`, usados pela tela e
+  pelo runtime.
+- Testes: `mcp-client.test.ts` (sem aprovação não roda; aprovado conecta; o programa recebe a
+  credencial e ela não volta; variável do runtime não declarada não chega; roda na pasta dele;
+  comando mudado pede de novo), `test/support/fake-mcp-stdio.mjs`, `mcpForm.test.ts` e o e2e da
+  tela (adiciona por comando, confirma, muda o comando e aprova de novo).
 
 ## Fora do escopo
 

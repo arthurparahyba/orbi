@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { api } from '../../../api';
 import { useLive } from '../../../hooks';
 import { ToolMarks } from './ToolMarks';
-import { countsLine, STATE_LABEL } from './mcpForm';
+import { ConfirmCommand } from './ConfirmCommand';
+import { countsLine, howLine, STATE_LABEL } from './mcpForm';
 
 /** One server: its state, connect again, turn off, remove, and each tool's type. */
 export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): void; onRemoved(): void }) {
@@ -19,8 +20,8 @@ export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): vo
       <div className="row mcp-head">
         <div>
           <h2>{d.name} <span className={`pill ${state.pill}`}>{state.text}</span></h2>
-          <p className="muted small mono">{d.url}</p>
-          {Object.entries(d.headers).map(([k, v]) => <p key={k} className="muted small mono">{k}: {v}</p>)}
+          <p className="muted small mono">{howLine(d)}</p>
+          {Object.entries(d.transport === 'command' ? d.env : d.headers).map(([k, v]) => <p key={k} className="muted small mono">{k}{d.transport === 'command' ? '=' : ': '}{v}</p>)}
           {d.state === 'erro' && d.error && <p className="form-error">{d.error}</p>}
         </div>
         <div className="row">
@@ -32,6 +33,9 @@ export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): vo
         </div>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
+      {d.state === 'aprovar' && (
+        <ConfirmCommand line={howLine(d)} action="Aprovar e iniciar" onRun={() => void act(() => api.approveMcpServer(id))} />
+      )}
       <p className="small">{countsLine(d.counts)}. <span className="muted">As regras deste servidor (leitura e escrita) ficam em Autonomia › Regras.</span></p>
       <ToolMarks
         rows={d.tools.map((t) => ({ ...t, kind: t.effective === 'leitura' ? 'leitura' : 'escrita', deletes: t.effective === 'apaga' }))}

@@ -1,11 +1,16 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import type { McpServer, McpTestResult } from '@orbi/contracts';
 import { redact, type Vault } from '../vault/vault.ts';
-import { effectiveKind, hintOf } from './domain.ts';
-import type { DiscoveredTool, McpServers } from './store.ts';
+import { commandText, effectiveKind, hintOf, type McpCommand } from './domain.ts';
+import { needsApproval, type DiscoveredTool, type McpServers } from './store.ts';
 
-type Conn = { client: Client; secrets: string[] };
+type Conn = { client: Client; secrets: string[]; pid?: number | null };
+/** How to reach a server: an address with headers, or a program with its environment. */
+export type McpTarget = { transport: 'http' | 'command'; url?: string; headers?: Record<string, string>; command?: McpCommand | null; env?: Record<string, string> };
 const CONNECT_MS = 15_000;
 const MAX_OUTPUT = 30_000;
 
@@ -18,24 +23,30 @@ export class McpHub {
   private readonly conns = new Map<string, Promise<Conn>>();
   private readonly states = new Map<string, McpServer['state']>();
 
-  constructor(private readonly store: McpServers, private readonly vault: Pick<Vault, 'resolve'>) {}
+  /** Children started by command servers: killed with the runtime, even on a sudden exit. */
+  private readonly pids = new Set<number>();
+
+  /** `workDir`: each command server runs in its own folder under it (dados/mcp/<id>). */
+  constructor(private readonly store: McpServers, private readonly vault: Pick<Vault, 'resolve'>, private readonly workDir: string) {}
 
   state(id: string): McpServer['state'] {
     const s = this.store.get(id);
     if (!s?.enabled) return 'desligado';
+    if (needsApproval(s)) return 'aprovar';
     return this.states.get(id) ?? (s.lastError ? 'erro' : 'conectando');
   }
 
   /** Connects without saving anything and lists the tools, for the "Testar conexão" button. */
-  async test(url: string, headers: Record<string, string>): Promise<McpTestResult> {
+  async test(target: McpTarget): Promise<McpTestResult> {
     let conn: Conn | undefined;
     try {
-      conn = await this.open(url, headers);
+      conn = await this.open(target, 'teste');
       const tools = await listAll(conn.client);
       return { ok: true, tools: tools.map((t) => ({ name: t.name, description: t.description, hint: t.hint, effective: effectiveKind(t.hint, null) })) };
     } catch (error) {
       return { ok: false, error: redact(messageOf(error), conn?.secrets ?? []) };
     } finally {
+      if (conn?.pid) this.pids.delete(conn.pid);
       await conn?.client.close().catch(() => {});
     }
   }
@@ -85,7 +96,7 @@ export class McpHub {
     const conn = this.conns.get(id);
     this.conns.delete(id);
     this.states.delete(id);
-    await conn?.then((c) => c.client.close()).catch(() => {});
+    await conn?.then((c) => { if (c.pid) this.pids.delete(c.pid); return c.client.close(); }).catch(() => {});
   }
 
   async closeAll(): Promise<void> {
@@ -96,16 +107,27 @@ export class McpHub {
     const s = this.store.get(id);
     if (!s) return Promise.reject(new Error(`servidor MCP ${id} não existe`));
     if (!s.enabled) return Promise.reject(new Error(`servidor MCP ${s.name} está desligado`));
-    const conn = this.open(s.url, s.headers);
+    // A program only runs as you approved it: a new or changed command waits for you.
+    if (needsApproval(s)) return Promise.reject(new Error(`o comando de ${s.name} mudou ou ainda não foi aprovado: aprove em Autonomia › Ferramentas (MCP)`));
+    const conn = this.open(s, id);
     this.conns.set(id, conn);
     conn.catch(() => this.conns.delete(id));
     return conn;
   }
 
-  private async open(url: string, headers: Record<string, string>): Promise<Conn> {
-    const { value, used } = await this.vault.resolve(headers);
+  /** Kills the programs of command servers now (sync: for the runtime's 'exit' handler). */
+  killNow(): void {
+    for (const pid of this.pids) {
+      try { process.kill(pid); } catch { /* already gone */ }
+    }
+    this.pids.clear();
+  }
+
+  private async open(target: McpTarget, folder: string): Promise<Conn> {
     const client = new Client({ name: 'orbi', version: '0.1.0' });
-    const transport = new StreamableHTTPClientTransport(new URL(url), { requestInit: { headers: value } });
+    if (target.transport === 'command') return this.openCommand(client, target, folder);
+    const { value, used } = await this.vault.resolve(target.headers ?? {});
+    const transport = new StreamableHTTPClientTransport(new URL(target.url ?? ''), { requestInit: { headers: value } });
     try {
       await withTimeout(client.connect(transport), CONNECT_MS, 'o servidor não respondeu a tempo');
     } catch (error) {
@@ -113,6 +135,31 @@ export class McpHub {
       throw new Error(redact(messageOf(error), used));
     }
     return { client, secrets: used };
+  }
+
+  /**
+   * A program on this machine, spoken to over stdio, without a shell: the SDK passes only a few
+   * safe variables of the runtime (PATH, HOME…) plus the declared ones, resolved from the vault.
+   */
+  private async openCommand(client: Client, target: McpTarget, folder: string): Promise<Conn> {
+    if (!target.command) throw new Error('sem comando');
+    const { value: env, used } = await this.vault.resolve(target.env ?? {});
+    const cwd = join(this.workDir, folder.replace(/[^a-z0-9-]/gi, '_'));
+    mkdirSync(cwd, { recursive: true });
+    const transport = new StdioClientTransport({ command: target.command.program, args: target.command.args, env, cwd, stderr: 'pipe' });
+    // The program's own messages: kept short for the error, never logged whole.
+    let stderr = '';
+    transport.stderr?.on('data', (chunk: Buffer) => { stderr = (stderr + chunk.toString('utf8')).slice(-1500); });
+    try {
+      await withTimeout(client.connect(transport), CONNECT_MS * 4, 'o programa não respondeu a tempo');
+    } catch (error) {
+      await client.close().catch(() => {});
+      const said = stderr.trim() ? ` · o programa disse: ${stderr.trim().split('\n').slice(-3).join(' ')}` : '';
+      throw new Error(redact(`${commandText(target.command)}: ${messageOf(error)}${said}`, used));
+    }
+    const pid = transport.pid;
+    if (pid) this.pids.add(pid);
+    return { client, secrets: used, pid };
   }
 }
 

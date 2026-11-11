@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import type { Agent } from './agents/runtime-port.ts';
 import { validateConfig, type OrbiConfig } from './config.ts';
@@ -89,7 +90,7 @@ export async function createOrbi(
     modelTiers: new ModelTiers(db),
     modelRoles: new ModelRoles(db),
     mcpServers,
-    mcpHub: new McpHub(mcpServers, vault),
+    mcpHub: new McpHub(mcpServers, vault, join(config.dataDir, 'mcp')),
     observations: new RunObservations(),
     knowledge: new KnowledgeCandidates(),
     events,
@@ -213,6 +214,7 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
   process.once('exit', () => {
     chrome?.bridge?.killNow();
     s.chrome.stop();
+    s.mcpHub.killNow();
   });
 
   return {

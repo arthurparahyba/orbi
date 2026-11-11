@@ -16,16 +16,31 @@ export const SetModelRole = v.object({ role: v.picklist(['conversa', 'executar',
 /** MCP servers Orbi uses (Autonomia › Ferramentas MCP). Header values: only vault references for credentials. */
 const McpHeaders = v.pipe(v.record(v.pipe(v.string(), v.regex(/^[A-Za-z0-9-]{1,60}$/)), v.pipe(v.string(), v.maxLength(500))), v.check((h) => Object.keys(h).length <= 20, 'no máximo 20 cabeçalhos'));
 const McpUrl = v.pipe(v.string(), v.minLength(1), v.maxLength(500));
-export const TestMcpServer = v.object({ url: McpUrl, headers: McpHeaders });
+const McpCommand = v.object({
+  program: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
+  args: v.pipe(v.array(v.pipe(v.string(), v.maxLength(1000))), v.maxLength(50)),
+});
+const McpEnv = v.pipe(v.record(v.pipe(v.string(), v.regex(/^[A-Za-z_][A-Za-z0-9_]{0,60}$/)), v.pipe(v.string(), v.maxLength(500))), v.check((h) => Object.keys(h).length <= 30, 'no máximo 30 variáveis'));
+/** How Orbi reaches the server: an address, or a program it starts. `approve`: you confirmed the command may run. */
+const McpTarget = {
+  transport: v.optional(v.picklist(['http', 'command']), 'http'),
+  url: v.optional(McpUrl),
+  headers: v.optional(McpHeaders, {}),
+  command: v.optional(McpCommand),
+  env: v.optional(McpEnv, {}),
+  approve: v.optional(v.boolean(), false),
+};
+export const TestMcpServer = v.object(McpTarget);
 export const AddMcpServer = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(60)),
-  url: McpUrl,
-  headers: McpHeaders,
+  ...McpTarget,
   tools: v.array(v.object({ name: v.string(), kind: v.nullable(v.picklist(['leitura', 'escrita'])), enabled: v.boolean() })),
 });
 export const EditMcpServer = v.object({
   url: v.optional(McpUrl),
   headers: v.optional(McpHeaders),
+  command: v.optional(McpCommand),
+  env: v.optional(McpEnv),
   enabled: v.optional(v.boolean()),
 });
 export const SetMcpTool = v.object({ kind: v.optional(v.nullable(v.picklist(['leitura', 'escrita']))), enabled: v.optional(v.boolean()) });
@@ -203,8 +218,8 @@ export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationMod
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
 export type SetModelRole = v.InferOutput<typeof SetModelRole>;
 export type SetChromeSettings = v.InferOutput<typeof SetChromeSettings>;
-export type TestMcpServer = v.InferOutput<typeof TestMcpServer>;
-export type AddMcpServer = v.InferOutput<typeof AddMcpServer>;
+export type TestMcpServer = v.InferInput<typeof TestMcpServer>;
+export type AddMcpServer = v.InferInput<typeof AddMcpServer>;
 export type EditMcpServer = v.InferOutput<typeof EditMcpServer>;
 export type SetMcpTool = v.InferOutput<typeof SetMcpTool>;
 export type SetReviewNoteStatus = v.InferOutput<typeof SetReviewNoteStatus>;

@@ -290,9 +290,35 @@ try {
   await shows('.mcp-server', /Issues[\s\S]*conectado[\s\S]*1 leitura · 2 escrita/);
   assert.ok(!(await text('.mcp-server')).includes('tok-e2e-nao-vaza'), 'a tela mostra só a referência');
   await shot('mcp-servidor');
-  await clickButton('.subnav', /Regras/);
-  await shows('.auto-list', /Issues: ler[\s\S]*Issues: alterar/);
   await fake.close();
+
+  // A server started by a command (fase 4): confirm before it runs, the variable from the vault.
+  await vault.set('chamados/token', 'tok-programa-nao-vaza');
+  await clickButton('.mcp-server', /Ferramentas \(MCP\)/);
+  await clickButton('.mcp-tools', /Adicionar servidor/);
+  await page.type('.mcp-add input[placeholder="Jira da empresa"]', 'Chamados');
+  await clickButton('.mcp-add .segmented', /Comando local/);
+  const stdio = join(import.meta.dirname, '../test/support/fake-mcp-stdio.mjs');
+  await page.type('.mcp-add input[placeholder^="npx"]', `"${process.execPath}" "${stdio}"`);
+  await clickButton('.mcp-add', /\+ Variável/);
+  await page.type('.mcp-add input[placeholder="SNOW_PASSWORD"]', 'CHAMADOS_TOKEN');
+  await page.select('.mcp-add select[aria-label="Usar credencial do cofre"]', 'chamados/token');
+  await clickButton('.mcp-add', /Testar conexão/);
+  await shows('.mcp-confirm', /vai rodar nesta máquina, com o seu usuário/);
+  await shot('mcp-confirmar-comando');
+  await clickButton('.mcp-confirm', /Rodar e testar/);
+  await shows('.mcp-add', /Encontrei 2 ferramentas[\s\S]*ver_ambiente/);
+  await clickButton('.mcp-add', /^Salvar$/);
+  await shows('.mcp-server', /Chamados[\s\S]*conectado[\s\S]*CHAMADOS_TOKEN=\{\{segredo:chamados\/token\}\}/);
+  // The command changed (here, by the API): it waits for you before running again.
+  await fetch(`http://127.0.0.1:${RUNTIME_PORT}/api/mcp-servers/chamados`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ command: { program: process.execPath, args: [stdio, '--outro'] } }) });
+  await shows('.mcp-server', /esperando você aprovar[\s\S]*--outro/);
+  await shot('mcp-aprovar-comando');
+  await clickButton('.mcp-confirm', /Aprovar e iniciar/);
+  await shows('.mcp-server', /Chamados[\s\S]*conectado/);
+  assert.ok(!(await text('.mcp-server')).includes('tok-programa-nao-vaza'));
+  await clickButton('.subnav', /Regras/);
+  await shows('.auto-list', /Issues: ler[\s\S]*Issues: alterar[\s\S]*Chamados: ler/);
   await clickButton('.subnav', /Agentes que pedem/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);
   await shot('agentes-que-pedem');

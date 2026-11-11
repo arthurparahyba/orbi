@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { McpToolKind } from '@orbi/contracts';
 import { SECRET_REF } from '../vault/vault.ts';
 import type { Effect } from '../brain/domain/levels.ts';
@@ -78,4 +79,23 @@ export function headerProblems(headers: Record<string, string>, secretExists: (n
     for (const ref of used) if (!secretExists(ref)) out.push(`${name}: {{segredo:${ref}}} não está no cofre.`);
   }
   return out;
+}
+
+// ── servers started by a command (fase 4) ────────────────────────────────
+
+export type McpCommand = { program: string; args: string[] };
+export { splitCommand, commandText } from '@orbi/contracts';
+
+/**
+ * What you approved: the program, its arguments and its environment (names and references,
+ * never values). Any change asks again before the program runs.
+ */
+export function commandApproval(c: McpCommand, env: Record<string, string>): string {
+  const sorted = Object.fromEntries(Object.entries(env).sort(([a], [b]) => a.localeCompare(b)));
+  return createHash('sha256').update(JSON.stringify({ program: c.program, args: c.args, env: sorted })).digest('hex');
+}
+
+/** Environment variables follow the header rule: a credential only as a vault reference. */
+export function envProblems(env: Record<string, string>, secretExists: (name: string) => boolean): string[] {
+  return headerProblems(env, secretExists);
 }

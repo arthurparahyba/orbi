@@ -34,3 +34,17 @@ describe('servidores MCP (Autonomia › Ferramentas MCP)', () => {
     expect(categoryLabel('comandos-escrita')).toBe('Executar comando');
   });
 });
+
+describe('servidor por comando local', () => {
+  it('o comando numa linha, sem shell; o que vai ao runtime', async () => {
+    const { commandHint, targetOf, howLine } = await import('../src/views/autonomy/mcp/mcpForm');
+    expect(commandHint('')).toMatch(/Informe o comando/);
+    expect(commandHint('npx "sem fim')).toMatch(/Aspas/);
+    expect(commandHint('npx -y servicenow-mcp')).toBeUndefined();
+    expect(targetOf('command', '', [], 'npx -y servicenow-mcp --instance "minha empresa"', [{ name: 'SNOW_PASSWORD', value: '{{segredo:snow/senha}}' }])).toEqual({
+      transport: 'command', command: { program: 'npx', args: ['-y', 'servicenow-mcp', '--instance', 'minha empresa'] }, env: { SNOW_PASSWORD: '{{segredo:snow/senha}}' },
+    });
+    expect(howLine({ transport: 'command', url: '', command: { program: 'npx', args: ['-y', 'minha empresa'] } })).toBe('npx -y "minha empresa"');
+    expect(howLine({ transport: 'http', url: 'https://x/mcp', command: null })).toBe('https://x/mcp');
+  });
+});

@@ -885,3 +885,6 @@ strong .merged { display: inline; font-weight: 600; }
 .mcp-header-row { display: grid; grid-template-columns: 180px 1fr 150px auto; gap: 6px; }
 .mcp-tool-table td { vertical-align: middle; }
 .note-warn { border-left: 3px solid var(--amber); background: rgba(242, 177, 60, 0.08); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 0; }
+.mcp-confirm { display: flex; flex-direction: column; gap: 6px; }
+.mcp-confirm p { margin: 0; }
+.mcp-confirm code { white-space: pre-wrap; word-break: break-all; padding: 6px 8px; }

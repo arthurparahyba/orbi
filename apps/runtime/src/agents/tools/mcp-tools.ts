@@ -2,6 +2,7 @@ import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 import { agentToolName, categoryOf, effectOf } from '../../mcp-client/domain.ts';
 import { toValibot } from '../../mcp-client/schema.ts';
+import { needsApproval } from '../../mcp-client/store.ts';
 import { log } from '../../observability/log.ts';
 
 /** Past this many tools the prompt gets heavy: the rest stays out (and the log says so). */
@@ -18,7 +19,8 @@ export const mcpTools = defineCapability({ name: 'mcp-tools', needs: ['mcpServer
 
 function useMcpTools(ctx: AgentContext, { mcpServers, mcpHub }: Deps<'mcpServers' | 'mcpHub'>) {
   let count = 0;
-  for (const server of mcpServers.list().filter((s) => s.enabled)) {
+  // A program waiting for your approval does not run: its tools stay out until you approve.
+  for (const server of mcpServers.list().filter((s) => s.enabled && !needsApproval(s))) {
     for (const tool of mcpServers.tools(server.id).filter((t) => t.enabled)) {
       if (++count > MAX_TOOLS) {
         log.warn('ferramentas MCP demais: as restantes ficam fora', { conversation: ctx.conversationId, server: server.id, tool: tool.name });

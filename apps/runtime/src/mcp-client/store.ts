@@ -1,10 +1,17 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { McpServer, McpTool, McpToolKind } from '@orbi/contracts';
-import { effectiveKind } from './domain.ts';
+import { commandApproval, effectiveKind, type McpCommand } from './domain.ts';
 
 /** A tool as the server lists it (tools/list). */
 export interface DiscoveredTool { name: string; description: string; inputSchema: unknown; hint: McpToolKind | null }
-export interface ServerRow { id: string; name: string; url: string; headers: Record<string, string>; enabled: boolean; lastError: string | null }
+export interface ServerRow {
+  id: string; name: string; transport: 'http' | 'command'; url: string; headers: Record<string, string>;
+  command: McpCommand | null; env: Record<string, string>; enabled: boolean; lastError: string | null;
+  /** The command you approved (commandApproval); null: never approved. */
+  approvedCommand: string | null;
+}
+/** A command server whose command (or environment) changed since you approved it, or never was. */
+export const needsApproval = (s: ServerRow) => s.transport === 'command' && (!s.command || commandApproval(s.command, s.env) !== s.approvedCommand);
 export interface ToolRow extends McpTool { inputSchema: unknown }
 
 type Raw = Record<string, unknown>;
@@ -15,7 +22,7 @@ export class McpServers {
   constructor(private readonly db: DatabaseSync) {}
 
   list(): ServerRow[] {
-    return (this.db.prepare("SELECT * FROM mcp_servers WHERE transport = 'http' ORDER BY created_at").all() as Raw[]).map(serverOf);
+    return (this.db.prepare('SELECT * FROM mcp_servers ORDER BY created_at').all() as Raw[]).map(serverOf);
   }
 
   get(id: string): ServerRow | undefined {
@@ -23,17 +30,25 @@ export class McpServers {
     return row ? serverOf(row) : undefined;
   }
 
-  add(s: { id: string; name: string; url: string; headers: Record<string, string> }): void {
+  add(s: { id: string; name: string; transport?: 'http' | 'command'; url?: string; headers?: Record<string, string>; command?: McpCommand; env?: Record<string, string>; approved?: boolean }): void {
     const t = now();
-    this.db.prepare("INSERT INTO mcp_servers (id, name, transport, url, headers, enabled, created_at, updated_at) VALUES (?, ?, 'http', ?, ?, 1, ?, ?)")
-      .run(s.id, s.name, s.url, JSON.stringify(s.headers), t, t);
+    const approved = s.approved && s.command ? commandApproval(s.command, s.env ?? {}) : null;
+    this.db.prepare('INSERT INTO mcp_servers (id, name, transport, url, headers, command, env, enabled, approved_command, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)')
+      .run(s.id, s.name, s.transport ?? 'http', s.url ?? '', JSON.stringify(s.headers ?? {}), s.command ? JSON.stringify(s.command) : null, JSON.stringify(s.env ?? {}), approved, t, t);
   }
 
-  edit(id: string, p: { url?: string; headers?: Record<string, string>; enabled?: boolean }): void {
+  edit(id: string, p: { url?: string; headers?: Record<string, string>; command?: McpCommand; env?: Record<string, string>; enabled?: boolean }): void {
     const cur = this.get(id);
     if (!cur) return;
-    this.db.prepare('UPDATE mcp_servers SET url = ?, headers = ?, enabled = ?, updated_at = ? WHERE id = ?')
-      .run(p.url ?? cur.url, JSON.stringify(p.headers ?? cur.headers), (p.enabled ?? cur.enabled) ? 1 : 0, now(), id);
+    // A changed command or environment keeps the old approval, which no longer matches: it asks again.
+    this.db.prepare('UPDATE mcp_servers SET url = ?, headers = ?, command = ?, env = ?, enabled = ?, updated_at = ? WHERE id = ?')
+      .run(p.url ?? cur.url, JSON.stringify(p.headers ?? cur.headers), JSON.stringify(p.command ?? cur.command), JSON.stringify(p.env ?? cur.env), (p.enabled ?? cur.enabled) ? 1 : 0, now(), id);
+  }
+
+  /** You confirmed that this command, as it is now, may run on this machine. */
+  approve(id: string): void {
+    const cur = this.get(id);
+    if (cur?.command) this.db.prepare('UPDATE mcp_servers SET approved_command = ?, updated_at = ? WHERE id = ?').run(commandApproval(cur.command, cur.env), now(), id);
   }
 
   setError(id: string, error: string | null): void {
@@ -82,14 +97,20 @@ export class McpServers {
   summary(s: ServerRow, state: McpServer['state']): McpServer {
     const tools = this.tools(s.id).filter((x) => x.enabled);
     return {
-      id: s.id, name: s.name, url: s.url, headers: s.headers, enabled: s.enabled, state, error: s.lastError,
+      id: s.id, name: s.name, transport: s.transport, url: s.url, headers: s.headers, command: s.command, env: s.env,
+      enabled: s.enabled, state: s.enabled && needsApproval(s) ? 'aprovar' : state, error: s.lastError,
       counts: { leitura: tools.filter((x) => x.effective === 'leitura').length, escrita: tools.filter((x) => x.effective !== 'leitura').length, novas: this.tools(s.id).filter((x) => x.isNew).length },
     };
   }
 }
 
 function serverOf(r: Raw): ServerRow {
-  return { id: String(r.id), name: String(r.name), url: String(r.url ?? ''), headers: JSON.parse(String(r.headers ?? '{}')), enabled: r.enabled === 1, lastError: (r.last_error as string | null) ?? null };
+  return {
+    id: String(r.id), name: String(r.name), transport: r.transport === 'command' ? 'command' : 'http', url: String(r.url ?? ''),
+    headers: JSON.parse(String(r.headers ?? '{}')), command: r.command ? (JSON.parse(String(r.command)) as McpCommand) : null,
+    env: JSON.parse(String(r.env ?? '{}')), enabled: r.enabled === 1, lastError: (r.last_error as string | null) ?? null,
+    approvedCommand: (r.approved_command as string | null) ?? null,
+  };
 }
 
 function toolOf(r: Raw): ToolRow {
