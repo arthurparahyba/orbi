@@ -2,43 +2,41 @@
 
 ## Para que serve
 
-É onde você ensina o Orbi e pede o que ele já sabe fazer (no app, a tela se chama
-**Ensinar**). A tela deixa claro o caminho de um ensino até a autonomia:
-Explicar → Ensaiar → Combinar → Aprender → Assumir. É também onde você pede algo e acompanha o que ele faz. Cada conversa é uma
+É onde você pede algo ao Orbi e onde ensina o que ele ainda não sabe, numa caixa só (tela
+**Conversas**). A conversa começa neutra; quando vira ensino, a tela mostra o caminho até a
+autonomia: Explicar → Ensaiar → Combinar → Aprender → Assumir. Cada conversa é uma
 linha de trabalho separada ("subir o portal para dev", "deletar o repositório
 X"), com a própria memória de curto prazo: o que foi dito, as ferramentas que
 rodaram e o procedimento em andamento.
 
 ## Onde aparece
 
-- **Tela Ensinar** (antes "Conversa"): a lista à esquerda, a conversa aberta no centro.
-  **Pendências** abre pelo botão no topo da conversa (com o número do que espera
-  você), como painel à direita; em janelas estreitas, por cima da conversa.
-- **Lista por estado**: Ensinando, Fazendo e Já sei fazer. Cada linha diz onde
-  está ("Ensaiando", "Esperando você aprovar o que aprendi", "atualizar-mfe ·
-  esperando você", "Aprendi: atualizar-mfe · N1"). O filtro Todas/Minhas/Dos agentes
-  continua quando há pedidos de agentes.
-- **Barra de etapas**, abaixo do título: Explicar · Ensaiar · Combinar · Aprender ·
-  Assumir, com a etapa atual destacada. Some enquanto ele faz algo que já sabe.
-  O runtime deriva a etapa (`conversations/state.ts`) do que o cérebro já guarda,
-  sem gravar nada novo: execução de verdade é a última coisa → Fazendo; procedimento
-  aprendido nesta conversa e nenhum cartão esperando → Assumir; cartão de
-  aprendizado aberto ou ensaio com acordo → Aprender; ensaio com todos os passos
-  feitos e sem acordo → Combinar; ensaio em curso → Ensaiar; nada disso → Explicar.
-- **Painel à direita**, ao lado da conversa, ao vivo, montado pelo runtime a partir do
-  cérebro (`GET /api/conversations/:id/notebook`, `conversations/notebook.ts`), nunca
-  escrito pelo modelo:
-  - ensinando, **O que estou aprendendo**: para que serve (o objetivo do ensaio), os passos
-    como foram tentados (feito, esperando você, falhou), o que recebe, onde começa e termina,
-    o que fica de fora e o que o ensaio corrigiu, e "Ainda não sei" até o acordo;
-  - aprendido, **O que aprendi**: o procedimento, os passos (as citações como ‹entrada›),
-    o acordo, a autonomia (N1–N3, e quantas execuções sem correção faltam para subir) e as execuções;
-  - fazendo, **O que estou fazendo**: o "O que eu sei" da execução e os passos dela.
-  Em todos, **Já anotei**: os fatos que vieram desta conversa (cartão aprovado aqui ou execução dela).
-  Pendências, aberta, ocupa o lugar do painel; em janelas estreitas o painel some.
-- **Ensinar algo novo** cria uma conversa nova. O título vira o primeiro pedido.
-  Vazia, ela pergunta "O que você quer me ensinar?" e mostra os jeitos: explicar
-  com palavras, mostrar no navegador, pedir algo que já sei, com exemplos.
+- **Tela Conversas**: a lista à esquerda, a conversa aberta no centro e, ao lado, o painel
+  quando há o que acompanhar. **Pendências** abre pelo botão no topo da conversa (com o número
+  do que espera você), no lugar do painel; em janelas estreitas, por cima da conversa.
+- **Uma caixa só**: você pede ou explica, sem escolher antes. Conversa nova (ou só de
+  perguntas) não tem barra de etapas nem painel. A cara de ensino aparece quando o Orbi começa
+  o ensaio (ou surge um cartão de aprendizado) e o painel de execução, quando ele roda um
+  procedimento. A tela segue o que aconteceu **por último** na conversa: pedir, depois ensinar,
+  depois pedir de novo, tudo na mesma conversa, cada parte com a sua cara.
+- **Marca no chat**: uma linha discreta onde o modo muda: "A partir daqui: aprendendo com você
+  · …" quando o ensaio começa, "A partir daqui: fazendo …" quando um procedimento começa.
+- **Lista por estado**: Em andamento (aprendendo com você, ou fazendo e ainda não terminou),
+  Já assumi (aprendido nesta conversa) e Recentes (conversas e execuções terminadas). Cada
+  linha diz onde está ("Aprendendo com você · ensaiando", "atualizar-mfe · esperando você",
+  "Assumi: atualizar-mfe · N1"). O filtro Todas/Minhas/Dos agentes continua quando há pedidos
+  de agentes.
+- **Barra de etapas**, abaixo do título, só quando é ensino ou depois dele: Explicar · Ensaiar ·
+  Combinar · Aprender · Assumir. O runtime deriva o estado (`conversations/state.ts`) do que o
+  cérebro já guarda, sem gravar nada novo: execução de verdade é a última coisa → fazendo;
+  procedimento aprendido nesta conversa e nenhum cartão esperando → Assumir; cartão de
+  aprendizado aberto ou ensaio com acordo → Aprender; ensaio com todos os passos feitos e sem
+  acordo → Combinar; ensaio em curso → Ensaiar; nada disso → conversa.
+- **Nova conversa** cria uma conversa. O título vira o primeiro pedido. Vazia, ela pergunta
+  "O que você precisa?", com "Mostrar no navegador" para quem prefere mostrar.
+- **Correção no meio de uma execução**: o que você digita enquanto um procedimento roda fica
+  anotado no passo em que ele estava (`intervencao`). Não conta contra o nível (pode ter sido só
+  uma confirmação), mas deixa a revisão do fim propor a mudança daquele passo (documento 19).
 - **Mostrar no navegador** (antes "Ensinar pelo navegador") fica no topo.
   **Copiar conversa** e **Apagar conversa** ficam no menu "…".
 - **Ferramentas**: chamadas internas (checklist, consultas ao cérebro, interface)

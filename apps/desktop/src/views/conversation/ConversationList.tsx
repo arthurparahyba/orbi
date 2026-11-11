@@ -4,7 +4,7 @@ import { PlusIcon } from '../../components/Icons';
 import { needsYou } from './inbox';
 import { groupConversations, stateLine, stateOf } from './stage';
 
-/** The left list: "Ensinar algo novo" and the conversations by where they are (Ensinando, Fazendo, Já sei fazer). */
+/** The left list: "Nova conversa" and the conversations by where they are (Em andamento, Já assumi, Recentes). */
 export function ConversationList({ items, current, openInbox, error, filter, onPick, onNew }: {
   items?: ConversationInfo[]; filter?: ReactNode; current?: string; openInbox: InboxItem[]; error?: string; onPick(id: string): void; onNew(): void;
 }) {
@@ -12,7 +12,7 @@ export function ConversationList({ items, current, openInbox, error, filter, onP
   return (
     <aside className="convs" aria-label="Conversas">
       <div className="convs-head">
-        <button type="button" className="btn primary convs-new" onClick={onNew}><PlusIcon size={15} /> Ensinar algo novo</button>
+        <button type="button" className="btn primary convs-new" onClick={onNew}><PlusIcon size={15} /> Nova conversa</button>
       </div>
       {filter && <div className="conv-filter">{filter}</div>}
       {groups.map((g) => (
@@ -36,7 +36,7 @@ export function ConversationList({ items, current, openInbox, error, filter, onP
         </section>
       ))}
       {!items && <p className="muted pad">{error ? `Erro: ${error}` : 'Carregando…'}</p>}
-      {items && items.length === 0 && <p className="muted pad">Nada ainda. Comece ensinando algo.</p>}
+      {items && items.length === 0 && <p className="muted pad">Nenhuma conversa ainda.</p>}
     </aside>
   );
 }

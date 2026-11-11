@@ -42,7 +42,7 @@ export function conversationRoutes(s: OrbiServices) {
       if (!conversations.get(id)) throw notFound('conversa');
       const state = stateReader(s)(id);
       const lastRun = brain.execution.lastRunIn(id);
-      const procedure = state.mode === 'ensinando' ? undefined : brain.procedures.playbook(state.playbook);
+      const procedure = state.mode === 'aprendido' || state.mode === 'fazendo' ? brain.procedures.playbook(state.playbook) : undefined;
       return c.json(buildNotebook({
         conversationId: id, state, lastRun, procedure,
         entities: brain.facts.graph().entities,

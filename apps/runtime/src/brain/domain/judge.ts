@@ -91,6 +91,12 @@ export function judge(input: JudgeInput): Verdict[] {
     const why = input.run.status === 'failed' ? 'a execução falhou' : 'a execução não chegou ao fim como devia';
     out.push({ kind: 'changeProcedure', why, steps: troubledSteps(input.run), texts: problems.map((f) => f.text) });
   }
+  // The developer typed during the run: maybe a correction of how a step is done. That step may change.
+  const said = input.run.deviations.filter((d) => d.kind === 'intervencao');
+  if (said.length) {
+    const steps = [...new Set(said.flatMap((d) => (d.step ? [d.step] : [])))];
+    out.push({ kind: 'changeProcedure', why: `você interveio durante a execução (${said.map((d) => d.detail).join('; ')}); se foi só uma confirmação, não mude nada`, steps, texts: [] });
+  }
   const learn = input.findings.filter((f) => f.kind === 'aprender');
   if (learn.length) out.push({ kind: 'learnProblem', texts: learn.map((f) => f.text) });
 

@@ -285,6 +285,15 @@ export class Execution {
     return this.p.playbookRepo.runs(limit);
   }
 
+  /** The developer typed something while a procedure ran: noted on the step it was in (docs/funcionalidades/19). */
+  noteIntervention(conversationId: string, text: string): void {
+    const run = this.openRunIn(conversationId);
+    if (!run || run.kind === 'rehearsal') return;
+    const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? null;
+    const said = text.replace(/\s+/g, ' ').trim();
+    this.addRunDeviation(run.id, { kind: 'intervencao', detail: `você escreveu${step ? ` no passo ${step.id}` : ''}: "${said.length > 160 ? `${said.slice(0, 157)}…` : said}"`, step: step?.id ?? null });
+  }
+
   /** The gate asked the developer for an action: counts in the open run of the conversation. */
   countAsk(conversationId: string): void {
     const run = this.openRunIn(conversationId);

@@ -1,5 +1,5 @@
 /**
- * End-to-end of the Ensinar screen, in a real browser: the desktop UI (Vite) over the real
+ * End-to-end of the Conversas screen, in a real browser: the desktop UI (Vite) over the real
  * runtime, with the model scripted (Pi's faux provider). A "developer" teaches a procedure from
  * start to end by typing in the chat and clicking the cards, and at each stop the test checks
  * what the screen shows: the stage bar, the list by state, the "O que estou aprendendo" panel,
@@ -107,14 +107,13 @@ const learn = (testedRun: string) => ({
 
 try {
   await page.goto(`http://127.0.0.1:${UI_PORT}/`, { waitUntil: 'domcontentloaded' });
-  await until('a tela Ensinar', async () => !!(await page.$('.convs-new')));
+  await until('a tela Conversas', async () => !!(await page.$('.convs-new')));
 
   // 1 · Explicar
   await page.click('.convs-new');
-  await shows('.teach-start', /O que você quer me ensinar\?/);
-  await until('a etapa Explicar', async () => /Explicar/.test(await stageNow()));
-  await shows('.notebook', /Conforme você explica/i);
-  await shot('explicar');
+  await shows('.teach-start', /O que você precisa\?/);
+  await until('sem barra de etapas nem painel numa conversa nova', async () => !(await page.$('.stages')) && !(await page.$('.notebook')));
+  await shot('conversa-nova');
 
   // 2 · Ensaiar: tries along, stops at what it did not find and asks.
   let runId = '';
@@ -133,7 +132,8 @@ try {
   await until('a etapa Ensaiar', async () => /Ensaiar/.test(await stageNow()));
   await shows('.notebook', /subir versão de um MFE no portal/i);
   await shows('.notebook', /Achar onde cria a versão · esperando você/i);
-  await shows('.convs', /Ensinando[\s\S]*Pra subir versão do checkout-mfe[\s\S]*Ensaiando/i);
+  await shows('.convs', /Em andamento[\s\S]*Pra subir versão do checkout-mfe[\s\S]*Aprendendo com você · ensaiando/i);
+  await shows('.messages', /A partir daqui: aprendendo com você · subir versão de um MFE no portal/);
   await shows('.chat-title', /Pra subir versão do checkout-mfe/);
   await shot('ensaiar');
 
@@ -183,7 +183,7 @@ try {
   await shows('.notebook', /O que aprendi[\s\S]*atualizar-mfe/i);
   await shows('.notebook', /N1 agora · N2 depois de 1 execução sem correção/i);
   await shows('.notebook', /Já anotei[\s\S]*checkout-mfe/i);
-  await shows('.convs', /Já sei fazer[\s\S]*Aprendi: atualizar-mfe · N1/i);
+  await shows('.convs', /Já assumi[\s\S]*Assumi: atualizar-mfe · N1/i);
   await shot('aprendido');
 
   // 6 · Fazendo: asked to do it.
@@ -201,7 +201,8 @@ try {
   await until('sem a barra de etapas ao fazer', async () => !(await page.$('.stages')));
   await shows('.notebook', /O que estou fazendo[\s\S]*Criar o release 2.15.0 em homologação/i);
   await shows('.notebook', /O que eu sei[\s\S]*mfe/i);
-  await shows('.convs', /Fazendo[\s\S]*atualizar-mfe · feito/i);
+  await shows('.convs', /Recentes[\s\S]*atualizar-mfe · feito/i);
+  await shows('.messages', /A partir daqui: fazendo atualizar-mfe/);
   await until('a revisão do fim', async () => review.includes('review'));
   await until('N2 depois de uma execução limpa', async () => brain.playbook('atualizar-mfe')?.level === 2);
   await shot('fazendo');
@@ -253,7 +254,7 @@ try {
   policy.set('comandos-escrita', 'ask');
 
   assert.deepEqual(pageErrors, [], 'a página não teve erros');
-  console.log(`tela Ensinar: ok · telas em ${shots}`);
+  console.log(`tela Conversas: ok · telas em ${shots}`);
 } finally {
   await browser.close();
   await vite.close();

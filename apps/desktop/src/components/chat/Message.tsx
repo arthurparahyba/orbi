@@ -3,7 +3,7 @@ import { ClockIcon, KeyIcon, ToolIcon } from '../Icons';
 import { UiComponentView, type UiComponent } from '../UiComponents';
 import { Markdown } from '../Markdown';
 import { DemonstrationCard } from '../Demonstration';
-import { commandFailed, groupSummary, hasVisibleContent, isSilent, knownProblemsOf, toolCommand, toolLabel, toolResult } from './tools';
+import { commandFailed, groupSummary, hasVisibleContent, isSilent, knownProblemsOf, modeMark, toolCommand, toolLabel, toolResult } from './tools';
 import { KnownProblems } from '../KnownProblems';
 import { ReviewCard, reviewOf } from '../ReviewCard';
 
@@ -24,6 +24,9 @@ export function Message({ m }: { m: FlueConversationMessage }) {
       const r = reviewOf(m.signal?.attributes as Record<string, unknown> | undefined);
       return r ? <div className="msg system review"><ReviewCard r={r} /></div> : null;
     }
+    if (m.signal?.tagName === 'conhecimento' || m.signal?.attributes?.type === 'knowledge') {
+      return <div className="msg system">O revisor achou fatos no que a execução leu: proponho logo abaixo.</div>;
+    }
     if (m.signal?.tagName === 'secret-saved' || m.signal?.attributes?.type === 'secret-saved') {
       return <div className="msg system"><KeyIcon size={12} /> Credencial guardada no cofre</div>;
     }
@@ -43,7 +46,7 @@ export function Message({ m }: { m: FlueConversationMessage }) {
   return (
     <div className="msg assistant">
       <div className="avatar" aria-hidden="true">O</div>
-      <div className="parts">{groupParts(m.parts).map((g, i) => (Array.isArray(g) ? <ToolGroup key={i} tools={g} /> : <Part key={i} p={g} />))}</div>
+      <div className="parts">{groupParts(m.parts).map((g, i) => (Array.isArray(g) ? <ToolGroup key={i} tools={g} /> : 'mark' in g ? <p key={i} className="mode-mark">{g.mark}</p> : <Part key={i} p={g} />))}</div>
     </div>
   );
 }
@@ -51,10 +54,13 @@ export function Message({ m }: { m: FlueConversationMessage }) {
 type ToolPart = Extract<FlueConversationPart, { type: 'dynamic-tool' }>;
 
 /** Consecutive tool calls fold into one row so the checklist, cards and text stay readable. */
-export function groupParts(parts: FlueConversationPart[]): Array<FlueConversationPart | ToolPart[]> {
-  const out: Array<FlueConversationPart | ToolPart[]> = [];
+export function groupParts(parts: FlueConversationPart[]): Array<FlueConversationPart | ToolPart[] | { mark: string }> {
+  const out: Array<FlueConversationPart | ToolPart[] | { mark: string }> = [];
   for (const p of parts) {
     if (p.type === 'dynamic-tool') {
+      // Asking turned into teaching (or back into doing): a quiet line marks the spot.
+      const mark = modeMark(p);
+      if (mark) out.push({ mark });
       if (isSilent(p)) continue;
       const last = out[out.length - 1];
       if (Array.isArray(last)) last.push(p);

@@ -9,7 +9,7 @@ Node, sem depender do que está instalado na máquina.
 
 ## Onde aparece
 
-- **A janela do Orbi**, com as telas Ensinar (as conversas), Cérebro e Autonomia na barra lateral.
+- **A janela do Orbi**, com as telas Conversas, Cérebro e Autonomia na barra lateral.
 - **Os dois pontos no pé da barra lateral**: o primeiro diz se o runtime está de
   pé (passe o mouse para ver o modelo); o segundo, se o navegador está conectado.
 - **Faixa vermelha no topo** quando o runtime não responde, com o caminho do log.

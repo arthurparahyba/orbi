@@ -57,8 +57,8 @@ export function Chat({ id, title, origin, state, model, target, waiting, inboxOp
         return (
           <header className="chat-head">
             <div className="chat-title">
-              <h1>{!title || title === 'Nova conversa' ? 'Ensinar algo novo' : title}</h1>
-              <span className="muted">{stateLine(state)}</span>
+              <h1>{title || 'Nova conversa'}</h1>
+              {state.mode !== 'conversa' && <span className="muted">{stateLine(state)}</span>}
             </div>
             <span className={`pill pill-${pill.tone}`}>{pill.text}</span>
             <button type="button" className="btn small" onClick={() => setDemo({ mode: 'start' })} disabled={!!demo} title="Mostre o procedimento no navegador e o Orbi aprende">
@@ -93,9 +93,9 @@ export function Chat({ id, title, origin, state, model, target, waiting, inboxOp
           <PipelineBar conversationId={id} />
         </>
       )}
-      placeholder="Explique o passo a passo, ou peça algo que eu já sei fazer…"
+      placeholder="Peça algo, ou explique como você faz…"
       composerFooter={<ModelPicker conversationId={id} chosen={model} onChosen={onTitled} />}
-      empty={(send) => <TeachStart send={send} onShow={() => setDemo({ mode: 'start' })} />}
+      empty={() => <TeachStart onShow={() => setDemo({ mode: 'start' })} />}
       dock={demo && <DemoDock id={id} demo={demo} onChange={setDemo} />}
     />
   );

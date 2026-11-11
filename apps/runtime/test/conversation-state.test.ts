@@ -10,8 +10,8 @@ const at = '2026-11-10T20:00:00.000Z';
 const rehearsal = () => newRehearsal('run:e', 'chat:a', 'subir versão do MFE', at);
 const run = (status: PlaybookRun['status']): PlaybookRun => ({ ...rehearsal(), id: 'run:r', kind: 'run', playbook: 'atualizar-mfe', status });
 
-test('etapa: conversa sem nada ainda está em Explicar', () => {
-  assert.deepEqual(conversationState({ learningOpen: false }), { mode: 'ensinando', stage: 'explicar' });
+test('etapa: conversa sem nada ainda é só uma conversa (sem cara de ensino)', () => {
+  assert.deepEqual(conversationState({ learningOpen: false }), { mode: 'conversa' });
 });
 
 test('etapa: ensaio em curso é Ensaiar; todos os passos feitos e sem acordo é Combinar', () => {

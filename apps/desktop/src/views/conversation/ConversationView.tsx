@@ -7,11 +7,11 @@ import { ConversationList } from './ConversationList';
 import { InboxPanel } from './InboxPanel';
 import { Notebook } from './Notebook';
 import { needsYou } from './inbox';
-import { stateOf } from './stage';
+import { showsPanel, stateOf } from './stage';
 
 /**
- * The Ensinar screen: the list by where each conversation is, the open one (explaining,
- * rehearsing, doing) and, on demand, what waits for the developer (Pendências).
+ * The Conversas screen: the list by where each conversation is, the open one and, beside it, the
+ * panel once there is something to follow (teaching, learned, doing), or Pendências on demand.
  */
 type Filter = 'todas' | 'minhas' | 'agentes';
 
@@ -48,7 +48,7 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
   };
 
   return (
-    <div className={`conversa ${current || inboxOpen ? 'with-side' : ''}`}>
+    <div className={`conversa ${inboxOpen || (open && showsPanel(stateOf(open))) ? 'with-side' : ''}`}>
       <ConversationList items={shown} current={current} openInbox={openInbox} error={list.error} onPick={setCurrent} onNew={newConversation}
         filter={fromAgents && <Segmented<Filter> label="Mostrar" value={filter} onChange={setFilter} options={[{ value: 'todas', label: 'Todas' }, { value: 'minhas', label: 'Minhas' }, { value: 'agentes', label: 'Dos agentes' }]} />} />
       {current ? (
@@ -59,14 +59,14 @@ export function ConversationView({ openInbox, focus, onOpenConfig }: { openInbox
         <div className="empty-chat muted">Carregando…</div>
       ) : (
         <div className="empty-chat">
-          <p>Ensine um procedimento ao Orbi: você explica, ele tenta junto, vocês combinam onde começa e termina, e ele guarda.</p>
-          <button type="button" className="btn primary" onClick={newConversation}>Ensinar algo novo</button>
+          <p>Peça algo ao Orbi, ou explique como você faz uma tarefa para ele aprender e assumir.</p>
+          <button type="button" className="btn primary" onClick={newConversation}>Nova conversa</button>
         </div>
       )}
       {/* Pendências takes the place of the panel while open. */}
       {inboxOpen
         ? <InboxPanel items={openInbox} current={current} onClose={() => setInboxOpen(false)} onOpen={(id) => (isConfigChat(id) ? onOpenConfig() : setCurrent(id))} onGoTo={goTo} />
-        : current && <Notebook key={`painel-${current}`} id={current} />}
+        : open && showsPanel(stateOf(open)) && <Notebook key={`painel-${open.id}`} id={open.id} />}
     </div>
   );
 }

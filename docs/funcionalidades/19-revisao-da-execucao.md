@@ -250,7 +250,11 @@ A sua ideia de três subagentes fica mais simples no código: **só um agente no
   como qualquer aprendizado (tipo existente, ligação válida, `credentialProblems`). Quando ele
   termina, o runtime manda os fatos à conversa da execução e o Orbi os propõe com `brain_learn`
   (cartão de aprendizado). Sem nenhum tipo no cérebro, ou com `ORBI_KNOWLEDGE_REVIEW=off`, não roda.
-- **Testes**: `judge.test.ts` (nível, recorrência, juiz, escopo, credenciais);
+- **Você corrigiu no meio**: mensagem digitada durante uma execução (não a resposta de um
+  cartão) vira o desvio `intervencao` no passo em que ela estava (`agents/tools/interventions.ts`,
+  `noteIntervention`). Não conta contra o nível; o juiz abre a mudança só nesse passo, e a
+  instrução diz que, se foi só uma confirmação, nada muda.
+- **Testes**: `judge.test.ts` (nível, recorrência, juiz, escopo, credenciais, intervenção);
   `flow-review-autonomy.test.ts` (duas execuções com o mesmo problema conhecido: sobe para N2,
   pergunta para corrigir o ambiente, fatos lidos viram cartão e a senha não chega ao revisor);
   `flow-review.test.ts` (melhoria vira ideia guardada, sem pedido de reescrita);

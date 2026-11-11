@@ -80,3 +80,23 @@ test('fatos: credencial nunca vira fato; referência ao cofre e endereço do ban
   assert.equal(credentialProblems({ acesso: 'AKIAABCDEFGHIJKLMNOP' }).length, 1);
   assert.deepEqual(credentialProblems({ senha: '{{segredo:rds/senha}}', endereco: 'app-x.cluster.rds.amazonaws.com', token_url: 'https://sso/token' }), []);
 });
+
+test('intervenção: o que o desenvolvedor digita durante a execução fica no passo, não conta no nível e abre a mudança só nele', async () => {
+  const { BrainStore } = await import('../src/brain/store.ts');
+  const b = new BrainStore(':memory:');
+  b.savePlaybook({ name: 'publicar', description: 'Publica', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
+    steps: [{ id: 'abrir', label: 'Abrir', how: '' }, { id: 'criar', label: 'Criar', how: '' }] });
+  const run = b.startRun('publicar', 'c1');
+  b.execution.noteIntervention('c1', 'não, é por Releases › Criar release');
+  const after = b.run(run.id)!;
+  const d = after.deviations.find((x) => x.kind === 'intervencao')!;
+  assert.match(d.detail, /você escreveu no passo abrir: "não, é por Releases › Criar release"/);
+  assert.deepEqual(runDeviations({ ...after, status: 'done', steps: after.steps.map((s) => ({ ...s, status: 'done' })) }), [], 'não segura o nível');
+  const v = judge({ run: { ...after, status: 'done', steps: after.steps.map((s) => ({ ...s, status: 'done' })) }, findings: [], recurring: [], environmentAsked: never });
+  assert.equal(v[0].kind, 'changeProcedure');
+  assert.deepEqual((v[0] as any).steps, ['abrir']);
+  assert.match((v[0] as any).why, /se foi só uma confirmação, não mude nada/);
+  // Outside a run, or in a rehearsal, typing is just the conversation.
+  b.execution.noteIntervention('c2', 'oi');
+  assert.equal(b.runs().filter((r) => r.conversationId === 'c2').length, 0);
+});

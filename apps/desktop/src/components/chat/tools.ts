@@ -22,7 +22,7 @@ const LABEL: Record<string, string> = {
 /** Shown by their own cards, or plain bookkeeping. */
 const BOOKKEEPING = new Set([
   'show_ui', 'playbook_start', 'playbook_step', 'similar_found', 'ask_secret', 'brain_query', 'playbook_similar', 'activate_skill',
-  'pipeline_start', 'pipeline_provide', 'ask_developer', 'agent_reply',
+  'pipeline_start', 'pipeline_provide', 'ask_developer', 'agent_reply', 'rehearsal_start', 'rehearsal_step', 'rehearsal_finish',
 ]);
 
 const outputOf = (t: ToolCall) => (t.output && typeof t.output === 'object' ? (t.output as Record<string, unknown>) : undefined);
@@ -145,4 +145,17 @@ export function workingState(messages: Array<{ role: string; parts: Array<{ type
   if (!last || last.role === 'user') return 'thinking';
   if (last.role === 'assistant' && !hasVisibleContent(last.parts as never)) return 'thinking';
   return 'none';
+}
+
+/**
+ * Where a conversation changes mode: from asking to teaching (a rehearsal starts) or back to doing
+ * (a procedure starts). The chat marks the spot with a quiet line, so the stage bar appearing or
+ * going away is not a surprise.
+ */
+export function modeMark(t: ToolCall): string | undefined {
+  if (t.state === 'output-error') return undefined;
+  const i = inputOf(t);
+  if (t.toolName === 'rehearsal_start') return `A partir daqui: aprendendo com você${typeof i.goal === 'string' && i.goal.trim() ? ` · ${i.goal.trim()}` : ''}`;
+  if (t.toolName === 'playbook_start' && typeof i.name === 'string') return `A partir daqui: fazendo ${i.name}`;
+  return undefined;
 }

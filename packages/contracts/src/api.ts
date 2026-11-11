@@ -14,6 +14,7 @@ export interface ConversationInfo {
 }
 export type TeachingStage = 'explicar' | 'ensaiar' | 'combinar' | 'aprender' | 'assumir';
 export type ConversationState =
+  | { mode: 'conversa' }
   | { mode: 'ensinando'; stage: Exclude<TeachingStage, 'assumir'> }
   | { mode: 'aprendido'; stage: 'assumir'; playbook: string; level: 1 | 2 | 3 }
   | { mode: 'fazendo'; playbook: string; status: 'running' | 'waiting' | 'done' | 'failed' };
@@ -114,7 +115,10 @@ export interface PlaybookRun {
   resolved?: Record<string, { value: string; entity: string; learned: 'known' | 'alias' | 'created'; undone?: boolean }>;
   actions: Array<{ fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null }>;
   /** `recovered`: the same step got past it right away (the tool worked next), not a problem. */
-  deviations: Array<{ kind: 'falha' | 'negado' | 'passo' | 'comando'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean; command?: string; known?: boolean }>;
+  deviations: Array<{ kind: 'falha' | 'negado' | 'passo' | 'comando' | 'intervencao'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean; command?: string; known?: boolean; problem?: string }>;
+  /** Approvals asked during the run; model tokens and cost while it was open. */
+  asked?: number;
+  usage?: { tokensIn: number; tokensOut: number; costUsd: number };
 }
 export interface BrainSnapshot {
   stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };

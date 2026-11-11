@@ -10,6 +10,8 @@ import { agreementOf } from '../brain/domain/rehearsal.ts';
 export type TeachingStage = 'explicar' | 'ensaiar' | 'combinar' | 'aprender' | 'assumir';
 
 export type ConversationState =
+  /** Nothing tried nor learned yet: a plain conversation, no teaching look until teaching starts. */
+  | { mode: 'conversa' }
   | { mode: 'ensinando'; stage: Exclude<TeachingStage, 'assumir'> }
   | { mode: 'aprendido'; stage: 'assumir'; playbook: string; level: 1 | 2 | 3 }
   | { mode: 'fazendo'; playbook: string; status: PlaybookRun['status'] };
@@ -33,5 +35,5 @@ export function conversationState({ lastRun, learningOpen, learned }: StateFacts
     const tried = lastRun.steps.length > 0 && lastRun.steps.every((s) => s.status === 'done' || s.status === 'skipped');
     return { mode: 'ensinando', stage: tried ? 'combinar' : 'ensaiar' };
   }
-  return { mode: 'ensinando', stage: 'explicar' };
+  return { mode: 'conversa' };
 }

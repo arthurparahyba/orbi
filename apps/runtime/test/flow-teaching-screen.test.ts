@@ -45,7 +45,7 @@ test('tela Ensinar: um procedimento do começo ao fim, com a lista, as etapas e 
   const orbi = init(Orbi, { id });
 
   // 1 · Explicar: nothing tried yet.
-  assert.deepEqual((await listed(id)).state, { mode: 'ensinando', stage: 'explicar' });
+  assert.deepEqual((await listed(id)).state, { mode: 'conversa' });
   assert.deepEqual((await notebook(id)).steps, []);
 
   // 2 · Ensaiar: it tries along and stops at what it did not find, asking.

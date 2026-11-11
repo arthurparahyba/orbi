@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { announceSent } from './components/chat/catchUp';
 import { api, type InboxItem } from './api';
 import { useLive, usePoll } from './hooks';
-import { BookIcon, BrainIcon, DialIcon, OrbiIcon, PipelineIcon, PlugIcon } from './components/Icons';
+import { BrainIcon, ChatIcon, DialIcon, OrbiIcon, PipelineIcon, PlugIcon } from './components/Icons';
 import { InboxContext, type InboxActions } from './components/UiComponents';
 import { needsYou } from './views/conversation/inbox';
 import { ConversationView } from './views/conversation/ConversationView';
@@ -68,7 +68,7 @@ export function App() {
       <div className="app">
         <nav className="rail" aria-label="Telas">
           <div className="brand" title="Orbi"><OrbiIcon size={20} /></div>
-          <RailButton active={screen === 'conversa'} onClick={() => setScreen('conversa')} label="Ensinar" badge={waiting.length}><BookIcon /></RailButton>
+          <RailButton active={screen === 'conversa'} onClick={() => setScreen('conversa')} label="Conversas" badge={waiting.length}><ChatIcon /></RailButton>
           <RailButton active={screen === 'esteiras'} onClick={() => setScreen('esteiras')} label="Esteiras" badge={waitingPipelines} badgeLabel="entregas esperando você"><PipelineIcon /></RailButton>
           <RailButton active={screen === 'cerebro'} onClick={() => setScreen('cerebro')} label="Cérebro"><BrainIcon /></RailButton>
           <RailButton active={screen === 'agentes'} onClick={() => setScreen('agentes')} label="Agentes" badge={suggestions.data?.length} badgeLabel="sugestões"><PlugIcon /></RailButton>
