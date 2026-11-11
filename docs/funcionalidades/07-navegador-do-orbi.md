@@ -45,6 +45,10 @@ flowchart LR
   só por `browser_act`, que passa pelo portão (`navegador-escrita`, "Perguntar"
   por padrão) e informa o propósito da ação para o cartão.
 - **Credenciais**: o procedimento escreve `{{segredo:portal.interno/senha}}`.
+  `browser_act` com `saveTo` grava o que a página devolve (por exemplo, a lista de um
+  `evaluate_script`; o JSON de dentro do bloco, se houver) direto num arquivo do workspace e
+  devolve só o caminho: o Orbi nunca copia o resultado à mão para um comando. Gravar o
+  retorno de uma leitura é `navegador-escrita` com efeito `local`.
   O `browser_act` troca pela senha do cofre **dentro da ferramenta**, na hora de
   preencher, e apaga o valor de qualquer saída antes de devolver ao modelo. O
   modelo nunca vê a senha.

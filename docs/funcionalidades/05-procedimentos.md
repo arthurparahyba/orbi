@@ -198,9 +198,12 @@ sequenceDiagram
   Procedimento que ficou aberto quando a entrega terminou aparece como "ficou aberto".
 - **Cartão da correção**: quando o Orbi corrige procedimentos que já existem, o
   título é "Corrigir N procedimentos: …" e o cartão mostra **só o que muda**: cada
-  campo ou passo alterado com **Hoje** e **Depois da correção** lado a lado, passo
-  novo e passo que sai; os passos iguais ficam dobrados numa linha
-  (`CorrectionPreview.tsx`, `correctionView` em `stepDiff.ts`). Variação de um
+  campo ou passo alterado num texto só, **mesclado** como numa revisão de código: o que
+  entra grifado em verde, o que sai riscado em vermelho, os trechos longos que não mudam
+  cortados em "…" (`wordDiff`, `trimSame`); um texto reescrito quase inteiro aparece como
+  "reescrito", com "Como era" a um clique. Passo novo e passo que sai vêm inteiros, verde ou
+  riscado; os passos iguais ficam dobrados numa linha (`CorrectionPreview.tsx`,
+  `correctionView` em `stepDiff.ts`). Variação de um
   procedimento continua mostrando todos os passos marcados contra a base. Aprender não leva "por que pede" nem o passo do
   procedimento que estiver rodando, e não entra no histórico da execução.
 - **Passo que pergunta algo que já veio**: quando o valor chegou como parâmetro

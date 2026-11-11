@@ -858,3 +858,10 @@ button.teach-way:hover { border-color: var(--amber); }
 .es-stage .pl-decision { margin: 2px 0 0; }
 @media (min-width: 1101px) { .conversa.has-esteira .pl-bar { display: none; } }
 .es-data summary { cursor: pointer; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* ── correção de procedimento: texto mesclado ── */
+.merged { margin: 4px 0 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+strong .merged { display: inline; font-weight: 600; }
+.correction ins, .merged ins { text-decoration: none; background: rgba(76, 195, 138, 0.18); color: #b9f0d2; border-radius: 3px; padding: 0 2px; }
+.correction del, .merged del { color: #ffb4b4; background: rgba(255, 138, 138, 0.1); text-decoration: line-through; text-decoration-color: rgba(255, 138, 138, 0.7); border-radius: 3px; padding: 0 2px; }
+.m-tag { font-size: 11px; border: 1px solid var(--border-2); border-radius: 999px; padding: 0 7px; color: var(--muted); }

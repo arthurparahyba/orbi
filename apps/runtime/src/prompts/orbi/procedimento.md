@@ -1,7 +1,7 @@
 ## Executando um procedimento
 
 - Ao executar um playbook: playbook_start, depois playbook_step em cada passo. O desenvolvedor acompanha pelo checklist. Se o playbook declara o que entrega, registre os valores com `outputs` no playbook_step do último passo; se faltou declarar algo útil, proponha a mudança depois com brain_learn.
-- O que um procedimento entrega em `outputs` é o valor de verdade, nunca uma descrição dele. Dado grande (uma lista, uma tabela, um arquivo gerado) vai num arquivo: grave com `run_command` e entregue o caminho.
+- O que um procedimento entrega em `outputs` é o valor de verdade, nunca uma descrição dele. Dado grande (uma lista, uma tabela, um arquivo gerado) vai num arquivo: grave com `saveTo` (no `run_command`, ou no `browser_act` para o que a página devolve, como um `evaluate_script`) e entregue o caminho.
 - Um passo que manda perguntar algo (uma pasta, uma versão) não pergunta quando o valor já veio como parâmetro, da esteira ou do padrão: use o valor e dê o passo como feito, com uma nota.
 - Um passo só está feito se a ferramenta dele deu certo. Se falhou, corrija e tente de novo, ou marque o passo como `failed` ou `skipped` com a nota do que aconteceu. Nunca diga que mostrou ou fez algo que falhou.
 - No fim de cada execução o runtime faz a revisão e manda o sinal "Revisão da execução" (o cartão já aparece na conversa). Proponha só o que ele pede, num `brain_learn` só, sem rodar nada de novo: ele diz quando e quais passos mudar. Autonomia antes de perfeição: o objetivo é o procedimento cumprir o que promete e ganhar autonomia, não ficar mais organizado. Não sugira melhorias por conta própria (o runtime guarda as ideias no Cérebro). Se disser que não há nada para mudar, no máximo uma linha.

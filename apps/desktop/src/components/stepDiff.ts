@@ -77,3 +77,73 @@ export function correctionView(base: ProcedureLike, next: ProcedureLike): { fiel
   const diffed = stepDiff(base.steps ?? [], next.steps ?? base.steps ?? []);
   return { fields, steps: diffed.filter((d) => d.change !== 'same'), same: diffed.filter((d) => d.change === 'same').map((d) => d.step) };
 }
+
+/** A piece of a merged text: the same in both, added, or removed. */
+export interface DiffPiece { kind: 'same' | 'add' | 'del'; text: string }
+
+// Words, spaces, and punctuation that ends a word ("consulta." → "consulta" + "."), so a sentence that only lost its end shows just that.
+const tokens = (s: string) => s.match(/\s+|[.,;:!?)]+(?=\s|$)|[^\s]+?(?=[.,;:!?)]+(?:\s|$)|\s|$)/g) ?? [];
+
+/**
+ * The two texts merged word by word, as a code review shows them: what stays, what is added and
+ * what goes. Longest common subsequence over words (spaces kept), then neighbours of a kind joined.
+ */
+export function wordDiff(before: string, after: string): DiffPiece[] {
+  const a = tokens(before);
+  const b = tokens(after);
+  // Common start and end first: most corrections touch a part of the text.
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let end = 0;
+  while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
+  const A = a.slice(start, a.length - end);
+  const B = b.slice(start, b.length - end);
+  const n = A.length;
+  const m = B.length;
+  const lcs: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) lcs[i][j] = A[i] === B[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  const out: DiffPiece[] = [];
+  const push = (kind: DiffPiece['kind'], text: string) => {
+    const last = out[out.length - 1];
+    if (last && last.kind === kind) last.text += text;
+    else out.push({ kind, text });
+  };
+  if (start) push('same', a.slice(0, start).join(''));
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { push('same', A[i]); i++; j++; }
+    else if (lcs[i + 1][j] >= lcs[i][j + 1]) push('del', A[i++]);
+    else push('add', B[j++]);
+  }
+  while (i < n) push('del', A[i++]);
+  while (j < m) push('add', B[j++]);
+  if (end) push('same', a.slice(a.length - end).join(''));
+  // A lone space between two changes reads as part of the change.
+  return out.filter((p, k) => !(p.kind === 'same' && /^\s+$/.test(p.text) && out[k - 1] && out[k + 1] && out[k - 1].kind !== 'same' && out[k + 1].kind !== 'same' && (out[k - 1].text += p.text, true)));
+}
+
+/**
+ * Long stretches that did not change, cut to a few words on each side of a change ("…"): the
+ * card shows what changes, with just enough around it to read.
+ */
+export function trimSame(pieces: DiffPiece[], keep = 8): DiffPiece[] {
+  return pieces.map((p, k) => {
+    if (p.kind !== 'same') return p;
+    const words = tokens(p.text);
+    const limit = keep * 2;
+    const first = k === 0;
+    const last = k === pieces.length - 1;
+    const room = first || last ? limit : limit * 2;
+    if (words.length <= room + 2) return p;
+    if (first) return { kind: 'same', text: `…${words.slice(-limit).join('')}` };
+    if (last) return { kind: 'same', text: `${words.slice(0, limit).join('')}…` };
+    return { kind: 'same', text: `${words.slice(0, limit).join('')} … ${words.slice(-limit).join('')}` };
+  });
+}
+
+/** How much of the text a change rewrites (0 to 1): above about two thirds, a merged view helps little. */
+export function rewritten(pieces: DiffPiece[]): number {
+  const total = pieces.reduce((n, p) => n + (p.kind === 'del' ? 0 : p.text.length), 0) || 1;
+  return pieces.reduce((n, p) => n + (p.kind === 'add' ? p.text.length : 0), 0) / total;
+}

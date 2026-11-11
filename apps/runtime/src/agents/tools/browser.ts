@@ -3,8 +3,11 @@ import * as v from 'valibot';
 import type { BrowserMcp } from '../../browser/mcp/chrome-devtools.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../vault/vault.ts';
-import { browserCategory } from '../../autonomy/policy.ts';
+import { browserCategory, effectOfCategory } from '../../autonomy/policy.ts';
 import type { AgentContext } from '../context.ts';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { savePath } from './terminal.ts';
 
 /**
  * Browser: reading comes through the native MCP mount (`mcp__chrome__*`, see
@@ -24,26 +27,45 @@ export const browserRead = (browser: Pick<BrowserMcp, 'call'>) => defineTool({
   },
 });
 
-export const browserCapability = defineCapability({ name: 'browser', needs: ['vault', 'browser'], register: useBrowser });
+export const browserCapability = defineCapability({ name: 'browser', needs: ['vault', 'browser', 'config'], register: useBrowser });
 
-function useBrowser(ctx: AgentContext, { vault, browser }: Deps<'vault' | 'browser'>) {
+function useBrowser(ctx: AgentContext, { vault, browser, config }: Deps<'vault' | 'browser' | 'config'>) {
   ctx.gated({
     name: 'browser_act',
     description:
       'Act on a web page through Chrome DevTools MCP: click, fill, fill_form, press_key, hover, select_page, handle_dialog, upload_file, evaluate_script, close_page. Get element `uid`s from take_snapshot first and pass `pageId`. ' +
-      'Credentials: write the reference exactly as the playbook has it, e.g. value "{{segredo:portal.local/senha}}" — it is replaced from the vault inside this tool; you never see or type the real value.',
-    input: v.object({ tool: v.string(), args: v.record(v.string(), v.unknown()), purpose: v.string() }),
-    category: (a) => browserCategory(a.tool),
+      'Credentials: write the reference exactly as the playbook has it, e.g. value "{{segredo:portal.local/senha}}" — it is replaced from the vault inside this tool; you never see or type the real value. ' +
+      'To keep what the page returns (e.g. evaluate_script extracting a list), pass saveTo: the result goes straight to that file (the JSON inside a ```json block, if there is one) and you get the path, never copy it by hand.',
+    input: v.object({
+      tool: v.string(), args: v.record(v.string(), v.unknown()), purpose: v.string(),
+      saveTo: v.optional(v.pipe(v.string(), v.description('Write the whole result to this file instead of returning it (relative to the workspace)'))),
+    }),
+    // Writing a file is never a plain read.
+    category: (a) => (a.saveTo && browserCategory(a.tool) === 'navegador-leitura' ? 'navegador-escrita' : browserCategory(a.tool)),
+    // Saving what a read returned only writes a local file.
+    effect: (a) => (a.saveTo && browserCategory(a.tool) === 'navegador-leitura' ? 'local' : effectOfCategory(browserCategory(a.tool))),
     summary: (a) => `${a.purpose} (navegador: ${a.tool})`,
     title: (a) => a.purpose,
     command: (a) => `navegador: ${a.tool}`,
     execute: async (a, _id, _how, signal) => {
       const { value: args, used } = await vault.resolve(a.args);
       try {
-        return redact(await browser.call(a.tool, args, signal), used);
+        const text = redact(await browser.call(a.tool, args, signal), used);
+        if (!a.saveTo) return text;
+        const file = savePath(a.saveTo, config.workspace);
+        const body = payloadOf(text);
+        mkdirSync(dirname(file), { recursive: true });
+        writeFileSync(file, body);
+        return JSON.stringify({ savedTo: file, bytes: Buffer.byteLength(body), head: body.slice(0, 300) });
       } catch (error) {
         throw new Error(redact(error instanceof Error ? error.message : String(error), used));
       }
     },
   });
+}
+
+/** What a browser tool returned, without its wrapper: the content of the first ```json (or ```) block, else the whole text. */
+export function payloadOf(text: string): string {
+  const m = /```(?:json)?\s*\n([\s\S]*?)\n```/.exec(text);
+  return m ? m[1] : text;
 }
