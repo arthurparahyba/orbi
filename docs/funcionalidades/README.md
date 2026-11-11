@@ -31,6 +31,7 @@ e [plugins](../plugins.md).
 | 17 | [Agentes de código desta máquina](17-agentes-de-codigo.md) | **Autonomia → Agentes de código**: quem investiga e quem corrige, com qual modelo; o chat que descobre os agentes |
 | 18 | [Conceitos, fatos e procedimentos](18-conceitos-e-procedimentos.md) *(proposta)* | Ensinar ensaiando, procedimentos sobre conceitos, aprender fatos ao executar e a fronteira "sei / não sei" |
 | 19 | [Revisão no fim da execução](19-revisao-da-execucao.md) | Autonomia antes de perfeição: fatos aprendidos ao rodar, problema recorrente corrigido na raiz, juiz que só muda o procedimento quando vale |
+| 20 | [Ferramentas MCP e a nova Autonomia](20-ferramentas-mcp.md) | Proposta: servidores MCP cadastrados pelo desenvolvedor, leitura ou escrita por ferramenta, credenciais do cofre, Agentes dentro de Autonomia |
 
 ## Como as funcionalidades se ligam
 
