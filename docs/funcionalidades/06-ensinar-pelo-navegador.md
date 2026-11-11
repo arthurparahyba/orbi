@@ -164,7 +164,7 @@ demonstração funciona sem a narração, só com os cliques.
 
 - **Quando**: não no build nem na instalação. Na primeira transcrição (ditado na
   conversa ou narração), ou quando você clica em **Baixar agora** em
-  **Autonomia → Transcrição de voz**. Depois disso, não usa mais a internet.
+  **Configurações → Transcrição de voz**. Depois disso, não usa mais a internet.
 - **Carregar na memória**: baixado uma vez, o modelo ainda precisa ser carregado
   na memória a cada vez que o Orbi abre, e isso leva alguns segundos (mais no
   `whisper-large`). Por isso o runtime carrega logo ao abrir, em segundo plano, se

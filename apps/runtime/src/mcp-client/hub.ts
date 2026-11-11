@@ -108,7 +108,7 @@ export class McpHub {
     if (!s) return Promise.reject(new Error(`servidor MCP ${id} não existe`));
     if (!s.enabled) return Promise.reject(new Error(`servidor MCP ${s.name} está desligado`));
     // A program only runs as you approved it: a new or changed command waits for you.
-    if (needsApproval(s)) return Promise.reject(new Error(`o comando de ${s.name} mudou ou ainda não foi aprovado: aprove em Autonomia › Ferramentas (MCP)`));
+    if (needsApproval(s)) return Promise.reject(new Error(`o comando de ${s.name} mudou ou ainda não foi aprovado: aprove em Configurações › Ferramentas (MCP)`));
     const conn = this.open(s, id);
     this.conns.set(id, conn);
     conn.catch(() => this.conns.delete(id));

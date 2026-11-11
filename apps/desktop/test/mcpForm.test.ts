@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { countsLine, headersOf, hintLabel, marksOf, toolsForSave, urlHint } from '../src/views/autonomy/mcp/mcpForm';
 import { categoryLabel } from '../src/components/inboxContext';
 
-describe('servidores MCP (Autonomia › Ferramentas MCP)', () => {
+describe('servidores MCP (Configurações › Ferramentas MCP)', () => {
   it('cabeçalhos sem nome saem; https ou http só local', () => {
     expect(headersOf([{ name: ' Authorization ', value: 'Bearer {{segredo:jira/token}} ' }, { name: '', value: 'x' }])).toEqual({ Authorization: 'Bearer {{segredo:jira/token}}' });
     expect(urlHint('https://jira.empresa.com.br/mcp')).toBeUndefined();

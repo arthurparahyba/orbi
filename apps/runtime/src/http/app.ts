@@ -40,7 +40,7 @@ const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\
  *   /api/...            one router per resource (routes/)
  *   /api/events         what changed, as server-sent events (the app refetches)
  *   /api/code-agents    coding agents of this machine and which does each task
- *   /api/model          the model: status, test, choose (first opening, Autonomia › Modelo)
+ *   /api/model          the model: status, test, choose (first opening, Configurações › Modelo)
  *   /api/mcp-servers    MCP servers Orbi uses: test, add, change, remove, mark each tool
  *   /api/browser        Orbi's browser (Chrome DevTools): settings, applied with a restart
  *   /mcp                Orbi as an MCP server for coding agents (own token per agent)
@@ -68,7 +68,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   });
 
   app.route('/agents/orbi', createAgentRouter(agent));
-  // The configuration chat beside Autonomia › Agentes de código (agents/configurador.ts).
+  // The configuration chat beside Configurações › Agentes de código (agents/configurador.ts).
   if (others.configurador) app.route('/agents/configurador', createAgentRouter(others.configurador));
   app.route('/api/conversations', conversationRoutes(s));
   app.route('/api/inbox', inboxRoutes(s, agent));

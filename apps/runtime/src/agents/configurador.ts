@@ -6,7 +6,7 @@ import { CONFIG_CAPABILITIES } from './configurador-capabilities.ts';
 import instructions from '../prompts/configurador/agentes-de-codigo.md?raw';
 
 /**
- * The configuration chat beside Autonomia › Agentes de código (conversation `config:agentes-de-codigo`).
+ * The configuration chat beside Configurações › Agentes de código (conversation `config:agentes-de-codigo`).
  * Its own agent, not the Orbi of the conversations: its own short list of capabilities (look at
  * this machine, propose a registration) and its own instructions, sharing the gate and the UI
  * channel. A new configuration chat is a new agent like this one, with its own list.

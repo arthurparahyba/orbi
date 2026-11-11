@@ -5,7 +5,7 @@ import { setEnvValue } from '../settings/env-file.ts';
 import { chromeExecutable } from './chrome.ts';
 
 /**
- * The Chrome DevTools settings, from Autonomia › Ferramentas (MCP) (docs/funcionalidades/20).
+ * The Chrome DevTools settings, from Configurações › Ferramentas (MCP) (docs/funcionalidades/20).
  * Same path as the model: written to the .env the runtime reads at start, put in this
  * process's environment and in the live configuration, then the bridge restarts.
  */

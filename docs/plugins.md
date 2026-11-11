@@ -101,6 +101,6 @@ usa a versão Y", e o plugin não é carregado.
 
 ## Ver o que foi carregado
 
-- **Tela Autonomia:** cada plugin, se está ativo, disponível ou com erro, e de qual pasta veio.
+- **Tela Configurações:** cada plugin, se está ativo, disponível ou com erro, e de qual pasta veio.
 - **Log do runtime:** `[orbi] plugin <nome> (llm) ok — <pasta>`.
 - **Lista no terminal:** `npm run plugin:test` sem nome lista as pastas e os plugins encontrados.

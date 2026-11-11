@@ -5,7 +5,7 @@ import { CATALOG, CODE_AGENT_TASKS, CodeAgentError, testAgent, type CodeAgentTas
 import { HttpError, body, notFound } from '../errors.ts';
 
 /**
- * Autonomia › Agentes de código: which coding agents this machine has, how each is called, and
+ * Configurações › Agentes de código: which coding agents this machine has, how each is called, and
  * which does each task with which model. The configuration chat proposes registrations through
  * its card; here the developer sees and edits them by hand.
  */

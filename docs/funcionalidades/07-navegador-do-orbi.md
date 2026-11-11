@@ -14,7 +14,7 @@ Ele lê as páginas e age nelas, com as mesmas regras de autonomia das outras a�
 - O **Chrome do Orbi** abre na tela. É uma janela comum, e você pode olhar ou
   intervir (um MFA no celular, por exemplo).
 - Na barra lateral do app, o segundo ponto indica se o navegador está conectado.
-- **Autonomia › Ferramentas (MCP) › Chrome DevTools** (documento 20): o estado e as
+- **Configurações › Ferramentas (MCP) › Chrome DevTools** (documento 20): o estado e as
   configurações. **Qual navegador** (perfil próprio do Orbi, ou o seu Chrome pelo endereço
   local da depuração), **Mostrar a janela**, **Navegador ligado**, pasta do perfil e o
   programa do Chrome (com o que o Orbi achou). **Salvar e reiniciar** grava no `.env`, aplica
@@ -107,7 +107,7 @@ empresa, então nada fora da sua máquina pode chegar nele.
 
 ## Configuração
 
-As cinco primeiras abaixo também se mudam pela tela (Autonomia › Ferramentas MCP); um valor vazio vale o padrão.
+As cinco primeiras abaixo também se mudam pela tela (Configurações › Ferramentas MCP); um valor vazio vale o padrão.
 
 | Variável | Para quê |
 | --- | --- |

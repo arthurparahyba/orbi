@@ -6,14 +6,14 @@ ferramentas MCP e agentes" (boards A a F).
 ## O que muda para o desenvolvedor
 
 1. **A tela Agentes sai da barra lateral.** A barra fica com Conversas, Esteiras, Cérebro e
-   Autonomia. Os pedidos dos agentes viram **Autonomia › Agentes que pedem** (pedidos e
+   Autonomia. Os pedidos dos agentes viram **Configurações › Servidor MCP** (pedidos e
    conexões, como hoje).
 2. **As sugestões dos agentes vão para o Cérebro**, numa aba **Sugestões para aprender**,
    revisadas ao lado do que o Orbi já sabe (Aceitar, Aceitar como variação de…, Rejeitar). O
    selo de sugestões passa para o ícone do Cérebro.
 3. **Autonomia ganha grupos**: Permissões (Regras, Cofre), Conexões (Ferramentas MCP, Agentes
    que pedem, Agentes de código), Modelo (Modelo, Voz) e Acompanhar (Uso, Capacidades).
-4. **Autonomia › Ferramentas (MCP)**: os servidores MCP que o Orbi usa. O Chrome DevTools é o
+4. **Configurações › Ferramentas (MCP)**: os servidores MCP que o Orbi usa. O Chrome DevTools é o
    primeiro, com a sua página de configuração. O desenvolvedor adiciona outros (Jira,
    ServiceNow, Sonar…) por endereço ou por comando local.
 5. **Toda ferramenta é de leitura ou de escrita**, e cada servidor ganha duas linhas nas
@@ -36,7 +36,7 @@ ferramentas MCP e agentes" (boards A a F).
 ```mermaid
 flowchart LR
   subgraph App
-    A[Autonomia › Ferramentas MCP]
+    A[Configurações › Ferramentas MCP]
   end
   subgraph Runtime
     R[mcp-servers: cadastro e catálogo]
@@ -258,6 +258,14 @@ continua em `/api/agents/suggestions/:id/accept`; só a tela muda de lugar.
 - Testes: `flow-mcp-tools.test.ts` (o cartão oferece; marcado, a próxima chamada roda sem cartão;
   apagar não aceita nem oferece), `mcp-client.test.ts` (`reviewAll`, `alone` recusado para quem
   apaga) e o e2e da tela (cartão → Sempre sozinho → aprovado → voltar a perguntar na página).
+
+## Depois: Configurações
+
+A tela **Autonomia** passou a se chamar **Configurações** (ela cuida de mais que autonomia), e
+"Agentes que pedem" virou **Servidor MCP** (o Orbi como servidor para os agentes de código). No
+menu, os grupos (Permissões, Conexões, Modelo, Acompanhar) são títulos de verdade, e as páginas de
+cada um ficam recuadas sob ele, numa linha guia. A autonomia continua sendo o nome do conceito:
+Configurações › Regras e os níveis dos procedimentos.
 
 ## Fora do escopo
 

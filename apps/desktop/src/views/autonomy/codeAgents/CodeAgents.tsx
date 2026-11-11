@@ -8,7 +8,7 @@ import { notRegistered, usedFor } from './model';
 
 const BLANK = { id: '', name: '', command: '', models: [] as string[] };
 
-/** Autonomia › Agentes de código, left column: who investigates and fixes, with which model, and how each is called. */
+/** Configurações › Agentes de código, left column: who investigates and fixes, with which model, and how each is called. */
 export function CodeAgents() {
   const state = useLive(api.codeAgents, ['code-agents']);
   const [adding, setAdding] = useState<typeof BLANK & { source?: 'catalogo' | 'manual' }>();

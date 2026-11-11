@@ -113,7 +113,7 @@ export function modelLoadError(stt: Pick<SttConfig, 'localModel' | 'modelHost' |
   }
   const where = stt.offline ? `em ${stt.modelsDir}` : `de ${stt.modelHost ?? 'huggingface.co'}`;
   return `não consegui carregar o modelo de transcrição ${stt.localModel} ${where}${file ? ` (arquivo ${file})` : ''}: ${causes.join(' ← ')}. ` +
-    'Veja em Autonomia → Transcrição de voz: dá para baixar de novo ou colocar os arquivos à mão.';
+    'Veja em Configurações → Transcrição de voz: dá para baixar de novo ou colocar os arquivos à mão.';
 }
 
 function localWhisper(stt: SttConfig, report?: SttReport): Transcriber {

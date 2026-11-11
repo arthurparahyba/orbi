@@ -3,7 +3,7 @@ import { api, type ModelOption, type ModelStatus } from '../../api';
 import { choiceOf, initialKind, initialModel, chooseLabel, type Draft } from './choice';
 import { OptionFields } from './OptionFields';
 
-/** The options of this machine, the fields of the chosen one, Testar and Usar. Shared by the first opening and Autonomia › Modelo. */
+/** The options of this machine, the fields of the chosen one, Testar and Usar. Shared by the first opening and Configurações › Modelo. */
 export function ModelChoice({ status, onChosen, onRescan }: { status: ModelStatus; onChosen(): void; onRescan(): void }) {
   const [kind, setKind] = useState(() => initialKind(status));
   const option = status.options.find((o) => o.kind === kind);

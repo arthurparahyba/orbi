@@ -5,7 +5,7 @@ import { ModelChoice } from '../setup/ModelChoice';
 import { ModelTiersEditor } from '../../components/model/ModelTiersEditor';
 import { ModelRolesEditor } from '../../components/model/ModelRolesEditor';
 
-/** Autonomia › Modelo: the model in use, Testar, and Trocar (the same options as the first opening). */
+/** Configurações › Modelo: the model in use, Testar, and Trocar (the same options as the first opening). */
 export function ModelPage({ onChanged }: { onChanged(): void }) {
   const status = useLoad(api.model);
   const [changing, setChanging] = useState(false);

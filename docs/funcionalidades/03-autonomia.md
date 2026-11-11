@@ -13,7 +13,7 @@ repetitivas rodem sem você, e o Orbi só chame quando há uma decisão nova.
 
 ## Onde aparece
 
-- **Tela Autonomia**, seção de níveis: um nível por tipo de ação.
+- **Tela Configurações**, seção de níveis: um nível por tipo de ação.
 - **Tela Cérebro → Playbooks**: o nível de cada procedimento (N1, N2, N3), a
   caminhada até o próximo, o nível máximo, as ações conhecidas e o histórico.
 - **Na conversa**, ao fim de uma execução: o cartão "subiu para N2" (ou "desceu"),
@@ -136,7 +136,7 @@ pode desfazer.
 | `apps/runtime/src/brain/repo/levels.ts` | Ações conhecidas e histórico |
 | `apps/runtime/src/http/routes/brain.ts` | `PATCH /api/brain/playbooks/:name` (`autonomy`, `level`, `levelMax`), `GET …/:name/autonomy` |
 | `apps/runtime/src/http/routes/inbox.ts` | `POST /api/inbox/:id/keep` e `/dismiss` (avisos de nível) |
-| `apps/desktop/src/views/autonomy/AutonomyView.tsx` | Tela Autonomia |
+| `apps/desktop/src/views/autonomy/AutonomyView.tsx` | Tela Configurações |
 | `apps/desktop/src/views/brain/PlaybookAutonomy.tsx` | Nível, máximo, ações conhecidas e histórico de um procedimento |
 | `apps/desktop/src/components/LevelCard.tsx` | Cartão de nível na conversa |
 

@@ -1,7 +1,7 @@
 import { commandText, splitCommand } from '@orbi/contracts';
 import type { McpServer, McpTestResult, McpToolKind } from '../../../api';
 
-/** The MCP server screens (Autonomia › Ferramentas MCP), without React. */
+/** The MCP server screens (Configurações › Ferramentas MCP), without React. */
 
 export type HeaderRow = { name: string; value: string };
 export type ToolMark = { name: string; description: string; hint: McpToolKind | null; kind: 'leitura' | 'escrita'; enabled: boolean };

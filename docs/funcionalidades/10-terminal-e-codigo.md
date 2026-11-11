@@ -11,7 +11,7 @@ As "mãos" do Orbi fora do navegador:
 - **Correção de código**: um agente de código da máquina (Claude Code, Cursor,
   Devin…) investiga ou corrige o bug numa cópia descartável; o commit e o push
   só acontecem depois, pelo portão de autonomia. Quem faz cada tarefa, e com qual
-  modelo, fica em **Autonomia → Agentes de código** (documento 17).
+  modelo, fica em **Configurações → Agentes de código** (documento 17).
 
 ## Onde aparece
 
@@ -21,7 +21,7 @@ As "mãos" do Orbi fora do navegador:
 - Na correção, o cartão de aprovação mostra os arquivos e o diff antes do push.
 - Depois de aplicada, o cartão **Houve correção de código** (o quê, por quê, quem,
   commit, ver diff). Se seguiu sozinha, ela fica em Pendências até você marcar Visto.
-- Na **tela Autonomia → Capacidades**: quais comandos foram achados no PATH e se
+- Na **tela Configurações → Capacidades**: quais comandos foram achados no PATH e se
   a correção de código está ligada.
 
 ## Como funciona

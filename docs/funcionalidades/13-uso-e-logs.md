@@ -11,7 +11,7 @@ Responder duas perguntas sem adivinhar:
 
 ## Onde aparece
 
-- **Tela Autonomia → Uso do modelo**: hoje, o período (7, 30 ou 90 dias) e uma
+- **Tela Configurações → Uso do modelo**: hoje, o período (7, 30 ou 90 dias) e uma
   tabela por conversa (turnos, tokens de entrada e saída, custo, resposta média,
   ferramentas e falhas). Atualiza sozinha a cada chamada ao modelo.
 - **Log do runtime**: no terminal durante o desenvolvimento; no app instalado, em

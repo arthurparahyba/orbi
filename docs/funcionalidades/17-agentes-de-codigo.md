@@ -20,13 +20,13 @@ pelo MCP. Aqui são os agentes que **o Orbi chama** para mexer em código.
 
 ## Onde aparece
 
-- **Autonomia → Agentes de código** (no submenu da tela Autonomia): à esquerda,
+- **Configurações → Agentes de código** (no submenu da tela Configurações): à esquerda,
   **Quem faz o quê** (as duas tarefas com agente e modelo) e **Nesta máquina**
   (comando, modelos, situação do último teste, Testar, Editar, Remover, e botões
   para começar por um agente conhecido); à direita, numa coluna da altura da
   tela, o chat **Configurar com o Orbi**: peça para procurar os agentes, explicar
   um deles ou mudar quem faz cada tarefa.
-- **Autonomia → Capacidades**: a linha "Agente de código" resume quem faz cada
+- **Configurações → Capacidades**: a linha "Agente de código" resume quem faz cada
   tarefa (`GET /api/health` → `codeAgent`).
 
 ## Como funciona
@@ -88,7 +88,7 @@ As leituras só aceitam nomes de programa e um subcomando, e rodam sempre com
 (um programa só). O chat nunca faz login: diz o comando que você roda.
 
 As pendências desta conversa aparecem em Pendências como as outras; **Ir até**
-abre a tela Autonomia.
+abre a tela Configurações.
 
 ### Onde o agente roda: em segundo plano (padrão) ou numa janela do terminal
 

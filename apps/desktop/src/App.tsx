@@ -22,7 +22,7 @@ export function App() {
   const suggestions = useLive(() => api.suggestions('open'), ['agents', 'brain']);
   const activeRuns = useLive(() => api.pipelineRuns(true), ['pipelines']);
   const waitingPipelines = activeRuns.data?.filter((r) => r.status === 'waiting').length;
-  // "Abrir conversa" on Autonomia › Agentes que pedem jumps to Conversa with that one open.
+  // "Abrir conversa" on Configurações › Servidor MCP jumps to Conversa with that one open.
   const [focus, setFocus] = useState<{ id: string } | undefined>();
   const openConversation = (id: string) => { setFocus({ id }); setScreen('conversa'); };
   // A configuration chat (config:…) lives on its Autonomia page.
@@ -70,7 +70,7 @@ export function App() {
           <RailButton active={screen === 'conversa'} onClick={() => setScreen('conversa')} label="Conversas" badge={waiting.length}><ChatIcon /></RailButton>
           <RailButton active={screen === 'esteiras'} onClick={() => setScreen('esteiras')} label="Esteiras" badge={waitingPipelines} badgeLabel="entregas esperando você"><PipelineIcon /></RailButton>
           <RailButton active={screen === 'cerebro'} onClick={() => setScreen('cerebro')} label="Cérebro" badge={suggestions.data?.length} badgeLabel="sugestões para aprender"><BrainIcon /></RailButton>
-          <RailButton active={screen === 'autonomia'} onClick={() => setScreen('autonomia')} label="Autonomia"><DialIcon /></RailButton>
+          <RailButton active={screen === 'autonomia'} onClick={() => setScreen('autonomia')} label="Configurações"><DialIcon /></RailButton>
           <div className="rail-foot">
             <span className={`dot ${online ? 'ok' : 'bad'}`} title={online ? `Runtime conectado · ${health.data?.model}` : `Runtime offline: ${health.error ?? ''}`} />
             <span className={`dot ${chromeOk ? 'ok' : 'off'}`} title={chromeOk ? 'Chrome DevTools MCP conectado' : 'Chrome DevTools MCP indisponível'} />

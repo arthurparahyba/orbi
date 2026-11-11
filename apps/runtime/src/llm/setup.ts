@@ -6,7 +6,7 @@ import type { PluginInfo } from './plugins.ts';
 import type { ChatEvent, ChatResult, LlmAdapter, LlmAdapterFactory } from './types.ts';
 
 /**
- * Choosing the model from the app (first opening, Autonomia › Modelo) instead of editing a .env
+ * Choosing the model from the app (first opening, Configurações › Modelo) instead of editing a .env
  * by hand: the options that exist on this machine, a test before anything is saved, and the
  * choice applied at once, without a restart. Keys go from the form to the .env of the data
  * folder (never to the model, the conversation or the logs); a plugin brings its own access.
@@ -81,7 +81,7 @@ export async function modelOptions(plugins: PluginInfo[], env: NodeJS.ProcessEnv
   ];
 }
 
-/** Where the model stands now, for the first-opening screen and Autonomia › Modelo. */
+/** Where the model stands now, for the first-opening screen and Configurações › Modelo. */
 export async function modelStatus(llm: ActiveLlm, env: NodeJS.ProcessEnv = process.env): Promise<ModelStatus> {
   const options = await modelOptions(llm.plugins, env);
   const option = options.find((o) => o.kind === llm.kind);

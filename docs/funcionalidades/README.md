@@ -20,15 +20,15 @@ e [plugins](../plugins.md).
 | 6 | [Ensinar pelo navegador](06-ensinar-pelo-navegador.md) | Botão **Ensinar pelo navegador** na conversa |
 | 7 | [Navegador do Orbi](07-navegador-do-orbi.md) | Quando o Orbi opera um portal num passo de procedimento |
 | 8 | [Busca e "Já sei algo parecido"](08-busca-e-parecidos.md) | Antes de agir num pedido e antes de guardar um procedimento |
-| 9 | [Cofre de credenciais](09-cofre.md) | Senhas em demonstrações; cartão de credencial na conversa; **Autonomia → Cofre** |
+| 9 | [Cofre de credenciais](09-cofre.md) | Senhas em demonstrações; cartão de credencial na conversa; **Configurações → Cofre** |
 | 10 | [Terminal, investigação e correção de código](10-terminal-e-codigo.md) | Comandos `git`/`gh`/`aws`, scripts Python e correções com Claude Code |
 | 11 | [Retornos agendados](11-retornos-agendados.md) | "Volto em 10 minutos para conferir o CI" |
-| 12 | [Modelo de linguagem e plugins](12-modelo-e-plugins.md) | O modelo por trás de tudo; a tela da primeira abertura; **Autonomia → Modelo** |
-| 13 | [Uso e logs](13-uso-e-logs.md) | **Autonomia → Uso do modelo** e o arquivo `runtime.log` |
+| 12 | [Modelo de linguagem e plugins](12-modelo-e-plugins.md) | O modelo por trás de tudo; a tela da primeira abertura; **Configurações → Modelo** |
+| 13 | [Uso e logs](13-uso-e-logs.md) | **Configurações → Uso do modelo** e o arquivo `runtime.log` |
 | 14 | [App desktop e empacotamento](14-app-desktop.md) | A janela do Orbi, o runtime embutido e o instalador |
-| 15 | [Agentes de código (MCP)](15-agentes-mcp.md) | Autonomia › **Agentes que pedem** (pedidos e conexões do Claude Code e do Cursor) e Cérebro › **Sugestões** |
+| 15 | [Agentes de código (MCP)](15-agentes-mcp.md) | Configurações › **Servidor MCP** (pedidos e conexões do Claude Code e do Cursor) e Cérebro › **Sugestões** |
 | 16 | [Esteiras](16-esteiras.md) | Tela **Esteiras**: procedimentos em sequência, com ramos, passagens e destino |
-| 17 | [Agentes de código desta máquina](17-agentes-de-codigo.md) | **Autonomia → Agentes de código**: quem investiga e quem corrige, com qual modelo; o chat que descobre os agentes |
+| 17 | [Agentes de código desta máquina](17-agentes-de-codigo.md) | **Configurações → Agentes de código**: quem investiga e quem corrige, com qual modelo; o chat que descobre os agentes |
 | 18 | [Conceitos, fatos e procedimentos](18-conceitos-e-procedimentos.md) *(proposta)* | Ensinar ensaiando, procedimentos sobre conceitos, aprender fatos ao executar e a fronteira "sei / não sei" |
 | 19 | [Revisão no fim da execução](19-revisao-da-execucao.md) | Autonomia antes de perfeição: fatos aprendidos ao rodar, problema recorrente corrigido na raiz, juiz que só muda o procedimento quando vale |
 | 20 | [Ferramentas MCP e a nova Autonomia](20-ferramentas-mcp.md) | Proposta: servidores MCP cadastrados pelo desenvolvedor, leitura ou escrita por ferramenta, credenciais do cofre, Agentes dentro de Autonomia |

@@ -61,7 +61,7 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
         <div className="row gap">
           <button type="button" className="btn primary" disabled={busy} onClick={() => act('approve')}><CheckIcon size={14} /> Aprovar</button>
           <button type="button" className="btn" disabled={busy} onClick={() => act('deny')}><XIcon size={14} /> Negar</button>
-          {c.alwaysAlone && <button type="button" className="btn" disabled={busy} onClick={() => void alwaysAlone()} title="Aprova esta e as próximas chamadas desta ferramenta. Dá para voltar em Autonomia › Ferramentas (MCP).">Sempre sozinho para {c.alwaysAlone.tool}</button>}
+          {c.alwaysAlone && <button type="button" className="btn" disabled={busy} onClick={() => void alwaysAlone()} title="Aprova esta e as próximas chamadas desta ferramenta. Dá para voltar em Configurações › Ferramentas (MCP).">Sempre sozinho para {c.alwaysAlone.tool}</button>}
         </div>
       ) : (
         <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>

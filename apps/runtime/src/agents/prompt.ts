@@ -18,7 +18,7 @@ export interface Situation {
   delivery: boolean;
   /** A coding agent asked for this conversation over MCP. */
   agentRequest: boolean;
-  /** A coding agent of this machine can investigate or fix (Autonomia › Agentes de código). */
+  /** A coding agent of this machine can investigate or fix (Configurações › Agentes de código). */
   codeAgents?: boolean;
 }
 

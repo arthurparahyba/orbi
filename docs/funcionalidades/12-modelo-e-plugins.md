@@ -15,9 +15,9 @@ SDK próprios. Por isso ele fala com o modelo por uma interface própria, o
   primeiro e já escolhidos; depois Claude (chave da Anthropic) e um servidor
   compatível com OpenAI. Testar, depois Usar. "Configurar depois" deixa um aviso
   no topo de todas as telas até o modelo estar pronto.
-- **Tela Autonomia → Modelo**: o modelo em uso, Testar, Trocar o modelo (as
+- **Tela Configurações → Modelo**: o modelo em uso, Testar, Trocar o modelo (as
   mesmas opções) e os plugins desta máquina, com Procurar de novo.
-- **Tela Autonomia → Capacidades**: o provedor ativo, os plugins encontrados
+- **Tela Configurações → Capacidades**: o provedor ativo, os plugins encontrados
   (e o erro, se algum não carregou) e se a correção de código está ligada.
 - **Painel "Uso do modelo"** (documento 13): tokens e custo por conversa.
 - **Embaixo da caixa de mensagem** de cada conversa: o modelo com que ela pensa.
@@ -27,7 +27,7 @@ SDK próprios. Por isso ele fala com o modelo por uma interface própria, o
   /api/conversations/:id/model`, coluna `conversations.model`); o subagente da conversa
   usa o mesmo. Se o provedor mudar e não oferecer mais o modelo escolhido, a conversa
   volta ao padrão.
-- **Autonomia → Modelo → Modelo por tipo de trabalho**: quatro papéis, cada um com o seu
+- **Configurações → Modelo → Modelo por tipo de trabalho**: quatro papéis, cada um com o seu
   modelo (`settings`, chave `model-roles`; `GET`/`PUT /api/model/roles`; `llm/roles.ts`).
   O runtime decide o papel de cada turno (`turnRole`), sem você trocar nada:
   - **Conversa**: perguntas e pedidos.
@@ -39,7 +39,7 @@ SDK próprios. Por isso ele fala com o modelo por uma interface própria, o
   - **Revisor de conhecimento**: o agente que lê o que a execução leu (documento 19).
   Sem escolha, os três primeiros usam o padrão e o revisor o primeiro modelo barato. Um
   modelo que o provedor não oferece mais volta ao padrão.
-- **Autonomia → Modelo → Custo dos modelos**: a categoria de cada modelo. Vem, nesta
+- **Configurações → Modelo → Custo dos modelos**: a categoria de cada modelo. Vem, nesta
   ordem, do que você classificou (guardado em `settings`, chave `model-tiers`), do que o
   plugin informa (`tier` em cada modelo) ou da família conhecida do Claude (Haiku barato,
   Sonnet intermediário, Opus caro). Modelo da empresa sem `tier` aparece sem categoria
@@ -160,7 +160,7 @@ sequenceDiagram
 | `apps/runtime/src/llm/plugins.ts` | Achar, validar e descrever plugins |
 | `apps/runtime/src/llm/setup.ts` + `http/routes/model.ts` | Opções desta máquina, teste, escolher e aplicar sem reiniciar (`/api/model`) |
 | `apps/desktop/src/views/setup/` | A tela da primeira abertura e o formulário comum (`ModelChoice`) |
-| `apps/desktop/src/views/autonomy/ModelPage.tsx` | Autonomia → Modelo |
+| `apps/desktop/src/views/autonomy/ModelPage.tsx` | Configurações → Modelo |
 | `apps/runtime/src/llm/plugin-check.ts` + `apps/runtime/scripts/plugin-test.ts` | O teste de plugin |
 | `scripts/plugin-new.mjs` | Cria um plugin a partir do modelo |
 

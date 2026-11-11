@@ -2,7 +2,7 @@ import { CodeAgents } from './CodeAgents';
 import { ConfigChat } from './ConfigChat';
 
 /**
- * Autonomia › Agentes de código: the list and the tasks on the left, the configuration chat in a
+ * Configurações › Agentes de código: the list and the tasks on the left, the configuration chat in a
  * column on the right, the full height of the screen.
  */
 export function CodeAgentsPage() {

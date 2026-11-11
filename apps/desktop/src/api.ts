@@ -43,7 +43,7 @@ export const api = {
   health: () => request<Health>('/api/health'),
   conversations: () => request<ConversationInfo[]>('/api/conversations'),
   createConversation: (title?: string) => request<ConversationInfo>('/api/conversations', { method: 'POST', body: JSON.stringify({ title }) }),
-  /** MCP servers Orbi uses (Autonomia › Ferramentas MCP). */
+  /** MCP servers Orbi uses (Configurações › Ferramentas MCP). */
   mcpServers: () => request<McpServer[]>('/api/mcp-servers'),
   mcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}`),
   testMcpServer: (t: TestMcpServer) => request<McpTestResult>('/api/mcp-servers/test', { method: 'POST', body: JSON.stringify(t) }),

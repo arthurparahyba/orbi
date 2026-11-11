@@ -8,7 +8,7 @@ import { Connections } from './Connections';
 type Tab = 'pedidos' | 'conexoes';
 
 /**
- * Autonomia › Agentes que pedem: what coding agents asked Orbi over MCP and how they connect.
+ * Configurações › Servidor MCP: what coding agents asked Orbi over MCP and how they connect.
  * What they suggest it learn is on Cérebro › Sugestões (docs/funcionalidades/20).
  */
 export function AgentsView({ openInbox, health, onOpenConversation }: { openInbox: InboxItem[]; health?: Health; onOpenConversation(id: string): void }) {
@@ -23,10 +23,10 @@ export function AgentsView({ openInbox, health, onOpenConversation }: { openInbo
     <div className="agentes">
       <header className="brain-head">
         <div>
-          <h1>Agentes que pedem</h1>
+          <h1>Servidor MCP</h1>
           <p className="muted">
-            Agentes de código desta máquina (Claude Code, Cursor) podem procurar o que o Orbi sabe fazer e pedir que ele execute. O que eles sugerem que o Orbi aprenda fica no Cérebro, em Sugestões.
-            A autonomia continua valendo: quem aprova é você.
+            O Orbi como servidor MCP: agentes de código desta máquina (Claude Code, Cursor) procuram o que ele sabe fazer e pedem que ele execute.
+            O que eles sugerem que o Orbi aprenda fica no Cérebro, em Sugestões. Quem aprova é você.
           </p>
         </div>
         <div className="stats" aria-label="Resumo dos pedidos">

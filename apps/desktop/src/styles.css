@@ -655,12 +655,15 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 /* Autonomia: a sub-menu on the left, one page per part */
 .autonomia-shell { display: flex; flex: 1 1 0; min-height: 0; }
 .subnav { width: 200px; flex: none; border-right: 1px solid var(--border); padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; overflow: auto; }
-.subnav h2 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 10px 10px; }
+.subnav h2 { font-size: 16px; font-weight: 600; color: var(--text); margin: 0 10px 14px; }
 .subnav-item { text-align: left; background: transparent; border: 0; color: var(--text); opacity: 0.85; padding: 8px 10px; border-radius: 8px; font: inherit; font-size: 13.5px; cursor: pointer; }
 .subnav-item:hover { background: var(--surface); opacity: 1; }
 .subnav-item.active { background: var(--surface-2); opacity: 1; font-weight: 500; }
-.subnav-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
-.subnav-label { font-size: 11px; color: var(--muted); margin: 6px 10px 2px; }
+.subnav-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+/* Group title: clearly a title; its pages hang under it, indented, on a guide line. */
+.subnav-label { font-size: 13px; font-weight: 600; color: var(--text); margin: 4px 10px 4px; }
+.subnav-group .subnav-item { margin-left: 14px; border-left: 2px solid var(--border); border-radius: 0 8px 8px 0; padding-left: 12px; }
+.subnav-group .subnav-item.active { border-left-color: var(--amber); }
 
 /* Autonomia › Agentes de código: list and tasks on the left, the configuration chat in a full-height column on the right */
 .ca-page { display: flex; flex: 1 1 0; min-width: 0; min-height: 0; }

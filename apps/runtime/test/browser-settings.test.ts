@@ -9,7 +9,7 @@ import { Hono } from 'hono';
 import { browserRoutes } from '../src/http/routes/browser.ts';
 import { installErrorHandling } from '../src/http/errors.ts';
 
-/** Orbi's browser configured from Autonomia › Ferramentas (MCP) (docs/funcionalidades/20, fase 2). */
+/** Orbi's browser configured from Configurações › Ferramentas (MCP) (docs/funcionalidades/20, fase 2). */
 
 const base = { browser: 'proprio' as const, browserUrl: null, showWindow: true, autostart: true, profileDir: null, executablePath: null };
 

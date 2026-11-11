@@ -11,7 +11,7 @@ export function ModelSetup({ onDone, onLater }: { onDone(): void; onLater(): voi
         <header>
           <span className="eyebrow">Antes de começar</span>
           <h1>Com qual modelo o Orbi vai pensar?</h1>
-          <p className="muted">O Orbi precisa de um modelo de linguagem para conversar e executar os procedimentos. Escolha um; dá para trocar depois em Autonomia › Modelo.</p>
+          <p className="muted">O Orbi precisa de um modelo de linguagem para conversar e executar os procedimentos. Escolha um; dá para trocar depois em Configurações › Modelo.</p>
           {/* A model that was set and broke says why; a first opening has nothing to explain. */}
           {status.data?.problem && (status.data.kind !== 'anthropic' || status.data.keySet) && <p className="model-result bad">Agora: {status.data.problem}.</p>}
         </header>

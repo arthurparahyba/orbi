@@ -20,7 +20,7 @@ momento, dentro da ferramenta que preenche o campo.
   existe e segue. Se o nome já estiver no cofre, o cartão oferece usar o que existe.
   O pedido também aparece em **Pendências** como "Credencial".
 - **No cartão de aprovação do procedimento**: as credenciais aparecem só pelo nome.
-- **Tela Autonomia → Cofre**: nomes, descrição e de onde cada uma veio.
+- **Tela Configurações → Cofre**: nomes, descrição e de onde cada uma veio.
   **Adicionar credencial** cadastra uma nova (nome, descrição, valor) e mostra a
   referência para usar no procedimento; **Trocar valor** e **Remover** cuidam das
   existentes. O valor pode ser escrito, nunca lido.
@@ -104,7 +104,7 @@ nunca o valor.
 | `apps/runtime/src/agents/tools/secrets.ts` | `ask_secret`: o cartão que pede uma credencial na conversa |
 | `apps/runtime/src/http/routes/inbox.ts` | `POST /api/inbox/:id/secret`: grava no cofre e avisa a conversa só com a referência |
 | `apps/runtime/src/agents/orbi.ts` | Passa ao modelo os nomes do cofre a cada turno |
-| `apps/desktop/src/views/autonomy/Vault.tsx`, `AddSecret.tsx` | Seção Cofre da tela Autonomia e o formulário de nova credencial |
+| `apps/desktop/src/views/autonomy/Vault.tsx`, `AddSecret.tsx` | Seção Cofre da tela Configurações e o formulário de nova credencial |
 | `apps/desktop/src/components/SecretCard.tsx` | O cartão de credencial na conversa |
 
 ## Tecnologias

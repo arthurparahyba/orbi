@@ -4,7 +4,7 @@ import { TIER_LABEL, type Tier } from './tiers';
 
 const BY: Record<string, string> = { voce: 'você classificou', plugin: 'o plugin informa', conhecido: 'família conhecida' };
 
-/** Autonomia › Modelo: how costly each model is, shown next to it when choosing in a conversation. */
+/** Configurações › Modelo: how costly each model is, shown next to it when choosing in a conversation. */
 export function ModelTiersEditor() {
   const choices = useLoad(api.modelChoices);
   const c = choices.data;

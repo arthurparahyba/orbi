@@ -9,7 +9,7 @@ const ROLES: Array<{ role: keyof ModelRoles; label: string; hint: string }> = [
   { role: 'conhecimento', label: 'Revisor de conhecimento', hint: 'lê o que a execução leu e propõe fatos' },
 ];
 
-/** Autonomia › Modelo: the model of each kind of work; the runtime picks the kind of every turn. */
+/** Configurações › Modelo: the model of each kind of work; the runtime picks the kind of every turn. */
 export function ModelRolesEditor() {
   const roles = useLoad(api.modelRoles);
   const choices = useLoad(api.modelChoices);

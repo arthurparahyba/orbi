@@ -166,7 +166,7 @@ um teste dá a elas só as peças que usam (ex.: `runPython({ scratchDir })`).
 
 ### Um agente por contexto de chat
 
-O Orbi das conversas e o chat de configuração (ao lado de **Autonomia → Agentes
+O Orbi das conversas e o chat de configuração (ao lado de **Configurações → Agentes
 de código**) são agentes diferentes no runtime, com listas de capacidades e
 instruções próprias, e dividem o que é comum: o portão (`gate.ts`), o canal `ui`,
 `defineCapability` e o `runtime-port`. Cada um tem a sua rota
@@ -278,7 +278,7 @@ cada ferramenta que deu certo) mudam isso.
 turno do modelo e cada chamada de ferramenta soma, por conversa e por dia, na
 tabela `usage`: tokens, custo estimado (pela tabela de preços do modelo), tempo
 de espera e falhas. A conversa é a instância do agente (`chat:…`), então o
-trabalho de subagentes conta na conversa que os chamou. A tela Autonomia mostra
+trabalho de subagentes conta na conversa que os chamou. A tela Configurações mostra
 hoje, o período (7, 30 ou 90 dias) e cada conversa, e atualiza sozinha pelo
 evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 

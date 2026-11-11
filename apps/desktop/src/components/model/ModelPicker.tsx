@@ -52,7 +52,7 @@ export function ModelPicker({ conversationId, chosen, onChosen }: { conversation
               ))}
             </div>
           ))}
-          <p className="model-menu-note muted">Vale para conversar e executar nesta conversa, a partir da próxima mensagem. Aprender e corrigir usa o modelo de Autonomia → Modelo.</p>
+          <p className="model-menu-note muted">Vale para conversar e executar nesta conversa, a partir da próxima mensagem. Aprender e corrigir usa o modelo de Configurações → Modelo.</p>
         </div>
       )}
     </div>

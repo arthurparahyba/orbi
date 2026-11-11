@@ -4,7 +4,7 @@ import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, in
 import { startFakeMcp } from './support/fake-mcp.ts';
 
 /**
- * A server added on Autonomia › Ferramentas MCP (docs/funcionalidades/20, fase 3), end to end with
+ * A server added on Configurações › Ferramentas MCP (docs/funcionalidades/20, fase 3), end to end with
  * the real Flue and a scripted model: its reads run alone, its writes become an approval card,
  * the tool that deletes stays off, and the token never reaches the model, the conversation or the log.
  */

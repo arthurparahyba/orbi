@@ -7,7 +7,7 @@ const saved: ChromeSettings = {
   executablePath: null, detected: '/usr/bin/google-chrome', detectError: null, port: 8931, debugPort: 9333,
 };
 
-describe('navegador do Orbi (Autonomia › Ferramentas MCP)', () => {
+describe('navegador do Orbi (Configurações › Ferramentas MCP)', () => {
   it('em branco é o padrão; endereço só com o seu Chrome; pasta só com o perfil próprio', () => {
     expect(requestOf({ ...formOf(saved), executablePath: '  ', browserUrl: 'http://127.0.0.1:9222' })).toEqual({
       browser: 'proprio', browserUrl: null, showWindow: true, autostart: true, profileDir: '/dados/chrome-profile', executablePath: null,

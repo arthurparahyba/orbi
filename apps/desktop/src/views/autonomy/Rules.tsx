@@ -20,7 +20,7 @@ function mcpRows(s: { id: string; name: string }): typeof CATEGORIES {
 }
 const LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };
 
-/** Autonomia › Regras: how much the Orbi may do alone, per kind of action; each MCP server has its two. */
+/** Configurações › Regras: how much the Orbi may do alone, per kind of action; each MCP server has its two. */
 export function Rules() {
   const policy = useLive(api.autonomy, ['autonomy', 'mcp-servers']);
   const servers = useLive(api.mcpServers, ['mcp-servers']);

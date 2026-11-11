@@ -21,14 +21,14 @@ aprova nada, nunca vê credenciais e nunca grava direto no cérebro.
 
 ## Onde aparece
 
-- **Autonomia › Agentes que pedem** (grupo Conexões; era a tela Agentes da barra lateral, documento 20):
+- **Configurações › Servidor MCP** (grupo Conexões; era a tela Agentes da barra lateral, documento 20):
   - **Pedidos**: cada tarefa delegada, quem pediu, de qual repositório e branch,
     o estado (rodando, esperando você, concluído, falhou) e **Abrir conversa**.
   - **Conexões**: conectar um agente (nome, **Gerar token**, comando pronto para o
     Claude Code ou JSON para o Cursor, trecho para o `CLAUDE.md`), a lista dos
     conectados com as permissões **pedir**, **sugerir**, **rodar esteiras** e
     **pular perguntas** (as duas últimas começam desligadas), quando foram vistos pela
-    última vez e **Revogar**. Os MCPs que o Orbi usa ficam em **Autonomia › Ferramentas (MCP)** (documento 20).
+    última vez e **Revogar**. Os MCPs que o Orbi usa ficam em **Configurações › Ferramentas (MCP)** (documento 20).
 - **Cérebro › Sugestões** (o selo do Cérebro conta as abertas): procedimentos sugeridos,
   quantas vezes e por quais agentes, se parecem com algo que o Orbi já sabe. **Aceitar**,
   **Aceitar como variação de…** ou **Rejeitar**. O aceito entra com autonomia "perguntar".
@@ -116,7 +116,7 @@ sequenceDiagram
 | `apps/runtime/src/prompts/mcp-servidor.md` | Instruções que o agente recebe ao conectar |
 | `apps/runtime/src/agents/tools/requests.ts` | `agent_reply`, só nas conversas pedidas por agente |
 | `apps/runtime/src/http/routes/{mcp,agents}.ts` | `/mcp` e `/api/agents/...` |
-| `apps/desktop/src/views/autonomy/agents/` | Autonomia › Agentes que pedem (pedidos, conexões) |
+| `apps/desktop/src/views/autonomy/agents/` | Configurações › Servidor MCP (pedidos, conexões) |
 | `apps/desktop/src/views/brain/Suggestions.tsx` | Cérebro › Sugestões |
 | `apps/desktop/src/views/conversation/OriginBanner.tsx` | Faixa de origem na conversa |
 
@@ -137,7 +137,7 @@ contagem, parecidos, estado). As três geram o evento `agents`. Migração 12:
 
 ## Configuração
 
-Em **Autonomia › Agentes que pedem › Conexões**. Para o Claude Code:
+Em **Configurações › Servidor MCP › Conexões**. Para o Claude Code:
 
 ```bash
 claude mcp add --scope user --transport http orbi http://127.0.0.1:3000/mcp --header "Authorization: Bearer orb_…"

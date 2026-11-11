@@ -260,12 +260,12 @@ try {
   assert.equal(existsSync(mark), false, 'o comando foi interrompido de verdade');
   policy.set('comandos-escrita', 'ask');
 
-  // The screens moved by docs/funcionalidades/20: no Agentes in the rail, Autonomia in groups,
-  // Ferramentas (MCP) with the Chrome, Agentes que pedem, Sugestões in the Cérebro.
+  // The screens moved by docs/funcionalidades/20: no Agentes in the rail, Configurações in groups,
+  // Ferramentas (MCP) with the Chrome, Servidor MCP, Sugestões in the Cérebro.
   const rail = await text('.rail');
   assert.ok(!/\bAgentes\b/.test(rail), `a barra não tem mais Agentes: ${rail}`);
-  await clickButton('.rail', /Autonomia/);
-  await shows('.subnav', /Permissões[\s\S]*Conexões[\s\S]*Ferramentas \(MCP\)[\s\S]*Agentes que pedem[\s\S]*Agentes de código/i);
+  await clickButton('.rail', /Configurações/);
+  await shows('.subnav', /Permissões[\s\S]*Conexões[\s\S]*Ferramentas \(MCP\)[\s\S]*Servidor MCP[\s\S]*Agentes de código/i);
   await clickButton('.subnav', /Ferramentas \(MCP\)/);
   await shows('.mcp-tools', /Chrome DevTools/);
   // The Chrome settings: the form shows what the runtime uses; a change says what saving does.
@@ -341,15 +341,15 @@ try {
   await shows('.messages', /Chamado aberto/);
   const tools = ((await (await fetch(`http://127.0.0.1:${RUNTIME_PORT}/api/mcp-servers/chamados`)).json()) as { tools: Array<{ name: string; alone: boolean }> }).tools;
   assert.equal(tools.find((t) => t.name === 'abrir_chamado')?.alone, true);
-  await clickButton('.rail', /Autonomia/);
+  await clickButton('.rail', /Configurações/);
   await clickButton('.subnav', /Ferramentas \(MCP\)/);
   await clickButton('.mcp-tools', /^Chamados$/);
   await shows('.mcp-server', /sozinho \(você escolheu\)/);
   await clickButton('.mcp-server', /voltar a perguntar/);
   await until('voltou a perguntar', async () => !/sozinho \(você escolheu\)/.test(await text('.mcp-server')));
-  await clickButton('.subnav', /Agentes que pedem/);
+  await clickButton('.subnav', /Servidor MCP/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);
-  await shot('agentes-que-pedem');
+  await shot('servidor-mcp');
   await clickButton('.rail', /Cérebro/);
   await clickButton('.tabs', /Sugestões/);
   await shows('.cerebro', /sugestão|Sugest/i);

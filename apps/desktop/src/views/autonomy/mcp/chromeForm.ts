@@ -1,6 +1,6 @@
 import type { ChromeSettings, SetChromeSettings } from '../../../api';
 
-/** The Chrome DevTools form (Autonomia › Ferramentas MCP), without React. */
+/** The Chrome DevTools form (Configurações › Ferramentas MCP), without React. */
 export type ChromeForm = SetChromeSettings;
 
 export function formOf(s: ChromeSettings): ChromeForm {

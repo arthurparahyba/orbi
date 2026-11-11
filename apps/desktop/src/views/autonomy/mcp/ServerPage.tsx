@@ -42,7 +42,7 @@ export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): vo
           <button type="button" className="btn small" onClick={() => void act(() => api.reviewMcpServer(id))}>Manter como estão</button>
         </div>
       )}
-      <p className="small">{countsLine(d.counts)}. <span className="muted">As regras deste servidor (leitura e escrita) ficam em Autonomia › Regras.</span></p>
+      <p className="small">{countsLine(d.counts)}. <span className="muted">As regras deste servidor (leitura e escrita) ficam em Configurações › Regras.</span></p>
       <ToolMarks
         rows={d.tools.map((t) => ({ ...t, kind: t.effective === 'leitura' ? 'leitura' : 'escrita', deletes: t.effective === 'apaga' }))}
         onKind={(n, kind) => void act(() => api.setMcpTool(id, n, { kind }))}

@@ -2,7 +2,7 @@ import type { AgentClient, Health } from '../../../api';
 import { ConnectAgent } from './ConnectAgent';
 import { ClientList } from './ClientList';
 
-/** Conexões: agents that ask Orbi (Orbi as MCP server). The MCPs Orbi uses are on Autonomia › Ferramentas (MCP). */
+/** Conexões: agents that ask Orbi (Orbi as MCP server). The MCPs Orbi uses are on Configurações › Ferramentas (MCP). */
 export function Connections({ clients, health }: { clients?: AgentClient[]; health?: Health }) {
   const url = health?.mcpUrl ?? 'http://127.0.0.1:3000/mcp';
   return (

@@ -21,7 +21,7 @@ const GROUPS: Array<{ label: string; sections: Section[] }> = [
   ] },
   { label: 'Conexões', sections: [
     { id: 'ferramentas', label: 'Ferramentas (MCP)', hint: 'Servidores MCP que o Orbi usa para agir em outros sistemas. A escrita passa pelas Regras como qualquer ação.' },
-    { id: 'pedem', label: 'Agentes que pedem', hint: '' },
+    { id: 'pedem', label: 'Servidor MCP', hint: '' },
     { id: 'agentes-de-codigo', label: 'Agentes de código', hint: '' },
   ] },
   { label: 'Modelo', sections: [
@@ -46,8 +46,8 @@ export function AutonomyView({ health, focus, onModelChanged, waiting, onOpenCon
   const current = SECTIONS.find((s) => s.id === section)!;
   return (
     <div className="autonomia-shell">
-      <nav className="subnav" aria-label="Autonomia">
-        <h2>Autonomia</h2>
+      <nav className="subnav" aria-label="Configurações">
+        <h2>Configurações</h2>
         {GROUPS.map((g) => (
           <div key={g.label} className="subnav-group" role="group" aria-label={g.label}>
             <p className="subnav-label">{g.label}</p>

@@ -8,7 +8,7 @@ import { ServerPage } from './ServerPage';
 type View = { at: 'lista' } | { at: 'adicionar' } | { at: 'servidor'; id: string } | { at: 'chrome' };
 
 /**
- * Autonomia › Ferramentas (MCP): the MCP servers Orbi uses to act on other systems
+ * Configurações › Ferramentas (MCP): the MCP servers Orbi uses to act on other systems
  * (docs/funcionalidades/20). The built-in Chrome DevTools, and the ones the developer adds.
  */
 export function McpToolsPage({ health, onChanged }: { health?: Health; onChanged(): void }) {

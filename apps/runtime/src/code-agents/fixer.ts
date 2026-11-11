@@ -95,7 +95,7 @@ export function createCodeFixer(opts: CodeFixerOptions) {
   async function prepare(input: { repo: string; branch: string; diagnosis: string; task?: CodeAgentTask; problem?: KnownProblem }, signal?: AbortSignal): Promise<PreparedFix> {
     const task = input.task ?? 'corrigir';
     const chosen = opts.agents.forTask(task) ?? opts.agents.forTask(task === 'corrigir' ? 'investigar' : 'corrigir');
-    if (!chosen) throw new Error('nenhum agente de código cadastrado para esta tarefa (Autonomia › Agentes de código)');
+    if (!chosen) throw new Error('nenhum agente de código cadastrado para esta tarefa (Configurações › Agentes de código)');
     const base = repoDir(input.repo);
     const id = ulid().toLowerCase();
     const worktree = join(opts.scratchDir, 'fixes', id);

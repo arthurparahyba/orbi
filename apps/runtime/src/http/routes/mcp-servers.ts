@@ -10,7 +10,7 @@ type S = Pick<OrbiServices, 'mcpServers' | 'mcpHub' | 'vault' | 'policy'>;
 type Input = { transport?: 'http' | 'command'; url?: string; headers?: Record<string, string>; command?: McpCommand; env?: Record<string, string>; approve?: boolean };
 
 /**
- * The MCP servers Orbi uses (Autonomia › Ferramentas MCP, docs/funcionalidades/20): test before
+ * The MCP servers Orbi uses (Configurações › Ferramentas MCP, docs/funcionalidades/20): test before
  * saving, add, change, approve a command, turn off, remove, and mark each tool.
  * A program (transport command) only runs after the developer confirms it in the app: `approve`
  * when testing or adding, or POST /:id/approve after the command changed.
