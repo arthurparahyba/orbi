@@ -59,5 +59,5 @@ test('voz: download que falha diz o arquivo e a causa', async () => {
   for (let i = 0; i < 100 && orbi.voice.describe().status.state === 'downloading'; i++) await new Promise((r) => setTimeout(r, 100));
   const status = orbi.voice.describe().status;
   assert.equal(status.state, 'error');
-  assert.match((status as { message: string }).message, /não consegui carregar o modelo de transcrição onnx-community\/whisper-small de http:\/\/127\.0\.0\.1:9\/.*Autonomia/);
+  assert.match((status as { message: string }).message, /não consegui carregar o modelo de transcrição onnx-community\/whisper-small de http:\/\/127\.0\.0\.1:9\/.*Configurações/);
 });
