@@ -3,6 +3,7 @@ import { api } from '../../api';
 import { useLoad } from '../../hooks';
 import { ModelChoice } from '../setup/ModelChoice';
 import { ModelTiersEditor } from '../../components/model/ModelTiersEditor';
+import { ModelRolesEditor } from '../../components/model/ModelRolesEditor';
 
 /** Autonomia › Modelo: the model in use, Testar, and Trocar (the same options as the first opening). */
 export function ModelPage({ onChanged }: { onChanged(): void }) {
@@ -37,6 +38,7 @@ export function ModelPage({ onChanged }: { onChanged(): void }) {
           <ModelChoice status={s} onChosen={() => { setChanging(false); void status.reload(); onChanged(); }} onRescan={async () => { await api.rescanPlugins(); await status.reload(); }} />
         </section>
       )}
+      <ModelRolesEditor key={`roles-${s.kind}:${s.model}`} />
       <ModelTiersEditor key={`${s.kind}:${s.model}`} />
       <section className="auto-list">
         <h2>Plugins nesta máquina</h2>

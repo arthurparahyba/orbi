@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import { defineTool, useModel, useTool } from './runtime-port.ts';
 import { services, type OrbiServices } from '../services.ts';
 import { brainQuery } from './tools/brain.ts';
-import { modelChoices, modelSpecFor } from '../llm/choices.ts';
+import { modelForTurn, resolveRoles } from '../llm/roles.ts';
 import { KNOWLEDGE_PREFIX, type FactCandidate } from '../review/knowledge.ts';
 import instructions from '../prompts/revisor.md?raw';
 
@@ -15,8 +15,7 @@ import instructions from '../prompts/revisor.md?raw';
  */
 export function Revisor({ id }: { id: string }) {
   const all = services();
-  const cheap = modelChoices(all.llm, all.modelTiers.all()).models.find((m) => m.tier === 'cheap')?.id;
-  useModel(modelSpecFor(all.llm, cheap), { thinkingLevel: 'low' });
+  useModel(modelForTurn(all.llm, resolveRoles(all.llm, all.modelRoles.all(), all.modelTiers.all()), 'conhecimento'), { thinkingLevel: 'low' });
   useTool(brainQuery(all.brain));
   useTool(proposeFacts(all, id.slice(KNOWLEDGE_PREFIX.length)));
   return instructions;

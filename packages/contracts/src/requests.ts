@@ -11,6 +11,8 @@ export const RenameConversation = v.object({ title: v.pipe(v.string(), v.minLeng
 export const SetReviewNoteStatus = v.object({ status: v.picklist(['dismissed', 'done', 'kept']) });
 /** PUT /api/conversations/:id/model — null goes back to the default. */
 export const ChooseConversationModel = v.object({ model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
+/** PUT /api/model/roles — the model of a kind of work (null: back to its default). */
+export const SetModelRole = v.object({ role: v.picklist(['conversa', 'executar', 'aprender', 'conhecimento']), model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
 /** PUT /api/model/tiers — how costly a model is, set by the developer (null: back to what the plugin says). */
 export const SetModelTier = v.object({ model: v.pipe(v.string(), v.minLength(1), v.maxLength(200)), tier: v.nullable(v.picklist(['cheap', 'standard', 'premium'])) });
 
@@ -170,6 +172,7 @@ export type CreateConversation = v.InferOutput<typeof CreateConversation>;
 export type RenameConversation = v.InferOutput<typeof RenameConversation>;
 export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationModel>;
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
+export type SetModelRole = v.InferOutput<typeof SetModelRole>;
 export type SetReviewNoteStatus = v.InferOutput<typeof SetReviewNoteStatus>;
 export type Decision = v.InferOutput<typeof Decision>;
 export type Answer = v.InferOutput<typeof Answer>;

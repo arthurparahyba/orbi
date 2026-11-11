@@ -309,5 +309,7 @@ export interface ModelChoices {
   default: string;
   models: Array<{ id: string; tier?: 'cheap' | 'standard' | 'premium'; tierBy?: 'voce' | 'plugin' | 'conhecido' }>;
 }
+/** GET /api/model/roles — the model of each kind of work, and whether you set it. */
+export type ModelRoles = Record<'conversa' | 'executar' | 'aprender' | 'conhecimento', { model: string; set: boolean }>;
 /** POST /api/model/test · PUT /api/model */
 export interface ModelTestResult { ok: boolean; detail: string; model?: string }

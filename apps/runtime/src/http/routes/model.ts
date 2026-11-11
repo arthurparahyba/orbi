@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { ChooseModel, SetModelTier } from '@orbi/contracts';
+import { ChooseModel, SetModelRole, SetModelTier } from '@orbi/contracts';
+import { resolveRoles } from '../../llm/roles.ts';
 import { modelChoices } from '../../llm/choices.ts';
 import type { OrbiServices } from '../../services.ts';
 import { applyModel, modelStatus, testModel } from '../../llm/setup.ts';
@@ -12,11 +13,18 @@ import { body } from '../errors.ts';
  * (tested again, saved to the .env of the data folder, applied without a restart). Keys come in
  * and are never sent back nor logged.
  */
-export function modelRoutes(s: Pick<OrbiServices, 'llm' | 'config' | 'modelTiers'>) {
+export function modelRoutes(s: Pick<OrbiServices, 'llm' | 'config' | 'modelTiers' | 'modelRoles'>) {
   return new Hono()
     .get('/', async (c) => c.json(await modelStatus(s.llm)))
     // What a conversation may pick, the default first, with how costly each is.
     .get('/choices', (c) => c.json(modelChoices(s.llm, s.modelTiers.all())))
+    // The model of each kind of work, as it resolves now (set by you, or the default).
+    .get('/roles', (c) => c.json(resolveRoles(s.llm, s.modelRoles.all(), s.modelTiers.all())))
+    .put('/roles', async (c) => {
+      const { role, model } = await body(c, SetModelRole);
+      s.modelRoles.set(role, model);
+      return c.json(resolveRoles(s.llm, s.modelRoles.all(), s.modelTiers.all()));
+    })
     .put('/tiers', async (c) => {
       const { model, tier } = await body(c, SetModelTier);
       s.modelTiers.set(model, tier);

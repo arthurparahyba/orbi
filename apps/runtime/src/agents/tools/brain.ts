@@ -140,9 +140,9 @@ export function learnTitle(items: Array<{ kind: string; payload: { name?: string
   return `Aprender: ${reason}`;
 }
 
-export const memory = defineCapability({ name: 'brain', needs: ['brain'], register: useBrain });
+export const memory = defineCapability({ name: 'brain', needs: ['brain', 'config'], register: useBrain });
 
-function useBrain(ctx: AgentContext, { brain }: Deps<'brain'>) {
+function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>) {
   useTool(brainQuery(brain));
   ctx.gated({
     name: 'brain_learn',
@@ -166,7 +166,7 @@ function useBrain(ctx: AgentContext, { brain }: Deps<'brain'>) {
     precheck: (a) => {
       const problems = brain.learnProblems(inLearningOrder(a.items) as never);
       if (problems.length) return [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'];
-      return scopeProblems(brain, a.items as LearnItems, ctx.conversationId);
+      return [...scopeProblems(brain, a.items as LearnItems, ctx.conversationId), ...commandProblems(a.items as LearnItems, config.allowedBinaries)];
     },
     execute: async (a) => {
       const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
@@ -194,6 +194,27 @@ function scopeProblems(brain: Deps<'brain'>['brain'], items: LearnItems, convers
     const outside = outOfScope(before.steps, after, scope);
     if (outside.length) {
       out.push(`${name}: a revisão pediu para mudar só os passos ${scope.join(', ')}; esta versão muda também ${outside.join(', ')}. Deixe esses passos exatamente como estão (mesmo id, label e how).`);
+    }
+  }
+  return out;
+}
+
+const NOT_A_PROGRAM = new Set(['com', 'para', 'o', 'a', 'os', 'as', 'e', 'de', 'do', 'da', 'no', 'na', 'que', 'em', 'sobre', 'usando', 'um', 'uma', 'pelo', 'pela']);
+
+/**
+ * A step that runs a program this machine does not allow ("run_command curl …") would fail every
+ * time: refused before any card, saying which programs there are.
+ */
+export function commandProblems(items: LearnItems, allowed: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const item of items) {
+    if (item.kind !== 'playbook' || !Array.isArray(item.payload.steps)) continue;
+    for (const st of item.payload.steps as Array<Record<string, unknown>>) {
+      for (const m of String(st.how ?? '').matchAll(/\brun_command\s+([A-Za-z][\w.+-]*)/g)) {
+        const bin = m[1].toLowerCase();
+        if (NOT_A_PROGRAM.has(bin) || allowed.includes(bin)) continue;
+        out.push(`passo ${String(st.id ?? '')}: ${bin} não está entre os comandos permitidos (${allowed.join(', ')}). Use um deles, um script do procedimento (run_script) ou o navegador com saveTo; se ${bin} for essencial, peça ao desenvolvedor para liberar em ORBI_ALLOWED_BINARIES.`);
+      }
     }
   }
   return out;

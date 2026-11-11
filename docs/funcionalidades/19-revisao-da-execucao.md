@@ -246,10 +246,15 @@ A sua ideia de três subagentes fica mais simples no código: **só um agente no
   execução, 4 000 caracteres), não numa tabela: a revisão é no fim do mesmo turno, e assim nada
   com credencial toca o disco. Antes de ir ao modelo, `scrub` (`review/knowledge.ts`) tira os
   valores do cofre e o que parece credencial. O agente `Revisor` (`agents/revisor.ts`, conversa
-  `revisao:<execução>`, modelo `cheap` de `modelChoices`) propõe com `propose_facts`, que confere
+  `revisao:<execução>`, modelo do papel "Revisor de conhecimento", por padrão o primeiro `cheap`) propõe com `propose_facts`, que confere
   como qualquer aprendizado (tipo existente, ligação válida, `credentialProblems`). Quando ele
   termina, o runtime manda os fatos à conversa da execução e o Orbi os propõe com `brain_learn`
   (cartão de aprendizado). Sem nenhum tipo no cérebro, ou com `ORBI_KNOWLEDGE_REVIEW=off`, não roda.
+- **Corrigir com o modelo certo**: quando a revisão pede mudança, o turno usa o papel
+  "Aprender e corrigir" (documento 12), a instrução diz o que a máquina oferece
+  (`machineLine`: comandos permitidos, shell, `run_script`, `browser_act` com `saveTo`, agente
+  de código) e o `brain_learn` recusa passo com `run_command` de programa fora da lista
+  (`commandProblems`), antes do cartão.
 - **Você corrigiu no meio**: mensagem digitada durante uma execução (não a resposta de um
   cartão) vira o desvio `intervencao` no passo em que ela estava (`agents/tools/interventions.ts`,
   `noteIntervention`). Não conta contra o nível; o juiz abre a mudança só nesse passo, e a

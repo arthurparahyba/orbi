@@ -210,4 +210,11 @@ test('modelo por conversa: opções do provedor com custo, escolher, voltar ao p
   assert.deepEqual(tiered.json.models.find((m: any) => m.id === 'claude-opus-5-5'), { id: 'claude-opus-5-5', tier: 'standard', tierBy: 'voce' });
   const bad = await call('PUT', '/api/model/tiers', { model: 'x', tier: 'caríssimo' });
   assert.equal(bad.status, 400);
+  const roles = await call('GET', '/api/model/roles');
+  assert.equal(roles.json.aprender.set, false);
+  const learn = await call('PUT', '/api/model/roles', { role: 'aprender', model: 'claude-opus-5-5' });
+  assert.deepEqual(learn.json.aprender, { model: 'claude-opus-5-5', set: true });
+  const cleared = await call('PUT', '/api/model/roles', { role: 'aprender', model: null });
+  assert.equal(cleared.json.aprender.set, false);
+  assert.equal((await call('PUT', '/api/model/roles', { role: 'outro', model: null })).status, 400);
 });

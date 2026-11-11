@@ -1,12 +1,13 @@
 'use agent';
-import { useMcpConnection, useModel, useSkill, useSubagent } from './runtime-port.ts';
+import { useDelivery, useMcpConnection, useModel, useSkill, useSubagent } from './runtime-port.ts';
 import { services } from '../services.ts';
 import { useOrbi } from './capabilities.ts';
 import { investigadorFor } from '../subagents/investigador.ts';
 import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
 import { composePrompt } from './prompt.ts';
 import { situationLine } from '../followups/domain.ts';
-import { modelSpecFor } from '../llm/choices.ts';
+import { modelForTurn, resolveRoles, turnRole } from '../llm/roles.ts';
+import { corrigirProcedimento } from '../skills/corrigir-procedimento.ts';
 
 /**
  * Orbi — one conversation per piece of work (the id names it: `chat:<ulid>`,
@@ -19,12 +20,17 @@ export function Orbi({ id }: { id: string }) {
   // The edge: the conversation reads the Orbi's parts once and hands each capability what it declared.
   const all = services();
   const { config, brain, vault, pipelines, agents, toolOutcomes, codeAgents, followups } = all;
-  // The model picked for this conversation (if the provider still offers it), else the default.
-  const model = modelSpecFor(all.llm, all.conversations.get(id)?.model);
+  // The model of this turn's kind of work: learning and correcting use the better one set for it;
+  // talking and running use the conversation's own choice, if any (llm/roles.ts).
+  const message = useDelivery();
+  const reviewAsksChange = message?.kind === 'signal' && message.type === 'review' && /Proponha tudo com UM brain_learn/.test(message.body);
+  const role = turnRole({ openRun: brain.execution.openRunIn(id), reviewAsksChange });
+  const model = modelForTurn(all.llm, resolveRoles(all.llm, all.modelRoles.all(), all.modelTiers.all()), role, all.conversations.get(id)?.model);
   useModel(model, { thinkingLevel: 'low' });
   useMcpConnection(all.browser.connection);
   useSubagent({ ...investigadorFor(all), model });
   useSkill(aprenderProcedimento);
+  useSkill(corrigirProcedimento);
   const { activeRun } = useOrbi(id, all);
 
   const stats = brain.stats();

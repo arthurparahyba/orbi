@@ -130,7 +130,11 @@ export const hasProblems = (r: ExecutionReview) =>
   r.config.length > 0 || (r.change?.length ?? 0) > 0 || (r.environment?.length ?? 0) > 0 || r.runs.some((x) => x.findings.some((f) => f.kind === 'aprender'));
 
 /** What the model reads with the review: only what the judge let through, and to propose it in one batch. */
-export function reviewInstruction(r: ExecutionReview): string {
+/**
+ * `machine`: what this machine offers (allowed commands, shell, browser, coding agent), so a
+ * proposed fix only uses tools that exist.
+ */
+export function reviewInstruction(r: ExecutionReview, machine?: string): string {
   if (!hasProblems(r)) {
     return `Revisão da execução: ${r.runs.map((x) => x.playbook).join(', ')} sem nada para mudar. O cartão já está na conversa: responda no máximo uma linha curta, ou nada. Não proponha melhorias.`;
   }
@@ -153,6 +157,8 @@ export function reviewInstruction(r: ExecutionReview): string {
       (e.raiz ? `A correção de vez guardada é "${e.raiz}". ` : 'Ainda não há correção de vez (raiz) guardada: investigue em modo leitura e inclua raiz no problema conhecido no mesmo brain_learn. '),
     ),
     ...groupConfig(r.config).map(([pb, texts]) => `- configuração de ${pb}: ${texts.join(' ')}`),
+    ...((r.change?.length ?? 0) > 0 ? ['Antes de propor a mudança, ative a skill `corrigir-procedimento`.'] : []),
+    ...(machine ? [`O que esta máquina oferece: ${machine}.`] : []),
     'Proponha tudo com UM brain_learn' +
       `${(r.change ?? []).length ? ': para cada procedimento a mudar, o mesmo nome com só os passos indicados mudados (o que vem da esteira entra como {{parâmetro}} nos passos; dado grande vai para arquivo com saveTo)' : ''}. ` +
       howToFix(findings).map((t) => `${t} `).join('') +
@@ -181,9 +187,20 @@ export async function sendReview(s: OrbiServices, agent: Agent, conversationId: 
     if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
     await tellAgent(s.events, agent, {
       id: conversationId,
-      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review), attributes: { review: JSON.stringify(review) } },
+      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review, machineLine(s)), attributes: { review: JSON.stringify(review) } },
     });
   } catch (error) {
     log.error('revisão da execução falhou', { conversation: conversationId, error: error instanceof Error ? error.message : String(error) });
   }
+}
+
+/** What this machine offers a procedure, in one line (it changes from one machine to another). */
+export function machineLine(s: Pick<OrbiServices, 'config' | 'codeAgents'>): string {
+  return [
+    `comandos permitidos no run_command: ${s.config.allowedBinaries.join(', ')}`,
+    s.config.shell ? 'shell do desenvolvedor no run_shell (linha nova sempre pede aprovação)' : 'sem shell do desenvolvedor',
+    'scripts do procedimento com run_script',
+    'navegador com browser_act (saveTo grava o que a página devolve)',
+    s.codeAgents.available() ? 'agente de código para corrigir código' : 'sem agente de código',
+  ].join('; ');
 }

@@ -19,6 +19,7 @@ import { createRecorder } from './browser/recorder.ts';
 import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
 import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './llm/index.ts';
 import { ModelTiers } from './llm/choices.ts';
+import { ModelRoles } from './llm/roles.ts';
 import { RunObservations } from './observability/run-observations.ts';
 import { KnowledgeCandidates, deliverKnowledge, KNOWLEDGE_PREFIX } from './review/knowledge.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
@@ -83,6 +84,7 @@ export async function createOrbi(
     config: finalConfig,
     llm,
     modelTiers: new ModelTiers(db),
+    modelRoles: new ModelRoles(db),
     observations: new RunObservations(),
     knowledge: new KnowledgeCandidates(),
     events,

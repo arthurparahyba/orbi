@@ -23,10 +23,22 @@ SDK próprios. Por isso ele fala com o modelo por uma interface própria, o
 - **Embaixo da caixa de mensagem** de cada conversa: o modelo com que ela pensa.
   Começa no padrão; a lista é a do provedor em uso (os modelos do plugin, ou os do
   Claude), agrupada por custo: Barato, Intermediário, Caro e Sem categoria. A escolha
-  vale só para aquela conversa, a partir da próxima mensagem (`PUT
+  vale para conversar e executar naquela conversa, a partir da próxima mensagem (`PUT
   /api/conversations/:id/model`, coluna `conversations.model`); o subagente da conversa
   usa o mesmo. Se o provedor mudar e não oferecer mais o modelo escolhido, a conversa
   volta ao padrão.
+- **Autonomia → Modelo → Modelo por tipo de trabalho**: quatro papéis, cada um com o seu
+  modelo (`settings`, chave `model-roles`; `GET`/`PUT /api/model/roles`; `llm/roles.ts`).
+  O runtime decide o papel de cada turno (`turnRole`), sem você trocar nada:
+  - **Conversa**: perguntas e pedidos.
+  - **Executar procedimento**: com uma execução aberta.
+  - **Aprender e corrigir**: com um ensaio aberto, ou quando a revisão do fim da execução
+    pede uma mudança. Aqui vale um modelo melhor; a escolha da conversa **não** se aplica.
+    O Orbi ativa a skill `corrigir-procedimento` (só os passos indicados mudam, só
+    ferramentas que existem nesta máquina, um único `brain_learn`).
+  - **Revisor de conhecimento**: o agente que lê o que a execução leu (documento 19).
+  Sem escolha, os três primeiros usam o padrão e o revisor o primeiro modelo barato. Um
+  modelo que o provedor não oferece mais volta ao padrão.
 - **Autonomia → Modelo → Custo dos modelos**: a categoria de cada modelo. Vem, nesta
   ordem, do que você classificou (guardado em `settings`, chave `model-tiers`), do que o
   plugin informa (`tier` em cada modelo) ou da família conhecida do Claude (Haiku barato,
@@ -186,3 +198,5 @@ e o log da partida registra `runtime iniciado` com o modelo e o adaptador.
 - `apps/runtime/test/llm-openai-compatible.test.ts`: o mesmo contra um servidor
   que imita `/v1/chat/completions`.
 - `apps/runtime/test/plugins.test.ts`: achar, validar e carregar plugins.
+- `apps/runtime/test/model-roles.test.ts`: o modelo de cada papel, o papel de cada turno, a
+  escolha da conversa que não vale para aprender, e o passo com programa fora da lista recusado.
