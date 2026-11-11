@@ -13,6 +13,22 @@ export const SetReviewNoteStatus = v.object({ status: v.picklist(['dismissed', '
 export const ChooseConversationModel = v.object({ model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
 /** PUT /api/model/roles — the model of a kind of work (null: back to its default). */
 export const SetModelRole = v.object({ role: v.picklist(['conversa', 'executar', 'aprender', 'conhecimento']), model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
+/** MCP servers Orbi uses (Autonomia › Ferramentas MCP). Header values: only vault references for credentials. */
+const McpHeaders = v.pipe(v.record(v.pipe(v.string(), v.regex(/^[A-Za-z0-9-]{1,60}$/)), v.pipe(v.string(), v.maxLength(500))), v.check((h) => Object.keys(h).length <= 20, 'no máximo 20 cabeçalhos'));
+const McpUrl = v.pipe(v.string(), v.minLength(1), v.maxLength(500));
+export const TestMcpServer = v.object({ url: McpUrl, headers: McpHeaders });
+export const AddMcpServer = v.object({
+  name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(60)),
+  url: McpUrl,
+  headers: McpHeaders,
+  tools: v.array(v.object({ name: v.string(), kind: v.nullable(v.picklist(['leitura', 'escrita'])), enabled: v.boolean() })),
+});
+export const EditMcpServer = v.object({
+  url: v.optional(McpUrl),
+  headers: v.optional(McpHeaders),
+  enabled: v.optional(v.boolean()),
+});
+export const SetMcpTool = v.object({ kind: v.optional(v.nullable(v.picklist(['leitura', 'escrita']))), enabled: v.optional(v.boolean()) });
 /** PUT /api/browser/settings — the Chrome DevTools settings (Autonomia › Ferramentas MCP). */
 export const SetChromeSettings = v.object({
   browser: v.picklist(['proprio', 'seu']),
@@ -72,8 +88,12 @@ export const EditPlaybook = v.object({
     effect: v.optional(v.picklist(['local', 'publica'])),
   }))),
 });
+export const MCP_CATEGORY = /^mcp:[a-z0-9][a-z0-9-]{0,39}:(leitura|escrita)$/;
 export const SetAutonomy = v.object({
-  category: v.picklist(['comandos-leitura', 'comandos-escrita', 'navegador-leitura', 'navegador-escrita', 'codigo-teste', 'codigo-producao', 'aprender']),
+  category: v.union([
+    v.picklist(['comandos-leitura', 'comandos-escrita', 'navegador-leitura', 'navegador-escrita', 'codigo-teste', 'codigo-producao', 'aprender']),
+    v.pipe(v.string(), v.regex(MCP_CATEGORY)) as unknown as v.GenericSchema<`mcp:${string}:leitura` | `mcp:${string}:escrita`>,
+  ]),
   level: AutonomyLevel,
 });
 
@@ -183,6 +203,10 @@ export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationMod
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
 export type SetModelRole = v.InferOutput<typeof SetModelRole>;
 export type SetChromeSettings = v.InferOutput<typeof SetChromeSettings>;
+export type TestMcpServer = v.InferOutput<typeof TestMcpServer>;
+export type AddMcpServer = v.InferOutput<typeof AddMcpServer>;
+export type EditMcpServer = v.InferOutput<typeof EditMcpServer>;
+export type SetMcpTool = v.InferOutput<typeof SetMcpTool>;
 export type SetReviewNoteStatus = v.InferOutput<typeof SetReviewNoteStatus>;
 export type Decision = v.InferOutput<typeof Decision>;
 export type Answer = v.InferOutput<typeof Answer>;

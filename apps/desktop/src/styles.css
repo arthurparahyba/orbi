@@ -875,3 +875,13 @@ strong .merged { display: inline; font-weight: 600; }
 .correction ins, .merged ins { text-decoration: none; background: rgba(76, 195, 138, 0.18); color: #b9f0d2; border-radius: 3px; padding: 0 2px; }
 .correction del, .merged del { color: #ffb4b4; background: rgba(255, 138, 138, 0.1); text-decoration: line-through; text-decoration-color: rgba(255, 138, 138, 0.7); border-radius: 3px; padding: 0 2px; }
 .m-tag { font-size: 11px; border: 1px solid var(--border-2); border-radius: 999px; padding: 0 7px; color: var(--muted); }
+
+/* Autonomia › Ferramentas (MCP) */
+.mcp-head { justify-content: space-between; align-items: flex-start; gap: 16px; }
+.mcp-head h2 { font-size: 17px; margin: 0 0 4px; display: flex; gap: 8px; align-items: center; }
+.mcp-add, .mcp-server { display: flex; flex-direction: column; gap: 10px; max-width: 1100px; }
+.mcp-add h2 { font-size: 17px; margin: 0; }
+.mcp-headers { display: flex; flex-direction: column; gap: 6px; }
+.mcp-header-row { display: grid; grid-template-columns: 180px 1fr 150px auto; gap: 6px; }
+.mcp-tool-table td { vertical-align: middle; }
+.note-warn { border-left: 3px solid var(--amber); background: rgba(242, 177, 60, 0.08); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 0; }

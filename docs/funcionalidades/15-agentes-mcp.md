@@ -28,7 +28,7 @@ aprova nada, nunca vê credenciais e nunca grava direto no cérebro.
     Claude Code ou JSON para o Cursor, trecho para o `CLAUDE.md`), a lista dos
     conectados com as permissões **pedir**, **sugerir**, **rodar esteiras** e
     **pular perguntas** (as duas últimas começam desligadas), quando foram vistos pela
-    última vez e **Revogar**. Os MCPs que o Orbi usa ficam em **Autonomia › Ferramentas (MCP)**.
+    última vez e **Revogar**. Os MCPs que o Orbi usa ficam em **Autonomia › Ferramentas (MCP)** (documento 20).
 - **Cérebro › Sugestões** (o selo do Cérebro conta as abertas): procedimentos sugeridos,
   quantas vezes e por quais agentes, se parecem com algo que o Orbi já sabe. **Aceitar**,
   **Aceitar como variação de…** ou **Rejeitar**. O aceito entra com autonomia "perguntar".

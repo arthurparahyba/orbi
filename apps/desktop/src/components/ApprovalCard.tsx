@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import type { UiComponent } from '@orbi/contracts';
 import { AlertIcon, CheckIcon, XIcon } from './Icons';
-import { CATEGORY_LABEL, InboxContext } from './inboxContext';
+import { categoryLabel, InboxContext } from './inboxContext';
 import { LearningPreview } from './ui/LearningPreview';
 import { EFFECT_LABEL } from './effect';
 
@@ -30,7 +30,7 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
     <section className={`ui-card approval is-${status}`} data-inbox={c.inboxId}>
       <header className="ui-card-head">
         <span className="ui-icon warn"><AlertIcon /></span>
-        <span className="ui-kicker">{status === 'open' ? 'pede aprovação' : CATEGORY_LABEL[c.category] ?? c.category}</span>
+        <span className="ui-kicker">{status === 'open' ? 'pede aprovação' : categoryLabel(c.category)}</span>
         {c.step && <span className="muted small">{c.step}</span>}
       </header>
       <p className="ui-title">{c.title}</p>

@@ -24,6 +24,7 @@ import { followupRoutes } from './routes/followups.ts';
 import { reviewNoteRoutes } from './routes/review-notes.ts';
 import { modelRoutes } from './routes/model.ts';
 import { browserRoutes } from './routes/browser.ts';
+import { mcpServerRoutes } from './routes/mcp-servers.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.
@@ -40,6 +41,7 @@ const LOCAL_ORIGIN = /^(tauri:\/\/localhost|https?:\/\/tauri\.localhost|https?:\
  *   /api/events         what changed, as server-sent events (the app refetches)
  *   /api/code-agents    coding agents of this machine and which does each task
  *   /api/model          the model: status, test, choose (first opening, Autonomia › Modelo)
+ *   /api/mcp-servers    MCP servers Orbi uses: test, add, change, remove, mark each tool
  *   /api/browser        Orbi's browser (Chrome DevTools): settings, applied with a restart
  *   /mcp                Orbi as an MCP server for coding agents (own token per agent)
  */
@@ -87,6 +89,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/review-notes', reviewNoteRoutes(s));
   app.route('/api/model', modelRoutes(s));
   app.route('/api/browser', browserRoutes(s, background));
+  app.route('/api/mcp-servers', mcpServerRoutes(s));
   app.route('/mcp', mcpRoutes(s, agent));
   return app;
 }

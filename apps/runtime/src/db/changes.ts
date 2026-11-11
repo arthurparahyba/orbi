@@ -11,6 +11,8 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   autonomy_events: { topic: 'brain' },
   proposals: { topic: 'brain' },
   review_notes: { topic: 'brain' },
+  mcp_servers: { topic: 'mcp-servers', id: 'id' },
+  mcp_tools: { topic: 'mcp-servers', id: 'server_id' },
   playbook_runs: { topic: 'runs', id: 'id' },
   inbox_items: { topic: 'inbox', id: 'id' },
   conversations: { topic: 'conversations', id: 'id' },

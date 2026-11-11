@@ -419,6 +419,18 @@ programa (`binary`), comando de uso único (`command`, com `{prompt}` e
 **`code_agent_tasks`** · qual agente faz cada tarefa (`task`: `investigar` ou
 `corrigir`) e com qual `model` (nulo = o padrão do agente).
 
+### Ferramentas MCP (documento 20)
+
+**`mcp_servers`** · os servidores MCP que o desenvolvedor adicionou: `id` (do nome, usado nas
+regras `mcp:<id>:leitura|escrita` e no nome das ferramentas), `name`, `transport` (`http`; `command`
+fica para a fase 4), `url`, `headers` (JSON; credencial só como `{{segredo:nome}}`), `enabled`,
+`last_error` (já sem valores do cofre). `command`, `env` e `approved_command` são da fase 4.
+
+**`mcp_tools`** · as ferramentas de cada servidor, como ele lista: `description`, `input_schema`
+(JSON Schema), `hint` (o que o servidor diz: `leitura`, `escrita`, `apaga` ou nulo), `kind` (o
+que você marcou, ou nulo), `enabled`, `reviewed` (já vista por você; nova sem marca conta como
+escrita), `alone` (fase 5), `first_seen`, `last_seen`.
+
 ## Migrações
 
 Cada migração roda numa transação ao abrir o banco; a versão fica em
@@ -449,6 +461,7 @@ editada, sempre se cria outra.
 | 20 | Retornos agendados com dono: `followups.attempts`/`run_id`/`step_id`/`created_at`/`delivered_at`/`cancelled_by`/`last_error`; `fired` vira `delivered` |
 | 21 | Modelo escolhido por conversa: `conversations.model` (vazio = o padrão) |
 | 22 | Revisão no fim da execução: `playbook_runs.asked`/`tokens_in`/`tokens_out`/`cost_usd`; tabela `review_notes` (ideias guardadas, ambiente a corrigir, escopo da mudança) |
+| 23 | Ferramentas MCP: tabelas `mcp_servers` e `mcp_tools` (documento 20) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
@@ -474,6 +487,7 @@ Assim nenhuma loja precisa avisar que mudou.
 | `pipelines`, `pipeline_runs` | `pipelines` | `name` / `conversation_id` |
 | `agent_clients`, `agent_requests`, `agent_suggestions` | `agents` | `id` |
 | `code_agents`, `code_agent_tasks` | `code-agents` | `id` / — |
+| `mcp_servers`, `mcp_tools` | `mcp-servers` | `id` / `server_id` |
 
 Tabela nova que aparece na tela precisa entrar nessa lista. Uma escrita desfeita
 (rollback) também emite: o app só recarrega, então não faz mal.

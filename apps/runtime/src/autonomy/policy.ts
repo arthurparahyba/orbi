@@ -16,7 +16,7 @@ import { commandEffectOf, commandReads } from '../commands/index.ts';
  */
 export type AutonomyLevel = 'observe' | 'ask' | 'auto';
 
-export type Category =
+export type FixedCategory =
   | 'comandos-leitura'
   | 'comandos-escrita'
   | 'navegador-leitura'
@@ -24,9 +24,21 @@ export type Category =
   | 'codigo-teste'
   | 'codigo-producao'
   | 'aprender';
+/** The two rules of each MCP server the developer added (docs/funcionalidades/20). */
+export type McpCategory = `mcp:${string}:leitura` | `mcp:${string}:escrita`;
+export type Category = FixedCategory | McpCategory;
 
 export interface AutonomyPolicy {
-  categories: Record<Category, AutonomyLevel>;
+  categories: Record<FixedCategory, AutonomyLevel> & Partial<Record<McpCategory, AutonomyLevel>>;
+}
+
+const MCP_CATEGORY = /^mcp:[a-z0-9][a-z0-9-]{0,39}:(leitura|escrita)$/;
+export const isMcpCategory = (c: string): c is McpCategory => MCP_CATEGORY.test(c);
+/** An MCP server's rule before the developer sets it: reads alone, writes ask. */
+const mcpDefault = (c: McpCategory): AutonomyLevel => (c.endsWith(':leitura') ? 'auto' : 'ask');
+/** The level of a category now: what the developer set, else its default. */
+export function levelOf(policy: AutonomyPolicy, category: Category): AutonomyLevel {
+  return policy.categories[category] ?? (isMcpCategory(category) ? mcpDefault(category) : 'ask');
 }
 
 export const DEFAULT_POLICY: AutonomyPolicy = {
@@ -50,8 +62,8 @@ export function parsePolicy(raw: unknown): AutonomyPolicy {
   const categories = { ...DEFAULT_POLICY.categories };
   const source = (raw as { categories?: Record<string, unknown> } | null)?.categories ?? {};
   for (const [name, level] of Object.entries(source)) {
-    if (name in categories && LEVELS.includes(level as AutonomyLevel)) {
-      categories[name as Category] = level as AutonomyLevel;
+    if ((name in categories || isMcpCategory(name)) && LEVELS.includes(level as AutonomyLevel)) {
+      (categories as Record<string, AutonomyLevel>)[name] = level as AutonomyLevel;
     }
   }
   return { categories };
@@ -63,21 +75,23 @@ export function decide(
   activePlaybook?: { autonomy: AutonomyLevel; level?: Level; levelBy?: LevelBy; name?: string } | null,
   action?: { known: boolean; effect: Effect },
 ): AutonomyLevel {
-  const global = policy.categories[category] ?? 'ask';
+  const global = levelOf(policy, category);
   if (category === 'aprender') return global === 'observe' ? 'observe' : 'ask'; // learning always waits
   if (!activePlaybook || ALWAYS_GLOBAL.has(category)) return global;
   // Inside a playbook its own level wins, but it can only loosen what the developer
   // allowed globally from "ask" to "auto" — never act where the global is "observe".
   if (global === 'observe' || activePlaybook.autonomy === 'observe') return 'observe';
   // A playbook never tightens what the developer let run on its own: reads stay as set globally.
-  if (category.endsWith('-leitura') && global === 'auto') return 'auto';
+  if ((category.endsWith('-leitura') || category.endsWith(':leitura')) && global === 'auto') return 'auto';
   if (activePlaybook.level === undefined || !action) return activePlaybook.autonomy;
   return decideAction({ level: activePlaybook.level, levelBy: activePlaybook.levelBy ?? 'learned' }, action);
 }
 
 /** The effect a category implies when the tool does not say more. */
 export function effectOfCategory(category: Category): Effect {
-  if (category.endsWith('-leitura')) return 'leitura';
+  if (category.endsWith('-leitura') || category.endsWith(':leitura')) return 'leitura';
+  // An MCP server is another system: writing there reaches outside this machine.
+  if (isMcpCategory(category)) return 'publica';
   return category === 'navegador-escrita' ? 'publica' : 'local';
 }
 
@@ -130,10 +144,15 @@ export class PolicyStore {
     return this.policy;
   }
   set(category: Category, level: AutonomyLevel): AutonomyPolicy {
-    if (!(category in DEFAULT_POLICY.categories)) throw new Error(`categoria inválida: ${category}`);
+    if (!(category in DEFAULT_POLICY.categories) && !isMcpCategory(category)) throw new Error(`categoria inválida: ${category}`);
     if (!LEVELS.includes(level)) throw new Error(`nível inválido: ${level}`);
     this.replace({ categories: { ...this.policy.categories, [category]: level } });
     return this.policy;
+  }
+  /** A removed MCP server takes its two rules with it. */
+  forgetMcp(serverId: string): void {
+    const rest = Object.fromEntries(Object.entries(this.policy.categories).filter(([k]) => !k.startsWith(`mcp:${serverId}:`)));
+    this.replace({ categories: rest });
   }
   /** Replaces the whole policy (validated); used to import the old autonomy.json. */
   replace(policy: unknown): void {

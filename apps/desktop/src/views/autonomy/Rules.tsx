@@ -11,14 +11,23 @@ const CATEGORIES: Array<{ key: Category; title: string; hint: string; locked?: A
   { key: 'codigo-producao', title: 'Agente de código: corrigir código de produção', hint: 'Sempre global; um playbook não sobrepõe.' },
   { key: 'aprender', title: 'Gravar aprendizado no cérebro', hint: 'O Orbi sempre mostra o que vai aprender e pede seu ok.', locked: ['auto'] },
 ];
+/** An MCP server's two rules (docs/funcionalidades/20). Deleting never runs alone, whatever is set. */
+function mcpRows(s: { id: string; name: string }): typeof CATEGORIES {
+  return [
+    { key: `mcp:${s.id}:leitura`, title: `${s.name}: ler`, hint: 'Ferramentas deste servidor marcadas como leitura.' },
+    { key: `mcp:${s.id}:escrita`, title: `${s.name}: alterar`, hint: 'Ferramentas de escrita. As que apagam nunca rodam sozinhas.' },
+  ];
+}
 const LABEL: Record<Autonomy, string> = { observe: 'Só observar', ask: 'Perguntar', auto: 'Automático' };
 
-/** Autonomia › Regras: how much the Orbi may do alone, per kind of action. */
+/** Autonomia › Regras: how much the Orbi may do alone, per kind of action; each MCP server has its two. */
 export function Rules() {
-  const policy = useLive(api.autonomy, ['autonomy']);
+  const policy = useLive(api.autonomy, ['autonomy', 'mcp-servers']);
+  const servers = useLive(api.mcpServers, ['mcp-servers']);
+  const rows = [...CATEGORIES, ...(servers.data ?? []).flatMap(mcpRows)];
   return (
     <section className="auto-list">
-        {CATEGORIES.map((c) => {
+        {rows.map((c) => {
           const value = policy.data?.categories[c.key];
           return (
             <div key={c.key} className="auto-row">

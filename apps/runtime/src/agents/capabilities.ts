@@ -17,6 +17,7 @@ import { agentRequest } from './tools/requests.ts';
 import { secrets } from './tools/secrets.ts';
 import { pipelines } from './tools/pipelines.ts';
 import { interventions } from './tools/interventions.ts';
+import { mcpTools } from './tools/mcp-tools.ts';
 
 /**
  * Orbi's generic capabilities. Nothing here knows about CI, GMUD or portals:
@@ -29,7 +30,7 @@ import { interventions } from './tools/interventions.ts';
  */
 export const CAPABILITIES: readonly Capability[] = [
   // hands
-  terminal, scripts, browserCapability, code,
+  terminal, scripts, browserCapability, code, mcpTools,
   // memory
   memory, similar, playbooks, rehearsal, interventions,
   // voice and follow-ups

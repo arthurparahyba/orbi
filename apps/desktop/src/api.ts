@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, ReviewNote, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, EditMcpServer, SetMcpTool, ReviewNote, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -43,6 +43,15 @@ export const api = {
   health: () => request<Health>('/api/health'),
   conversations: () => request<ConversationInfo[]>('/api/conversations'),
   createConversation: (title?: string) => request<ConversationInfo>('/api/conversations', { method: 'POST', body: JSON.stringify({ title }) }),
+  /** MCP servers Orbi uses (Autonomia › Ferramentas MCP). */
+  mcpServers: () => request<McpServer[]>('/api/mcp-servers'),
+  mcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}`),
+  testMcpServer: (url: string, headers: Record<string, string>) => request<McpTestResult>('/api/mcp-servers/test', { method: 'POST', body: JSON.stringify({ url, headers }) }),
+  addMcpServer: (s: AddMcpServer) => request<McpServerDetail>('/api/mcp-servers', { method: 'POST', body: JSON.stringify(s) }),
+  editMcpServer: (id: string, s: EditMcpServer) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(s) }),
+  refreshMcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
+  setMcpTool: (id: string, tool: string, s: SetMcpTool) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/tools/${encodeURIComponent(tool)}`, { method: 'PUT', body: JSON.stringify(s) }),
+  removeMcpServer: (id: string) => request<{ removed: string }>(`/api/mcp-servers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   /** Orbi's browser (Chrome DevTools): its settings; saving restarts it. */
   browserSettings: () => request<ChromeSettings>('/api/browser/settings'),
   setBrowserSettings: (s: SetChromeSettings) => request<ChromeSettings>('/api/browser/settings', { method: 'PUT', body: JSON.stringify(s) }),

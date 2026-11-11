@@ -20,3 +20,10 @@ export const CATEGORY_LABEL: Record<string, string> = {
   aprender: 'Aprendizado para o cérebro',
 };
 
+/** The card's label; each MCP server has its own two categories (mcp:<servidor>:leitura|escrita). */
+export function categoryLabel(category: string): string {
+  if (/^mcp:.+:leitura$/.test(category)) return 'Ferramenta (leitura)';
+  if (/^mcp:.+:escrita$/.test(category)) return 'Executar ferramenta';
+  return CATEGORY_LABEL[category] ?? category;
+}
+

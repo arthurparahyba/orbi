@@ -20,6 +20,8 @@ import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
 import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './llm/index.ts';
 import { ModelTiers } from './llm/choices.ts';
 import { ModelRoles } from './llm/roles.ts';
+import { McpServers } from './mcp-client/store.ts';
+import { McpHub } from './mcp-client/hub.ts';
 import { RunObservations } from './observability/run-observations.ts';
 import { KnowledgeCandidates, deliverKnowledge, KNOWLEDGE_PREFIX } from './review/knowledge.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
@@ -79,12 +81,15 @@ export async function createOrbi(
   const brain = overrides.brain ?? new BrainStore(db);
   const pipelineRuns = new PipelineRuns(db);
   const codeAgents = overrides.codeAgents ?? new CodeAgents(db, config.codeAgent);
+  const mcpServers = new McpServers(db);
 
   return {
     config: finalConfig,
     llm,
     modelTiers: new ModelTiers(db),
     modelRoles: new ModelRoles(db),
+    mcpServers,
+    mcpHub: new McpHub(mcpServers, vault),
     observations: new RunObservations(),
     knowledge: new KnowledgeCandidates(),
     events,
@@ -196,6 +201,10 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
     },
   });
   let chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
+  // The MCP servers the developer added: connected and their tool lists brought up to date.
+  for (const server of s.mcpServers.list().filter((x) => x.enabled)) {
+    s.mcpHub.refresh(server.id).catch((error) => log.warn('servidor MCP não conectou', { server: server.id, error: String(error) }));
+  }
   warmVoice(s.voice, s.stt);
   const timers = [startFollowups(s, agent, s.config.followupIntervalMs), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();
@@ -222,6 +231,7 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
       for (const t of timers) clearInterval(t);
       await chrome?.bridge?.close();
       s.chrome.stop();
+      await s.mcpHub.closeAll();
     },
   };
 }

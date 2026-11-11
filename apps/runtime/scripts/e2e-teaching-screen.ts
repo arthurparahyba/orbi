@@ -22,6 +22,7 @@ Object.assign(process.env, {
   ANTHROPIC_API_KEY: 'faux',
   CHROME_MCP_AUTOSTART: 'false',
   CHROME_MCP_PORT: '1',
+  ORBI_VAULT: 'file',
   ORBI_RUNTIME_URL: `http://127.0.0.1:${RUNTIME_PORT}`,
 });
 const shots = process.env.ORBI_E2E_SHOTS ?? join(dir, 'telas');
@@ -42,7 +43,7 @@ const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
 const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
-const { brain, policy, config } = (await import('../src/services.ts')).services();
+const { brain, policy, config, vault } = (await import('../src/services.ts')).services();
 
 const runtime = await start({ agents: [Orbi, Configurador, Revisor] });
 const http = serve({ fetch: app.fetch, port: RUNTIME_PORT, hostname: '127.0.0.1' });
@@ -263,6 +264,7 @@ try {
   await shows('.mcp-tools', /Chrome DevTools/);
   // The Chrome settings: the form shows what the runtime uses; a change says what saving does.
   // (Not saved here: saving writes the .env of the runtime folder; the route has its own test.)
+  await clickButton('.mcp-tools', /Chrome DevTools/);
   await shows('.chrome-settings', /Perfil próprio do Orbi[\s\S]*O seu Chrome[\s\S]*Mostrar a janela/);
   await page.click('.chrome-settings input[type=radio]:not(:checked)');
   await shows('.chrome-settings', /Endereço da depuração[\s\S]*Informe o endereço/);
@@ -270,6 +272,27 @@ try {
   await shows('.chrome-settings', /Salvar (reinicia|reconecta|desliga)/);
   await shot('ferramentas-mcp');
   await clickButton('.chrome-settings', /Desfazer/);
+  await clickButton('.mcp-tools', /Ferramentas \(MCP\)/);
+
+  // Adding a server through the screen, against a fake MCP server on this machine (docs/funcionalidades/20, fase 3).
+  const { startFakeMcp } = await import('../test/support/fake-mcp.ts');
+  const fake = await startFakeMcp('tok-e2e-nao-vaza');
+  await vault.set('issues/token', 'tok-e2e-nao-vaza');
+  await clickButton('.mcp-tools', /Adicionar servidor/);
+  await page.type('.mcp-add input[placeholder="Jira da empresa"]', 'Issues');
+  await page.type('.mcp-add input[placeholder^="https://"]', fake.url);
+  await page.type('.mcp-add input[placeholder^="Bearer"]', 'Bearer ');
+  await page.select('.mcp-add select[aria-label="Usar credencial do cofre"]', 'issues/token');
+  await clickButton('.mcp-add', /Testar conexão/);
+  await shows('.mcp-add', /Encontrei 4 ferramentas[\s\S]*buscar_issue[\s\S]*sem informação: conta como escrita/);
+  await shot('mcp-adicionar');
+  await clickButton('.mcp-add', /^Salvar$/);
+  await shows('.mcp-server', /Issues[\s\S]*conectado[\s\S]*1 leitura · 2 escrita/);
+  assert.ok(!(await text('.mcp-server')).includes('tok-e2e-nao-vaza'), 'a tela mostra só a referência');
+  await shot('mcp-servidor');
+  await clickButton('.subnav', /Regras/);
+  await shows('.auto-list', /Issues: ler[\s\S]*Issues: alterar/);
+  await fake.close();
   await clickButton('.subnav', /Agentes que pedem/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);
   await shot('agentes-que-pedem');

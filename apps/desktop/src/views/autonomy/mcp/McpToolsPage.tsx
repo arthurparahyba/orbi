@@ -1,36 +1,32 @@
+import { useState } from 'react';
 import type { Health } from '../../../api';
 import { ChromeSettingsCard } from './ChromeSettingsCard';
+import { ServerList } from './ServerList';
+import { AddServer } from './AddServer';
+import { ServerPage } from './ServerPage';
+
+type View = { at: 'lista' } | { at: 'adicionar' } | { at: 'servidor'; id: string } | { at: 'chrome' };
 
 /**
  * Autonomia › Ferramentas (MCP): the MCP servers Orbi uses to act on other systems
- * (docs/funcionalidades/20). For now, the built-in Chrome DevTools and its settings; adding servers comes next.
+ * (docs/funcionalidades/20). The built-in Chrome DevTools, and the ones the developer adds.
  */
 export function McpToolsPage({ health, onChanged }: { health?: Health; onChanged(): void }) {
-  const chrome = health?.chrome;
-  const up = !!chrome && 'tools' in chrome;
+  const [view, setView] = useState<View>({ at: 'lista' });
+  const back = () => setView({ at: 'lista' });
   return (
     <section className="mcp-tools" aria-label="Servidores MCP">
-      <table className="agents-table">
-        <thead><tr><th scope="col">Servidor</th><th scope="col">Como conecta</th><th scope="col">Ferramentas</th><th scope="col">Regras</th><th scope="col">Estado</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><strong>Chrome DevTools</strong><span className="muted small block">embutido no Orbi</span></td>
-            <td className="muted small">navegador do Orbi, ponte local com token</td>
-            <td>{up ? chrome.tools : '—'}</td>
-            <td className="muted small">Navegador: leitura e escrita, em Regras</td>
-            <td>
-              {up
-                ? <span className="pill pill-done">conectado</span>
-                : <><span className="pill pill-failed">indisponível</span><span className="muted small block">{chrome?.error ?? 'sem resposta do runtime'}</span></>}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p className="muted small">
-        Em breve: adicionar outros servidores (Jira, ServiceNow…) por endereço ou por comando local, com cada ferramenta marcada como leitura ou escrita,
-        credenciais do cofre e a escrita pedindo aprovação pelas Regras.
-      </p>
-      <ChromeSettingsCard onSaved={onChanged} />
+      {view.at === 'lista' && (
+        <ServerList health={health} onAdd={() => setView({ at: 'adicionar' })} onOpen={(id) => setView({ at: 'servidor', id })} onChrome={() => setView({ at: 'chrome' })} />
+      )}
+      {view.at === 'adicionar' && <AddServer onCancel={back} onSaved={(id) => setView({ at: 'servidor', id })} />}
+      {view.at === 'servidor' && <ServerPage id={view.id} onBack={back} onRemoved={back} />}
+      {view.at === 'chrome' && (
+        <>
+          <button type="button" className="link-btn small" onClick={back}>← Ferramentas (MCP)</button>
+          <ChromeSettingsCard onSaved={onChanged} />
+        </>
+      )}
     </section>
   );
 }

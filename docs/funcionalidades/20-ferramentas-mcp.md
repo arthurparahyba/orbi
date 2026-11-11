@@ -1,6 +1,6 @@
 # 20. Ferramentas MCP e a nova Autonomia (refinamento técnico)
 
-Estado: **fases 1 e 2 feitas** (telas no lugar, Chrome configurável); as outras são proposta. Telas no canvas "Orbi · Autonomia:
+Estado: **fases 1 a 3 feitas** (telas no lugar, Chrome configurável, servidores por endereço); as outras são proposta. Telas no canvas "Orbi · Autonomia:
 ferramentas MCP e agentes" (boards A a F).
 
 ## O que muda para o desenvolvedor
@@ -191,6 +191,32 @@ continua em `/api/agents/suggestions/:id/accept`; só a tela muda de lugar.
 - "Iniciar junto com o Orbi" virou **Navegador ligado**: sem ponte não há navegador nenhum, então
   o nome antigo prometia algo que não acontece.
 - App: `views/autonomy/mcp/ChromeSettingsCard.tsx` e `chromeForm.ts`.
+
+## Como ficou (fase 3)
+
+- `mcp-client/domain.ts` (regras puras): `hintOf` (anotações MCP), `effectiveKind` (sua marca, senão
+  a dica, senão escrita; marcar "escrita" não tira o "apaga"), `categoryOf`, `effectOf` (escrita é
+  `publica`: é outro sistema), `serverIdFor` (`chrome` reservado), `agentToolName`
+  (`<servidor>__<ferramenta>`), `urlProblem`, `headerProblems` (cabeçalho de credencial só com
+  referência do cofre, e a referência precisa existir).
+- `mcp-client/schema.ts`: o JSON Schema da ferramenta vira valibot (objeto, texto, lista fechada,
+  número, inteiro, lógico, lista, objeto dentro, nulo); o resto passa e o servidor confere. Isso
+  resolveu o ponto aberto: o Flue só aceita valibot.
+- `mcp-client/store.ts` (`McpServers`, migração 23) e `mcp-client/hub.ts` (`McpHub`): um cliente
+  por servidor, cabeçalhos resolvidos do cofre só ao conectar, saída e erros sem os valores
+  (`redact`), 30 000 caracteres no máximo. `startBackground` conecta os ligados e atualiza a lista.
+- `agents/tools/mcp-tools.ts`: cada ferramenta ligada vira ferramenta do agente pelo portão
+  (`ctx.gated`), leitura também (respeita "observar" e entra no histórico do procedimento). Até 60.
+- Autonomia: `Category` aceita `mcp:<id>:leitura|escrita`; `levelOf` dá o padrão (leitura
+  sozinho, escrita perguntar); `GET /api/autonomy` mostra as duas de cada servidor; remover o
+  servidor tira as regras (`forgetMcp`).
+- App: `views/autonomy/mcp/` (`ServerList`, `AddServer`, `HeaderRows`, `ToolMarks`, `ServerPage`,
+  `mcpForm.ts`); o Chrome abre pelo nome na lista. Regras ganha "<servidor>: ler" e "alterar".
+  O cartão diz "Executar ferramenta".
+- Testes: `mcp-client.test.ts` (regras, esquema, ferramenta nova, hub contra um servidor falso),
+  `flow-mcp-tools.test.ts` (leitura sozinha, escrita vira cartão e roda aprovada, apagar desligada,
+  o token fora do modelo, da conversa, da lista e do log), `mcpForm.test.ts`, e o e2e da tela
+  adiciona um servidor pela interface (`test/support/fake-mcp.ts`).
 
 ## Fora do escopo
 

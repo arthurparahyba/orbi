@@ -260,4 +260,18 @@ CREATE TABLE review_notes (
   times INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE INDEX review_notes_playbook ON review_notes (playbook, kind, status);`,
   },
+  {
+    name: 'servidores MCP que o Orbi usa e as ferramentas de cada um (leitura ou escrita, ligada, nova)',
+    sql: `
+CREATE TABLE mcp_servers (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, transport TEXT NOT NULL DEFAULT 'http', url TEXT,
+  command TEXT, headers TEXT NOT NULL DEFAULT '{}', env TEXT NOT NULL DEFAULT '{}',
+  enabled INTEGER NOT NULL DEFAULT 1, approved_command TEXT, last_error TEXT,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE mcp_tools (
+  server_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+  input_schema TEXT NOT NULL DEFAULT '{}', hint TEXT, kind TEXT, enabled INTEGER NOT NULL DEFAULT 1,
+  alone INTEGER NOT NULL DEFAULT 0, reviewed INTEGER NOT NULL DEFAULT 0,
+  first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, PRIMARY KEY (server_id, name));`,
+  },
 ];

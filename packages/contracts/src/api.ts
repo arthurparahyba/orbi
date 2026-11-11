@@ -150,7 +150,10 @@ export interface Health {
   /** Which build the runtime is, its process and where it runs from: the app warns when it is another build. */
   build?: string; pid?: number; runtimePath?: string;
 }
-export type Category = 'comandos-leitura' | 'comandos-escrita' | 'navegador-leitura' | 'navegador-escrita' | 'codigo-teste' | 'codigo-producao' | 'aprender';
+export type FixedCategory = 'comandos-leitura' | 'comandos-escrita' | 'navegador-leitura' | 'navegador-escrita' | 'codigo-teste' | 'codigo-producao' | 'aprender';
+/** Each MCP server the developer adds has its own two rules (docs/funcionalidades/20). */
+export type McpCategory = `mcp:${string}:leitura` | `mcp:${string}:escrita`;
+export type Category = FixedCategory | McpCategory;
 
 /** How much the model and the tools were used: tokens, estimated cost (USD) and time. */
 export interface UsageTotals {
@@ -310,6 +313,38 @@ export interface ModelChoices {
   models: Array<{ id: string; tier?: 'cheap' | 'standard' | 'premium'; tierBy?: 'voce' | 'plugin' | 'conhecido' }>;
 }
 /** GET /api/model/roles — the model of each kind of work, and whether you set it. */
+/** What a tool of an MCP server does: what the server says, what you marked, what counts. */
+export type McpToolKind = 'leitura' | 'escrita' | 'apaga';
+export interface McpTool {
+  name: string;
+  description: string;
+  /** From the server (readOnlyHint, destructiveHint); null when it says nothing. */
+  hint: McpToolKind | null;
+  /** What you marked; null: not marked. */
+  kind: 'leitura' | 'escrita' | null;
+  /** What counts: what you marked, else the hint, else escrita. */
+  effective: McpToolKind;
+  enabled: boolean;
+  /** Appeared after you saved the server and you have not marked it yet. */
+  isNew: boolean;
+}
+export interface McpServer {
+  id: string;
+  name: string;
+  url: string;
+  /** Header values carry only vault references ({{segredo:nome}}). */
+  headers: Record<string, string>;
+  enabled: boolean;
+  state: 'conectado' | 'erro' | 'desligado' | 'conectando';
+  error: string | null;
+  counts: { leitura: number; escrita: number; novas: number };
+}
+export interface McpServerDetail extends McpServer { tools: McpTool[] }
+/** POST /api/mcp-servers/test: connects without saving and lists the tools. */
+export type McpTestResult =
+  | { ok: true; tools: Array<{ name: string; description: string; hint: McpToolKind | null; effective: McpToolKind }> }
+  | { ok: false; error: string };
+
 /** GET /api/browser/settings: how Orbi's browser runs. Ports are shown, not edited here. */
 export interface ChromeSettings {
   /** proprio: Orbi's own profile; seu: attach to the developer's Chrome (remote debugging on). */

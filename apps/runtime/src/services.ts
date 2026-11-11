@@ -13,6 +13,8 @@ import type { CodeAgents, CodeFixer } from './code-agents/index.ts';
 import type { ActiveLlm } from './llm/index.ts';
 import type { ModelTiers } from './llm/choices.ts';
 import type { ModelRoles } from './llm/roles.ts';
+import type { McpServers } from './mcp-client/store.ts';
+import type { McpHub } from './mcp-client/hub.ts';
 import type { RunObservations } from './observability/run-observations.ts';
 import type { KnowledgeCandidates } from './review/knowledge.ts';
 import type { Events } from './events.ts';
@@ -58,6 +60,9 @@ export interface OrbiServices {
   observations: RunObservations;
   /** Facts the knowledge reviewer found, per run, until the Orbi proposes them. */
   knowledge: KnowledgeCandidates;
+  /** MCP servers the developer added (Autonomia › Ferramentas MCP) and the clients that reach them. */
+  mcpServers: McpServers;
+  mcpHub: McpHub;
   /** The model of each kind of work (talking, running, learning and correcting, the knowledge review). */
   modelRoles: ModelRoles;
   /** How costly each model is, as the developer classified them. */
