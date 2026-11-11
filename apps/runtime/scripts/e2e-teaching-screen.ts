@@ -261,7 +261,15 @@ try {
   await shows('.subnav', /Permissões[\s\S]*Conexões[\s\S]*Ferramentas \(MCP\)[\s\S]*Agentes que pedem[\s\S]*Agentes de código/i);
   await clickButton('.subnav', /Ferramentas \(MCP\)/);
   await shows('.mcp-tools', /Chrome DevTools/);
+  // The Chrome settings: the form shows what the runtime uses; a change says what saving does.
+  // (Not saved here: saving writes the .env of the runtime folder; the route has its own test.)
+  await shows('.chrome-settings', /Perfil próprio do Orbi[\s\S]*O seu Chrome[\s\S]*Mostrar a janela/);
+  await page.click('.chrome-settings input[type=radio]:not(:checked)');
+  await shows('.chrome-settings', /Endereço da depuração[\s\S]*Informe o endereço/);
+  await page.type('.chrome-settings input[placeholder="http://127.0.0.1:9222"]', 'http://127.0.0.1:9222');
+  await shows('.chrome-settings', /Salvar (reinicia|reconecta|desliga)/);
   await shot('ferramentas-mcp');
+  await clickButton('.chrome-settings', /Desfazer/);
   await clickButton('.subnav', /Agentes que pedem/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);
   await shot('agentes-que-pedem');

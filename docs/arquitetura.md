@@ -312,6 +312,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `/api/code-agents/...` | Agentes de código desta máquina e quem faz cada tarefa (documento 17) |
 | `GET /api/model` · `POST /api/model/test` · `PUT /api/model` · `POST /api/model/plugins/rescan` | O modelo: situação, teste, escolher e aplicar (documento 12) |
 | `GET /api/model/choices` · `PUT /api/model/tiers` | Os modelos que uma conversa pode usar, com o custo; classificar o custo de um modelo |
+| `GET` · `PUT /api/browser/settings` | As configurações do navegador do Orbi (Chrome DevTools); salvar grava no `.env` e reinicia a ponte |
 | `GET` · `PUT /api/model/roles` | O modelo de cada tipo de trabalho: conversa, executar, aprender e corrigir, revisor de conhecimento |
 | `PUT /api/conversations/:id/model` | O modelo desta conversa (`null` volta ao padrão) |
 | `GET /api/review-notes` · `POST /api/review-notes/:id/status` | O que a revisão guardou: ideias por procedimento e ambientes a corrigir ("Agora não", corrigido, descartar) |

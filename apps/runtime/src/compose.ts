@@ -169,6 +169,8 @@ function importLegacyState(config: OrbiConfig, to: { inbox: Inbox; conversations
 export interface Background {
   bridge(): RunningBridge | undefined;
   bridgeError(): string | undefined;
+  /** After the Chrome settings change: closes the bridge and Orbi's Chrome, starts again if autostart. */
+  restartChrome(): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -193,7 +195,7 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
       void sendReview(s, agent, conversationId);
     },
   });
-  const chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
+  let chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   warmVoice(s.voice, s.stt);
   const timers = [startFollowups(s, agent, s.config.followupIntervalMs), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();
@@ -207,6 +209,14 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
   return {
     bridge: () => chrome?.bridge,
     bridgeError: () => (chrome ? chrome.error : 'desligado'),
+    async restartChrome() {
+      // Still starting: let it finish first, so the old bridge does not keep the port.
+      await chrome?.started;
+      await chrome?.bridge?.close();
+      s.chrome.stop();
+      chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
+      log.info('Chrome DevTools reiniciado com as configurações novas', { autostart: s.config.chrome.autostart, seuChrome: !!s.config.chrome.browserUrl });
+    },
     async stop() {
       unwatch();
       for (const t of timers) clearInterval(t);
@@ -227,9 +237,9 @@ function logStartup({ config, llm }: OrbiServices) {
 }
 
 /** The bridge attaches to the shared Chrome, launched lazily on the first tool call. */
-function startChromeBridge(s: OrbiServices): { bridge?: RunningBridge; error?: string } {
-  const state: { bridge?: RunningBridge; error?: string } = {};
-  startBridge({
+function startChromeBridge(s: OrbiServices): { bridge?: RunningBridge; error?: string; started: Promise<void> } {
+  const state: { bridge?: RunningBridge; error?: string; started: Promise<void> } = { started: Promise.resolve() };
+  state.started = startBridge({
     port: s.config.chrome.port,
     token: s.config.chrome.token,
     chrome: { browserUrl: s.chrome.debugUrl() },

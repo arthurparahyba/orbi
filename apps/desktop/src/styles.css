@@ -423,6 +423,13 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .agents-empty { margin: 32px 24px; max-width: 560px; }
 .agents-empty p { margin: 0 0 8px; }
 .agents-table-wrap { padding: 16px 24px; }
+.chrome-settings { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 10px; max-width: 900px; }
+.chrome-settings h2 { font-size: 15px; margin: 0; }
+.chrome-settings h2 .muted { font-weight: 400; margin-left: 6px; }
+.chrome-which { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.chrome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; align-items: start; }
+.chrome-settings .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.chrome-settings .check input { accent-color: var(--amber); }
 .mcp-tools { margin: 0 24px 20px; display: flex; flex-direction: column; gap: 12px; max-width: 1180px; }
 .agents-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .agents-table th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--border); }

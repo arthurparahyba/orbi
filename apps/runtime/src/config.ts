@@ -118,13 +118,13 @@ function chromeConfig(env: NodeJS.ProcessEnv, { path, dataDir }: Paths) {
     /** Bearer token the bridge requires. Generated per process when unset. */
     token: env.CHROME_MCP_TOKEN ?? randomBytes(24).toString('hex'),
     /** Attach to the developer's Chrome (remote debugging on) instead of launching a separate profile. */
-    browserUrl: env.CHROME_BROWSER_URL,
+    browserUrl: env.CHROME_BROWSER_URL || undefined,
     headless: env.CHROME_HEADLESS === 'true',
     /** Remote-debugging port of the Chrome Orbi launches (shared by the MCP and the recorder). */
     debugPort: Number(env.CHROME_DEBUG_PORT ?? '9333'),
     /** Its profile: logins made in it persist between runs. */
-    profileDir: path(env.CHROME_PROFILE_DIR ?? `${dataDir}/chrome-profile`),
-    executablePath: env.CHROME_PATH,
+    profileDir: path(env.CHROME_PROFILE_DIR || `${dataDir}/chrome-profile`),
+    executablePath: env.CHROME_PATH || undefined,
     /** Start the bridge together with the server. */
     autostart: env.CHROME_MCP_AUTOSTART !== 'false',
   };

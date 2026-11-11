@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ReviewNote, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, ReviewNote, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -43,6 +43,9 @@ export const api = {
   health: () => request<Health>('/api/health'),
   conversations: () => request<ConversationInfo[]>('/api/conversations'),
   createConversation: (title?: string) => request<ConversationInfo>('/api/conversations', { method: 'POST', body: JSON.stringify({ title }) }),
+  /** Orbi's browser (Chrome DevTools): its settings; saving restarts it. */
+  browserSettings: () => request<ChromeSettings>('/api/browser/settings'),
+  setBrowserSettings: (s: SetChromeSettings) => request<ChromeSettings>('/api/browser/settings', { method: 'PUT', body: JSON.stringify(s) }),
   /** The model of each kind of work (talking, running, learning and correcting, the knowledge review). */
   modelRoles: () => request<ModelRoles>('/api/model/roles'),
   setModelRole: (role: keyof ModelRoles, model: string | null) => request<ModelRoles>('/api/model/roles', { method: 'PUT', body: JSON.stringify({ role, model }) }),

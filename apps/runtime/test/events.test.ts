@@ -13,7 +13,7 @@ import { createHttpApp } from '../src/http/app.ts';
 import { createEvents, type ChangeEvent } from '../src/events.ts';
 import { Orbi } from '../src/agents/orbi.ts';
 
-const background = { bridge: () => undefined, bridgeError: () => 'desligado', stop: async () => {} };
+const background = { bridge: () => undefined, bridgeError: () => 'desligado', restartChrome: async () => {}, stop: async () => {} };
 const tick = () => new Promise((r) => setImmediate(r));
 
 async function setup() {

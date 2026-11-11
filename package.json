@@ -16,7 +16,7 @@
     "demo": "npm run demo -w @orbi/runtime",
     "demo:ui": "npm run dev -w @orbi/desktop",
     "test": "node scripts/check-case.mjs && npm test -w @orbi/runtime && npm run check:types -w @orbi/runtime && npm run typecheck -w @orbi/desktop && npm test -w @orbi/desktop",
-    "e2e": "npm run e2e:chrome -w @orbi/runtime && npm run e2e:demo -w @orbi/runtime && npm run e2e:tela -w @orbi/runtime",
+    "e2e": "npm run e2e:chrome -w @orbi/runtime && npm run e2e:demo -w @orbi/runtime && npm run e2e:chrome-settings -w @orbi/runtime && npm run e2e:tela -w @orbi/runtime",
     "build": "node scripts/build-app.mjs",
     "plugin:new": "node scripts/plugin-new.mjs",
     "plugin:test": "npm run plugin:test -w @orbi/runtime --"

@@ -97,7 +97,7 @@ test('GET /api/usage: relatório, validação de days e evento usage', async () 
   await new Promise((r) => setImmediate(r));
   assert.ok(seen.includes('usage:chat:1'));
 
-  const app = createHttpApp(orbi, { bridge: () => undefined, bridgeError: () => 'desligado', stop: async () => {} }, Orbi);
+  const app = createHttpApp(orbi, { bridge: () => undefined, bridgeError: () => 'desligado', restartChrome: async () => {}, stop: async () => {} }, Orbi);
   const r30 = await (await app.request('/api/usage')).json();
   assert.equal(r30.days, 30);
   assert.equal(r30.period.turns, 1, 'o turno de 40 dias atrás fica de fora');

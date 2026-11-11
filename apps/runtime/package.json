@@ -13,6 +13,7 @@
     "demo": "tsx --import ./scripts/register-raw.mjs scripts/demo-server.ts",
     "e2e:demo": "tsx --import ./scripts/register-raw.mjs scripts/e2e-demonstration.ts",
     "e2e:tela": "tsx --import ./scripts/register-raw.mjs scripts/e2e-teaching-screen.ts",
+    "e2e:chrome-settings": "tsx --import ./scripts/register-raw.mjs scripts/e2e-chrome-restart.ts",
     "plugin:test": "tsx --import ./scripts/register-raw.mjs scripts/plugin-test.ts",
     "eval:search": "tsx --import ./scripts/register-raw.mjs scripts/eval-search.ts",
     "eval:behavior": "tsx --import ./scripts/register-raw.mjs scripts/eval-behavior.ts",

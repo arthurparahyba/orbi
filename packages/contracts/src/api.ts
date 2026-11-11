@@ -310,6 +310,22 @@ export interface ModelChoices {
   models: Array<{ id: string; tier?: 'cheap' | 'standard' | 'premium'; tierBy?: 'voce' | 'plugin' | 'conhecido' }>;
 }
 /** GET /api/model/roles — the model of each kind of work, and whether you set it. */
+/** GET /api/browser/settings: how Orbi's browser runs. Ports are shown, not edited here. */
+export interface ChromeSettings {
+  /** proprio: Orbi's own profile; seu: attach to the developer's Chrome (remote debugging on). */
+  browser: 'proprio' | 'seu';
+  browserUrl: string | null;
+  showWindow: boolean;
+  autostart: boolean;
+  profileDir: string;
+  executablePath: string | null;
+  /** The Chrome found on this machine, or why none was. */
+  detected: string | null;
+  detectError: string | null;
+  port: number;
+  debugPort: number;
+}
+
 export type ModelRoles = Record<'conversa' | 'executar' | 'aprender' | 'conhecimento', { model: string; set: boolean }>;
 /** POST /api/model/test · PUT /api/model */
 export interface ModelTestResult { ok: boolean; detail: string; model?: string }

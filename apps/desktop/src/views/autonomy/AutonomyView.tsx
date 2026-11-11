@@ -70,7 +70,7 @@ export function AutonomyView({ health, focus, onModelChanged, waiting, onOpenCon
           {section === 'regras' && <Rules />}
           {section === 'modelo' && <ModelPage onChanged={onModelChanged} />}
           {section === 'cofre' && <Vault />}
-          {section === 'ferramentas' && <McpToolsPage health={health} />}
+          {section === 'ferramentas' && <McpToolsPage health={health} onChanged={onModelChanged} />}
           {section === 'uso' && <Usage />}
           {section === 'voz' && <Voice />}
           {section === 'capacidades' && <Capabilities health={health} />}

@@ -1,10 +1,11 @@
 import type { Health } from '../../../api';
+import { ChromeSettingsCard } from './ChromeSettingsCard';
 
 /**
  * Autonomia › Ferramentas (MCP): the MCP servers Orbi uses to act on other systems
- * (docs/funcionalidades/20). For now, the built-in Chrome DevTools; adding servers comes next.
+ * (docs/funcionalidades/20). For now, the built-in Chrome DevTools and its settings; adding servers comes next.
  */
-export function McpToolsPage({ health }: { health?: Health }) {
+export function McpToolsPage({ health, onChanged }: { health?: Health; onChanged(): void }) {
   const chrome = health?.chrome;
   const up = !!chrome && 'tools' in chrome;
   return (
@@ -27,8 +28,9 @@ export function McpToolsPage({ health }: { health?: Health }) {
       </table>
       <p className="muted small">
         Em breve: adicionar outros servidores (Jira, ServiceNow…) por endereço ou por comando local, com cada ferramenta marcada como leitura ou escrita,
-        credenciais do cofre e a escrita pedindo aprovação pelas Regras. As configurações do Chrome também vêm para esta página.
+        credenciais do cofre e a escrita pedindo aprovação pelas Regras.
       </p>
+      <ChromeSettingsCard onSaved={onChanged} />
     </section>
   );
 }

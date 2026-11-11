@@ -1,6 +1,6 @@
 # 20. Ferramentas MCP e a nova Autonomia (refinamento técnico)
 
-Estado: **fase 1 feita** (telas no lugar); as outras são proposta. Telas no canvas "Orbi · Autonomia:
+Estado: **fases 1 e 2 feitas** (telas no lugar, Chrome configurável); as outras são proposta. Telas no canvas "Orbi · Autonomia:
 ferramentas MCP e agentes" (boards A a F).
 
 ## O que muda para o desenvolvedor
@@ -180,6 +180,17 @@ continua em `/api/agents/suggestions/:id/accept`; só a tela muda de lugar.
 - `views/autonomy/mcp/McpToolsPage.tsx`: só o Chrome DevTools e o estado dele, por enquanto.
 - O e2e da tela (`scripts/e2e-teaching-screen.ts`) confere a barra, os grupos, as duas páginas
   novas e a aba Sugestões.
+
+## Como ficou (fase 2)
+
+- `browser/settings.ts`: `chromeSettings` (o que vale agora e o Chrome achado), `applyChromeSettings`
+  (grava no `.env`, põe no ambiente e na configuração viva), `browserUrlProblem` (só o seu Chrome
+  nesta máquina). Valor vazio no `.env` vale o padrão (`config.ts`).
+- `restartChrome` em `compose.ts`: espera uma partida em andamento, fecha a ponte e o Chrome do
+  Orbi e sobe de novo se ligado. `SharedChrome.stop` esquece o endereço em uso.
+- "Iniciar junto com o Orbi" virou **Navegador ligado**: sem ponte não há navegador nenhum, então
+  o nome antigo prometia algo que não acontece.
+- App: `views/autonomy/mcp/ChromeSettingsCard.tsx` e `chromeForm.ts`.
 
 ## Fora do escopo
 

@@ -80,5 +80,6 @@ export function createChrome(chrome: OrbiConfig['chrome']): SharedChrome {
     });
   }
 
-  return { debugUrl, ensure, stop: () => child?.kill() };
+  // Stopping also forgets the address in use: the next call starts from the settings as they are now.
+  return { debugUrl, ensure, stop: () => { child?.kill(); starting = undefined; } };
 }

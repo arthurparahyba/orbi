@@ -13,6 +13,15 @@ export const SetReviewNoteStatus = v.object({ status: v.picklist(['dismissed', '
 export const ChooseConversationModel = v.object({ model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
 /** PUT /api/model/roles — the model of a kind of work (null: back to its default). */
 export const SetModelRole = v.object({ role: v.picklist(['conversa', 'executar', 'aprender', 'conhecimento']), model: v.nullable(v.pipe(v.string(), v.minLength(1), v.maxLength(200))) });
+/** PUT /api/browser/settings — the Chrome DevTools settings (Autonomia › Ferramentas MCP). */
+export const SetChromeSettings = v.object({
+  browser: v.picklist(['proprio', 'seu']),
+  browserUrl: v.nullable(v.pipe(v.string(), v.maxLength(200))),
+  showWindow: v.boolean(),
+  autostart: v.boolean(),
+  profileDir: v.nullable(v.pipe(v.string(), v.maxLength(500))),
+  executablePath: v.nullable(v.pipe(v.string(), v.maxLength(500))),
+});
 /** PUT /api/model/tiers — how costly a model is, set by the developer (null: back to what the plugin says). */
 export const SetModelTier = v.object({ model: v.pipe(v.string(), v.minLength(1), v.maxLength(200)), tier: v.nullable(v.picklist(['cheap', 'standard', 'premium'])) });
 
@@ -173,6 +182,7 @@ export type RenameConversation = v.InferOutput<typeof RenameConversation>;
 export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationModel>;
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
 export type SetModelRole = v.InferOutput<typeof SetModelRole>;
+export type SetChromeSettings = v.InferOutput<typeof SetChromeSettings>;
 export type SetReviewNoteStatus = v.InferOutput<typeof SetReviewNoteStatus>;
 export type Decision = v.InferOutput<typeof Decision>;
 export type Answer = v.InferOutput<typeof Answer>;

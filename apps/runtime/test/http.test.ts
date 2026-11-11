@@ -13,7 +13,7 @@ import { createOrbi } from '../src/compose.ts';
 import { createHttpApp } from '../src/http/app.ts';
 import { Orbi } from '../src/agents/orbi.ts';
 
-const background = { bridge: () => undefined, bridgeError: () => 'desligado', stop: async () => {} };
+const background = { bridge: () => undefined, bridgeError: () => 'desligado', restartChrome: async () => {}, stop: async () => {} };
 
 async function setup(env: Record<string, string> = {}) {
   const cwd = mkdtempSync(join(tmpdir(), 'orbi-http-'));
