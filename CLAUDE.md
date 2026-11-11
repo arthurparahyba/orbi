@@ -6,7 +6,7 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 18). A visão geral está em `docs/arquitetura.md`; as
+`docs/funcionalidades/` (01 a 19). A visão geral está em `docs/arquitetura.md`; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Estrutura
