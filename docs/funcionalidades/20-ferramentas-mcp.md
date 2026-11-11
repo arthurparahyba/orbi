@@ -1,6 +1,6 @@
 # 20. Ferramentas MCP e a nova Autonomia (refinamento técnico)
 
-Estado: **proposta**. Nada daqui está implementado. Telas no canvas "Orbi · Autonomia:
+Estado: **fase 1 feita** (telas no lugar); as outras são proposta. Telas no canvas "Orbi · Autonomia:
 ferramentas MCP e agentes" (boards A a F).
 
 ## O que muda para o desenvolvedor
@@ -170,6 +170,16 @@ continua em `/api/agents/suggestions/:id/accept`; só a tela muda de lugar.
   o padrão sem dica já é escrita.
 - **Credencial em resposta de servidor**: `redact` com os valores usados; o revisor de
   conhecimento (documento 19) já recebe a saída limpa.
+
+## Como ficou (fase 1)
+
+- Barra lateral sem Agentes; o selo de sugestões está no Cérebro (`App.tsx`).
+- `views/autonomy/AutonomyView.tsx`: menu em grupos (`GROUPS`), seções `ferramentas` e `pedem`.
+- `views/autonomy/agents/`: a antiga tela, com Pedidos e Conexões; `views/brain/Suggestions.tsx`
+  na aba Sugestões do Cérebro.
+- `views/autonomy/mcp/McpToolsPage.tsx`: só o Chrome DevTools e o estado dele, por enquanto.
+- O e2e da tela (`scripts/e2e-teaching-screen.ts`) confere a barra, os grupos, as duas páginas
+  novas e a aba Sugestões.
 
 ## Fora do escopo
 

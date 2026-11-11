@@ -2,19 +2,18 @@ import { useCallback, useMemo, useState } from 'react';
 import { announceSent } from './components/chat/catchUp';
 import { api, type InboxItem } from './api';
 import { useLive, usePoll } from './hooks';
-import { BrainIcon, ChatIcon, DialIcon, OrbiIcon, PipelineIcon, PlugIcon } from './components/Icons';
+import { BrainIcon, ChatIcon, DialIcon, OrbiIcon, PipelineIcon } from './components/Icons';
 import { InboxContext, type InboxActions } from './components/UiComponents';
 import { needsYou } from './views/conversation/inbox';
 import { ConversationView } from './views/conversation/ConversationView';
 import { BrainView } from './views/brain/BrainView';
 import { AutonomyView, type AutonomySection } from './views/autonomy/AutonomyView';
-import { AgentsView } from './views/agents/AgentsView';
 import { PipelinesView } from './views/pipelines/PipelinesView';
 import { Splash, booted } from './components/Splash';
 import { ModelSetup } from './views/setup/ModelSetup';
 import { otherRuntime } from './build';
 
-type Screen = 'conversa' | 'esteiras' | 'cerebro' | 'agentes' | 'autonomia';
+type Screen = 'conversa' | 'esteiras' | 'cerebro' | 'autonomia';
 
 export function App() {
   const [screen, setScreen] = useState<Screen>('conversa');
@@ -23,7 +22,7 @@ export function App() {
   const suggestions = useLive(() => api.suggestions('open'), ['agents', 'brain']);
   const activeRuns = useLive(() => api.pipelineRuns(true), ['pipelines']);
   const waitingPipelines = activeRuns.data?.filter((r) => r.status === 'waiting').length;
-  // "Abrir conversa" on the Agentes screen jumps to Conversa with that one open.
+  // "Abrir conversa" on Autonomia › Agentes que pedem jumps to Conversa with that one open.
   const [focus, setFocus] = useState<{ id: string } | undefined>();
   const openConversation = (id: string) => { setFocus({ id }); setScreen('conversa'); };
   // A configuration chat (config:…) lives on its Autonomia page.
@@ -70,8 +69,7 @@ export function App() {
           <div className="brand" title="Orbi"><OrbiIcon size={20} /></div>
           <RailButton active={screen === 'conversa'} onClick={() => setScreen('conversa')} label="Conversas" badge={waiting.length}><ChatIcon /></RailButton>
           <RailButton active={screen === 'esteiras'} onClick={() => setScreen('esteiras')} label="Esteiras" badge={waitingPipelines} badgeLabel="entregas esperando você"><PipelineIcon /></RailButton>
-          <RailButton active={screen === 'cerebro'} onClick={() => setScreen('cerebro')} label="Cérebro"><BrainIcon /></RailButton>
-          <RailButton active={screen === 'agentes'} onClick={() => setScreen('agentes')} label="Agentes" badge={suggestions.data?.length} badgeLabel="sugestões"><PlugIcon /></RailButton>
+          <RailButton active={screen === 'cerebro'} onClick={() => setScreen('cerebro')} label="Cérebro" badge={suggestions.data?.length} badgeLabel="sugestões para aprender"><BrainIcon /></RailButton>
           <RailButton active={screen === 'autonomia'} onClick={() => setScreen('autonomia')} label="Autonomia"><DialIcon /></RailButton>
           <div className="rail-foot">
             <span className={`dot ${online ? 'ok' : 'bad'}`} title={online ? `Runtime conectado · ${health.data?.model}` : `Runtime offline: ${health.error ?? ''}`} />
@@ -98,8 +96,7 @@ export function App() {
           {screen === 'conversa' && <ConversationView openInbox={open} focus={focus} onOpenConfig={openCodeAgents} />}
           {screen === 'esteiras' && <PipelinesView onOpenConversation={openConversation} />}
           {screen === 'cerebro' && <BrainView />}
-          {screen === 'agentes' && <AgentsView openInbox={waiting} health={health.data} onOpenConversation={openConversation} />}
-          {screen === 'autonomia' && <AutonomyView health={health.data} focus={autonomyFocus} onModelChanged={() => void health.reload()} />}
+          {screen === 'autonomia' && <AutonomyView health={health.data} focus={autonomyFocus} onModelChanged={() => void health.reload()} waiting={waiting} onOpenConversation={openConversation} />}
         </main>
       </div>
     </InboxContext.Provider>

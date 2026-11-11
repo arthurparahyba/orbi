@@ -1,4 +1,4 @@
-import { api, type AgentClient } from '../../api';
+import { api, type AgentClient } from '../../../api';
 import { timeAgo } from './connect';
 
 /** What agents may do, and the connected ones with their permissions and a way to cut them off. */

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { api, type AgentClient } from '../../api';
-import { Segmented } from '../../components/Segmented';
-import { CopyText } from '../../components/CopyText';
+import { api, type AgentClient } from '../../../api';
+import { Segmented } from '../../../components/Segmented';
+import { CopyText } from '../../../components/CopyText';
 import { AGENT_KINDS, CLAUDE_MD_SNIPPET, connectCommand, timeAgo, type AgentKind } from './connect';
 
 /**

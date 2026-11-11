@@ -5,12 +5,14 @@ import { Knowledge } from './Knowledge';
 import { Playbooks } from './Playbooks';
 import { Runs } from './Runs';
 import { Ontology } from './Ontology';
+import { Suggestions } from './Suggestions';
 
-type Tab = 'grafo' | 'playbooks' | 'execucoes' | 'ontologia';
+type Tab = 'grafo' | 'playbooks' | 'execucoes' | 'sugestoes' | 'ontologia';
 
 export function BrainView() {
   const brain = useLive(api.brain, ['brain']);
   const playbooks = useLive(api.playbooks, ['brain']);
+  const suggestions = useLive(() => api.suggestions('open'), ['agents', 'brain']);
   const [tab, setTab] = useState<Tab>('grafo');
   const [exported, setExported] = useState<string>();
   const s = brain.data?.stats;
@@ -31,8 +33,11 @@ export function BrainView() {
         </div>
       </header>
       <div className="tabs" role="tablist">
-        {([['grafo', 'Conhecimento'], ['playbooks', 'Playbooks'], ['execucoes', 'Execuções'], ['ontologia', 'Ontologia']] as const).map(([k, l]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tab ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>{l}</button>
+        {([['grafo', 'Conhecimento'], ['playbooks', 'Playbooks'], ['execucoes', 'Execuções'], ['sugestoes', 'Sugestões'], ['ontologia', 'Ontologia']] as const).map(([k, l]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tab ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>
+            {l}
+            {k === 'sugestoes' && !!suggestions.data?.length && <span className="badge tab-badge" aria-label={`${suggestions.data.length} esperando você`}>{suggestions.data.length}</span>}
+          </button>
         ))}
         <span className="spacer" />
         <button type="button" className="btn small" onClick={async () => { const r = await api.exportBrain(); setExported(`${r.written} notas em ${r.dir}`); }}>
@@ -50,6 +55,8 @@ export function BrainView() {
         <Playbooks />
       ) : tab === 'execucoes' ? (
         <Runs />
+      ) : tab === 'sugestoes' ? (
+        <Suggestions data={suggestions.data} error={suggestions.error} />
       ) : (
         <Ontology snapshot={brain.data} />
       )}

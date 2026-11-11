@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agentStats, connectCommand, requestState, timeAgo } from '../src/views/agents/connect';
+import { agentStats, connectCommand, requestState, timeAgo } from '../src/views/autonomy/agents/connect';
 import { secretNameProblem, toSecretName } from '../src/views/autonomy/format';
 import type { AgentRequest, InboxItem } from '../src/api';
 

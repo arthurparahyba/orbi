@@ -253,6 +253,23 @@ try {
   assert.equal(existsSync(mark), false, 'o comando foi interrompido de verdade');
   policy.set('comandos-escrita', 'ask');
 
+  // The screens moved by docs/funcionalidades/20: no Agentes in the rail, Autonomia in groups,
+  // Ferramentas (MCP) with the Chrome, Agentes que pedem, Sugestões in the Cérebro.
+  const rail = await text('.rail');
+  assert.ok(!/\bAgentes\b/.test(rail), `a barra não tem mais Agentes: ${rail}`);
+  await clickButton('.rail', /Autonomia/);
+  await shows('.subnav', /Permissões[\s\S]*Conexões[\s\S]*Ferramentas \(MCP\)[\s\S]*Agentes que pedem[\s\S]*Agentes de código/i);
+  await clickButton('.subnav', /Ferramentas \(MCP\)/);
+  await shows('.mcp-tools', /Chrome DevTools/);
+  await shot('ferramentas-mcp');
+  await clickButton('.subnav', /Agentes que pedem/);
+  await shows('.agentes', /Pedidos[\s\S]*Conexões/);
+  await shot('agentes-que-pedem');
+  await clickButton('.rail', /Cérebro/);
+  await clickButton('.tabs', /Sugestões/);
+  await shows('.cerebro', /sugestão|Sugest/i);
+  await shot('sugestoes-no-cerebro');
+
   assert.deepEqual(pageErrors, [], 'a página não teve erros');
   console.log(`tela Conversas: ok · telas em ${shots}`);
 } finally {

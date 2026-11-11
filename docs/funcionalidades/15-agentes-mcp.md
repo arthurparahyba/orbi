@@ -21,17 +21,17 @@ aprova nada, nunca vê credenciais e nunca grava direto no cérebro.
 
 ## Onde aparece
 
-- **Tela Agentes** (barra lateral, entre Cérebro e Autonomia):
+- **Autonomia › Agentes que pedem** (grupo Conexões; era a tela Agentes da barra lateral, documento 20):
   - **Pedidos**: cada tarefa delegada, quem pediu, de qual repositório e branch,
     o estado (rodando, esperando você, concluído, falhou) e **Abrir conversa**.
-  - **Sugestões**: procedimentos sugeridos, quantas vezes e por quais agentes,
-    se parecem com algo que o Orbi já sabe. **Aceitar**, **Aceitar como variação
-    de…** ou **Rejeitar**. O aceito entra com autonomia "perguntar".
   - **Conexões**: conectar um agente (nome, **Gerar token**, comando pronto para o
     Claude Code ou JSON para o Cursor, trecho para o `CLAUDE.md`), a lista dos
     conectados com as permissões **pedir**, **sugerir**, **rodar esteiras** e
     **pular perguntas** (as duas últimas começam desligadas), quando foram vistos pela
-    última vez e **Revogar**. Embaixo, os MCPs que o Orbi usa (hoje, o Chrome DevTools).
+    última vez e **Revogar**. Os MCPs que o Orbi usa ficam em **Autonomia › Ferramentas (MCP)**.
+- **Cérebro › Sugestões** (o selo do Cérebro conta as abertas): procedimentos sugeridos,
+  quantas vezes e por quais agentes, se parecem com algo que o Orbi já sabe. **Aceitar**,
+  **Aceitar como variação de…** ou **Rejeitar**. O aceito entra com autonomia "perguntar".
 - **Tela Conversa**: cada pedido vira uma conversa marcada "pedido por …", com
   filtro **Todas / Minhas / Dos agentes**, uma faixa com a origem (agente,
   repositório, branch, sessão, procedimento) e o pedido como primeiro cartão.
@@ -116,7 +116,8 @@ sequenceDiagram
 | `apps/runtime/src/prompts/mcp-servidor.md` | Instruções que o agente recebe ao conectar |
 | `apps/runtime/src/agents/tools/requests.ts` | `agent_reply`, só nas conversas pedidas por agente |
 | `apps/runtime/src/http/routes/{mcp,agents}.ts` | `/mcp` e `/api/agents/...` |
-| `apps/desktop/src/views/agents/` | Tela Agentes (pedidos, sugestões, conexões) |
+| `apps/desktop/src/views/autonomy/agents/` | Autonomia › Agentes que pedem (pedidos, conexões) |
+| `apps/desktop/src/views/brain/Suggestions.tsx` | Cérebro › Sugestões |
 | `apps/desktop/src/views/conversation/OriginBanner.tsx` | Faixa de origem na conversa |
 
 ## Tecnologias
@@ -136,7 +137,7 @@ contagem, parecidos, estado). As três geram o evento `agents`. Migração 12:
 
 ## Configuração
 
-Na tela **Agentes → Conexões**. Para o Claude Code:
+Em **Autonomia › Agentes que pedem › Conexões**. Para o Claude Code:
 
 ```bash
 claude mcp add --scope user --transport http orbi http://127.0.0.1:3000/mcp --header "Authorization: Bearer orb_…"

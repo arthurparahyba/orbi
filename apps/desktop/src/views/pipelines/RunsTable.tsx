@@ -1,5 +1,5 @@
 import type { PipelineRun } from '../../api';
-import { timeAgo } from '../agents/connect';
+import { timeAgo } from '../autonomy/agents/connect';
 import { inScope, runState, waitingLine } from './model';
 
 /** Em andamento: every delivery, the stage it is in, and what it waits for. */

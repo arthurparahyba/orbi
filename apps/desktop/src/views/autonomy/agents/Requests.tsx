@@ -1,4 +1,4 @@
-import type { AgentRequest, InboxItem } from '../../api';
+import type { AgentRequest, InboxItem } from '../../../api';
 import { STATE_LABEL, requestState, timeAgo } from './connect';
 
 /** Pedidos: every task an agent delegated, newest first. Each one opens its conversation. */

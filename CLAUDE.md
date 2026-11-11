@@ -33,7 +33,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   test/               node:test (+ fixtures/search-eval.json)
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
-  src/views/{conversation,pipelines,brain,agents,autonomy}/   telas
+  src/views/{conversation,pipelines,brain,autonomy}/   telas (autonomy/agents: agentes que pedem; autonomy/mcp: ferramentas MCP)
   src/components/     cartões do canal ui, gravação, confirmação; chat/ é o chat comum (ChatPanel) a todas as telas
   src/live.ts, hooks.ts   feed de eventos (SSE) e useLive
   test/               Vitest

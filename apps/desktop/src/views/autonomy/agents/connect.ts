@@ -1,4 +1,4 @@
-import type { AgentRequest, AgentRequestStatus, InboxItem } from '../../api';
+import type { AgentRequest, AgentRequestStatus, InboxItem } from '../../../api';
 
 /** Coding agents the Conexões tab knows how to set up. */
 export type AgentKind = 'claude-code' | 'cursor' | 'outro';
