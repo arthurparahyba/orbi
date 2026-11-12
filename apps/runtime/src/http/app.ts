@@ -70,7 +70,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/agents/orbi', createAgentRouter(agent));
   // The configuration chat beside Configurações › Agentes de código (agents/configurador.ts).
   if (others.configurador) app.route('/agents/configurador', createAgentRouter(others.configurador));
-  app.route('/api/conversations', conversationRoutes(s));
+  app.route('/api/conversations', conversationRoutes(s, agent));
   app.route('/api/inbox', inboxRoutes(s, agent));
   app.route('/api/recordings', recordingRoutes(s, agent));
   app.route('/api/vault', vaultRoutes(s));

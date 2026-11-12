@@ -44,6 +44,14 @@ export const EditMcpServer = v.object({
   enabled: v.optional(v.boolean()),
 });
 export const SetMcpTool = v.object({ kind: v.optional(v.nullable(v.picklist(['leitura', 'escrita']))), enabled: v.optional(v.boolean()), alone: v.optional(v.boolean()), reviewed: v.optional(v.boolean()) });
+/** POST /api/conversations/:id/card-message — a message written inside a card (docs/funcionalidades/21). */
+export const CardMessage = v.object({
+  card: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+  title: v.pipe(v.string(), v.maxLength(300)),
+  /** What the card shows now, so the Orbi knows which one without being told. */
+  context: v.pipe(v.string(), v.maxLength(8000)),
+  text: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(4000)),
+});
 /** PUT /api/browser/settings — the Chrome DevTools settings (Autonomia › Ferramentas MCP). */
 export const SetChromeSettings = v.object({
   browser: v.picklist(['proprio', 'seu']),
@@ -218,6 +226,7 @@ export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationMod
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
 export type SetModelRole = v.InferOutput<typeof SetModelRole>;
 export type SetChromeSettings = v.InferOutput<typeof SetChromeSettings>;
+export type CardMessage = v.InferOutput<typeof CardMessage>;
 export type TestMcpServer = v.InferInput<typeof TestMcpServer>;
 export type AddMcpServer = v.InferInput<typeof AddMcpServer>;
 export type EditMcpServer = v.InferOutput<typeof EditMcpServer>;

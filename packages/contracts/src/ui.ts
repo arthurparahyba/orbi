@@ -43,6 +43,8 @@ export const UiComponent = v.variant('component', [
     reason: v.optional(v.string()),
     /** "passo 2 de 4 · Copiar o index.html". */
     step: v.optional(v.string()),
+    /** Why the Orbi proposes it, in one sentence, shown inside the card (docs/funcionalidades/21). */
+    why: v.optional(v.string()),
     /** An MCP tool that may be set to always run alone from the card (never one that deletes). */
     alwaysAlone: v.optional(v.object({ server: v.string(), tool: v.string() })),
   }),

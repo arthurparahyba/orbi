@@ -274,4 +274,9 @@ CREATE TABLE mcp_tools (
   alone INTEGER NOT NULL DEFAULT 0, reviewed INTEGER NOT NULL DEFAULT 0,
   first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, PRIMARY KEY (server_id, name));`,
   },
+  {
+    name: 'pendência atualizada na conversa do cartão: versão atual e as anteriores',
+    sql: `ALTER TABLE inbox_items ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE inbox_items ADD COLUMN versions TEXT;`,
+  },
 ];

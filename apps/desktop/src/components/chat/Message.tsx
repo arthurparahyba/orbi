@@ -6,6 +6,8 @@ import { DemonstrationCard } from '../Demonstration';
 import { commandFailed, groupSummary, hasVisibleContent, isSilent, knownProblemsOf, modeMark, toolCommand, toolLabel, toolResult } from './tools';
 import { KnownProblems } from '../KnownProblems';
 import { ReviewCard, reviewOf } from '../ReviewCard';
+import { CardThread } from '../CardThread';
+import { findingsOf } from '../review';
 
 /** One message of the conversation, as the developer should see it. */
 export function Message({ m }: { m: FlueConversationMessage }) {
@@ -22,7 +24,15 @@ export function Message({ m }: { m: FlueConversationMessage }) {
     }
     if (m.signal?.tagName === 'review' || m.signal?.attributes?.type === 'review') {
       const r = reviewOf(m.signal?.attributes as Record<string, unknown> | undefined);
-      return r ? <div className="msg system review"><ReviewCard r={r} /></div> : null;
+      if (!r) return null;
+      // The review's problems are a card with its own conversation too (docs/funcionalidades/21).
+      const context = r.runs.map((x) => `${x.playbook}: ${findingsOf(x, 'problema').join('; ') || 'sem problemas'}`).join('\n');
+      return (
+        <div className="msg system review">
+          <ReviewCard r={r} />
+          <CardThread card={`review:${m.id}`} title="Revisão da execução" context={context} decided={false} />
+        </div>
+      );
     }
     if (m.signal?.tagName === 'conhecimento' || m.signal?.attributes?.type === 'knowledge') {
       return <div className="msg system">O revisor achou fatos no que a execução leu: proponho logo abaixo.</div>;

@@ -23,6 +23,9 @@ export interface InboxItem {
   status: 'open' | 'approved' | 'denied' | 'answered';
   /** For answered questions: what the developer answered (cards show the choice). */
   answer?: string;
+  /** Changed in the card's conversation: the version shown now and the earlier ones (docs/funcionalidades/21). */
+  version?: number;
+  versions?: Array<{ title: string; detail: string; at: string }>;
 }
 
 type Row = Record<string, unknown>;
@@ -37,6 +40,7 @@ const toItem = (r: Row): InboxItem => ({
   createdAt: String(r.created_at),
   status: String(r.status) as InboxItem['status'],
   ...(r.answer ? { answer: String(r.answer) } : {}),
+  ...(Number(r.version) > 1 ? { version: Number(r.version), versions: JSON.parse(String(r.versions ?? '[]')) } : {}),
 });
 
 export class Inbox {
@@ -65,6 +69,20 @@ export class Inbox {
   get(id: string): InboxItem | undefined {
     const r = this.db.prepare('SELECT * FROM inbox_items WHERE id = ?').get(id) as Row | undefined;
     return r ? toItem(r) : undefined;
+  }
+
+  /**
+   * The card's conversation changed what an open item proposes: the new title and detail become
+   * the current version, the old ones are kept (the card shows "ver como era").
+   */
+  revise(id: string, title: string, detail: string): InboxItem {
+    const item = this.get(id);
+    if (!item) throw new Error(`inbox item not found: ${id}`);
+    if (item.status !== 'open') throw new Error(`inbox item already ${item.status}`);
+    const versions = [...(item.versions ?? []), { title: item.title, detail: item.detail, at: new Date().toISOString() }];
+    this.db.prepare("UPDATE inbox_items SET title = ?, detail = ?, version = ?, versions = ? WHERE id = ? AND status = 'open'")
+      .run(title, detail, versions.length + 1, JSON.stringify(versions), id);
+    return this.get(id)!;
   }
 
   resolve(id: string, status: Exclude<InboxItem['status'], 'open'>, answer?: string): InboxItem {

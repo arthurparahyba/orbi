@@ -6,6 +6,7 @@ import { decide, effectOfCategory, type Category } from '../autonomy/policy.ts';
 import { askReason, defaultFingerprint, fingerprintWith, type RunAction } from '../brain/domain/levels.ts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
+import type { InboxItem } from '../conversations/inbox.ts';
 
 type Pending = { tool: string; args: unknown; category: Category; requestedAt: string; runId?: string; action?: RunAction };
 
@@ -30,6 +31,18 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
   const delivery = useDelivery();
   const executors = new Map<string, Executor>();
+
+  /**
+   * The learning card this turn was asked from (a message written inside it, signal `card`), when
+   * it is still open in this conversation with its call stored: a new proposal changes that card.
+   */
+  function cardInProgress(): { item: InboxItem; approvalId: string } | undefined {
+    if (delivery.kind !== 'signal' || delivery.type !== 'card') return undefined;
+    const item = inbox.get(String((delivery.attributes as Record<string, unknown> | undefined)?.card ?? ''));
+    if (!item || item.status !== 'open' || item.kind !== 'learning' || item.conversationId !== conversationId) return undefined;
+    if (!item.approvalId || !pending[item.approvalId]) return undefined;
+    return { item, approvalId: item.approvalId };
+  }
 
   function gated<T extends v.GenericSchema<Record<string, unknown>>>(def: GatedTool<T>) {
     executors.set(def.name, def.execute as Executor);
@@ -75,6 +88,17 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         if (level === 'observe') {
           return { output: { status: 'not_executed', category, reason: `"${category}" está em modo observar: relate o que faria e não tente de novo.` } };
         }
+        // Asked inside a learning card that is still open (docs/funcionalidades/21): the card itself
+        // changes. The stored call gets the new arguments, the item a new version; no new card.
+        const card = category === 'aprender' ? cardInProgress() : undefined;
+        if (card) {
+          setPending((prev) => ({ ...prev, [card.approvalId]: { ...prev[card.approvalId]!, tool: def.name, args: data } }));
+          const updated = inbox.revise(card.item.id, def.title?.(data) ?? def.summary(data), JSON.stringify(data, null, 2));
+          return {
+            // Not the end of the turn: the Orbi says in one sentence what changed (inside the card).
+            output: { status: 'card_updated', approvalId: card.approvalId, version: updated.version, note: 'O cartão foi atualizado no lugar (versão nova). Diga em uma frase o que mudou e pare: o desenvolvedor decide no próprio cartão.' },
+          };
+        }
         // Counted in the run: the review weighs a change by the approvals it would save.
         if (run) brain.execution.countAsk(conversationId);
         setPending((prev) => ({ ...prev, [toolCallId]: { tool: def.name, args: data, category, requestedAt: new Date().toISOString(), ...(run ? { runId: run.id, action } : {}) } }));
@@ -88,6 +112,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           ...(pb && category !== 'aprender' ? { reason: askReason(pb, { known, effect }) } : {}),
           ...(step && category !== 'aprender' ? { step: step.text } : {}),
           ...(alone?.offer && effect !== 'apaga' ? { alwaysAlone: alone.offer } : {}),
+          ...(def.why?.(data) ? { why: def.why(data) } : {}),
         });
         return { output: { status: 'pending_approval', approvalId: toolCallId, category }, terminate: true };
       },

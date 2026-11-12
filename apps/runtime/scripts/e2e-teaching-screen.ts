@@ -347,6 +347,41 @@ try {
   await shows('.mcp-server', /sozinho \(você escolheu\)/);
   await clickButton('.mcp-server', /voltar a perguntar/);
   await until('voltou a perguntar', async () => !/sozinho \(você escolheu\)/.test(await text('.mcp-server')));
+
+  // Conversation inside a card (docs/funcionalidades/21): the why in the card, a question asked in it,
+  // the answer inside it (not below), and a change that updates the same card (versão 2).
+  await clickButton('.rail', /Conversas/);
+  await page.click('.convs-new');
+  await shows('main', /O que você precisa\?/);
+  const learnLoja = (description: string, why: string) => ({ reason: 'guardar o conceito de loja', why, items: [{ kind: 'type', payload: { name: 'Loja', description } }] });
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('brain_learn', learnLoja('Site de compras', 'sem o conceito, cada promoção vira um texto solto')), { stopReason: 'toolUse' }),
+  ]);
+  await say('guarda que a loja é um site de compras');
+  await shows('.messages', /Por quê: sem o conceito, cada promoção vira um texto solto[\s\S]*Perguntar sobre este cartão/);
+  await clickButton('.messages', /^Perguntar sobre este cartão$/);
+  faux.setResponses([fauxAssistantMessage(fauxText('Porque as promoções se repetem por loja.'))]);
+  await page.type('.card-thread input', 'por que guardar isso?');
+  await clickButton('.card-thread', /^Enviar$/);
+  await shows('.card-thread', /por que guardar isso\?[\s\S]*Porque as promoções se repetem por loja/);
+  const flow = await page.$$eval('.messages > .msg', (els) => els.map((e) => {
+    const copy = e.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll('.card-thread').forEach((t) => t.remove());
+    return copy.textContent ?? '';
+  }).join('\n'));
+  assert.ok(!/Porque as promoções se repetem/.test(flow), 'a resposta fica no cartão, não no fluxo');
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('brain_learn', learnLoja('Site de compras com promoções semanais', 'as promoções mudam toda semana')), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('Atualizei o cartão.')),
+  ]);
+  await page.type('.card-thread input', 'acrescenta que as promoções são semanais');
+  await clickButton('.card-thread', /^Enviar$/);
+  await shows('.messages', /atualizado na conversa · versão 2[\s\S]*promoções semanais[\s\S]*Por quê: as promoções mudam toda semana/);
+  assert.equal(await page.$$eval('.ui-card.approval', (els) => els.length), 1, 'continua um cartão só');
+  await clickButton('.messages', /ver como era/);
+  await shows('.card-before', /Versão 1/);
+  await shot('cartao-conversa');
+  await clickButton('.rail', /Configurações/);
   await clickButton('.subnav', /Servidor MCP/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);
   await shot('servidor-mcp');

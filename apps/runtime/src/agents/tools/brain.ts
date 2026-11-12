@@ -153,6 +153,7 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
       'The batch is checked first (problems come back at once, nothing is asked); then shown to the developer to approve, and saved all or nothing.',
     input: v.object({
       reason: v.string(),
+      why: v.optional(v.pipe(v.string(), v.maxLength(400), v.description('Why you propose it: ONE sentence in Portuguese, shown inside the card ("o curl não é permitido aqui; extrair pelo navegador grava o JSON direto").'))),
       items: v.array(learnItem),
       leftOut: v.optional(
         v.pipe(
@@ -162,6 +163,7 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
       ),
     }),
     category: () => 'aprender',
+    why: (a) => a.why?.trim() || undefined,
     summary: (a) => learnTitle(a.items as Array<{ kind: string; payload: { name?: string } }>, a.reason, (name) => !!brain.playbook(name)),
     precheck: (a) => {
       const problems = brain.learnProblems(inLearningOrder(a.items) as never);

@@ -318,6 +318,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `GET` · `PUT` · `DELETE /api/mcp-servers/:id` · `POST …/:id/refresh` · `PUT …/:id/tools/:tool` | Um servidor: ver, mudar (endereço, cabeçalhos, ligado), remover (leva as regras), reconectar, marcar uma ferramenta (leitura ou escrita, ligada, sempre sozinho) |
 | `GET` · `PUT /api/browser/settings` | As configurações do navegador do Orbi (Chrome DevTools); salvar grava no `.env` e reinicia a ponte |
 | `GET` · `PUT /api/model/roles` | O modelo de cada tipo de trabalho: conversa, executar, aprender e corrigir, revisor de conhecimento |
+| `POST /api/conversations/:id/card-message` | Mensagem escrita dentro de um cartão: sinal `card` na mesma conversa, com o que o cartão mostra (documento 21) |
 | `PUT /api/conversations/:id/model` | O modelo desta conversa (`null` volta ao padrão) |
 | `GET /api/review-notes` · `POST /api/review-notes/:id/status` | O que a revisão guardou: ideias por procedimento e ambientes a corrigir ("Agora não", corrigido, descartar) |
 | `PATCH /api/brain/playbooks/:name` `{autonomy?, level?, levelMax?}` · `GET …/:name/autonomy` | Nível de autonomia, ações conhecidas e histórico (documento 3) |

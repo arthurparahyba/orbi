@@ -39,6 +39,9 @@ export interface InboxItem {
   approvalId?: string; routine?: string; createdAt: string; status: 'open' | 'approved' | 'denied' | 'answered';
   /** What the developer answered, for answered questions. */
   answer?: string;
+  /** Changed in the card's conversation: the version shown now, and the earlier ones (oldest first). */
+  version?: number;
+  versions?: Array<{ title: string; detail: string; at: string }>;
 }
 export interface OntologyType {
   name: string; description: string; relations: Record<string, string>; requires: string[];

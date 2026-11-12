@@ -3,7 +3,8 @@ import type { UiComponent } from '@orbi/contracts';
 import { api } from '../api';
 import { AlertIcon, CheckIcon, XIcon } from './Icons';
 import { categoryLabel, InboxContext } from './inboxContext';
-import { LearningPreview } from './ui/LearningPreview';
+import { LearningVersion } from './ui/LearningVersion';
+import { CardThread } from './CardThread';
 import { EFFECT_LABEL } from './effect';
 
 /**
@@ -44,8 +45,8 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
         <span className="ui-kicker">{status === 'open' ? 'pede aprovação' : categoryLabel(c.category)}</span>
         {c.step && <span className="muted small">{c.step}</span>}
       </header>
-      <p className="ui-title">{c.title}</p>
-      {learning && <LearningPreview detail={c.detail} />}
+      <p className="ui-title">{item?.version && item.version > 1 ? item.title : c.title}</p>
+      {learning && <LearningVersion detail={c.detail} why={c.why} item={item} />}
       {!learning && (effect || c.reason) && (
         <dl className="approval-facts">
           {effect && (<><dt>Alcance</dt><dd><span className={`effect is-${c.effect}`}>{effect.tag}</span> {effect.note}</dd></>)}
@@ -56,7 +57,7 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
       <button type="button" className="link-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         {open ? 'Esconder detalhes' : learning ? 'Ver dados brutos' : 'ver detalhes'}
       </button>
-      {open && <pre className="code small">{c.detail}</pre>}
+      {open && <pre className="code small">{item?.version && item.version > 1 ? item.detail : c.detail}</pre>}
       {status === 'open' ? (
         <div className="row gap">
           <button type="button" className="btn primary" disabled={busy} onClick={() => act('approve')}><CheckIcon size={14} /> Aprovar</button>
@@ -67,6 +68,7 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
         <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>
       )}
       {error && <p className="small err-text" role="alert">{error}</p>}
+      {learning && <CardThread card={c.inboxId} title={item?.title ?? c.title} context={item?.detail ?? c.detail} decided={status !== 'open'} />}
     </section>
   );
 }

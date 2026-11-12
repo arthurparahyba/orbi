@@ -5,6 +5,7 @@ import esteiras from '../prompts/orbi/esteiras.md?raw';
 import agentes from '../prompts/orbi/agentes.md?raw';
 import correcao from '../prompts/orbi/agentes-de-codigo.md?raw';
 import passoZero from '../prompts/orbi/passo-zero.md?raw';
+import cartao from '../prompts/orbi/cartao.md?raw';
 
 /** What the runtime knows about the conversation when the turn starts. */
 export interface Situation {
@@ -18,6 +19,8 @@ export interface Situation {
   delivery: boolean;
   /** A coding agent asked for this conversation over MCP. */
   agentRequest: boolean;
+  /** The turn started with a message written inside a card (docs/funcionalidades/21). */
+  cardMessage?: boolean;
   /** A coding agent of this machine can investigate or fix (Configurações › Agentes de código). */
   codeAgents?: boolean;
 }
@@ -42,6 +45,7 @@ export const PROMPT_PARTS: readonly PromptPart[] = [
   { id: 'falhas', when: (s) => s.activeRun || s.lastToolFailed, text: falhas },
   { id: 'esteiras', when: (s) => s.pipelines > 0 || s.delivery, text: esteiras },
   { id: 'agentes', when: (s) => s.agentRequest, text: agentes },
+  { id: 'cartao', when: (s) => !!s.cardMessage, text: cartao },
   { id: 'correcao-de-codigo', when: (s) => !!s.codeAgents && (s.activeRun || s.lastToolFailed), text: correcao },
 ];
 

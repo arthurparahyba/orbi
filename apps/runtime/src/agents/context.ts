@@ -25,6 +25,8 @@ export interface GatedTool<T extends v.GenericSchema<Record<string, unknown>>> {
   fingerprint?: (args: v.InferOutput<T>) => string;
   /** Asks even where the level or the global rule would run it alone (e.g. investigating an error nobody knows). */
   alwaysAsk?: (args: v.InferOutput<T>) => boolean;
+  /** Why the Orbi proposes it, one sentence for the card (docs/funcionalidades/21). */
+  why?: (args: v.InferOutput<T>) => string | undefined;
   /**
    * The developer chose "sempre sozinho" for this exact tool: where the rule or the level would
    * ask, it runs. Never for what deletes, never where the rule is "observar", never in a rehearsal

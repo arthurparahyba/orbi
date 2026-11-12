@@ -42,6 +42,7 @@ export function Orbi({ id }: { id: string }) {
     pipelines: defs.length,
     delivery: !!delivery && (delivery.status === 'running' || delivery.status === 'waiting'),
     agentRequest: !!agents.requests.byConversation(id),
+    cardMessage: message?.kind === 'signal' && message.type === 'card',
     codeAgents: codeAgents.available(),
   });
   // Names only: the values never reach the model.

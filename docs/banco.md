@@ -361,7 +361,7 @@ As mensagens ficam no `flue.db`.
 **`deleted_conversations`** · conversas apagadas (`deleted_at`) e quando o
 histórico do Flue foi limpo (`purged_at`).
 
-**`inbox_items`** · o painel **Pendências** (documento 2).
+**`inbox_items`** · o painel **Pendências** (documento 2). `version` (1 até ser mudada na conversa do cartão) e `versions` (JSON, as versões anteriores: título, detalhe e quando; documento 21).
 
 | Coluna | O quê |
 | --- | --- |
@@ -462,6 +462,7 @@ editada, sempre se cria outra.
 | 21 | Modelo escolhido por conversa: `conversations.model` (vazio = o padrão) |
 | 22 | Revisão no fim da execução: `playbook_runs.asked`/`tokens_in`/`tokens_out`/`cost_usd`; tabela `review_notes` (ideias guardadas, ambiente a corrigir, escopo da mudança) |
 | 23 | Ferramentas MCP: tabelas `mcp_servers` e `mcp_tools` (documento 20) |
+| 24 | `inbox_items.version` e `inbox_items.versions`: pendência atualizada na conversa do cartão (documento 21) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

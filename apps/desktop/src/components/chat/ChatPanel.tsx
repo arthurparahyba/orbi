@@ -10,6 +10,9 @@ import { contentKey } from './scroll';
 import { useFollowBottom } from './useFollowBottom';
 import { useGoTo } from './useGoTo';
 import { useCatchUp } from './catchUp';
+import { cardThreads } from './cardThreads';
+import { CardThreadContext } from './cardThreadContext';
+import { api } from '../../api';
 
 /** What the screen around the chat may read: to draw its header (state pill, copy button). */
 export interface ChatState {
@@ -99,6 +102,13 @@ export function ChatPanel(props: {
     follow.toBottom();
     await agent.sendMessage(t);
   };
+  // Messages written inside a card, and the replies to them, are shown in that card (docs/funcionalidades/21).
+  const threads = useMemo(() => cardThreads(visible), [visible]);
+  const cards = useMemo(() => ({
+    threads: threads.byCard,
+    busy: running,
+    send: async (card: string, title: string, context: string, text: string) => { await api.cardMessage(id, { card, title, context, text }); catchUp.start(); },
+  }), [threads, running, id, catchUp]);
   const state: ChatState = { messages: agent.messages, visible, busy, catchingUp: catchUp.catchingUp, status: agent.status, historyReady: agent.historyReady };
 
   return (
@@ -106,16 +116,18 @@ export function ChatPanel(props: {
       {props.header?.(state)}
       {props.above}
       <ChatContext.Provider value={{ send: (t) => void send(t) }}>
+       <CardThreadContext.Provider value={cards}>
         <div className="messages-wrap">
           <div className="messages" aria-live="polite" ref={follow.box} onScroll={follow.onScroll}>
             {!agent.historyReady && visible.length === 0 && <p className="muted pad loading">Carregando a conversa…</p>}
             {agent.historyReady && visible.length === 0 && props.empty?.((t) => void send(t))}
-            {visible.map((m) => <Message key={m.id} m={m} />)}
+            {visible.filter((m) => !threads.inCards.has(m.id)).map((m) => <Message key={m.id} m={m} />)}
             {working === 'thinking' && <Working />}
             {agent.error && <div className="banner small" role="alert">{friendlyError(agent.error.message)}</div>}
           </div>
           {follow.unread && <button type="button" className="btn small new-msgs" onClick={follow.toBottom}>Novas mensagens ↓</button>}
         </div>
+       </CardThreadContext.Provider>
       </ChatContext.Provider>
       {props.dock}
       <Composer onSend={send} placeholder={props.placeholder} busy={running} stopping={stopping} onStop={stop} footer={props.composerFooter} />

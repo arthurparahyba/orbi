@@ -89,6 +89,9 @@ function message(m: FlueConversationMessage): string | undefined {
         ...r.config.map((c) => `- configuração (${c.stage}): ${c.text}`),
       ].join('\n');
     }
+    if (m.signal?.tagName === 'cartao' || m.signal?.attributes?.type === 'card') {
+      return `### Você (no cartão "${String(m.signal?.attributes?.title ?? '')}")\n\n${String(m.signal?.attributes?.text ?? '')}`;
+    }
     if (m.signal?.tagName === 'agent-request' || m.signal?.attributes?.type === 'agent-request') {
       return `> ${m.parts.map((p) => (p.type === 'text' ? p.text : '')).join('').split('\n').join('\n> ')}`;
     }

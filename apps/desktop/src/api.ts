@@ -54,6 +54,9 @@ export const api = {
   refreshMcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   setMcpTool: (id: string, tool: string, s: SetMcpTool) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/tools/${encodeURIComponent(tool)}`, { method: 'PUT', body: JSON.stringify(s) }),
   removeMcpServer: (id: string) => request<{ removed: string }>(`/api/mcp-servers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  /** A message written inside a card: goes to the same conversation, shown in the card (docs/funcionalidades/21). */
+  cardMessage: (conversationId: string, m: { card: string; title: string; context: string; text: string }) =>
+    request<unknown>(`/api/conversations/${encodeURIComponent(conversationId)}/card-message`, { method: 'POST', body: JSON.stringify(m) }),
   /** Orbi's browser (Chrome DevTools): its settings; saving restarts it. */
   browserSettings: () => request<ChromeSettings>('/api/browser/settings'),
   setBrowserSettings: (s: SetChromeSettings) => request<ChromeSettings>('/api/browser/settings', { method: 'PUT', body: JSON.stringify(s) }),

@@ -899,3 +899,16 @@ strong .merged { display: inline; font-weight: 600; }
 .merged.stacked .m-after { border-color: rgba(76, 195, 138, 0.8); background: rgba(76, 195, 138, 0.1); color: #c9f3dc; }
 .merged.stacked p { margin: 2px 0 0; }
 .merged.stacked .m-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85; }
+
+/* Conversation inside a card (docs/funcionalidades/21). */
+.card-why { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--border); background: var(--surface-2); border-radius: 0 8px 8px 0; font-size: 13px; }
+.card-version { display: flex; gap: 10px; align-items: center; margin: 4px 0; }
+.card-version .link-btn { white-space: nowrap; }
+.card-version .version-tag { flex: none; border: 1px solid #5a4a8a; background: #17142a; color: #cfc3f5; border-radius: 999px; padding: 2px 9px; font-size: 12px; }
+.card-before { opacity: 0.75; border: 1px dashed var(--border); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; }
+.card-thread-link { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 8px 2px 0; border: 0; border-top: 1px solid var(--border); background: none; color: var(--amber); font: inherit; font-size: 13px; cursor: pointer; }
+.card-thread { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.card-thread .msg.user .bubble { font-size: 13px; }
+.card-thread .msg.assistant .avatar { width: 20px; height: 20px; font-size: 10px; }
+.card-thread-input { display: flex; gap: 8px; }
+.card-thread-input input { flex: 1; }
