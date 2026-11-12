@@ -5,6 +5,7 @@ import type { Observation } from '../observability/run-observations.ts';
 import { tellAgent } from '../conversations/tell.ts';
 import { redact } from '../vault/vault.ts';
 import { log } from '../observability/log.ts';
+import { classifyEntity, verdictLine } from '../brain/domain/fact-match.ts';
 
 /**
  * The knowledge review at the end of a run (docs/funcionalidades/19): what the run read (command
@@ -15,9 +16,43 @@ import { log } from '../observability/log.ts';
  */
 export const KNOWLEDGE_PREFIX = 'revisao:';
 
-export type FactCandidate =
+export type FactCandidate = (
   | { kind: 'entity'; id: string; type: string; props: Record<string, unknown>; aliases?: string[]; why: string }
-  | { kind: 'edge'; from: string; rel: string; to: string; why: string };
+  | { kind: 'edge'; from: string; rel: string; to: string; why: string }
+) & {
+  /** The step of the procedure whose output showed it (docs/funcionalidades/22). */
+  step?: string;
+  /** Against the brain: 'já sei', or the line saying what it adds, changes or is the same as. */
+  verdict?: string;
+};
+
+/**
+ * The Revisor's facts against the brain (docs/funcionalidades/22): one already known is marked
+ * "já sei"; one that is an existing fact under another name becomes that fact (its name as another
+ * name, relations rewritten); the others carry what they add or change.
+ */
+export function matchFacts(facts: FactCandidate[], brain: Pick<OrbiServices['brain'], 'byType' | 'neighbors'>): FactCandidate[] {
+  const renamed = new Map<string, string>();
+  const out: FactCandidate[] = [];
+  for (const f of facts) {
+    if (f.kind !== 'entity') continue;
+    const v = classifyEntity({ id: f.id, type: f.type, props: f.props, aliases: f.aliases }, (t) => brain.byType(t));
+    if (v.kind === 'known') { out.push({ ...f, verdict: 'já sei' }); continue; }
+    if (v.kind === 'same') {
+      renamed.set(f.id, v.id);
+      out.push({ ...f, id: v.id, aliases: v.aliases, verdict: verdictLine(f, v) });
+      continue;
+    }
+    out.push({ ...f, verdict: verdictLine(f, v) });
+  }
+  for (const f of facts) {
+    if (f.kind !== 'edge') continue;
+    const e = { ...f, from: renamed.get(f.from) ?? f.from, to: renamed.get(f.to) ?? f.to };
+    const exists = brain.neighbors(e.from).out.some((x) => x.rel === e.rel && x.to === e.to);
+    out.push({ ...e, verdict: exists ? 'já sei' : 'nova ligação' });
+  }
+  return out;
+}
 
 /** Facts the Revisor found, per run, until they are handed to the run's conversation. */
 export class KnowledgeCandidates {
@@ -56,6 +91,10 @@ export function scrub(text: string, secrets: string[]): string {
 /** What the Revisor reads: the procedure, the concepts and facts it touches, and what the run read. */
 export function knowledgeBrief(s: Pick<OrbiServices, 'brain'>, run: PlaybookRun, observations: Observation[]): string {
   const pb = s.brain.playbook(run.playbook);
+  // What the brain already has of its concepts, so a fact it knows is not proposed again (doc 22).
+  const known = s.brain.types().slice(0, 30).flatMap((t) => s.brain.byType(t.name).slice(0, 15).map((e) =>
+    `- ${e.id} (${e.type}) ${JSON.stringify(e.props)}${e.aliases?.length ? ` · também ${e.aliases.join(', ')}` : ''}`)).slice(0, 120);
+  const steps = (pb?.steps ?? []).map((st) => `- ${st.id}: ${st.label}${st.how ? ` · ${st.how}` : ''}`);
   const types = s.brain.types().slice(0, 30).map((t) => {
     const props = Object.keys(t.props ?? {});
     const rels = Object.entries(t.relations).map(([r, to]) => `${r} → ${to}`);
@@ -76,6 +115,12 @@ export function knowledgeBrief(s: Pick<OrbiServices, 'brain'>, run: PlaybookRun,
     '',
     'Fatos que esta execução tocou:',
     ...(facts.length ? facts : ['(nenhum)']),
+    '',
+    'Fatos que o cérebro já tem desses conceitos (não proponha de novo o que está igual):',
+    ...(known.length ? known : ['(nenhum)']),
+    '',
+    'Passos do procedimento (em `step`, diga de qual passo veio cada fato):',
+    ...(steps.length ? steps : ['(sem passos)']),
     '',
     'O que a execução leu (já sem credenciais):',
     ...observations.map((o) => `[${o.step ? `passo ${o.step}` : 'execução'} · ${o.tool}]\n${o.text}`),
@@ -102,32 +147,64 @@ export async function startKnowledgeReview(s: OrbiServices, agent: Agent, runId:
   }
 }
 
+/** A step already looks in the brain first when its `how` says so. */
+export const consultsBrain = (how: string) => /c[ée]rebro|brain_query/i.test(how);
+
+/**
+ * The steps whose output showed a fact and that still go straight to the source
+ * (docs/funcionalidades/22): they should look in the brain first, in the same card as the fact.
+ */
+export function stepsToConsultBrain(steps: ReadonlyArray<{ id: string; label: string; how: string }>, facts: FactCandidate[]): Array<{ id: string; label: string; how: string }> {
+  const ids = new Set(facts.map((f) => f.step).filter((x): x is string => !!x));
+  return steps.filter((st) => ids.has(st.id) && !consultsBrain(st.how ?? ''));
+}
+
 /** The Revisor finished: the facts it found go to the run's conversation, for the Orbi to propose. */
 export async function deliverKnowledge(s: OrbiServices, agent: Agent, reviewerConversation: string): Promise<void> {
   const runId = reviewerConversation.slice(KNOWLEDGE_PREFIX.length);
   const facts = s.knowledge.take(runId);
   const run = s.brain.run(runId);
   if (!run || facts.length === 0) return;
+  const fresh = facts.filter((f) => f.verdict !== 'já sei');
+  const pb = s.brain.playbook(run.playbook);
+  const steps = pb ? stepsToConsultBrain(pb.steps, facts) : [];
+  if (fresh.length === 0 && steps.length === 0) return;
+  // Only those steps may change in that card (brain_learn refuses others), on top of what the
+  // end-of-run review already let change; an open scope with no limit stays so.
+  if (pb && steps.length) {
+    const open = s.brain.review.changeScope(pb.name, run.conversationId);
+    if (!open || open.length) s.brain.review.scopeChange(pb.name, [...new Set([...(open ?? []), ...steps.map((st) => st.id)])], runId, run.conversationId);
+  }
   try {
     await tellAgent(s.events, agent, {
       id: run.conversationId,
-      message: { kind: 'signal', type: 'knowledge', tagName: 'conhecimento', body: knowledgeInstruction(run.playbook, facts) },
+      message: { kind: 'signal', type: 'knowledge', tagName: 'conhecimento', body: knowledgeInstruction(run.playbook, fresh, steps) },
     });
   } catch (error) {
     log.error('fatos da revisão de conhecimento não entregues', { conversation: run.conversationId, error: error instanceof Error ? error.message : String(error) });
   }
 }
 
-export function knowledgeInstruction(playbook: string, facts: FactCandidate[]): string {
+export function knowledgeInstruction(playbook: string, facts: FactCandidate[], steps: Array<{ id: string; label: string; how: string }> = []): string {
   const lines = facts.map((f) =>
     f.kind === 'entity'
-      ? `- ${f.id} (${f.type}) ${JSON.stringify(f.props)}${f.aliases?.length ? ` · também ${f.aliases.join(', ')}` : ''}: ${f.why}`
-      : `- ${f.from} ${f.rel} ${f.to}: ${f.why}`,
+      ? `- ${f.id} (${f.type}) ${JSON.stringify(f.props)}${f.aliases?.length ? ` · também ${f.aliases.join(', ')}` : ''}${f.verdict ? ` [${f.verdict}]` : ''}: ${f.why}`
+      : `- ${f.from} ${f.rel} ${f.to}${f.verdict ? ` [${f.verdict}]` : ''}: ${f.why}`,
   );
+  const stepPart = steps.length
+    ? [
+        `No MESMO brain_learn, inclua o procedimento ${playbook} inteiro, mudando só estes passos para consultar primeiro o Cérebro (brain_query) o que eles buscam e, só se não houver, fazer como hoje:`,
+        ...steps.map((st) => `- ${st.id}: ${st.label} · hoje: ${st.how}`),
+        'Ex.: "Consultar no Cérebro (brain_query) o repositório da aplicação; se não houver, <como é hoje>". Os outros passos ficam exatamente como estão (mesmo id, label e how).',
+      ]
+    : [];
   return [
-    `Revisão de conhecimento da execução de ${playbook}: lendo o que a execução retornou, o revisor achou estes fatos:`,
+    facts.length
+      ? `Revisão de conhecimento da execução de ${playbook}: lendo o que a execução retornou, o revisor achou estes fatos (entre colchetes, o que cada um muda no cérebro: o runtime já conferiu):`
+      : `Revisão de conhecimento da execução de ${playbook}: os fatos que a execução achou já estão no cérebro, mas os passos de onde vieram ainda vão direto à fonte.`,
     ...lines,
-    'Proponha os que estão certos com UM brain_learn só de fatos (itens entity e edge; nenhum procedimento e nenhum tipo novo). ' +
+    ...stepPart,
+    `Proponha com UM brain_learn: ${facts.length ? 'os fatos certos (itens entity e edge; nenhum tipo novo)' : ''}${facts.length && steps.length ? ' e ' : ''}${steps.length ? `o procedimento ${playbook} com esses passos mudados` : ''}. ` +
       'Em uma linha, diga o que quer guardar. Não rode nada.',
   ].join('\n');
 }

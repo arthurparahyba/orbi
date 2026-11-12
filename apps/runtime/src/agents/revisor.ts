@@ -4,7 +4,7 @@ import { defineTool, useModel, useTool } from './runtime-port.ts';
 import { services, type OrbiServices } from '../services.ts';
 import { brainQuery } from './tools/brain.ts';
 import { modelForTurn, resolveRoles } from '../llm/roles.ts';
-import { KNOWLEDGE_PREFIX, type FactCandidate } from '../review/knowledge.ts';
+import { KNOWLEDGE_PREFIX, matchFacts, type FactCandidate } from '../review/knowledge.ts';
 import instructions from '../prompts/revisor.md?raw';
 
 /**
@@ -24,8 +24,8 @@ export function Revisor({ id }: { id: string }) {
 Revisor.agentName = 'revisor';
 
 const fact = v.variant('kind', [
-  v.object({ kind: v.literal('entity'), id: v.string(), type: v.string(), props: v.optional(v.record(v.string(), v.unknown()), {}), aliases: v.optional(v.array(v.string())), why: v.string() }),
-  v.object({ kind: v.literal('edge'), from: v.string(), rel: v.string(), to: v.string(), why: v.string() }),
+  v.object({ kind: v.literal('entity'), id: v.string(), type: v.string(), props: v.optional(v.record(v.string(), v.unknown()), {}), aliases: v.optional(v.array(v.string())), why: v.string(), step: v.optional(v.string()) }),
+  v.object({ kind: v.literal('edge'), from: v.string(), rel: v.string(), to: v.string(), why: v.string(), step: v.optional(v.string()) }),
 ]);
 
 /** The facts found, checked like any learning (types that exist, no credentials); the valid ones go to the runtime. */
@@ -44,8 +44,11 @@ function proposeFacts(s: Pick<OrbiServices, 'brain' | 'knowledge'>, runId: strin
         if (issues.length) problems.push(`${f.kind === 'entity' ? f.id : `${f.from} ${f.rel} ${f.to}`}: ${issues.join('; ')}`);
         else ok.push(f as FactCandidate);
       }
-      s.knowledge.offer(runId, ok);
-      return { output: { accepted: ok.length, ...(problems.length ? { problems } : {}) } };
+      // Against the brain (docs/funcionalidades/22): the same thing under another name becomes the
+      // existing fact, and what is already known is marked so (it may still change its step).
+      const matched = matchFacts(ok, s.brain);
+      s.knowledge.offer(runId, matched);
+      return { output: { accepted: matched.filter((f) => f.verdict !== 'já sei').length, known: matched.filter((f) => f.verdict === 'já sei').length, ...(problems.length ? { problems } : {}) } };
     },
   });
 }

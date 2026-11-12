@@ -47,3 +47,17 @@ export function learningChanges(before: string, after: string): LearningChange[]
   }
   return out;
 }
+
+/**
+ * What a proposed fact does to the brain (docs/funcionalidades/22), for the card: new, nothing
+ * new, or what it adds and changes in the fact that exists (learning adds, it does not replace).
+ */
+export function factEffect(existing: { props: Record<string, unknown> } | undefined, props: Record<string, unknown> | undefined): string {
+  if (!existing) return 'novo';
+  const out: string[] = [];
+  for (const [k, v] of Object.entries(props ?? {})) {
+    if (!(k in existing.props)) out.push(`acrescenta ${k} = ${show(v)}`);
+    else if (JSON.stringify(existing.props[k]) !== JSON.stringify(v)) out.push(`muda ${k}: ${show(existing.props[k])} → ${show(v)}`);
+  }
+  return out.length ? out.join(' · ') : 'já sei';
+}

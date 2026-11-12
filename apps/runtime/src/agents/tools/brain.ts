@@ -1,4 +1,6 @@
 import { outOfScope } from '../../brain/domain/judge.ts';
+import { classifyEntity } from '../../brain/domain/fact-match.ts';
+import type { Entity } from '../../brain/domain/types.ts';
 import { defineTool, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import type { BrainStore } from '../../brain/store.ts';
@@ -168,7 +170,7 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
     precheck: (a) => {
       const problems = brain.learnProblems(inLearningOrder(a.items) as never);
       if (problems.length) return [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'];
-      return [...scopeProblems(brain, a.items as LearnItems, ctx.conversationId), ...commandProblems(a.items as LearnItems, config.allowedBinaries)];
+      return [...scopeProblems(brain, a.items as LearnItems, ctx.conversationId), ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => brain.byType(t))];
     },
     execute: async (a) => {
       const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
@@ -197,6 +199,24 @@ function scopeProblems(brain: Deps<'brain'>['brain'], items: LearnItems, convers
     if (outside.length) {
       out.push(`${name}: a revisão pediu para mudar só os passos ${scope.join(', ')}; esta versão muda também ${outside.join(', ')}. Deixe esses passos exatamente como estão (mesmo id, label e how).`);
     }
+  }
+  return out;
+}
+
+/**
+ * A "new" fact that is one the brain already has, under another name or with the same value
+ * (docs/funcionalidades/22): back to the model before the card, to add to the existing one.
+ */
+export function sameFactProblems(items: LearnItems, byType: (type: string) => Entity[]): string[] {
+  const out: string[] = [];
+  for (const item of items) {
+    if (item.kind !== 'entity') continue;
+    const p = item.payload as { id?: unknown; type?: unknown; props?: unknown; aliases?: unknown };
+    if (typeof p.id !== 'string' || typeof p.type !== 'string') continue;
+    const v = classifyEntity({ id: p.id, type: p.type, props: (p.props ?? {}) as Record<string, unknown>, aliases: Array.isArray(p.aliases) ? p.aliases.map(String) : [] }, byType);
+    // Nothing new, but under another name: saving it would make a second fact for the same thing.
+    if (v.kind === 'known' && v.id !== p.id) out.push(`${p.id} já está no cérebro como ${v.id}, com os mesmos valores: tire este item do lote.`);
+    if (v.kind === 'same') out.push(`${p.id} é o mesmo que ${v.id} (${v.why}): use o id ${v.id}, ponha "${p.id}" em aliases e mantenha só o que acrescenta ou muda; relações que citam ${p.id} passam a citar ${v.id}.`);
   }
   return out;
 }

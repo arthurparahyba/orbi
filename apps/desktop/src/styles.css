@@ -920,3 +920,4 @@ strong .merged { display: inline; font-weight: 600; }
 .card-decided { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .card-decided .card-thread { flex-basis: 100%; border-top: 0; margin-top: 0; }
 .card-decided .muted .link-btn { display: inline; padding: 0; }
+.fact-effect { color: #8fe3b8; font-size: 12.5px; }

@@ -166,8 +166,9 @@ A sua ideia de três subagentes fica mais simples no código: **só um agente no
      observações da execução e o que o cérebro já sabe dos conceitos envolvidos para o agente
      `Revisor`, que devolve fatos candidatos por uma ferramenta (`propose_facts`, só dados);
   3. o **juiz**, e então um único sinal para a conversa, com as decisões:
-     - fatos viram cartão de aprendizado (categoria `aprender`, aprovação como sempre, sem mexer
-       nos passos);
+     - fatos viram cartão de aprendizado (categoria `aprender`, aprovação como sempre); desde o
+       documento 22, fato que o cérebro já tem não volta, e o passo que achou o fato muda, no
+       mesmo cartão, para consultar o Cérebro antes;
      - um problema recorrente vira o cartão "Vamos corrigir o seu ambiente?";
      - a porta aberta vira a instrução de mudança mínima;
      - a porta fechada grava a ideia em `playbook_ideas`, sem cartão.

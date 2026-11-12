@@ -6,7 +6,7 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 21). A visão geral está em `docs/arquitetura.md`; as
+`docs/funcionalidades/` (01 a 22). A visão geral está em `docs/arquitetura.md`; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Estrutura
@@ -144,7 +144,10 @@ cofre ou ponte MCP, `npm run e2e`.
   problema novo, ou propor corrigir o ambiente de um problema recorrente; melhoria que não muda
   resultado nem autonomia vira ideia guardada, sem cartão. O revisor de conhecimento
   (`agents/revisor.ts`) lê as saídas já limpas de credenciais e só propõe fatos, que passam pelo
-  cartão de aprendizado (documento 19).
+  cartão de aprendizado (documento 19). Fato que o cérebro já tem não volta (mesmo id ou mesmo
+  nome com outro id é recusado no `brain_learn`), aprender soma propriedades em vez de trocar a
+  entidade, e o passo que achou o fato muda, no mesmo cartão, para consultar o Cérebro antes
+  (documento 22).
 - **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
   modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
   ou com a permissão do agente.

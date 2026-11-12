@@ -7,6 +7,7 @@ import { api } from '../../api';
 import { useLive } from '../../hooks';
 import { LearnConcepts, LearnIntent, LearnLeftOut } from './LearningParts';
 import { LearnTested } from './LearnTested';
+import { factEffect } from './learningChanges';
 
 /** What a learning card would save: procedures, esteiras and facts, against what exists. */
 interface LearnItem { kind: string; payload: Record<string, any> }
@@ -42,7 +43,8 @@ export function LearningPreview({ detail }: { detail: string }) {
                 {f.kind === 'edge'
                   ? <><code>{f.payload.from}</code> <span className="muted">{f.payload.rel}</span> <code>{f.payload.to}</code></>
                   : <><span className="pill tiny">{f.payload.type}</span> <code>{f.payload.id}</code>
-                    {Array.isArray(f.payload.aliases) && f.payload.aliases.length > 0 && <span className="muted"> também “{f.payload.aliases.join('”, “')}”</span>}</>}
+                    {Array.isArray(f.payload.aliases) && f.payload.aliases.length > 0 && <span className="muted"> também “{f.payload.aliases.join('”, “')}”</span>}
+                    <span className="fact-effect"> {factEffect(brain.data?.entities.find((e) => e.id === f.payload.id), f.payload.props)}</span></>}
               </li>
             ))}
           </ul>

@@ -33,6 +33,7 @@ e [plugins](../plugins.md).
 | 19 | [Revisão no fim da execução](19-revisao-da-execucao.md) | Autonomia antes de perfeição: fatos aprendidos ao rodar, problema recorrente corrigido na raiz, juiz que só muda o procedimento quando vale |
 | 20 | [Ferramentas MCP e a nova Autonomia](20-ferramentas-mcp.md) | Servidores MCP cadastrados pelo desenvolvedor (por endereço ou comando), leitura ou escrita por ferramenta, credenciais do cofre, sempre sozinho, Configurações |
 | 21 | [Conversa dentro do cartão](21-conversa-no-cartao.md) | O porquê dentro do cartão, perguntar sobre o cartão nele mesmo, ajuste que muda o próprio cartão (versões) |
+| 22 | [Fatos sem repetição](22-fatos-sem-repeticao.md) | A revisão não repete o que o cérebro já sabe, aprender soma em vez de trocar, e o passo que achou o fato passa a consultar o Cérebro, no mesmo cartão |
 
 ## Como as funcionalidades se ligam
 

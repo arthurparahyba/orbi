@@ -29,3 +29,13 @@ describe('o que mudou no cartão durante a conversa', () => {
     expect(learningChanges('x', 'y')).toEqual([]);
   });
 });
+
+describe('o que um fato proposto faz no cérebro', () => {
+  it('novo, já sei, acrescenta e muda', async () => {
+    const { factEffect } = await import('../src/components/ui/learningChanges');
+    expect(factEffect(undefined, { a: 1 })).toBe('novo');
+    const existing = { props: { repositorio: 'org/x', time: 'pag' } };
+    expect(factEffect(existing, { repositorio: 'org/x' })).toBe('já sei');
+    expect(factEffect(existing, { banco: 'pag-db', repositorio: 'org/y' })).toBe('acrescenta banco = pag-db · muda repositorio: org/x → org/y');
+  });
+});

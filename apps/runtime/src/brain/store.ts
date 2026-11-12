@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { mergeEntity } from './domain/fact-match.ts';
 import { knownProblemsFor, type KnownProblem } from './domain/knowledge.ts';
 import { ulid } from 'ulidx';
 import { openDatabase, transaction } from '../db/database.ts';
@@ -162,7 +163,8 @@ export class BrainStore {
     const change = changeFromProposal(proposal.kind, proposal.payload, proposal.conversationId);
     transaction(this.db, () => {
       if (change.kind === 'type') this.upsertType(change.type);
-      else if (change.kind === 'entity') this.upsertEntity(change.entity);
+      // Learning adds to a fact that exists: what it had stays (docs/funcionalidades/22).
+      else if (change.kind === 'entity') this.upsertEntity(mergeEntity(this.get(change.entity.id), change.entity));
       else if (change.kind === 'edge') this.addEdge(change.edge);
       else if (change.kind === 'pipeline') this.savePipeline(change.pipeline);
       else this.savePlaybook(change.playbook);

@@ -13,5 +13,7 @@ O que não é fato:
 Como propor:
 - Use os nomes de propriedade que o conceito declara, quando declara. O `id` é curto, minúsculo, com hífen (`app-x-db`).
 - Em `why`, diga em uma frase de onde veio ("na task definition do serviço app-x, DB_HOST aponta para…").
+- Em `step`, o id do passo de onde o fato veio (as saídas aparecem como `[passo <id> · ferramenta]`). Assim o Orbi pode fazer esse passo consultar o Cérebro antes da próxima vez.
+- Um fato que já existe com outro nome é o mesmo fato: use o id que o cérebro já tem (o runtime também confere).
 - Na dúvida, não proponha: o custo de um fato errado é maior que o de um fato a menos.
 - Se não houver nada, chame `propose_facts` com a lista vazia.
