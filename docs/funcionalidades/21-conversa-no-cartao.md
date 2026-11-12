@@ -1,7 +1,7 @@
 # 21. Conversa dentro do cartão
 
-Telas no canvas "Orbi · Conversa dentro do cartão": a ideia nos boards A a D (escolhida a B) e o
-desenho final nos boards E a H.
+Telas no canvas "Orbi · Conversa dentro do cartão" (boards E a H: sem mensagens, com conversa,
+enquanto o Orbi muda o cartão, decidido).
 
 ## O problema
 
