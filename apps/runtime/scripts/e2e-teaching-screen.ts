@@ -358,11 +358,12 @@ try {
     fauxAssistantMessage(fauxToolCall('brain_learn', learnLoja('Site de compras', 'sem o conceito, cada promoção vira um texto solto')), { stopReason: 'toolUse' }),
   ]);
   await say('guarda que a loja é um site de compras');
-  await shows('.messages', /Por quê: sem o conceito, cada promoção vira um texto solto[\s\S]*Perguntar sobre este cartão/);
-  await clickButton('.messages', /^Perguntar sobre este cartão$/);
+  await shows('.messages', /Por quê: sem o conceito, cada promoção vira um texto solto/);
+  // The card's conversation is already there: one line with the field, Aprovar and Negar.
+  await shows('.card-bar', /Aprovar[\s\S]*Negar/);
   faux.setResponses([fauxAssistantMessage(fauxText('Porque as promoções se repetem por loja.'))]);
-  await page.type('.card-thread input', 'por que guardar isso?');
-  await clickButton('.card-thread', /^Enviar$/);
+  await page.type('.card-field input', 'por que guardar isso?');
+  await page.click('.card-send');
   await shows('.card-thread', /por que guardar isso\?[\s\S]*Porque as promoções se repetem por loja/);
   const flow = await page.$$eval('.messages > .msg', (els) => els.map((e) => {
     const copy = e.cloneNode(true) as HTMLElement;
@@ -372,15 +373,18 @@ try {
   assert.ok(!/Porque as promoções se repetem/.test(flow), 'a resposta fica no cartão, não no fluxo');
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('brain_learn', learnLoja('Site de compras com promoções semanais', 'as promoções mudam toda semana')), { stopReason: 'toolUse' }),
-    fauxAssistantMessage(fauxText('Atualizei o cartão.')),
+    fauxAssistantMessage(fauxText('Mudei a descrição da Loja.')),
   ]);
-  await page.type('.card-thread input', 'acrescenta que as promoções são semanais');
-  await clickButton('.card-thread', /^Enviar$/);
-  await shows('.messages', /atualizado na conversa · versão 2[\s\S]*promoções semanais[\s\S]*Por quê: as promoções mudam toda semana/);
+  await page.type('.card-field input', 'acrescenta que as promoções são semanais');
+  await page.click('.card-send');
+  await shows('.learning-card', /atualizado[\s\S]*Mudou na conversa[\s\S]*descrição · Site de compras com promoções semanais[\s\S]*Por quê: as promoções mudam toda semana[\s\S]*Mudei a descrição/i);
   assert.equal(await page.$$eval('.ui-card.approval', (els) => els.length), 1, 'continua um cartão só');
-  await clickButton('.messages', /ver como era/);
-  await shows('.card-before', /Versão 1/);
+  assert.ok(!/versão/i.test(await text('.learning-card')), 'sem número de versão na tela');
   await shot('cartao-conversa');
+  // The decision comes after the conversation, from the same line; then the card folds.
+  faux.setResponses([fauxAssistantMessage(fauxText('Guardado.'))]);
+  await clickButton('.card-bar', /Aprovar/);
+  await shows('.learning-card', /aprovado[\s\S]*depois de \d+ mensagens/);
   await clickButton('.rail', /Configurações/);
   await clickButton('.subnav', /Servidor MCP/);
   await shows('.agentes', /Pedidos[\s\S]*Conexões/);

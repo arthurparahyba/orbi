@@ -55,6 +55,15 @@ test('cartão: o porquê aparece nele, a conversa chega com o contexto e o ajust
   assert.match(open[0]!.detail, /promoções semanais/);
   assert.match(open[0]!.versions![0]!.detail, /"Site de compras"/, 'a versão anterior fica guardada');
 
+  // The same proposal again (an "ok" read as a request): the card does not change.
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('brain_learn', learn('Site de compras com promoções semanais', 'as promoções mudam toda semana')), { stopReason: 'toolUse' }),
+    fauxAssistantMessage(fauxText('É pelo botão Aprovar do cartão.')),
+  ]);
+  await orbi.read(await (await app.request(`/api/conversations/${encodeURIComponent(id)}/card-message`, json({ card: item.id, title: 'x', context: '', text: 'pode aprovar' }))).json());
+  assert.equal(inbox.get(item.id)!.version, 2, 'proposta igual não vira versão nova');
+  assert.equal(inbox.get(item.id)!.status, 'open', 'e texto não aprova');
+
   // Approving applies the version on screen.
   faux.setResponses([fauxAssistantMessage(fauxText('Guardado.'))]);
   await orbi.read(await (await app.request(`/api/inbox/${item.id}/decision`, json({ decision: 'approve', approver: 'Arthur' }))).json());

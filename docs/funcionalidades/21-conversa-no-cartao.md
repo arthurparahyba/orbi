@@ -1,7 +1,7 @@
 # 21. Conversa dentro do cartão
 
-Telas no canvas "Orbi · Conversa dentro do cartão" (boards A a D; a escolhida é a B, com o
-ajuste do board D).
+Telas no canvas "Orbi · Conversa dentro do cartão": a ideia nos boards A a D (escolhida a B) e o
+desenho final nos boards E a H.
 
 ## O problema
 
@@ -15,13 +15,20 @@ primeiro…" ficava ambíguo.
 - **O porquê vai dentro do cartão.** O cartão de aprendizado mostra **Por quê**, uma frase do
   Orbi (`why` do `brain_learn`). Fora dos cartões, o Orbi escreve uma linha, sem explicar cada
   um de novo.
-- **Perguntar sobre este cartão.** Embaixo do porquê, o cartão tem a sua conversa: as perguntas
-  feitas nele, as respostas do Orbi e um campo para escrever. A caixa de mensagem de baixo
-  continua lá, para o resto da conversa.
-- **Ajuste no lugar.** Pedir uma mudança na conversa do cartão muda **o próprio cartão**: ele
-  ganha "atualizado na conversa · versão N" e **ver como era** (a versão anterior). Nenhum
-  cartão novo aparece. A aprovação continua sendo sua, sobre a versão que está na tela.
-- **Depois de decidir**, a conversa do cartão dobra numa linha ("3 mensagens sobre este cartão").
+- **A conversa do cartão já está nele**, discreta: as mensagens sobre o cartão (as suas à
+  direita, as do Orbi à esquerda) e, no fim, **uma linha** com o campo "Pergunte ou peça uma
+  mudança…" (a seta de enviar dentro dele) e, ao lado, **Aprovar** e **Negar**. Não há botões
+  no alto do cartão: a decisão vem depois da conversa, sobre a proposta como ela está agora. A
+  caixa de mensagem de baixo continua lá, para o resto da conversa.
+- **Ajuste no lugar.** Pedir uma mudança ali muda **o próprio cartão**: o título ganha
+  "· atualizado" e um bloco verde **Mudou na conversa** diz o que mudou desde a proposta original
+  (passo por passo, campo por campo: `learningChanges`). Sem número de versão na tela; as
+  anteriores ficam guardadas no banco. Nenhum cartão novo aparece.
+- Enquanto o Orbi responde ou muda o cartão, Aprovar e Negar ficam apagados por um instante.
+- Aprovar por texto ("pode aprovar") não aprova: o Orbi responde que é pelo botão, e o
+  aprendizado só é gravado pela sua decisão (`POST /api/inbox/:id/decision`).
+- **Depois de decidir**, o cartão dobra numa linha: "aprovado · depois de N mensagens · ver a
+  conversa".
 - Têm conversa: os cartões de **aprendizado** (procedimento novo, correção, conhecimento) e o
   cartão da **revisão da execução** (problemas, correção de ambiente). Aprovação de um comando
   simples não tem.
@@ -53,8 +60,9 @@ primeiro…" ficava ambíguo.
 | `agents/gate.ts` | `why` no cartão; atualizar no lugar a pendência do cartão |
 | `conversations/inbox.ts`, migração 24 | `revise(id, title, detail)`: versão nova, anteriores guardadas |
 | `prompts/orbi/cartao.md` | Como responder dentro do cartão |
-| `desktop/components/chat/cardThreads.ts`, `CardThread.tsx` | Agrupar e mostrar a conversa do cartão |
-| `ApprovalCard.tsx`, `ReviewCard.tsx` | O porquê, a conversa e a versão atual |
+| `desktop/components/chat/cardThreads.ts`, `CardThread.tsx` | Agrupar e mostrar a conversa do cartão, com a linha campo + Aprovar + Negar |
+| `LearningCard.tsx`, `ui/LearningVersion.tsx`, `ui/learningChanges.ts` | O cartão de aprendizado: a proposta atual, o que mudou na conversa, o porquê |
+| `chat/Message.tsx` (revisão) | O cartão da revisão também tem a conversa (sem Aprovar) |
 
 ## Limites
 
@@ -65,8 +73,8 @@ primeiro…" ficava ambíguo.
 ## Testes
 
 - `apps/desktop/test/cardThreads.test.ts`: o que entra na conversa de cada cartão e o que sai do
-  fluxo principal.
+  fluxo principal. `learningChanges.test.ts`: o que mudou, passo a passo e campo a campo.
 - `apps/runtime/test/flow-card-chat.test.ts`: a mensagem do cartão chega ao Orbi com o contexto;
   `brain_learn` pedido no cartão atualiza a pendência (versão 2, sem cartão novo) e aprovar
   aplica a versão nova.
-- O e2e da tela pergunta num cartão e confere a resposta dentro dele.
+- O e2e da tela pergunta num cartão, confere a resposta dentro dele, pede uma mudança (atualizado, Mudou na conversa, sem número de versão) e aprova pela linha de baixo.

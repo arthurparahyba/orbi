@@ -902,13 +902,21 @@ strong .merged { display: inline; font-weight: 600; }
 
 /* Conversation inside a card (docs/funcionalidades/21). */
 .card-why { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--border); background: var(--surface-2); border-radius: 0 8px 8px 0; font-size: 13px; }
-.card-version { display: flex; gap: 10px; align-items: center; margin: 4px 0; }
-.card-version .link-btn { white-space: nowrap; }
-.card-version .version-tag { flex: none; border: 1px solid #5a4a8a; background: #17142a; color: #cfc3f5; border-radius: 999px; padding: 2px 9px; font-size: 12px; }
-.card-before { opacity: 0.75; border: 1px dashed var(--border); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; }
-.card-thread-link { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 8px 2px 0; border: 0; border-top: 1px solid var(--border); background: none; color: var(--amber); font: inherit; font-size: 13px; cursor: pointer; }
 .card-thread { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-.card-thread .msg.user .bubble { font-size: 13px; }
 .card-thread .msg.assistant .avatar { width: 20px; height: 20px; font-size: 10px; }
-.card-thread-input { display: flex; gap: 8px; }
-.card-thread-input input { flex: 1; }
+/* The card's conversation ends in one line: the field (send inside) and, beside it, Aprovar and Negar. */
+.card-thread { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; }
+.card-bar { display: flex; gap: 8px; align-items: center; }
+.card-field { flex: 1; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border-2); border-radius: 999px; padding: 3px 4px 3px 14px; background: var(--bg); }
+.card-field input { flex: 1; border: 0; background: transparent; padding: 6px 0; color: var(--text); font: inherit; font-size: 13px; outline: none; }
+.card-field:focus-within { border-color: var(--amber); }
+.card-send { width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--surface-2); color: var(--text); cursor: pointer; }
+.card-send:disabled { opacity: 0.4; cursor: default; }
+.pill-btn { height: 36px; border-radius: 999px; padding: 0 16px; }
+.card-waiting { margin: 0 0 0 28px; }
+.card-changes { margin-top: 8px; padding: 6px 10px; border-left: 3px solid rgba(76, 195, 138, 0.8); background: rgba(76, 195, 138, 0.1); border-radius: 0 8px 8px 0; font-size: 13px; }
+.card-changes ul { margin: 4px 0 0; padding-left: 18px; }
+.card-updated { color: #8fe3b8; font-size: 12.5px; font-weight: 400; }
+.card-decided { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.card-decided .card-thread { flex-basis: 100%; border-top: 0; margin-top: 0; }
+.card-decided .muted .link-btn { display: inline; padding: 0; }

@@ -3,8 +3,7 @@ import type { UiComponent } from '@orbi/contracts';
 import { api } from '../api';
 import { AlertIcon, CheckIcon, XIcon } from './Icons';
 import { categoryLabel, InboxContext } from './inboxContext';
-import { LearningVersion } from './ui/LearningVersion';
-import { CardThread } from './CardThread';
+import { LearningCard } from './LearningCard';
 import { EFFECT_LABEL } from './effect';
 
 /**
@@ -13,13 +12,17 @@ import { EFFECT_LABEL } from './effect';
  * arguments stay behind "ver detalhes". `data-inbox` lets Pendências scroll to it.
  */
 export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'approval' }> }) {
+  // Learning has its own card: the decision comes after the card's conversation.
+  return c.category === 'aprender' ? <LearningCard c={c} /> : <ActionCard c={c} />;
+}
+
+function ActionCard({ c }: { c: Extract<UiComponent, { component: 'approval' }> }) {
   const inbox = useContext(InboxContext);
   const item = inbox.items.get(c.inboxId);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string>();
   const status = item?.status ?? 'open';
-  const learning = c.category === 'aprender';
   const effect = c.effect ? EFFECT_LABEL[c.effect] : undefined;
   const act = async (d: 'approve' | 'deny') => {
     setBusy(true);
@@ -45,9 +48,8 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
         <span className="ui-kicker">{status === 'open' ? 'pede aprovação' : categoryLabel(c.category)}</span>
         {c.step && <span className="muted small">{c.step}</span>}
       </header>
-      <p className="ui-title">{item?.version && item.version > 1 ? item.title : c.title}</p>
-      {learning && <LearningVersion detail={c.detail} why={c.why} item={item} />}
-      {!learning && (effect || c.reason) && (
+      <p className="ui-title">{c.title}</p>
+      {(effect || c.reason) && (
         <dl className="approval-facts">
           {effect && (<><dt>Alcance</dt><dd><span className={`effect is-${c.effect}`}>{effect.tag}</span> {effect.note}</dd></>)}
           {c.reason && (<><dt>Por que pede</dt><dd>{c.reason}</dd></>)}
@@ -55,9 +57,9 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
       )}
       {c.command && <code className="approval-command">{c.command}</code>}
       <button type="button" className="link-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {open ? 'Esconder detalhes' : learning ? 'Ver dados brutos' : 'ver detalhes'}
+        {open ? 'Esconder detalhes' : 'ver detalhes'}
       </button>
-      {open && <pre className="code small">{item?.version && item.version > 1 ? item.detail : c.detail}</pre>}
+      {open && <pre className="code small">{c.detail}</pre>}
       {status === 'open' ? (
         <div className="row gap">
           <button type="button" className="btn primary" disabled={busy} onClick={() => act('approve')}><CheckIcon size={14} /> Aprovar</button>
@@ -68,7 +70,6 @@ export function ApprovalCard({ c }: { c: Extract<UiComponent, { component: 'appr
         <p className={`decided ${status}`}>{status === 'approved' ? 'Aprovado' : 'Negado'}</p>
       )}
       {error && <p className="small err-text" role="alert">{error}</p>}
-      {learning && <CardThread card={c.inboxId} title={item?.title ?? c.title} context={item?.detail ?? c.detail} decided={status !== 'open'} />}
     </section>
   );
 }

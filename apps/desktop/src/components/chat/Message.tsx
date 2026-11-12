@@ -30,7 +30,7 @@ export function Message({ m }: { m: FlueConversationMessage }) {
       return (
         <div className="msg system review">
           <ReviewCard r={r} />
-          <CardThread card={`review:${m.id}`} title="Revisão da execução" context={context} decided={false} />
+          <CardThread card={`review:${m.id}`} title="Revisão da execução" context={context} />
         </div>
       );
     }

@@ -91,6 +91,10 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         // Asked inside a learning card that is still open (docs/funcionalidades/21): the card itself
         // changes. The stored call gets the new arguments, the item a new version; no new card.
         const card = category === 'aprender' ? cardInProgress() : undefined;
+        if (card && JSON.stringify(pending[card.approvalId]?.args) === JSON.stringify(data)) {
+          // The same proposal again (an "ok" read as a request): nothing changes on the card.
+          return { output: { status: 'card_unchanged', approvalId: card.approvalId, note: 'É a mesma proposta que já está no cartão: nada mudou. Se o desenvolvedor quis aprovar, diga que é pelo botão Aprovar do cartão.' } };
+        }
         if (card) {
           setPending((prev) => ({ ...prev, [card.approvalId]: { ...prev[card.approvalId]!, tool: def.name, args: data } }));
           const updated = inbox.revise(card.item.id, def.title?.(data) ?? def.summary(data), JSON.stringify(data, null, 2));
