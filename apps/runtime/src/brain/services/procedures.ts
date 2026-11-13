@@ -56,6 +56,7 @@ export class Procedures {
     transaction(this.p.db, () => {
       detachedVariations = this.p.playbookRepo.delete(name);
       this.p.levels.forget(name);
+      this.brain.learnings.forget(name);
     });
     return { detachedVariations };
   }

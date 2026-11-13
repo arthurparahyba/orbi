@@ -57,7 +57,9 @@ Detectores iniciais (um arquivo cada, com impressão digital própria):
 - comando aprovado e depois recusado;
 - passo fechado fora de ordem ou ação contada em passo que não a pediu;
 - procedimento que perdeu entregas, scripts ou entradas numa correção;
-- leitura muito grande indo ao modelo;
+- **chamada cara**: uma resposta grande indo ao modelo (imagem da página, `take_snapshot`
+  inteiro, saída longa de comando). Pedido do desenvolvedor em 13/11: além de aparecer no
+  diagnóstico, vira **alerta para o usuário** (abaixo);
 - a mesma ferramenta falhando do mesmo jeito em execuções seguidas sem problema conhecido.
 
 Vários desses defeitos foram corrigidos no documento 23; o detector fica como alarme de
@@ -87,6 +89,22 @@ execução". Achado que o agente não confirma no código sai como **hipótese**
 - **Nada sai sem você enviar.** Dois caminhos: abrir a página do GitHub já preenchida (padrão),
   ou enviar pelo `gh` da máquina, que também soma uma ocorrência em issue de mesma impressão
   digital em vez de abrir outra.
+
+### Alerta de gasto
+
+Algumas chamadas custam muito mais que as outras: captura de imagem pelo MCP do navegador,
+leitura da página inteira, saída grande de um comando. O registro guarda, por chamada, quanto
+foi ao modelo. Com isso:
+
+- na linha do tempo, a chamada cara aparece marcada, com o tamanho;
+- no fim da execução, se elas pesaram, a conversa mostra uma linha: "3 leituras caras nesta
+  execução (cerca de N mil tokens): ver";
+- a execução e a tela de Consumo mostram quanto do gasto veio dessas chamadas;
+- quando a mesma leitura cara se repete num passo, a revisão sugere trocá-la (um
+  `evaluate_script` pequeno, `saveTo` num arquivo) e guarda como ideia do procedimento.
+
+Por ora há só a regra no prompt (`prompts/orbi/procedimento.md`): preferir uma leitura
+pequena a imagem ou página inteira.
 
 ## Segurança
 

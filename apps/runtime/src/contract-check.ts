@@ -26,6 +26,7 @@ import type { ConversationState } from './conversations/state.ts';
 import type { ConversationNotebook } from './conversations/notebook.ts';
 import type { ModelChoices } from './llm/choices.ts';
 import type { ReviewNote } from './brain/domain/judge.ts';
+import type { StepLearning } from './brain/domain/step-learnings.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -38,6 +39,7 @@ export type ContractChecks = [
   Check<Same<ConversationNotebook, C.ConversationNotebook>>,
   Check<Same<ModelChoices, C.ModelChoices>>,
   Check<Same<ReviewNote, C.ReviewNote>>,
+  Check<Same<StepLearning, C.StepLearning>>,
   Check<Same<CodeAgent, C.CodeAgent>>,
   Check<Fits<TaskAssignment, C.CodeAgentAssignment>>,
   Check<Fits<CatalogEntry, C.CodeAgentCatalogEntry>>,

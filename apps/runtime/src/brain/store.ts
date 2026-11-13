@@ -1,3 +1,4 @@
+import { StepLearningRepo } from './repo/step-learnings.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { mergeEntity } from './domain/fact-match.ts';
 import { knownProblemsFor, type KnownProblem } from './domain/knowledge.ts';
@@ -58,6 +59,8 @@ export class BrainStore {
   readonly pipelineDefs: PipelineDefsService;
   /** What the end-of-run review keeps: ideas, environments to fix, the scope of a change (docs/funcionalidades/19). */
   readonly review: ReviewService;
+  /** What was already tried in each procedure (docs/funcionalidades/25). */
+  readonly learnings: StepLearningRepo;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -74,6 +77,7 @@ export class BrainStore {
     this.autonomy = new AutonomyService(parts, this);
     this.execution = new ExecutionService(parts, this);
     this.pipelineDefs = new PipelineDefsService(parts, this);
+    this.learnings = new StepLearningRepo(this.db);
     this.review = new ReviewService({ ...parts, reviewNotes: new ReviewNoteRepo(this.db) }, this);
   }
 

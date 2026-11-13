@@ -1,3 +1,4 @@
+import { failedAttempts, learningLines } from '../brain/domain/step-learnings.ts';
 import type { ExecutionReview, Finding } from '@orbi/contracts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
 import { judge } from '../brain/domain/judge.ts';
@@ -45,6 +46,8 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     const settled = s.brain.settleRun(run.id);
     s.brain.markReviewed(run.id);
     const after = s.brain.run(run.id) ?? run;
+    // What this run tried that did not work stays with the procedure (docs/funcionalidades/25).
+    for (const l of failedAttempts(after)) s.brain.learnings.add(l);
     const findings = judged(after, analyzeRun(after, { open: false }));
     const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', findings };
     if (settled.change) {
@@ -134,7 +137,7 @@ export const hasProblems = (r: ExecutionReview) =>
  * `machine`: what this machine offers (allowed commands, shell, browser, coding agent), so a
  * proposed fix only uses tools that exist.
  */
-export function reviewInstruction(r: ExecutionReview, machine?: string): string {
+export function reviewInstruction(r: ExecutionReview, machine?: string, tried: (playbook: string) => string[] = () => []): string {
   if (!hasProblems(r)) {
     return `Revisão da execução: ${r.runs.map((x) => x.playbook).join(', ')} sem nada para mudar. O cartão já está na conversa: responda no máximo uma linha curta, ou nada. Não proponha melhorias.`;
   }
@@ -145,7 +148,9 @@ export function reviewInstruction(r: ExecutionReview, machine?: string): string 
     ...(r.change ?? []).map((c) => {
       const texts = r.runs.filter((x) => x.playbook === c.playbook).flatMap((x) => x.findings.filter((f) => f.kind !== 'aprender').map((f) => f.text));
       const scope = c.steps.length ? `Mude só os passos ${c.steps.join(', ')}; os outros ficam exatamente como estão (o cartão recusa mudança fora deles).` : 'Mude o mínimo necessário.';
-      return `- mudar ${c.playbook} (${c.why}): ${texts.join('; ')}. ${scope}`;
+      const before = tried(c.playbook);
+      const history = before.length ? ` Já tentado neste procedimento (não proponha de novo o que falhou ou foi negado): ${before.join('; ')}.` : '';
+      return `- mudar ${c.playbook} (${c.why}): ${texts.join('; ')}. ${scope}${history} Conte em \`learnings\` o que esta execução tentou e falhou e o que funcionou.`;
     }),
     ...r.runs.flatMap((x) => {
       const texts = x.findings.filter((f) => f.kind === 'aprender').map((f) => f.text);
@@ -187,7 +192,7 @@ export async function sendReview(s: OrbiServices, agent: Agent, conversationId: 
     if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
     await tellAgent(s.events, agent, {
       id: conversationId,
-      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review, machineLine(s)), attributes: { review: JSON.stringify(review) } },
+      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review, machineLine(s), (playbook) => learningLines(s.brain.learnings.list(playbook), 8)), attributes: { review: JSON.stringify(review) } },
     });
   } catch (error) {
     log.error('revisão da execução falhou', { conversation: conversationId, error: error instanceof Error ? error.message : String(error) });

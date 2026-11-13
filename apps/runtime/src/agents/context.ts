@@ -33,6 +33,8 @@ export interface GatedTool<T extends v.GenericSchema<Record<string, unknown>>> {
    * that publishes. `offer`: the card may offer that choice (an MCP tool that does not delete).
    */
   alone?: () => { set: boolean; offer?: { server: string; tool: string } };
+  /** The developer said no to this call: what the tool wants to remember of it (never an effect on the world). */
+  denied?: (args: v.InferOutput<T>) => void;
   /** Problems found before deciding (invalid input): the model fixes them; nothing is asked or run. */
   precheck?: (args: v.InferOutput<T>) => string[];
   /** The effect itself: runs now (`auto`), or later when the developer approves (`approved`). */

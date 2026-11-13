@@ -1,3 +1,4 @@
+import { deniedAttempts, repeatedAttempts } from '../../brain/domain/step-learnings.ts';
 import { outOfScope } from '../../brain/domain/judge.ts';
 import { classifyEntity } from '../../brain/domain/fact-match.ts';
 import type { Entity } from '../../brain/domain/types.ts';
@@ -77,6 +78,12 @@ const learnItem = v.variant('kind', [
       steps: v.array(v.object({ id: v.string(), label: v.string(), how: v.string() })),
       instructions: v.string(),
       variationOf: v.optional(v.pipe(v.string(), v.description('Name of the playbook this one was made from (a variation); keep the ids of reused steps'))),
+      learnings: v.optional(
+        v.pipe(
+          v.array(v.object({ step: v.optional(v.string()), tried: v.pipe(v.string(), v.maxLength(600)), outcome: v.picklist(['falhou', 'funcionou']), why: v.optional(v.pipe(v.string(), v.maxLength(300))) })),
+          v.description('What this run taught about a step, kept with the procedure: [{"step":"filtrar","tried":"clicar no botão Ofertas","outcome":"falhou","why":"não existe nesta categoria"},{"step":"filtrar","tried":"filtro Desconto 10% ou mais no menu lateral","outcome":"funcionou"}]. Only what really happened in the run.'),
+        ),
+      ),
       outputs: v.optional(
         v.pipe(
           v.array(v.object({ name: v.string(), description: v.string() })),
@@ -180,17 +187,53 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
       if (a.asked?.trim() && !theirs) return ['`asked` só vale na mensagem em que o desenvolvedor pediu a mudança: tire-o e proponha só o que a revisão pediu.'];
       const scope = a.asked?.trim() ? [] : scopeProblems(brain, a.items as LearnItems, ctx.conversationId);
       if (scope.length && theirs) scope.push('Se foi o desenvolvedor que pediu esta mudança agora, passe o pedido dele em `asked`.');
-      return [...scope, ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => brain.byType(t))];
+      // An attempt that already failed or was denied in this procedure does not come back as a new idea.
+      const repeated = a.asked?.trim() ? [] : repeatedProposals(brain, a.items as LearnItems);
+      return [...scope, ...repeated, ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => brain.byType(t))];
+    },
+    // A denied change to a procedure is remembered with it, so it is not proposed again.
+    denied: (a) => {
+      for (const item of a.items as LearnItems) {
+        const before = item.kind === 'playbook' ? brain.playbook(String(item.payload.name ?? '')) : undefined;
+        if (!before || !Array.isArray(item.payload.steps)) continue;
+        for (const l of deniedAttempts(before.name, before.steps, stepsOf(item), ctx.conversationId)) brain.learnings.add(l);
+      }
     },
     execute: async (a) => {
       const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
       for (const item of a.items as LearnItems) if (item.kind === 'playbook' && item.payload.name) brain.review.changeApplied(String(item.payload.name));
+      saveLearnings(brain, a.items as LearnItems, ctx.conversationId, a.asked?.trim() ? 'pedido' : 'revisao');
       return `Guardado no cérebro: ${applied.join('; ')}`;
     },
   });
 }
 
 type LearnItems = Array<{ kind: string; payload: Record<string, unknown> }>;
+
+const stepsOf = (item: LearnItems[number]) => (item.payload.steps as Array<Record<string, unknown>>).map((st) => ({ id: String(st.id ?? ''), how: String(st.how ?? '') }));
+
+/** Steps of a new version that repeat what already failed or was denied in that procedure (docs/funcionalidades/25). */
+function repeatedProposals(brain: Deps<'brain'>['brain'], items: LearnItems): string[] {
+  const out: string[] = [];
+  for (const item of items) {
+    const before = item.kind === 'playbook' && Array.isArray(item.payload.steps) ? brain.playbook(String(item.payload.name ?? '')) : undefined;
+    if (!before) continue;
+    out.push(...repeatedAttempts(before.steps, stepsOf(item), brain.learnings.list(before.name)).map((line) => `${before.name}, ${line}`));
+  }
+  return out;
+}
+
+/** What the batch says the run taught about each procedure: kept with it once the card is approved. */
+function saveLearnings(brain: Deps<'brain'>['brain'], items: LearnItems, conversationId: string, source: 'pedido' | 'revisao'): void {
+  for (const item of items) {
+    if (item.kind !== 'playbook' || !Array.isArray(item.payload.learnings)) continue;
+    const playbook = String(item.payload.name ?? '');
+    const steps = new Set(brain.playbook(playbook)?.steps.map((s) => s.id));
+    for (const l of item.payload.learnings as Array<{ step?: string; tried: string; outcome: 'falhou' | 'funcionou'; why?: string }>) {
+      brain.learnings.add({ playbook, step: l.step && steps.has(l.step) ? l.step : null, tried: l.tried, outcome: l.outcome, why: l.why ?? '', source, runId: null, conversationId });
+    }
+  }
+}
 
 /**
  * When the end-of-run review asked to change only some steps of a procedure (docs/funcionalidades/19),

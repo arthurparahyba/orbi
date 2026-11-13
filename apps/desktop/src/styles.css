@@ -850,6 +850,16 @@ button.teach-way:hover { border-color: var(--amber); }
 .fix-env { margin-top: 10px; padding: 10px 12px; border: 1px solid rgba(108, 168, 255, 0.45); border-radius: var(--radius); background: rgba(108, 168, 255, 0.06); display: flex; flex-direction: column; gap: 6px; }
 .fix-env p { margin: 0; }
 .fix-env .kv { margin: 0; }
+.learn-tried { margin: 8px 0; font-size: 13px; }
+.learn-tried ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.pb-learnings { margin: 8px 0; }
+.pb-learnings ul { list-style: none; padding: 0; margin: 4px 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.pb-learnings li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.pb-learning-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pill.learn-falhou { color: #ffb4b4; border-color: #6a2c2c; }
+.pill.learn-funcionou { color: #8fe3b8; border-color: #2c5a46; }
+.pill.learn-negado { color: #9aa3b5; }
+.pill.learn-orbi { color: #cfc3f5; border-color: #5a4a8a; }
 .pb-ideas { margin: 8px 0; }
 .pb-ideas li { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
 .mode-mark { margin: 6px 0; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }

@@ -13,3 +13,5 @@
 - `waiting` num passo só depois de a ferramenta pedir aprovação (o cartão já está na conversa), de uma pergunta ou de um `schedule_followup`. Nunca diga que espera aprovação sem ter chamado a ferramenta: chame-a, e o portão pede se precisar.
 - Uma ferramenta que falhou e deu certo logo depois, no mesmo passo, foi corrigida na hora: não é problema do procedimento e não pede correção.
 - Problema que você entendeu ou contornou vira conhecimento na revisão do fim (o runtime aponta): não grave no meio da execução.
+- `jaTentado`, no `playbook_start`, é o que já foi tentado neste procedimento: não repita o que falhou, o que o desenvolvedor negou nem contorno de defeito do Orbi. Quando propuser mudar um passo depois de uma execução, conte em `learnings` (no item do procedimento) o que ela tentou e não deu certo e o que funcionou, uma linha cada: fica guardado com o procedimento.
+- Leitura cara: `take_screenshot` e `take_snapshot` da página inteira gastam muito. Para achar um link, um botão ou um valor, prefira um `evaluate_script` pequeno que devolve só aquilo; imagem só quando o desenvolvedor pede para ver ou quando o texto da página não basta.

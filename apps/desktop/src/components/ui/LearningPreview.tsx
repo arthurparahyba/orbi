@@ -50,6 +50,18 @@ export function LearningPreview({ detail }: { detail: string }) {
           </ul>
         </div>
       )}
+      {playbooks.some((pb) => Array.isArray(pb.learnings) && pb.learnings.length > 0) && (
+        <div className="learn-tried">
+          <span className="ui-kicker">O que a execução ensinou · fica guardado no procedimento</span>
+          <ul>
+            {playbooks.flatMap((pb) => (Array.isArray(pb.learnings) ? pb.learnings : []).map((l: { step?: string; tried: string; outcome: string; why?: string }, i: number) => (
+              <li key={`${pb.name}-${i}`}>
+                <span className={`pill tiny learn-${l.outcome}`}>{l.outcome}</span> {l.step && <strong>{l.step}: </strong>}{l.tried}{l.why && <span className="muted"> · {l.why}</span>}
+              </li>
+            )))}
+          </ul>
+        </div>
+      )}
       {playbooks.map((pb) => {
         // Script code is Python: its braces are not parameters.
         const all = placeholders(JSON.stringify({ ...pb, scripts: undefined }));

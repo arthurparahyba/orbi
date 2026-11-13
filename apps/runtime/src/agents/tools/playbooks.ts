@@ -1,3 +1,4 @@
+import { learningLines } from '../../brain/domain/step-learnings.ts';
 import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import type { BrainStore } from '../../brain/store.ts';
@@ -100,6 +101,7 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
         ? { passo0: { toResolve, unknown, ...(missing.length ? { faltam: missing } : {}), regras: RESOLVE_RULES } }
         : {};
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
+      const tried = learningLines(brain.learnings.list(pb.name));
       return {
         output: {
           runId: run.id,
@@ -108,6 +110,8 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
           steps,
           ...passo0,
           ...(outputs.length ? { outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.' } : {}),
+          // What was already tried here: do not repeat what failed, was denied, or was a workaround.
+          ...(tried.length ? { jaTentado: tried } : {}),
           regras: rules,
         },
       };

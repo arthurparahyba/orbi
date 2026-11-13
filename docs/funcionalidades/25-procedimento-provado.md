@@ -3,8 +3,8 @@
 Decidido em 13/11 com o desenvolvedor. Protótipo (telas G, H e I):
 https://claude.ai/artifact/AqyyCGi56FKhFZmFdWFQ29
 
-**Feito:** a mudança a pedido do desenvolvedor. **Ainda não implementado:** a prova, a
-retrospectiva e os aprendizados.
+**Feito:** a mudança a pedido do desenvolvedor e os aprendizados do procedimento.
+**Ainda não implementado:** a prova, a retrospectiva montada pelo runtime e o "Testar agora".
 
 ## O problema
 
@@ -70,8 +70,27 @@ Quem usa:
   modelo antes do cartão, com a data e o motivo;
 - **você**: a aba Aprendizados na tela do procedimento.
 
-Entram sozinhos: propostas negadas (com o que você escreveu), falhas recuperadas de uma
-execução (a tentativa e o que funcionou) e contornos marcados pelo diagnóstico como "do Orbi".
+Como entram (feito):
+
+- **proposta negada**: cada passo que a versão negada mudaria vira "negado" (`denied` do
+  `brain_learn`, pelo portão);
+- **execução**: no fim, o que falhou num passo que mesmo assim terminou feito vira "falhou"
+  (`failedAttempts`, na revisão). Deslize corrigido pela mesma chamada e chamada errada do
+  modelo não entram;
+- **cartão aprovado**: o Orbi conta em `learnings`, no item do procedimento, o que a execução
+  tentou e o que funcionou; o cartão mostra, e aprovar guarda;
+- a mesma tentativa com o mesmo resultado é contada ("vista 2 vezes"), não repetida.
+
+Ainda não entra sozinho: o contorno "do Orbi" (depende do diagnóstico, documento 24).
+
+Como são usados (feito): `playbook_start` devolve `jaTentado`; a instrução da revisão traz o
+que já foi tentado; o `brain_learn` recusa, antes do cartão, um passo igual a uma tentativa que
+falhou ou foi negada (`repeatedAttempts`, texto 75% igual), a não ser com `asked`. Na tela do
+procedimento, a seção **Aprendizados**, por passo, com **Tirar**.
+
+Peças: `brain/domain/step-learnings.ts`, `brain/repo/step-learnings.ts` (tabela
+`playbook_learnings`), `http/routes/step-learnings.ts`, `views/brain/PlaybookLearnings.tsx`.
+Testes: `step-learnings.test.ts`, `flow-step-learnings.test.ts`, `learnings.test.ts` (app).
 
 ### Mudança a seu pedido (feito)
 

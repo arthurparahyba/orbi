@@ -279,4 +279,13 @@ CREATE TABLE mcp_tools (
     sql: `ALTER TABLE inbox_items ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE inbox_items ADD COLUMN versions TEXT;`,
   },
+  {
+    name: 'aprendizados do procedimento: o que já foi tentado em cada passo (falhou, funcionou, negado, contorno do Orbi)',
+    sql: `
+CREATE TABLE playbook_learnings (
+  id TEXT PRIMARY KEY, playbook TEXT NOT NULL, step TEXT, tried TEXT NOT NULL, outcome TEXT NOT NULL,
+  why TEXT NOT NULL DEFAULT '', source TEXT NOT NULL, run_id TEXT, conversation_id TEXT NOT NULL DEFAULT '',
+  times INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX playbook_learnings_playbook ON playbook_learnings (playbook, step);`,
+  },
 ];

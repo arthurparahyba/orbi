@@ -282,6 +282,12 @@ tocar, por 2 horas, na mesma conversa). `subject` é o analisador, o problema ou
 `status` `kept`, `open`, `dismissed`, `done` ou `applied`; `times` conta quantas vezes apareceu.
 Vira evento `brain`.
 
+**`playbook_learnings`** · o que já foi tentado em cada procedimento (documento 25): `step` (o
+passo, ou nulo para o procedimento todo), `tried` (a tentativa), `outcome` (`falhou`,
+`funcionou`, `negado`, `orbi`), `why`, `source` (`execucao`, `revisao`, `pedido`, `orbi`),
+`run_id`, `times` (a mesma tentativa vista de novo). Some junto com o procedimento. Vira evento
+`brain`.
+
 **`playbook_runs`** · cada execução de um procedimento. Checklist ao vivo na
 conversa, **Cérebro → Execuções**.
 
@@ -463,6 +469,7 @@ editada, sempre se cria outra.
 | 22 | Revisão no fim da execução: `playbook_runs.asked`/`tokens_in`/`tokens_out`/`cost_usd`; tabela `review_notes` (ideias guardadas, ambiente a corrigir, escopo da mudança) |
 | 23 | Ferramentas MCP: tabelas `mcp_servers` e `mcp_tools` (documento 20) |
 | 24 | `inbox_items.version` e `inbox_items.versions`: pendência atualizada na conversa do cartão (documento 21) |
+| 25 | Tabela `playbook_learnings`: aprendizados do procedimento, por passo (documento 25) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

@@ -107,6 +107,11 @@ export interface ReviewNote {
   id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
   conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
 }
+/** GET /api/step-learnings?playbook= — what was already tried in a procedure, by step (docs/funcionalidades/25). */
+export interface StepLearning {
+  id: string; playbook: string; step: string | null; tried: string; outcome: 'falhou' | 'funcionou' | 'negado' | 'orbi'; why: string;
+  source: 'execucao' | 'revisao' | 'pedido' | 'orbi'; runId: string | null; conversationId: string; times: number; createdAt: string; updatedAt: string;
+}
 export interface PlaybookAutonomy { knownActions: KnownAction[]; events: AutonomyEvent[]; runsForN3: number }
 export interface PlaybookOutput { name: string; description: string }
 export interface PlaybookScript { name: string; description: string; code: string; effect?: 'local' | 'publica' }

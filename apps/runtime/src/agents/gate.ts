@@ -31,6 +31,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
   const delivery = useDelivery();
   const executors = new Map<string, Executor>();
+  const onDenied = new Map<string, (args: Record<string, unknown>) => void>();
 
   /**
    * The learning card this turn was asked from (a message written inside it, signal `card`), when
@@ -46,6 +47,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
 
   function gated<T extends v.GenericSchema<Record<string, unknown>>>(def: GatedTool<T>) {
     executors.set(def.name, def.execute as Executor);
+    if (def.denied) onDenied.set(def.name, def.denied as (args: Record<string, unknown>) => void);
     useTool({
       name: def.name,
       description: `${def.description} Governed by the developer's autonomy settings: it may run now, wait for approval, or only be reported.`,
@@ -132,6 +134,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
     setPending(({ [approvalId]: _done, ...rest }) => rest);
     if (decision !== 'approve') {
       if (call.runId) brain.addRunDeviation(call.runId, { kind: 'negado', detail: `você negou: ${call.action?.summary ?? call.tool}`, tool: call.tool, step: call.action?.step ?? null });
+      onDenied.get(call.tool)?.(call.args as Record<string, unknown>);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} negou ${call.tool} (${approvalId}). Não tente de novo; pergunte como seguir.` });
       return;
     }
