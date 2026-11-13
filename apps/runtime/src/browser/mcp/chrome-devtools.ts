@@ -13,10 +13,16 @@ export interface BrowserMcp {
    */
   connection: ReturnType<typeof defineMcpConnection>;
   /** Calls one tool on the same bridge, for tools that gate or wrap calls. */
-  /** `signal`: give up waiting (the developer stopped the turn). */
-  call(tool: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<string>;
+  /**
+   * `signal`: give up waiting (the developer stopped the turn). `full`: the whole answer, for a
+   * caller that writes it to a file; without it the text is cut to what a model should read.
+   */
+  call(tool: string, args: Record<string, unknown>, signal?: AbortSignal, opts?: { full?: boolean }): Promise<string>;
   url: string;
 }
+
+/** What goes back to a model from one browser call; a file (saveTo) gets everything. */
+export const MAX_FOR_MODEL = 30_000;
 
 export function createBrowserMcp(opts: { port: number; token: string }): BrowserMcp {
   const url = `http://127.0.0.1:${opts.port}/mcp`;
@@ -40,7 +46,7 @@ export function createBrowserMcp(opts: { port: number; token: string }): Browser
       throw error;
     }));
 
-  async function call(tool: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<string> {
+  async function call(tool: string, args: Record<string, unknown>, signal?: AbortSignal, opts: { full?: boolean } = {}): Promise<string> {
     const c = await connect();
     const result = (await c.callTool({ name: tool, arguments: args }, undefined, signal ? { signal } : undefined)) as {
       content?: Array<{ type: string; text?: string }>;
@@ -48,7 +54,7 @@ export function createBrowserMcp(opts: { port: number; token: string }): Browser
     };
     const text = (result.content ?? []).map((part) => (part.type === 'text' ? part.text : `[${part.type}]`)).join('\n');
     if (result.isError) throw new Error(text || `browser tool ${tool} failed`);
-    return text.length > 30_000 ? `${text.slice(0, 30_000)}\n…[truncado]` : text;
+    return !opts.full && text.length > MAX_FOR_MODEL ? `${text.slice(0, MAX_FOR_MODEL)}\n…[truncado]` : text;
   }
 
   return { connection, call, url };

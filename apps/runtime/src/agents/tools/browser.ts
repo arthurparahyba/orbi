@@ -50,10 +50,13 @@ function useBrowser(ctx: AgentContext, { vault, browser, config }: Deps<'vault' 
     execute: async (a, _id, _how, signal) => {
       const { value: args, used } = await vault.resolve(a.args);
       try {
-        const text = redact(await browser.call(a.tool, args, signal), used);
+        // A file gets the whole answer: the cut is only for what a model reads.
+        const text = redact(await browser.call(a.tool, args, signal, { full: !!a.saveTo }), used);
         if (!a.saveTo) return text;
         const file = savePath(a.saveTo, config.workspace);
         const body = payloadOf(text);
+        const bad = notJson(file, body);
+        if (bad) throw new SaveRefused(bad);
         mkdirSync(dirname(file), { recursive: true });
         writeFileSync(file, body);
         return JSON.stringify({ savedTo: file, bytes: Buffer.byteLength(body), head: body.slice(0, 300) });
@@ -62,6 +65,20 @@ function useBrowser(ctx: AgentContext, { vault, browser, config }: Deps<'vault' 
       }
     },
   });
+}
+
+/** The Orbi's own limit, not the procedure's fault (the review does not blame the step). */
+export class SaveRefused extends Error {}
+
+/** A `.json` file must hold JSON: anything else is refused instead of written broken. */
+export function notJson(file: string, body: string): string | undefined {
+  if (!/\.json$/i.test(file)) return undefined;
+  try {
+    JSON.parse(body);
+    return undefined;
+  } catch {
+    return `o retorno não é JSON (começa com "${body.slice(0, 40).replace(/\s+/g, ' ')}"): nada foi gravado em ${file}. Faça o script devolver um valor JSON (um array ou objeto), ou grave com outra extensão.`;
+  }
 }
 
 /** What a browser tool returned, without its wrapper: the content of the first ```json (or ```) block, else the whole text. */

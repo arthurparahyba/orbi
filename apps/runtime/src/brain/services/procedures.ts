@@ -18,7 +18,7 @@ export class Procedures {
     const before = this.p.playbookRepo.get(pb.name);
     const scripts = pb.scripts ?? before?.scripts ?? [];
     // The same for what it is for, what it receives and the rehearsal that proved it.
-    pb = { ...pb, intent: pb.intent ?? before?.intent ?? '', inputs: pb.inputs ?? before?.inputs ?? [], testedRun: pb.testedRun ?? before?.testedRun ?? null };
+    pb = { ...pb, intent: pb.intent ?? before?.intent ?? '', inputs: pb.inputs ?? before?.inputs ?? [], outputs: pb.outputs ?? before?.outputs ?? [], testedRun: pb.testedRun ?? before?.testedRun ?? null };
     const problems = playbookProblems({ ...pb, scripts });
     // Over concepts: inputs and citations valid against the ontology, no specific fact written in.
     problems.push(...inputProblems(pb, this.brain.facts.typeOf), ...leakedSpecifics(pb, (type) => this.p.graphRepo.byType(type)));

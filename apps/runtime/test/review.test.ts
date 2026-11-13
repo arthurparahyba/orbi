@@ -210,3 +210,11 @@ test('revisão: cada analisador registrado vira achados do seu tipo, e só os qu
   assert.deepEqual(findings, [{ kind: 'melhoria', text: 'algo a melhorar', analyzer: 'teste' }], 'mesmo texto uma vez só');
   assert.deepEqual(howToFix(findings, [custom, quiet]), ['faça assim.']);
 });
+
+test('corrigir só os passos mantém o que o procedimento entrega', () => {
+  const b = new BrainStore(':memory:');
+  b.savePlaybook(pb('promo', [['extrair', 'ler a página']], ['html_path']));
+  b.learn([{ kind: 'playbook', payload: { name: 'promo', description: 'promo', trigger: 'promo', steps: [{ id: 'extrair', label: 'extrair', how: 'ler a página filtrada' }] } }], 'correção', 'c');
+  assert.deepEqual(b.playbook('promo')!.outputs.map((o) => o.name), ['html_path']);
+  assert.equal(b.playbook('promo')!.steps[0].how, 'ler a página filtrada');
+});

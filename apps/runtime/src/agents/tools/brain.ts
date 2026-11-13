@@ -1,7 +1,7 @@
 import { outOfScope } from '../../brain/domain/judge.ts';
 import { classifyEntity } from '../../brain/domain/fact-match.ts';
 import type { Entity } from '../../brain/domain/types.ts';
-import { defineTool, useTool } from '../runtime-port.ts';
+import { defineTool, useDelivery, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import type { BrainStore } from '../../brain/store.ts';
 import { defineCapability, type Deps } from '../capability.ts';
@@ -145,6 +145,7 @@ export function learnTitle(items: Array<{ kind: string; payload: { name?: string
 export const memory = defineCapability({ name: 'brain', needs: ['brain', 'config'], register: useBrain });
 
 function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>) {
+  const delivery = useDelivery();
   useTool(brainQuery(brain));
   ctx.gated({
     name: 'brain_learn',
@@ -156,6 +157,7 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
     input: v.object({
       reason: v.string(),
       why: v.optional(v.pipe(v.string(), v.maxLength(400), v.description('Why you propose it: ONE sentence in Portuguese, shown inside the card ("o curl não é permitido aqui; extrair pelo navegador grava o JSON direto").'))),
+      asked: v.optional(v.pipe(v.string(), v.maxLength(400), v.description("ONLY when the developer, in THIS message, asked to change a procedure: their request in their own words (\"muda o passo 5 pra gravar com a data no nome\"). The card shows it, and their request is not limited to the steps a review named. Never for your own ideas."))),
       items: v.array(learnItem),
       leftOut: v.optional(
         v.pipe(
@@ -170,7 +172,12 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
     precheck: (a) => {
       const problems = brain.learnProblems(inLearningOrder(a.items) as never);
       if (problems.length) return [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'];
-      return [...scopeProblems(brain, a.items as LearnItems, ctx.conversationId), ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => brain.byType(t))];
+      // The developer's own request, in this very message, is not held to the steps a review named.
+      const theirs = delivery?.kind === 'user' || (delivery?.kind === 'signal' && delivery.type === 'card');
+      if (a.asked?.trim() && !theirs) return ['`asked` só vale na mensagem em que o desenvolvedor pediu a mudança: tire-o e proponha só o que a revisão pediu.'];
+      const scope = a.asked?.trim() ? [] : scopeProblems(brain, a.items as LearnItems, ctx.conversationId);
+      if (scope.length && theirs) scope.push('Se foi o desenvolvedor que pediu esta mudança agora, passe o pedido dele em `asked`.');
+      return [...scope, ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => brain.byType(t))];
     },
     execute: async (a) => {
       const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);

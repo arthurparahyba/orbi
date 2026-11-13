@@ -901,6 +901,7 @@ strong .merged { display: inline; font-weight: 600; }
 .merged.stacked .m-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85; }
 
 /* Conversation inside a card (docs/funcionalidades/21). */
+.card-asked { margin: 0 0 8px; padding: 6px 10px; border-left: 3px solid var(--accent, #6ca8ff); background: var(--surface-2); font-size: 13px; }
 .card-why { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--border); background: var(--surface-2); border-radius: 0 8px 8px 0; font-size: 13px; }
 .card-thread { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
 .card-thread .msg.assistant .avatar { width: 20px; height: 20px; font-size: 10px; }

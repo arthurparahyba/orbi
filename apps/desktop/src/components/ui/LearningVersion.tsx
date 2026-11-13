@@ -12,9 +12,11 @@ export function LearningVersion({ detail, why, item }: { detail: string; why?: s
   const current = changedInChat ? item!.detail : detail;
   const first = item?.versions?.[0]?.detail;
   const changes = changedInChat && first ? learningChanges(first, current) : [];
-  const reason = whyOf(current) ?? why;
+  const reason = textOf(current, 'why') ?? why;
+  const asked = textOf(current, 'asked');
   return (
     <>
+      {asked && <p className="card-asked"><strong>Você pediu:</strong> “{asked}”</p>}
       <LearningPreview detail={current} />
       {changes.length > 0 && (
         <div className="card-changes">
@@ -27,10 +29,10 @@ export function LearningVersion({ detail, why, item }: { detail: string; why?: s
   );
 }
 
-/** The why travels inside the stored call too: the current proposal's wins. */
-function whyOf(detail: string): string | undefined {
+/** The why and the developer's request travel inside the stored call too: the current proposal's win. */
+export function textOf(detail: string, key: 'why' | 'asked'): string | undefined {
   try {
-    const w = (JSON.parse(detail) as { why?: unknown }).why;
+    const w = (JSON.parse(detail) as Record<string, unknown>)[key];
     return typeof w === 'string' && w.trim() ? w.trim() : undefined;
   } catch {
     return undefined;

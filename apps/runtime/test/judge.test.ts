@@ -74,6 +74,14 @@ test('mudança mínima: passos fora do escopo pedido ficam como estão', () => {
   assert.deepEqual(outOfScope(before, [before[0]], ['tasks']), ['banco (removido)']);
 });
 
+test('mudança mínima: mudar a ordem dos passos é recusado, mesmo com todos iguais', () => {
+  const steps = ['abrir', 'categoria', 'extrair', 'html'].map((id) => ({ id, label: id, how: id }));
+  const moved = [{ ...steps[2], how: 'em lotes' }, steps[0], steps[1], steps[3]];
+  assert.match(outOfScope(steps, moved, ['extrair'])[0], /ordem dos passos \(extrair veio antes de abrir/);
+  // A new step in the middle does not move the others.
+  assert.deepEqual(outOfScope(steps, [steps[0], steps[1], { ...steps[2], how: 'x' }, steps[3]], ['extrair']), []);
+});
+
 test('fatos: credencial nunca vira fato; referência ao cofre e endereço do banco sim', () => {
   assert.equal(credentialProblems({ senha: 'x1' }).length, 1);
   assert.equal(credentialProblems({ db_password: 'x1' }).length, 1);

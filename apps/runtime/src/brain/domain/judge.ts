@@ -117,6 +117,17 @@ export function judge(input: JudgeInput): Verdict[] {
 }
 
 /**
+ * The steps both versions have must come in the same order: a step moved (extract before opening
+ * the site) breaks the procedure though every step reads the same.
+ */
+export function orderChanged(before: readonly string[], after: readonly string[]): string | undefined {
+  const kept = after.filter((id) => before.includes(id));
+  const was = before.filter((id) => after.includes(id));
+  const at = kept.findIndex((id, i) => id !== was[i]);
+  return at < 0 ? undefined : `a ordem dos passos (${kept[at]} veio antes de ${was[at]}: mantenha a ordem de antes)`;
+}
+
+/**
  * When a review asked to change only some steps: the steps of the new version outside that
  * scope must stay as they are (same id, label and how). Empty scope = only scripts and how may
  * be added to the steps the finding names, nothing else is limited here.
@@ -136,5 +147,7 @@ export function outOfScope(
     else if (old.label !== s.label || old.how !== s.how) changed.push(s.id);
   }
   for (const id of was.keys()) if (!allowed.includes(id) && !after.some((s) => s.id === id)) changed.push(`${id} (removido)`);
+  const moved = orderChanged(before.map((s) => s.id), after.map((s) => s.id));
+  if (moved) changed.push(moved);
   return changed;
 }

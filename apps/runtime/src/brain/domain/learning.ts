@@ -127,9 +127,10 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
             : {}),
           ...(p.testedRun ? { testedRun: String(p.testedRun) } : {}),
           variationOf: p.variationOf ? String(p.variationOf) : null,
-          outputs: Array.isArray(p.outputs)
-            ? (p.outputs as Array<Partial<PlaybookOutput>>).map((o) => ({ name: String(o.name ?? ''), description: String(o.description ?? '') }))
-            : [],
+          // Left out: what it hands over stays as it was (Procedures.savePlaybook).
+          ...(Array.isArray(p.outputs)
+            ? { outputs: (p.outputs as Array<Partial<PlaybookOutput>>).map((o) => ({ name: String(o.name ?? ''), description: String(o.description ?? '') })) }
+            : {}),
           // Left out: the scripts the playbook already has stay (store.savePlaybook).
           ...(Array.isArray(p.scripts)
             ? {
