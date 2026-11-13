@@ -34,6 +34,7 @@ e [plugins](../plugins.md).
 | 20 | [Ferramentas MCP e a nova Autonomia](20-ferramentas-mcp.md) | Servidores MCP cadastrados pelo desenvolvedor (por endereço ou comando), leitura ou escrita por ferramenta, credenciais do cofre, sempre sozinho, Configurações |
 | 21 | [Conversa dentro do cartão](21-conversa-no-cartao.md) | O porquê dentro do cartão, perguntar sobre o cartão nele mesmo, ajuste que muda o próprio cartão (versões) |
 | 22 | [Fatos sem repetição](22-fatos-sem-repeticao.md) | A revisão não repete o que o cérebro já sabe, aprender soma em vez de trocar, e o passo que achou o fato passa a consultar o Cérebro, no mesmo cartão |
+| 23 | [Execução que não ensina errado](23-execucao-que-nao-ensina-errado.md) | Proposta: o saveTo do navegador inteiro, a revisão que não culpa o passo pelo que é do Orbi, variação que herda da base, menos aprovações |
 
 ## Como as funcionalidades se ligam
 
