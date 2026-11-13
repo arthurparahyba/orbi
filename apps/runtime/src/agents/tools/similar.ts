@@ -17,7 +17,7 @@ function useSimilar(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>
     name: 'playbook_similar',
     description:
       'Find playbooks that look like a request or a procedure you are about to store. Give the goal in a few words ("deletar repositório no GitHub"). ' +
-      'Returns up to 3 candidates, best first, with steps, instructions and track record; you judge if one is the same, similar or unrelated. ' +
+      'Returns up to 3 candidates, best first, with steps, instructions, scripts (names), inputs, outputs and track record. A version of one (`variationOf`) inherits its scripts, inputs and outputs: send only what changes; you judge if one is the same, similar or unrelated. ' +
       'Also how you find any playbook not in your skill catalog: run it with playbook_start by name.',
     input: v.object({ text: v.string() }),
     async run({ data }) {
@@ -30,6 +30,10 @@ function useSimilar(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>
         autonomy: p.autonomy,
         steps: p.steps,
         instructions: p.instructions,
+        // Names only: a version of it inherits them; brain_query with the name gives the code.
+        scripts: p.scripts.map((x) => ({ name: x.name, description: x.description })),
+        inputs: p.inputs,
+        outputs: p.outputs,
         uses: p.uses,
         successes: p.successes,
         variationOf: p.variationOf,

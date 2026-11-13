@@ -43,7 +43,7 @@ export function inlineScriptSuggestions(run: Pick<PlaybookRun, 'actions'>): stri
  * the component by hand. The script should print it and run with show: true.
  */
 export function showSuggestions(run: Pick<PlaybookRun, 'actions' | 'deviations'>): string[] {
-  const steps = new Set(run.deviations.filter((d) => d.kind === 'falha' && d.tool === 'show_ui').map((d) => d.step ?? ''));
+  const steps = new Set(run.deviations.filter((d) => (d.kind === 'falha' || d.kind === 'chamada') && d.tool === 'show_ui').map((d) => d.step ?? ''));
   return [...steps]
     .filter((step) => run.actions.some((a) => a.tool === 'run_script' && (a.step ?? '') === step))
     .map((step) =>

@@ -31,7 +31,10 @@ export function proposalProblems(kind: ProposalKind, payload: Record<string, unk
     {
       if (!Array.isArray(payload.steps) || payload.steps.length === 0) return ['playbook sem passos'];
       // Left out, the scripts it has stay: the steps are checked against those.
-      const scripts = Array.isArray(payload.scripts) ? (payload.scripts as PlaybookScript[]) : ctx.playbook(String(payload.name))?.scripts;
+      // A new version of another procedure starts with its base's scripts (Procedures.savePlaybook).
+      const scripts = Array.isArray(payload.scripts)
+        ? (payload.scripts as PlaybookScript[])
+        : (ctx.playbook(String(payload.name)) ?? (payload.variationOf ? ctx.playbook(String(payload.variationOf)) : undefined))?.scripts;
       return scriptProblems(scripts, (payload.steps as PlaybookStep[]).map((st) => ({ id: String(st.id), how: String(st.how ?? '') })));
     }
     case 'pipeline':

@@ -33,7 +33,8 @@ export interface Deviation {
   /** `comando`: a command that exited with an error. Not a problem by itself (a check may exit 1
    * on purpose): it only feeds what the Orbi learns (domain/knowledge.ts), never the level. */
   /** `intervencao`: the developer typed something during the run (often a correction): it may scope a change, never the level. */
-  kind: 'falha' | 'negado' | 'passo' | 'comando' | 'intervencao';
+  /** `chamada`: the model called a tool wrongly (invalid arguments, a tool that does not exist): the model's slip, never the step's fault nor the level's. */
+  kind: 'falha' | 'negado' | 'passo' | 'comando' | 'intervencao' | 'chamada';
   detail: string;
   /** For `comando`: the command as run, to tell when the same one worked later. */
   command?: string;
@@ -49,7 +50,13 @@ export interface Deviation {
 }
 
 /** The deviations that count: a slip fixed on the spot does not. */
-export const activeDeviations = (deviations: Deviation[]) => deviations.filter((d) => !d.recovered && d.kind !== 'comando' && d.kind !== 'intervencao');
+export const activeDeviations = (deviations: Deviation[]) => deviations.filter((d) => !d.recovered && d.kind !== 'comando' && d.kind !== 'intervencao' && d.kind !== 'chamada');
+
+/** Whether a step's instruction names this tool (the step is about it). */
+export const stepUses = (how: string | undefined, tool: string): boolean => !!how && how.includes(tool);
+
+/** A tool error that is a wrong call (arguments that do not validate, a tool that does not exist), not the tool failing at its work. */
+export const isCallError = (error: string | undefined): boolean => !!error && /^Validation failed for tool|^Tool .{1,80} not found|^Unknown tool|ferramenta .{1,80} não existe/i.test(error.trim());
 
 export interface LevelState {
   level: Level;

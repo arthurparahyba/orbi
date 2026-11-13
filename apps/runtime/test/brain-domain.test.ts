@@ -207,3 +207,14 @@ test('id de passo novo a partir do nome, sem repetir', async () => {
   assert.equal(stepId('Abrir o portal', ['abrir-o-portal']), 'abrir-o-portal-2');
   assert.equal(stepId('✓', []), 'passo');
 });
+
+test('passos em ordem: fechar um abre o próximo; fechar com um anterior aberto é recusado; pular é explícito', () => {
+  const pb = { name: 'p', steps: [{ id: 'a', label: 'A', how: '' }, { id: 'b', label: 'B', how: '' }, { id: 'c', label: 'C', how: '' }] } as Playbook;
+  let run = newRun(pb, 'r1', 'c', {}, '2026-01-01T00:00:00Z');
+  run = advanceRun(run, 'a', 'done', undefined, 't');
+  assert.deepEqual(run.steps.map((s) => s.status), ['done', 'running', 'pending'], 'o próximo abre sozinho');
+  assert.throws(() => advanceRun(run, 'c', 'done', undefined, 't'), /feche b antes de c/);
+  run = advanceRun(run, 'b', 'skipped', 'não precisou', 't');
+  run = advanceRun(run, 'c', 'done', undefined, 't');
+  assert.equal(run.status, 'done');
+});

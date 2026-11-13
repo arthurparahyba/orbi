@@ -56,7 +56,7 @@ function useBrowser(ctx: AgentContext, { vault, browser, config }: Deps<'vault' 
         const file = savePath(a.saveTo, config.workspace);
         const body = payloadOf(text);
         const bad = notJson(file, body);
-        if (bad) throw new SaveRefused(bad);
+        if (bad) throw new Error(bad);
         mkdirSync(dirname(file), { recursive: true });
         writeFileSync(file, body);
         return JSON.stringify({ savedTo: file, bytes: Buffer.byteLength(body), head: body.slice(0, 300) });
@@ -66,9 +66,6 @@ function useBrowser(ctx: AgentContext, { vault, browser, config }: Deps<'vault' 
     },
   });
 }
-
-/** The Orbi's own limit, not the procedure's fault (the review does not blame the step). */
-export class SaveRefused extends Error {}
 
 /** A `.json` file must hold JSON: anything else is refused instead of written broken. */
 export function notJson(file: string, body: string): string | undefined {

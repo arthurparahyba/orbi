@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { judge, outOfScope, RECURRING_AFTER } from '../src/brain/domain/judge.ts';
+import { activeDeviations, isCallError } from '../src/brain/domain/levels.ts';
+import { stepClaimProblems } from '../src/brain/domain/review.ts';
 import { runDeviations, workedAround, type Deviation } from '../src/brain/domain/levels.ts';
 import { asKnownProblem, recurrence } from '../src/brain/domain/knowledge.ts';
 import { credentialProblems } from '../src/brain/domain/learning.ts';
@@ -107,4 +109,13 @@ test('intervenção: o que o desenvolvedor digita durante a execução fica no p
   // Outside a run, or in a rehearsal, typing is just the conversation.
   b.execution.noteIntervention('c2', 'oi');
   assert.equal(b.runs().filter((r) => r.conversationId === 'c2').length, 0);
+});
+
+test('chamada errada do modelo (argumento inválido, ferramenta que não existe) não acusa o passo nem segura o nível', () => {
+  assert.equal(isCallError('Validation failed for tool "show_ui":\n  - component: required'), true);
+  assert.equal(isCallError('Tool mcp__chrome__evaluate_script not found'), true);
+  assert.equal(isCallError('JSONDecodeError: Expecting value: line 1'), false);
+  const deviations = [{ kind: 'chamada' as const, detail: 'show_ui falhou', tool: 'show_ui', step: 'extrair', at: '' }];
+  assert.deepEqual(activeDeviations(deviations), []);
+  assert.deepEqual(stepClaimProblems({ steps: [{ id: 'extrair', label: 'Extrair', status: 'done' }] as never, deviations }), []);
 });

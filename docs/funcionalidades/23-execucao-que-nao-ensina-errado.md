@@ -1,8 +1,25 @@
 # 23. Execução que não ensina errado
 
-Proposta de 13/11, a partir da execução "Consultar promoções de livros infantis clássicos"
-(conversa `chat:01m795g3q4q7kgwm08t128h95x`). **Ainda não implementado.** Cada problema foi
-conferido no código; a referência de arquivo e linha está em cada um.
+A partir da execução "Consultar promoções de livros infantis clássicos" (conversa
+`chat:01m795g3q4q7kgwm08t128h95x`), de 13/11. Cada problema foi conferido no código; a
+referência de arquivo e linha é a de antes da correção.
+
+## O que já foi feito
+
+| Item | Estado | Como ficou |
+|---|---|---|
+| 1 | feito | `saveTo` do `browser_act` recebe a resposta inteira (`call(…, { full: true })`); arquivo `.json` que não é JSON é recusado, sem gravar |
+| 2 | feito | `outOfScope` recusa mudar a ordem dos passos (`orderChanged`) |
+| 3 | feito em parte | Chamada errada do modelo (ferramenta que não existe, argumento inválido) vira desvio `chamada`: não acusa o passo nem segura o nível. Se o passo é sobre aquela ferramenta (o `how` a cita), continua `falha`. "Causa do Orbi" fica para o diagnóstico (documento 24) |
+| 4 | feito | `outputs` ausente mantém as entregas; variação nova copia scripts, entradas, entregas e intenção da base (a prova não); `brain_query` com o nome devolve o procedimento; semelhantes trazem scripts (nomes), entradas e entregas |
+| 5 | feito | Perfis de leitura para `head`, `tail`, `wc`, `ls`, `grep` e `find` (sem `-delete`/`-exec`); `run_command` com programa fora da lista é recusado antes do cartão. A lista padrão não mudou: esses programas só rodam se você os liberar em `ORBI_ALLOWED_BINARIES` |
+| 6 | feito | Fechar um passo abre o próximo; fechar com um anterior aberto é recusado |
+| 7 | aberto | Decisão do desenvolvedor (entrada em vez de variação) |
+| 8 | aberto | Regra de leitura pequena da página |
+| 9 | do procedimento | Evolui pela revisão |
+
+Também: mudança pedida pelo desenvolvedor (`asked` no `brain_learn`) não fica presa ao escopo
+da revisão (documento 25).
 
 ## O que aconteceu, em uma linha
 

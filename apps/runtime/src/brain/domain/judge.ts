@@ -78,7 +78,7 @@ function troubledSteps(run: JudgeInput['run']): string[] {
   const out = new Set<string>();
   for (const s of run.steps) if (s.status === 'failed' || s.status === 'skipped' || s.status === 'running' || s.status === 'waiting') out.add(s.id);
   for (const d of run.deviations) {
-    if (!d.step || d.recovered || d.kind === 'comando' || workedAround(d, run.steps)) continue;
+    if (!d.step || d.recovered || d.kind === 'comando' || d.kind === 'chamada' || workedAround(d, run.steps)) continue;
     out.add(d.step);
   }
   return [...out];

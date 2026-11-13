@@ -119,7 +119,7 @@ export interface PlaybookRun {
   resolved?: Record<string, { value: string; entity: string; learned: 'known' | 'alias' | 'created'; undone?: boolean }>;
   actions: Array<{ fingerprint: string; tool: string; effect: ActionEffect; summary: string; step: string | null }>;
   /** `recovered`: the same step got past it right away (the tool worked next), not a problem. */
-  deviations: Array<{ kind: 'falha' | 'negado' | 'passo' | 'comando' | 'intervencao'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean; command?: string; known?: boolean; problem?: string }>;
+  deviations: Array<{ kind: 'falha' | 'negado' | 'passo' | 'comando' | 'intervencao' | 'chamada'; detail: string; tool?: string; step?: string | null; at: string; recovered?: boolean; command?: string; known?: boolean; problem?: string }>;
   /** Approvals asked during the run; model tokens and cost while it was open. */
   asked?: number;
   usage?: { tokensIn: number; tokensOut: number; costUsd: number };

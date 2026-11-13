@@ -77,8 +77,19 @@ export function newRun(
 
 /** Marks a step and recomputes the run: any failure fails it; all done (or skipped) finishes it. */
 export function advanceRun(run: PlaybookRun, stepId: string, status: StepStatus, note: string | undefined, at: string): PlaybookRun {
-  const steps = run.steps.map((s) => (s.id === stepId ? { ...s, status, ...(note === undefined ? {} : { note }) } : s));
-  if (!steps.some((s) => s.id === stepId)) throw new Error(`passo não encontrado: ${stepId}`);
+  const at0 = run.steps.findIndex((s) => s.id === stepId);
+  if (at0 < 0) throw new Error(`passo não encontrado: ${stepId}`);
+  // In order: a step is not done while one before it is open (its actions would count in the wrong step).
+  if (status === 'done') {
+    const open = run.steps.slice(0, at0).filter((s) => s.status === 'pending' || s.status === 'running').map((s) => s.id);
+    if (open.length) throw new Error(`feche ${open.join(', ')} antes de ${stepId}: done se foi feito, skipped se não precisou, com uma nota`);
+  }
+  let steps = run.steps.map((s) => (s.id === stepId ? { ...s, status, ...(note === undefined ? {} : { note }) } : s));
+  // A step closed: the next one opens by itself, so every action is counted in the step it belongs to.
+  if ((status === 'done' || status === 'skipped') && !steps.some((s) => s.status === 'running' || s.status === 'waiting' || s.status === 'failed')) {
+    const next = steps.findIndex((s) => s.status === 'pending');
+    if (next >= 0) steps = steps.map((s, i) => (i === next ? { ...s, status: 'running' as StepStatus } : s));
+  }
   const allDone = steps.every((s) => s.status === 'done' || s.status === 'skipped');
   const anyFailed = steps.some((s) => s.status === 'failed');
   const anyWaiting = steps.some((s) => s.status === 'waiting');

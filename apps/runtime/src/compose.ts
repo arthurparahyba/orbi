@@ -1,3 +1,4 @@
+import { isCallError, stepUses } from './brain/domain/levels.ts';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import type { Agent } from './agents/runtime-port.ts';
@@ -140,7 +141,9 @@ export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'
   // known solution does not hold the level back, and coming back every time is counted.
   const known = outcome.error ? s.brain.knownProblems(`${outcome.tool}\n${outcome.error}`, 1)[0] : undefined;
   s.brain.addRunDeviation(run.id, {
-    kind: 'falha',
+    // A wrong call (a tool that does not exist, arguments that do not validate) is the model's slip,
+    // not the step's failure, unless the step is about that very tool (then it never did its work).
+    kind: isCallError(outcome.error) && !stepUses(s.brain.playbook(run.playbook)?.steps.find((x) => x.id === step?.id)?.how, outcome.tool) ? 'chamada' : 'falha',
     detail: `${outcome.tool} falhou${outcome.error ? `: ${outcome.error.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,
     tool: outcome.tool,
     step: step?.id ?? null,

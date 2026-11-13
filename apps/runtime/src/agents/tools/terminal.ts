@@ -113,6 +113,12 @@ export function shortCommand(binary: string, args: readonly string[], home = hom
   return [binary, ...parts].join(' ');
 }
 
+/** Why a program cannot run here, before anything is asked (the same rule terminal/exec.ts enforces). */
+export function notAllowed(binary: string, allowed: readonly string[]): string[] {
+  if (allowed.includes(binary) && !binary.includes('/')) return [];
+  return [`${binary} não está entre os comandos permitidos nesta máquina (${allowed.join(', ')}): use um deles${allowed.includes('cat') ? ' (cat para ler um arquivo)' : ''}, ou run_shell para uma linha de shell. Nada foi pedido ao desenvolvedor.`];
+}
+
 export const terminal = defineCapability({ name: 'terminal', needs: ['config', 'brain', 'inbox'], register: useTerminal });
 
 function useTerminal(ctx: AgentContext, deps: Deps<'config' | 'brain' | 'inbox'>) {
@@ -121,6 +127,8 @@ function useTerminal(ctx: AgentContext, deps: Deps<'config' | 'brain' | 'inbox'>
     name: 'run_command',
     description: `Run a CLI command in the workspace — ${allowedBinaries.join(', ')} — without a shell (binary + args). Read-only commands usually run at once; writes (push, merge, workflow run, deploy) follow the autonomy rules.`,
     input: commandInput,
+    // A program this machine does not allow would be refused after the approval: say so before any card.
+    precheck: (a) => notAllowed(a.binary, allowedBinaries),
     // Saving the output writes a file: never a plain read.
     category: (a) => (a.saveTo ? 'comandos-escrita' : commandCategory(a.binary, a.args)),
     summary: (a) => `${a.purpose}: ${a.binary} ${a.args.join(' ')}`,

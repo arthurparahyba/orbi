@@ -15,15 +15,18 @@ export class Procedures {
   // ── playbooks ───────────────────────────────────────────────────────────
   savePlaybook(pb: PlaybookInput): Playbook {
     // Scripts left out of a change stay as they were (and the steps are checked against them).
-    const before = this.p.playbookRepo.get(pb.name);
+    // A new variation starts from its base: what it does not bring (scripts, what it is for, what it
+    // receives and hands over) is copied from it, so "a version of this one" needs only its steps.
+    const own = this.p.playbookRepo.get(pb.name);
+    const before = own ?? (pb.variationOf && pb.variationOf !== pb.name ? this.p.playbookRepo.get(pb.variationOf) : undefined);
     const scripts = pb.scripts ?? before?.scripts ?? [];
     // The same for what it is for, what it receives and the rehearsal that proved it.
-    pb = { ...pb, intent: pb.intent ?? before?.intent ?? '', inputs: pb.inputs ?? before?.inputs ?? [], outputs: pb.outputs ?? before?.outputs ?? [], testedRun: pb.testedRun ?? before?.testedRun ?? null };
+    pb = { ...pb, intent: pb.intent ?? before?.intent ?? '', inputs: pb.inputs ?? before?.inputs ?? [], outputs: pb.outputs ?? before?.outputs ?? [], testedRun: pb.testedRun ?? own?.testedRun ?? null };
     const problems = playbookProblems({ ...pb, scripts });
     // Over concepts: inputs and citations valid against the ontology, no specific fact written in.
     problems.push(...inputProblems(pb, this.brain.facts.typeOf), ...leakedSpecifics(pb, (type) => this.p.graphRepo.byType(type)));
     // What proves it works: a finished rehearsal with its agreement, or a good run of it.
-    if (pb.testedRun && pb.testedRun !== before?.testedRun) {
+    if (pb.testedRun && pb.testedRun !== own?.testedRun) {
       const problem = testedRunProblem(this.p.playbookRepo.run(pb.testedRun), pb.name, pb.testedRun);
       if (problem) problems.push(problem);
     }

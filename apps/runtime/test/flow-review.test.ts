@@ -61,7 +61,7 @@ test('revisão no fim: falha em paralelo com o passo é pega, pede correção e 
   assert.equal((await app.request(`/api/inbox/${note.id}/decision`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve' }) })).status, 409);
 });
 
-test('passo esquecido: marcar o último com outro aberto avisa na hora, e o procedimento só termina fechando', async () => {
+test('passo fora de ordem: fechar um passo com outro aberto antes é recusado na hora, e o procedimento só termina fechando', async () => {
   brain.savePlaybook({
     name: 'coletar-teste', description: 'Coleta', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'buscar', label: 'Buscar', how: '' }, { id: 'montar', label: 'Montar', how: '' }, { id: 'entregar', label: 'Entregar', how: '' }],
@@ -71,9 +71,10 @@ test('passo esquecido: marcar o último com outro aberto avisa na hora, e o proc
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'buscar', status: 'done' }), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'entregar', status: 'done' }), { stopReason: 'toolUse' }),
     (context) => {
-      assert.match(JSON.stringify(context), /pendentes.*montar.*Sem isso, a esteira não segue/);
+      assert.match(JSON.stringify(context), /feche montar antes de entregar/);
       return fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'montar', status: 'done', note: 'montado junto com buscar' }), { stopReason: 'toolUse' });
     },
+    fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'entregar', status: 'done' }), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxText('Pronto.')),
     () => {
       reviewed = true;
@@ -124,6 +125,6 @@ test('esperar só o que existe; falha corrigida na hora não é problema; tabela
   const [idea] = brain.review.notes({ playbook: 'mostrar-lista', kind: 'idea' });
   assert.match(idea.text, /o passo mostrar mostrou a tabela copiando/);
   assert.equal(idea.status, 'kept');
-  assert.deepEqual(run.deviations.map((d) => [d.tool, d.recovered]), [['show_ui', true]], 'a falha ficou marcada como corrigida na hora');
+  assert.deepEqual(run.deviations.map((d) => [d.kind, d.tool]), [['chamada', 'show_ui']], 'chamada errada do modelo: não é falha do passo');
   assert.deepEqual(stepClaimProblemsOf(run), []);
 });

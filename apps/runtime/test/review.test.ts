@@ -119,7 +119,7 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
   const { run: delivery } = engine.start('top-repos', { destino: '/x' }, { conversationId: 'c2' });
   const first = b.startRun('consultar', 'c2');
   engine.runStarted(first);
-  b.updateRunStep(first.id, 'entregar', 'done');
+  b.updateRunStep(first.id, 'buscar', 'running');
   assert.match(engine.startProblem('c2', 'gerar') ?? '', /etapa 1 \(Coletar.*faltam os passos buscar/);
   assert.equal(engine.startProblem('c2', 'consultar'), null);
   assert.equal(engine.startProblem('outra', 'gerar'), null);
@@ -129,7 +129,7 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
   assert.throws(() => engine.cancel(delivery.id), /encerrada/);
   const review = reviewConversation(s, 'c2')!;
   assert.equal(review.runs[0].status, 'open');
-  assert.match(review.runs[0].findings[0].text, /ficou aberto: o passo buscar não foi fechado/);
+  assert.match(review.runs[0].findings[0].text, /ficou aberto: os passos buscar, entregar não foram fechados/);
   assert.equal(reviewConversation(s, 'c2'), null, 'uma vez só');
 });
 
@@ -217,4 +217,14 @@ test('corrigir só os passos mantém o que o procedimento entrega', () => {
   b.learn([{ kind: 'playbook', payload: { name: 'promo', description: 'promo', trigger: 'promo', steps: [{ id: 'extrair', label: 'extrair', how: 'ler a página filtrada' }] } }], 'correção', 'c');
   assert.deepEqual(b.playbook('promo')!.outputs.map((o) => o.name), ['html_path']);
   assert.equal(b.playbook('promo')!.steps[0].how, 'ler a página filtrada');
+});
+
+test('variação nasce com os scripts, as entradas e as entregas da base; a prova da base não vem junto', () => {
+  const b = new BrainStore(':memory:');
+  b.savePlaybook({ ...pb('promo-info', [['html', 'run_script gerar_html.py']], ['html_path']), scripts: [{ name: 'gerar_html.py', description: 'gera o HTML', code: 'print(1)\n' }] } as never);
+  b.learn([{ kind: 'playbook', payload: { name: 'promo-livros', description: 'promo de livros', trigger: 'livros', variationOf: 'promo-info', steps: [{ id: 'html', label: 'html', how: 'run_script gerar_html.py' }] } }], 'versão', 'c');
+  const v = b.playbook('promo-livros')!;
+  assert.deepEqual(v.scripts.map((s) => s.name), ['gerar_html.py']);
+  assert.deepEqual(v.outputs.map((o) => o.name), ['html_path']);
+  assert.equal(v.testedRun ?? null, null);
 });

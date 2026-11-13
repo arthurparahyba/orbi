@@ -194,18 +194,6 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       }
       showRun(run.id);
       if (run.status !== 'done' && run.status !== 'failed') {
-        // The last step was given but some before it are still open: the run does not end until they are.
-        const last = run.steps.at(-1);
-        const open = run.steps.filter((s) => s.status === 'pending' || s.status === 'running').map((s) => s.id);
-        if (last?.id === data.stepId && last.status === 'done' && open.length) {
-          return {
-            output: {
-              runStatus: run.status,
-              pendentes: open,
-              hint: `O procedimento só termina quando todos os passos fecham. Marque ${open.join(', ')} com playbook_step (done se foi feito, skipped se não precisou), com uma nota. Sem isso, a esteira não segue.`,
-            },
-          };
-        }
         return { output: { runStatus: run.status } };
       }
       ctx.setActiveRun(null);

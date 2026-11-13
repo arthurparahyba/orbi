@@ -12,7 +12,7 @@ import type { AgentContext } from '../context.ts';
 export const brainQuery = (brain: BrainStore) => defineTool({
   name: 'brain_query',
   description:
-    'Look up the brain (knowledge graph). Give `id` to get one entity with its current relations and neighborhood, `type` to list entities of a type, or `text` to search. Use before acting: what you were taught is here.',
+    'Look up the brain (knowledge graph). Give `id` to get one entity with its current relations and neighborhood (or, with a procedure\'s name, the whole procedure with its scripts), `type` to list entities of a type, or `text` to search. Use before acting: what you were taught is here.',
   input: v.object({
     id: v.optional(v.string()),
     type: v.optional(v.string()),
@@ -23,6 +23,9 @@ export const brainQuery = (brain: BrainStore) => defineTool({
     const json = (value: unknown) => JSON.parse(JSON.stringify(value));
     if (data.id) {
       const entity = brain.get(data.id);
+      // A procedure by its name: all of it, with its scripts (to read before changing or making a version).
+      const playbook = entity ? undefined : brain.playbook(data.id);
+      if (playbook) return { output: json({ playbook }) };
       if (!entity) return { output: { notFound: data.id, similar: brain.search(data.id, 5).map((e) => e.id) } };
       return { output: json({ entity, relations: brain.neighbors(data.id), nearby: brain.reachable(data.id, data.depth ?? 2) }) };
     }

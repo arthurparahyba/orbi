@@ -3,13 +3,13 @@ import { git } from './git.ts';
 import { gh } from './gh.ts';
 import { aws } from './aws.ts';
 import { mvn, npm } from './build-tools.ts';
-import { cat, python3, rm, rmdir } from './files.ts';
+import { cat, find, grep, head, ls, python3, rm, rmdir, tail, wc } from './files.ts';
 
 export type { CommandEffect, CommandProfile } from './types.ts';
 export { gitVerbArgs } from './git.ts';
 
 /** Every CLI the Orbi knows something about. A new CLI: a new file, and one entry here. */
-export const PROFILES: readonly CommandProfile[] = [git, gh, aws, npm, mvn, cat, rm, rmdir, python3];
+export const PROFILES: readonly CommandProfile[] = [git, gh, aws, npm, mvn, cat, head, tail, wc, ls, grep, find, rm, rmdir, python3];
 
 const byBinary = new Map(PROFILES.map((p) => [p.binary, p]));
 export const profileOf = (binary: string): CommandProfile | undefined => byBinary.get(binary);
