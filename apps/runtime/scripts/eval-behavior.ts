@@ -7,16 +7,20 @@
  *   npm run eval:behavior -w @orbi/runtime            # every scenario
  *   npm run eval:behavior -w @orbi/runtime -- loja    # one
  *
- * Uses the model set up in apps/runtime/.env (it spends tokens on purpose) and a headless Chrome
- * (like npm run e2e). ORBI_EVAL_MODEL / ORBI_EVAL_JUDGE_MODEL pick other Anthropic models for the
- * simulated developer and the judge. Each round goes to data/evals/<date>-<scenario>/.
+ * It spends tokens on purpose, so with Anthropic it ALWAYS runs on Haiku 5.5 (the Orbi, the
+ * simulated developer and the judge), whatever apps/runtime/.env says: a test must never use a
+ * dearer model. Needs a headless Chrome (like npm run e2e). Each round goes to
+ * data/evals/<date>-<scenario>/.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+/** The only Anthropic model a test may spend on. */
+const TEST_MODEL = 'claude-haiku-5-5';
 const dir = mkdtempSync(join(tmpdir(), 'orbi-eval-'));
 Object.assign(process.env, {
+  ORBI_MODEL: `anthropic/${TEST_MODEL}`,
   ORBI_DATA_DIR: dir,
   ORBI_WORKSPACE: dir,
   ORBI_FLUE_DB: join(dir, 'flue.db'),
@@ -44,7 +48,7 @@ type Reply = { text: string; data: Record<string, unknown[]> };
 type Snapshot = import('./eval/core.ts').Snapshot;
 
 // ── one plain call to the model (simulated developer and judge) ──
-async function ask(system: string, prompt: string, model?: string): Promise<string> {
+async function ask(system: string, prompt: string): Promise<string> {
   if (llm.adapter) {
     const id = (config.model ?? '').split('/').pop() ?? llm.adapter.models[0].id;
     const out = llm.adapter.chat({ model: id, system, messages: [{ role: 'user', content: prompt }], tools: [], maxTokens: 2000 }, new AbortController().signal);
@@ -58,7 +62,7 @@ async function ask(system: string, prompt: string, model?: string): Promise<stri
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY ?? '', 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: model ?? (config.model ?? '').replace(/^anthropic\//, ''), max_tokens: 2000, system, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: TEST_MODEL, max_tokens: 2000, system, messages: [{ role: 'user', content: prompt }] }),
   });
   if (!res.ok) throw new Error(`modelo respondeu ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const body = (await res.json()) as { content: Array<{ type: string; text?: string }> };
@@ -152,7 +156,7 @@ async function runScenario(id: string) {
 
   const final = take();
   const transcript = core.transcriptOf(final);
-  const judged = core.parseVerdict(await ask('Você é um avaliador rigoroso e objetivo.', core.judgePrompt(scenario, transcript), process.env.ORBI_EVAL_JUDGE_MODEL));
+  const judged = core.parseVerdict(await ask('Você é um avaliador rigoroso e objetivo.', core.judgePrompt(scenario, transcript)));
   const out = resolve(process.env.ORBI_EVAL_DIR ?? resolve(process.cwd(), 'data/evals'), `${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}-${scenario.id}`);
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'transcricao.md'), transcript);

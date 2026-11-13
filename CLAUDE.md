@@ -55,7 +55,7 @@ npm run dev               # app desktop (precisa de Rust/cargo)
 npm test                  # testes do runtime, tipos do runtime e do app, Vitest do app
 npm run e2e               # ponta a ponta com Chrome real (ponte MCP + demonstração gravada + tela Conversas)
 npm run eval:search -w @orbi/runtime   # acerto da busca de procedimentos
-npm run eval:behavior -w @orbi/runtime [cenário]   # comportamento com o modelo real: desenvolvedor simulado, sites falsos, juiz (gasta tokens; precisa de Chrome)
+npm run eval:behavior -w @orbi/runtime [cenário]   # comportamento com o modelo real, sempre Haiku 5.5: desenvolvedor simulado, sites falsos, juiz (gasta tokens; precisa de Chrome)
 npm run build             # instalador da plataforma atual (gere na plataforma de destino)
 ```
 
@@ -64,6 +64,10 @@ Testes de fluxo (o Flue real com o modelo roteirizado): `test/flow-*.test.ts`, u
 com a montagem em `test/support/flow.ts`. Cenário novo = arquivo novo; um cenário que deixa revisão
 em segundo plano espera por ela (`waitFor`) antes de terminar.
 (o `register-raw` é obrigatório: os prompts são importados com `?raw`).
+
+**Teste nunca gasta com modelo caro.** `npm test` e `npm run e2e` usam o modelo roteirizado (zero
+tokens). O único que chama o modelo real é o `eval:behavior`, e ele roda sempre no Haiku 5.5,
+seja qual for o `.env`. Qualquer teste ou script novo que chame um modelo real segue a mesma regra.
 
 Antes de dar uma mudança por pronta: `npm test` e, se tocou em navegador, gravação,
 cofre ou ponte MCP, `npm run e2e`.

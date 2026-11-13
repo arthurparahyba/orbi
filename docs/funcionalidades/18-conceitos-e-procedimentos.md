@@ -410,9 +410,9 @@ pedidos seguintes, que estressam o que foi aprendido.
 Como o harness responde: pergunta e "Combinando início e fim" → o desenvolvedor
 simulado (com a ficha e as últimas falas); credencial → o valor da ficha do cenário,
 direto no cofre (`POST /api/inbox/:id/secret`); aprovação e cartão de aprendizado
-→ aprova. São até 15 pendências por sessão. `ORBI_EVAL_MODEL` e
-`ORBI_EVAL_JUDGE_MODEL` escolhem outros modelos da Anthropic para o desenvolvedor
-simulado e o juiz; com um plugin de modelo, os dois usam o mesmo do Orbi.
+→ aprova. São até 15 pendências por sessão. Com a Anthropic, a
+avaliação roda **sempre no Haiku 5.5** (o Orbi, o desenvolvedor simulado e o juiz), seja qual
+for o modelo do `.env`; com um plugin de modelo, os três usam o modelo do plugin.
 
 ### Limites
 
