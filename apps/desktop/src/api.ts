@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, TestMcpServer, EditMcpServer, SetMcpTool, ReviewNote, RunCall, StepLearning, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, TestMcpServer, EditMcpServer, SetMcpTool, ReviewNote, RunCall, PlaybookProof, StepLearning, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -111,6 +111,10 @@ export const api = {
     request<Playbook>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'PATCH', body: JSON.stringify(change) }),
   playbookAutonomy: (name: string) => request<PlaybookAutonomy>(`/api/brain/playbooks/${encodeURIComponent(name)}/autonomy`),
   runs: () => request<PlaybookRun[]>('/api/brain/runs'),
+  /** Where each procedure stands: which of its steps already ran as they are written. */
+  proofs: () => request<Record<string, PlaybookProof>>('/api/brain/proofs'),
+  waiveProof: (playbook: string, step: string, waive: boolean) =>
+    request<PlaybookProof>(`/api/brain/playbooks/${encodeURIComponent(playbook)}/steps/${encodeURIComponent(step)}/waive`, { method: waive ? 'POST' : 'DELETE' }),
   /** What each tool call of an execution did, and the whole execution as text to hand over. */
   runCalls: (id: string) => request<RunCall[]>(`/api/brain/runs/${encodeURIComponent(id)}/calls`),
   runTranscript: (id: string) => fetch(`${RUNTIME_URL}/api/brain/runs/${encodeURIComponent(id)}/transcript`).then((r) => r.text()),

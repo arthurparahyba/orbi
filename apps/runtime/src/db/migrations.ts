@@ -298,4 +298,11 @@ CREATE TABLE run_calls (
   marks TEXT NOT NULL DEFAULT '[]', at TEXT NOT NULL);
 CREATE INDEX run_calls_run ON run_calls (run_id, at);`,
   },
+  {
+    name: 'prova do procedimento: quais passos já rodaram como estão escritos',
+    sql: `
+CREATE TABLE playbook_proofs (
+  playbook TEXT NOT NULL, step TEXT NOT NULL, how TEXT NOT NULL, run_id TEXT, at TEXT NOT NULL,
+  PRIMARY KEY (playbook, step));`,
+  },
 ];

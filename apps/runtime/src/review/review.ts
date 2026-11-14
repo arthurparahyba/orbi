@@ -1,4 +1,5 @@
 import { failedAttempts, learningLines } from '../brain/domain/step-learnings.ts';
+import { retrospective } from './retrospective.ts';
 import type { ExecutionReview, Finding } from '@orbi/contracts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
 import { judge } from '../brain/domain/judge.ts';
@@ -49,7 +50,8 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     // What this run tried that did not work stays with the procedure (docs/funcionalidades/25).
     for (const l of failedAttempts(after)) s.brain.learnings.add(l);
     const findings = judged(after, analyzeRun(after, { open: false, calls: s.brain.calls.list(after.id) }));
-    const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', findings };
+    const retro = retrospective(after, s.brain.calls.list(after.id));
+    const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', findings, ...(retro.length ? { retro } : {}) };
     if (settled.change) {
       const { from, to, reason } = settled.change;
       const item = s.inbox.add({
@@ -150,7 +152,10 @@ export function reviewInstruction(r: ExecutionReview, machine?: string, tried: (
       const scope = c.steps.length ? `Mude só os passos ${c.steps.join(', ')}; os outros ficam exatamente como estão (o cartão recusa mudança fora deles).` : 'Mude o mínimo necessário.';
       const before = tried(c.playbook);
       const history = before.length ? ` Já tentado neste procedimento (não proponha de novo o que falhou ou foi negado): ${before.join('; ')}.` : '';
-      return `- mudar ${c.playbook} (${c.why}): ${texts.join('; ')}. ${scope}${history} Conte em \`learnings\` o que esta execução tentou e falhou e o que funcionou.`;
+      // What actually happened in this run, step by step: the correction is written from it.
+      const retro = r.runs.filter((x) => x.playbook === c.playbook).flatMap((x) => x.retro ?? []);
+      const went = retro.length ? ` Nesta execução: ${retro.join('; ')}.` : '';
+      return `- mudar ${c.playbook} (${c.why}): ${texts.join('; ')}.${went} ${scope}${history} Conte em \`learnings\` o que esta execução tentou e falhou e o que funcionou.`;
     }),
     ...r.runs.flatMap((x) => {
       const texts = x.findings.filter((f) => f.kind === 'aprender').map((f) => f.text);

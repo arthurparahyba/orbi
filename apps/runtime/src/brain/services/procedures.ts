@@ -57,6 +57,7 @@ export class Procedures {
       detachedVariations = this.p.playbookRepo.delete(name);
       this.p.levels.forget(name);
       this.brain.learnings.forget(name);
+      this.brain.proofs.forget(name);
     });
     return { detachedVariations };
   }

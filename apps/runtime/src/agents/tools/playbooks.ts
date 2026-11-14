@@ -1,4 +1,5 @@
 import { learningLines } from '../../brain/domain/step-learnings.ts';
+import { proofLabel, proofOf } from '../../brain/domain/proofs.ts';
 import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import type { BrainStore } from '../../brain/store.ts';
@@ -102,6 +103,10 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
         : {};
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
       const tried = learningLines(brain.learnings.list(pb.name));
+      const proof = proofOf(pb.steps, brain.proofs.list(pb.name));
+      const prova = proof.state === 'provado'
+        ? undefined
+        : `${proofLabel(proof, pb.steps)}. Esta execução prova esses passos: rode do começo à entrega e, se um deles falhar, ache outro jeito e siga; no fim, proponha o passo corrigido com o que aprendeu.`;
       return {
         output: {
           runId: run.id,
@@ -112,6 +117,8 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
           ...(outputs.length ? { outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.' } : {}),
           // What was already tried here: do not repeat what failed, was denied, or was a workaround.
           ...(tried.length ? { jaTentado: tried } : {}),
+          // A procedure whose steps never ran as they are written: this run is what proves them.
+          ...(prova ? { prova } : {}),
           regras: rules,
         },
       };

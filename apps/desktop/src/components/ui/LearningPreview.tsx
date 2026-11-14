@@ -84,6 +84,9 @@ export function LearningPreview({ detail }: { detail: string }) {
             )}
             {pb.description && <p className="small">{pb.description}</p>}
             {!base && <LearnTested runId={pb.testedRun} />}
+            {Array.isArray(pb.steps) && pb.steps.length > 0 && (
+              <p className="small muted">Depois de aprovar, o procedimento fica em rascunho até rodar uma vez como está escrito.</p>
+            )}
             <dl className="learn-meta">
               {pb.trigger && <div><dt>Quando</dt><dd>{pb.trigger}</dd></div>}
               {pb.appliesTo && <div><dt>Vale para</dt><dd>todo {pb.appliesTo}</dd></div>}

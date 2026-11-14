@@ -289,6 +289,12 @@ argumentos), `status` (`ok`, `erro`, `pediu`, `negado`, `observado`, `recusado`)
 que voltou ao modelo) e `marks` (JSON: `caro`, `cortado`, `chamada`, `recusado-depois`). O
 conteúdo das respostas não é guardado. No máximo 400 por execução. Vira evento `runs`.
 
+**`playbook_proofs`** · quais passos de cada procedimento já rodaram como estão escritos
+(documento 25): `how` guarda a instrução que rodou (sem diferença de espaços, até mil
+caracteres), `run_id` a execução que provou, ou nulo quando o desenvolvedor dispensou o passo.
+Chave `(playbook, step)`. Mudar o texto do passo tira a prova dele sozinho. Some junto com o
+procedimento. Vira evento `brain`.
+
 **`playbook_learnings`** · o que já foi tentado em cada procedimento (documento 25): `step` (o
 passo, ou nulo para o procedimento todo), `tried` (a tentativa), `outcome` (`falhou`,
 `funcionou`, `negado`, `orbi`), `why`, `source` (`execucao`, `revisao`, `pedido`, `orbi`),
@@ -478,6 +484,7 @@ editada, sempre se cria outra.
 | 24 | `inbox_items.version` e `inbox_items.versions`: pendência atualizada na conversa do cartão (documento 21) |
 | 25 | Tabela `playbook_learnings`: aprendizados do procedimento, por passo (documento 25) |
 | 26 | Tabela `run_calls`: registro da execução, uma linha por chamada (documento 24) |
+| 27 | Tabela `playbook_proofs`: quais passos já rodaram como estão escritos (documento 25) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

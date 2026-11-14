@@ -1,3 +1,4 @@
+import { ProofRepo } from './repo/proofs.ts';
 import { RunCallRepo } from './repo/run-calls.ts';
 import { StepLearningRepo } from './repo/step-learnings.ts';
 import type { DatabaseSync } from 'node:sqlite';
@@ -64,6 +65,8 @@ export class BrainStore {
   readonly learnings: StepLearningRepo;
   /** What each tool call of an execution did (docs/funcionalidades/24). */
   readonly calls: RunCallRepo;
+  /** Which steps of each procedure already ran as they are written (docs/funcionalidades/25). */
+  readonly proofs: ProofRepo;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -74,7 +77,8 @@ export class BrainStore {
     this.pipelineRepo = new PipelineRepo(this.db);
     this.proposalRepo = new ProposalRepo(this.db);
     this.levels = new LevelRepo(this.db);
-    const parts: BrainParts = { db: this.db, ontology: this.ontology, graphRepo: this.graphRepo, playbookRepo: this.playbookRepo, pipelineRepo: this.pipelineRepo, proposalRepo: this.proposalRepo, levels: this.levels };
+    this.proofs = new ProofRepo(this.db);
+    const parts: BrainParts = { db: this.db, ontology: this.ontology, graphRepo: this.graphRepo, playbookRepo: this.playbookRepo, pipelineRepo: this.pipelineRepo, proposalRepo: this.proposalRepo, levels: this.levels, proofs: this.proofs };
     this.facts = new FactsService(parts, this);
     this.procedures = new ProceduresService(parts, this);
     this.autonomy = new AutonomyService(parts, this);

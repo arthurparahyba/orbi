@@ -5,6 +5,7 @@ import type { PlaybookRepo } from '../repo/playbooks.ts';
 import type { PipelineRepo } from '../repo/pipelines.ts';
 import type { ProposalRepo } from '../repo/proposals.ts';
 import type { LevelRepo } from '../repo/levels.ts';
+import type { ProofRepo } from '../repo/proofs.ts';
 
 /** The database and the repositories every part of the brain shares. */
 export interface BrainParts {
@@ -15,4 +16,6 @@ export interface BrainParts {
   pipelineRepo: PipelineRepo;
   proposalRepo: ProposalRepo;
   levels: LevelRepo;
+  /** Which steps of each procedure already ran as they are written (docs/funcionalidades/25). */
+  proofs: ProofRepo;
 }

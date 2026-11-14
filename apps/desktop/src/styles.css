@@ -867,6 +867,10 @@ button.teach-way:hover { border-color: var(--amber); }
 .run-detail-row > td { background: var(--surface-1); }
 .learn-tried { margin: 8px 0; font-size: 13px; }
 .learn-tried ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.pb-proof { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.pill.proof-rascunho { color: var(--amber, #f2b13c); border-color: #6a5224; }
+.pill.proof-parcial { color: var(--amber, #f2b13c); }
+.pill.proof-provado { color: #8fe3b8; border-color: #2c5a46; }
 .pb-learnings { margin: 8px 0; }
 .pb-learnings ul { list-style: none; padding: 0; margin: 4px 0 10px; display: flex; flex-direction: column; gap: 6px; }
 .pb-learnings li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }

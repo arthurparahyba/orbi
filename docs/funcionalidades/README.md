@@ -36,7 +36,7 @@ e [plugins](../plugins.md).
 | 22 | [Fatos sem repetição](22-fatos-sem-repeticao.md) | A revisão não repete o que o cérebro já sabe, aprender soma em vez de trocar, e o passo que achou o fato passa a consultar o Cérebro, no mesmo cartão |
 | 23 | [Execução que não ensina errado](23-execucao-que-nao-ensina-errado.md) | O saveTo do navegador inteiro, a ordem dos passos travada, chamada errada do modelo que não culpa o passo, variação que herda da base, menos aprovações |
 | 24 | [Registro e diagnóstico](24-registro-e-diagnostico.md) | Cada chamada da execução guardada, tela de detalhes com "Copiar execução completa" e marca de leitura cara; proposta: detectores, diagnóstico dos defeitos do Orbi e issue |
-| 25 | [Procedimento provado](25-procedimento-provado.md) | Mudança a pedido (feito); proposta: prova na criação, retrospectiva por passo, aprendizados do procedimento |
+| 25 | [Procedimento provado](25-procedimento-provado.md) | Rascunho até rodar como está escrito, prova por passo que cai quando o passo muda, retrospectiva da execução, aprendizados do procedimento e mudança a pedido |
 
 ## Como as funcionalidades se ligam
 

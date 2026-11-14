@@ -8,6 +8,7 @@ import { PlaybookData } from './PlaybookData';
 import { PlaybookAutonomyPanel } from './PlaybookAutonomy';
 import { PlaybookIdeas } from './PlaybookIdeas';
 import { PlaybookLearnings } from './PlaybookLearnings';
+import { PlaybookProofPill } from './PlaybookProofPill';
 import { levelPill } from './levels';
 
 /** Each variation right after the playbook it came from. */
@@ -25,6 +26,7 @@ export function withVariations(list: Playbook[]): Playbook[] {
 /** Learned procedures, each with its level of autonomy (it grows with use). */
 export function Playbooks() {
   const pbs = useLive(api.playbooks, ['brain']);
+  const proofs = useLive(api.proofs, ['brain']);
   const [open, setOpen] = useState<string>();
   const [mode, setMode] = useState<{ name: string; kind: 'edit' | 'delete' }>();
   if (!pbs.data) return <p className="muted pad">Carregando…</p>;
@@ -62,6 +64,7 @@ export function Playbooks() {
                   onCancel={() => setMode(undefined)}
                 />
               )}
+              <PlaybookProofPill p={p} proof={proofs.data?.[p.name]} />
               <p className="muted small">Gatilho: {p.trigger}{p.appliesTo ? ` · aplica-se a ${p.appliesTo}` : ''}</p>
               <PlaybookAutonomyPanel p={p} />
               <PlaybookData p={p} />

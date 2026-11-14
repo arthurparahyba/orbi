@@ -1,4 +1,5 @@
 import { deniedAttempts } from '../../brain/domain/step-learnings.ts';
+import { howToProve, proofOf } from '../../brain/domain/proofs.ts';
 import { outOfScope } from '../../brain/domain/judge.ts';
 import { classifyEntity } from '../../brain/domain/fact-match.ts';
 import type { Entity } from '../../brain/domain/types.ts';
@@ -201,7 +202,9 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
       const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
       for (const item of a.items as LearnItems) if (item.kind === 'playbook' && item.payload.name) brain.review.changeApplied(String(item.payload.name));
       saveLearnings(brain, a.items as LearnItems, ctx.conversationId, a.asked?.trim() ? 'pedido' : 'revisao');
-      return `Guardado no cérebro: ${applied.join('; ')}`;
+      // A procedure whose steps never ran as they are written is not finished (documento 25).
+      const prove = toProve(brain, a.items as LearnItems);
+      return `Guardado no cérebro: ${applied.join('; ')}${prove.length ? `\n\n${prove.join('\n')}` : ''}`;
     },
   });
 }
@@ -209,6 +212,19 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
 type LearnItems = Array<{ kind: string; payload: Record<string, unknown> }>;
 
 const stepsOf = (item: LearnItems[number]) => (item.payload.steps as Array<Record<string, unknown>>).map((st) => ({ id: String(st.id ?? ''), how: String(st.how ?? '') }));
+
+/** What is still to prove in each procedure of the batch, and how (docs/funcionalidades/25). */
+function toProve(brain: Deps<'brain'>['brain'], items: LearnItems): string[] {
+  const out: string[] = [];
+  for (const item of items) {
+    if (item.kind !== 'playbook') continue;
+    const pb = brain.playbook(String(item.payload.name ?? ''));
+    if (!pb) continue;
+    const line = howToProve(pb.name, proofOf(pb.steps, brain.proofs.list(pb.name)), pb.steps);
+    if (line) out.push(line);
+  }
+  return out;
+}
 
 /** What the batch says the run taught about each procedure: kept with it once the card is approved. */
 function saveLearnings(brain: Deps<'brain'>['brain'], items: LearnItems, conversationId: string, source: 'pedido' | 'revisao'): void {

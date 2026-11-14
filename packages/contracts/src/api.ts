@@ -91,6 +91,8 @@ export interface ExecutionReview {
   runs: Array<{
     runId: string; playbook: string; status: 'done' | 'failed' | 'open';
     findings: Finding[];
+    /** What each step went through, from the registry of the execution (docs/funcionalidades/25). */
+    retro?: string[];
     level?: { from: number; to: number; reason: string; inboxId?: string; alone: string[]; asks: string[] };
   }>;
   config: Array<{ stage: string; playbook: string; text: string }>;
@@ -106,6 +108,15 @@ export interface ExecutionReview {
 export interface ReviewNote {
   id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
   conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
+}
+/** GET /api/brain/proofs — where each procedure stands: which steps already ran as they are written (docs/funcionalidades/25). */
+export interface PlaybookProof {
+  state: 'rascunho' | 'parcial' | 'provado';
+  /** Steps still to prove, and steps the developer excused, in the procedure's order. */
+  missing: string[];
+  waived: string[];
+  /** The line the developer reads: "provado", "falta provar o passo 3 · Filtrar". */
+  label: string;
 }
 /** GET /api/brain/runs/:id/calls — what each tool call of an execution did (docs/funcionalidades/24). */
 export interface RunCall {

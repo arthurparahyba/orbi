@@ -154,6 +154,10 @@ cofre ou ponte MCP, `npm run e2e`.
   nome com outro id é recusado no `brain_learn`), aprender soma propriedades em vez de trocar a
   entidade, e o passo que achou o fato muda, no mesmo cartão, para consultar o Cérebro antes
   (documento 22).
+- **Procedimento provado** (`playbook_proofs`, documento 25): um passo está provado enquanto a
+  instrução que rodou ainda é a que ele tem, então mudar o texto do passo tira a prova sozinho.
+  Não crie um campo "provado" a marcar à mão, e não bloqueie a execução de um rascunho: o que
+  leva o Orbi a provar é a resposta do `brain_learn` e a skill.
 - **Registro da execução** (`run_calls`, documento 24): guarda o que cada chamada fez, nunca o
   que ela devolveu. Só tamanho, duração, passo, aprovação, marcas, a primeira linha do erro e um
   resumo curto dos argumentos, que são os que o modelo escreveu (credencial só aparece como

@@ -124,8 +124,15 @@ export class Execution {
     if (!current) throw new Error(`execução não encontrada: ${runId}`);
     let run = advanceRun(current, stepId, status, note, now());
     if (outputs && Object.keys(outputs).length) run = recordOutputs(run, this.p.playbookRepo.get(run.playbook)?.outputs ?? [], outputs);
+    // A step that ran as it is written is proven (docs/funcionalidades/25): the instruction the
+    // card stored, not the rehearsal's. A step that only got done after a failure nobody fixed on
+    // the spot (another way was found) is not proven: its words still do not work.
+    const pb = current.kind === 'rehearsal' ? undefined : this.p.playbookRepo.get(run.playbook);
+    const written = status === 'done' ? pb?.steps.find((x) => x.id === stepId) : undefined;
+    const broke = run.deviations.some((d) => d.step === stepId && !d.recovered && (d.kind === 'falha' || d.kind === 'comando'));
     transaction(this.p.db, () => {
       this.p.playbookRepo.updateRun(run);
+      if (written && !broke) this.p.proofs.record(run.playbook, stepId, written.how, run.id);
       if (run.status === 'done' && current.status !== 'done') this.p.playbookRepo.countSuccess(run.playbook);
     });
     return run;
