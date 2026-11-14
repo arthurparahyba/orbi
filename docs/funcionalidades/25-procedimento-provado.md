@@ -66,8 +66,7 @@ Cada procedimento guarda, por passo, o que já foi tentado:
 Quem usa:
 
 - **a execução**: ao abrir um passo, recebe os aprendizados dele;
-- **a revisão e o `brain_learn`**: uma proposta igual a uma que falhou ou foi negada volta ao
-  modelo antes do cartão, com a data e o motivo;
+- **a revisão**: recebe o histórico junto com o pedido de mudança, para propor outra coisa;
 - **você**: a aba Aprendizados na tela do procedimento.
 
 Como entram (feito):
@@ -83,10 +82,10 @@ Como entram (feito):
 
 Ainda não entra sozinho: o contorno "do Orbi" (depende do diagnóstico, documento 24).
 
-Como são usados (feito): `playbook_start` devolve `jaTentado`; a instrução da revisão traz o
-que já foi tentado; o `brain_learn` recusa, antes do cartão, um passo igual a uma tentativa que
-falhou ou foi negada (`repeatedAttempts`, texto 75% igual), a não ser com `asked`. Na tela do
-procedimento, a seção **Aprendizados**, por passo, com **Tirar**.
+Como são usados (feito): `playbook_start` devolve `jaTentado`, e a instrução da revisão traz o
+que já foi tentado. **Nada é recusado por causa do histórico** (decisão de 13/11): quem revisa
+e propõe recebe o histórico e é quem decide tentar outra coisa; o `brain_learn` só aprende. Na
+tela do procedimento, a seção **Aprendizados**, por passo, com **Tirar**.
 
 Peças: `brain/domain/step-learnings.ts`, `brain/repo/step-learnings.ts` (tabela
 `playbook_learnings`), `http/routes/step-learnings.ts`, `views/brain/PlaybookLearnings.tsx`.
@@ -107,8 +106,7 @@ Peças: `agents/tools/brain.ts` (`asked`, precheck), `prompts/orbi/procedimento.
 
 ## Fases
 
-1. Aprendizados do procedimento: tabela, o que entra sozinho, a aba, e a recusa de proposta
-   repetida.
+1. Aprendizados do procedimento: tabela, o que entra sozinho e a seção na tela (feito).
 2. Estados rascunho e provado; a prova depois do cartão; passo "a provar" quando muda.
 3. Retrospectiva por passo, a partir do registro (documento 24, fase 1).
 4. Testar agora.
@@ -117,5 +115,4 @@ Peças: `agents/tools/brain.ts` (`asked`, precheck), `prompts/orbi/procedimento.
 
 - "Provado" quer dizer que rodou uma vez inteiro com aquelas entradas. Outras entradas podem
   achar outros problemas: o mesmo ciclo (corrigir, testar, guardar o aprendizado) vale para elas.
-- Reconhecer que uma proposta "é a mesma" que uma antiga é por passo e texto parecido; o que
-  escapar ainda aparece para o modelo e para você no cartão.
+- O histórico informa, não bloqueia: uma proposta repetida ainda pode aparecer, e você nega no cartão.

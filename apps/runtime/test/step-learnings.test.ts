@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BrainStore } from '../src/brain/store.ts';
-import { deniedAttempts, failedAttempts, learningLines, repeatedAttempts, sameAttempt } from '../src/brain/domain/step-learnings.ts';
+import { deniedAttempts, failedAttempts, learningLines, sameAttempt } from '../src/brain/domain/step-learnings.ts';
 
 /** What was already tried stays with the procedure (docs/funcionalidades/25). */
 const steps = (extrair: string) => [{ id: 'abrir', label: 'Abrir', how: 'abrir o site' }, { id: 'extrair', label: 'Extrair', how: extrair }];
@@ -11,7 +11,7 @@ test('a mesma tentativa, dita com outras palavras, é reconhecida; outra coisa n
   assert.equal(sameAttempt('Extrair em lotes de 20 itens e juntar com juntar_lotes.py', 'Rodar evaluate_script e gravar com saveTo em promo.json'), false);
 });
 
-test('proposta negada vira aprendizado e a mesma proposta volta ao modelo; outra passa; guardar conta as repetições', () => {
+test('proposta negada vira aprendizado; guardar a mesma de novo conta as repetições', () => {
   const b = new BrainStore(':memory:');
   b.savePlaybook({ name: 'promo', description: 'd', appliesTo: null, trigger: 't', autonomy: 'ask', steps: steps('ler a página'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
   const before = b.playbook('promo')!.steps;
@@ -22,9 +22,6 @@ test('proposta negada vira aprendizado e a mesma proposta volta ao modelo; outra
   for (const d of denied) b.learnings.add(d);
   assert.deepEqual(b.learnings.list('promo').map((l) => l.times), [2]);
 
-  const again = repeatedAttempts(before, steps('extrair em lotes de 20 itens, juntar com juntar_lotes.py'), b.learnings.list('promo'));
-  assert.match(again[0], /passo extrair: isso já foi tentado em \d\d\/\d\d e foi negado pelo desenvolvedor.*`asked`/);
-  assert.deepEqual(repeatedAttempts(before, steps('ignorar patrocinados pelo asin'), b.learnings.list('promo')), []);
   assert.match(learningLines(b.learnings.list('promo'))[0], /passo extrair · negado pelo desenvolvedor: Extrair em lotes/);
 
   b.deletePlaybook('promo');

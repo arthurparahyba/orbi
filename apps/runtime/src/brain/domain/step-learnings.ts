@@ -1,8 +1,8 @@
 /**
  * What was already tried in a procedure, kept with it (docs/funcionalidades/25): an attempt that
  * failed, one that worked, a proposal the developer denied, a workaround for a defect of the Orbi
- * itself. The run reads them when it starts; a proposal that repeats one that failed or was denied
- * goes back to the model before any card. Pure rules.
+ * itself. The run reads them when it starts and the review gets them with its request: whoever proposes
+ * a change is trusted to use the history. Nothing is refused because of it. Pure rules.
  */
 import type { PlaybookRun } from './types.ts';
 
@@ -46,28 +46,6 @@ export function likeness(a: string, b: string): number {
 /** The same attempt, said in other words. */
 export const SAME_ATTEMPT = 0.75;
 export const sameAttempt = (a: string, b: string) => a.trim() === b.trim() || likeness(a, b) >= SAME_ATTEMPT;
-
-const day = (iso: string) => iso.slice(0, 10).split('-').reverse().slice(0, 2).join('/');
-const BAD: Record<Exclude<LearningOutcome, 'funcionou'>, string> = { falhou: 'falhou', negado: 'foi negado pelo desenvolvedor', orbi: 'era contorno de um defeito do Orbi' };
-
-/**
- * Steps of a new version that repeat an attempt that failed, was denied, or was a workaround for
- * the Orbi: one line each, for the model. Empty = nothing repeated.
- */
-export function repeatedAttempts(
-  before: ReadonlyArray<{ id: string; how: string }>,
-  after: ReadonlyArray<{ id: string; how: string }>,
-  learnings: readonly StepLearning[],
-): string[] {
-  const was = new Map(before.map((s) => [s.id, s.how]));
-  const out: string[] = [];
-  for (const s of after) {
-    if (was.get(s.id) === s.how) continue;
-    const hit = learnings.find((l) => l.outcome !== 'funcionou' && (l.step ?? s.id) === s.id && sameAttempt(l.tried, s.how));
-    if (hit) out.push(`passo ${s.id}: isso já foi tentado em ${day(hit.updatedAt)} e ${BAD[hit.outcome as keyof typeof BAD]}${hit.why ? ` (${hit.why})` : ''}. Proponha outro jeito; se o desenvolvedor pediu exatamente isso agora, passe o pedido dele em \`asked\`.`);
-  }
-  return out;
-}
 
 /** The steps a denied version wanted to change: each becomes "negado", so it is not proposed again. */
 export function deniedAttempts(

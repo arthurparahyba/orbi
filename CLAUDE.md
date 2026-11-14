@@ -6,7 +6,9 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 25). A visão geral está em `docs/arquitetura.md`; as
+`docs/funcionalidades/` (01 a 25). A visão geral está em `docs/arquitetura.md`, e o mapa visual
+(o que o Orbi recebe em cada turno e o que chama em cada ponto de ensinar, executar e revisar) em
+`docs/mapa-visual/`: mudou um fluxo, atualize o quadro dele; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Estrutura
