@@ -23,6 +23,7 @@ import { codeAgentRoutes } from './routes/code-agents.ts';
 import { followupRoutes } from './routes/followups.ts';
 import { reviewNoteRoutes } from './routes/review-notes.ts';
 import { stepLearningRoutes } from './routes/step-learnings.ts';
+import { diagnosisRoutes } from './routes/diagnoses.ts';
 import { modelRoutes } from './routes/model.ts';
 import { browserRoutes } from './routes/browser.ts';
 import { mcpServerRoutes } from './routes/mcp-servers.ts';
@@ -89,6 +90,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/followups', followupRoutes(s));
   app.route('/api/review-notes', reviewNoteRoutes(s));
   app.route('/api/step-learnings', stepLearningRoutes(s));
+  app.route('/api/diagnoses', diagnosisRoutes(s));
   app.route('/api/model', modelRoutes(s));
   app.route('/api/browser', browserRoutes(s, background));
   app.route('/api/mcp-servers', mcpServerRoutes(s));

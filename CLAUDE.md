@@ -26,6 +26,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
+  src/diagnosis/      o que deu errado por culpa do Orbi ou de uma chamada do modelo: detectores puros + tabela
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/mcp-client/     servidores MCP que o Orbi usa (documento 20): regras puras, esquema, cadastro, conexões (McpHub)
   src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
@@ -64,7 +65,9 @@ npm run build             # instalador da plataforma atual (gere na plataforma d
 Um teste só: `cd apps/runtime && node --import tsx --import ./scripts/register-raw.mjs --test test/<arquivo>.test.ts`
 Testes de fluxo (o Flue real com o modelo roteirizado): `test/flow-*.test.ts`, um processo por arquivo,
 com a montagem em `test/support/flow.ts`. Cenário novo = arquivo novo; um cenário que deixa revisão
-em segundo plano espera por ela (`waitFor`) antes de terminar.
+em segundo plano reserva uma resposta para ela e espera (`waitFor`) que a fila esvazie
+(`faux.getPendingResponseCount() === 0`) antes de terminar, senão o cenário seguinte do arquivo
+perde a resposta dele.
 (o `register-raw` é obrigatório: os prompts são importados com `?raw`).
 
 **Teste nunca gasta com modelo caro.** `npm test` e `npm run e2e` usam o modelo roteirizado (zero
@@ -154,6 +157,10 @@ cofre ou ponte MCP, `npm run e2e`.
   nome com outro id é recusado no `brain_learn`), aprender soma propriedades em vez de trocar a
   entidade, e o passo que achou o fato muda, no mesmo cartão, para consultar o Cérebro antes
   (documento 22).
+- **Diagnóstico** (`diagnosis/`, documento 24): defeito do Orbi e chamada errada do modelo ficam
+  fora da revisão do procedimento, e um achado deles nunca vira mudança no procedimento do
+  desenvolvedor. O cérebro é o que o Orbi sabe do domínio dele; o que o Orbi sabe de si mesmo
+  mora em `diagnosis/`.
 - **Procedimento provado** (`playbook_proofs`, documento 25): um passo está provado enquanto a
   instrução que rodou ainda é a que ele tem, então mudar o texto do passo tira a prova sozinho.
   Não crie um campo "provado" a marcar à mão, e não bloqueie a execução de um rascunho: o que

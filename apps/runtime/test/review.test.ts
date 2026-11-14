@@ -9,6 +9,7 @@ import { reviewConversation, reviewInstruction } from '../src/review/review.ts';
 import { Inbox } from '../src/conversations/inbox.ts';
 import { PipelineRuns } from '../src/pipelines/runs.ts';
 import { PipelineEngine } from '../src/pipelines/engine.ts';
+import { Diagnoses } from '../src/diagnosis/index.ts';
 
 const pb = (name: string, steps: Array<[string, string]>, outputs: string[] = []) => ({
   name, description: name, trigger: '', appliesTo: null, autonomy: 'ask' as const, instructions: '', learnedFrom: null, variationOf: null,
@@ -71,7 +72,7 @@ test('revisão: execuções terminadas, uma vez só, com problemas e configuraç
   // The failure of a call made alongside the step that closed the run arrives later.
   assert.equal(b.runForFailureIn('c1')?.id, run.id);
   b.addRunDeviation(run.id, { kind: 'falha', detail: 'show_ui falhou: Validation failed', tool: 'show_ui', step: 'entregar' });
-  const s = { brain: b, inbox, pipelines: { runs, engine } };
+  const s = { brain: b, inbox, pipelines: { runs, engine }, diagnoses: new Diagnoses(b.db) };
   assert.equal(reviewConversation(s, 'c1'), null, 'a entrega ainda roda: a revisão espera');
   engine.cancel(delivery.id);
   const review = reviewConversation(s, 'c1')!;
@@ -123,7 +124,7 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
   assert.match(engine.startProblem('c2', 'gerar') ?? '', /etapa 1 \(Coletar.*faltam os passos buscar/);
   assert.equal(engine.startProblem('c2', 'consultar'), null);
   assert.equal(engine.startProblem('outra', 'gerar'), null);
-  const s = { brain: b, inbox, pipelines: { runs, engine } };
+  const s = { brain: b, inbox, pipelines: { runs, engine }, diagnoses: new Diagnoses(b.db) };
   assert.equal(reviewConversation(s, 'c2'), null, 'entrega rodando: revisão espera');
   engine.cancel(delivery.id);
   assert.throws(() => engine.cancel(delivery.id), /encerrada/);

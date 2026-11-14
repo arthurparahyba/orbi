@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components, playbook, conversation } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components, playbook, conversation, waitFor } from './support/flow.ts';
 
 test('aprender: brain_learn fica pendente até o desenvolvedor aprovar', async () => {
   faux.setResponses([
@@ -61,6 +61,8 @@ test('executar: o playbook aprendido aparece como skill e vira um passo a passo'
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'abrir', status: 'done', note: 'portal aberto' }), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'salvar', status: 'done', note: 'versão 0.1.0 salva' }), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxText('Versão do novo-front atualizada no portal.')),
+    // A revisão vem em seguida: os passos foram dados como feitos sem nenhuma chamada (documento 24).
+    fauxAssistantMessage(fauxText('Houve 2 problemas do modelo nesta execução; não é do seu procedimento.')),
   ]);
 
   const orbi = init(Orbi, { id: 'chat:teste-execucao' });
@@ -76,6 +78,17 @@ test('executar: o playbook aprendido aparece como skill e vira um passo a passo'
   assert.equal(last.status, 'done', 'o passo a passo chegou ao fim');
   assert.deepEqual(last.steps.map((s: any) => s.status), ['done', 'done']);
   assert.equal(brain.playbook('versao-no-portal')?.successes, 1);
+
+  // O modelo fechou os dois passos sem chamar nada: é problema do modelo, nunca do procedimento.
+  const { services } = await import('../src/services.ts');
+  await waitFor(() => services().diagnoses.forRun(run.id).length > 0, 'o diagnóstico da execução');
+  // A revisão roda em segundo plano: espere que ela consuma a resposta reservada acima, senão o
+  // próximo cenário deste arquivo perde a dele.
+  await waitFor(() => faux.getPendingResponseCount() === 0, 'a revisão consumir a resposta reservada');
+  assert.deepEqual(
+    services().diagnoses.forRun(run.id).map((f) => [f.detector, f.category, f.step]),
+    [['passo-sem-ferramenta', 'modelo', 'abrir'], ['passo-sem-ferramenta', 'modelo', 'salvar']],
+  );
 });
 
 test('já sei algo parecido: igual não interrompe; parecido mostra o cartão e vira variação', async () => {

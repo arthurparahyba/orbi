@@ -28,6 +28,7 @@ import type { ModelChoices } from './llm/choices.ts';
 import type { ReviewNote } from './brain/domain/judge.ts';
 import type { StepLearning } from './brain/domain/step-learnings.ts';
 import type { RunCall } from './brain/domain/run-calls.ts';
+import type { Diagnosis } from './diagnosis/index.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -42,6 +43,7 @@ export type ContractChecks = [
   Check<Same<ReviewNote, C.ReviewNote>>,
   Check<Same<StepLearning, C.StepLearning>>,
   Check<Same<RunCall, C.RunCall>>,
+  Check<Same<Diagnosis, C.Diagnosis>>,
   Check<Same<CodeAgent, C.CodeAgent>>,
   Check<Fits<TaskAssignment, C.CodeAgentAssignment>>,
   Check<Fits<CatalogEntry, C.CodeAgentCatalogEntry>>,

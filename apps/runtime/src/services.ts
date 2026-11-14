@@ -1,3 +1,4 @@
+import type { Diagnoses } from './diagnosis/index.ts';
 import type { OrbiConfig } from './config.ts';
 import type { BrainStore } from './brain/store.ts';
 import type { Inbox } from './conversations/inbox.ts';
@@ -53,6 +54,8 @@ export interface OrbiServices {
   recorder: Recorder;
   /** Coding agents of this machine and which does each task (code-agents/). */
   codeAgents: CodeAgents;
+  /** O que deu errado por culpa do Orbi ou de uma chamada do modelo (documento 24). */
+  diagnoses: Diagnoses;
   /** Investigations and fixes by those agents, in throwaway copies. */
   codeFixer: CodeFixer;
   llm: ActiveLlm;

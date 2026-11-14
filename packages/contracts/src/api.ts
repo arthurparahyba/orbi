@@ -103,11 +103,22 @@ export interface ExecutionReview {
   environment?: Array<{ noteId: string; playbook: string; problem: string; sintoma: string; causa?: string; solucao: string; raiz?: string; quemCorrige?: string; runs: number }>;
   /** Ideas not worth a change now: kept in the Cérebro, no card. */
   ideas?: Array<{ noteId: string; playbook: string; text: string; why: string }>;
+  /**
+   * What went wrong that is not the procedure's fault (docs/funcionalidades/24): a defect of the
+   * Orbi, or a call the model got wrong. Never a reason to change the procedure.
+   */
+  orbi?: Array<{ id: string; runId: string; category: 'orbi' | 'modelo'; title: string; detail: string; times: number }>;
 }
 /** GET /api/review-notes — what the review kept: ideas and environments to fix. */
 export interface ReviewNote {
   id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
   conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
+}
+/** GET /api/diagnoses — o que deu errado por culpa do Orbi ou de uma chamada do modelo (docs/funcionalidades/24). */
+export interface Diagnosis {
+  id: string; runId: string; playbook: string; detector: string; category: 'orbi' | 'modelo';
+  title: string; detail: string; hint?: string; step: string | null; fingerprint: string;
+  times: number; minor?: boolean; status: 'open' | 'dismissed'; at: string;
 }
 /** GET /api/brain/proofs — where each procedure stands: which steps already ran as they are written (docs/funcionalidades/25). */
 export interface PlaybookProof {

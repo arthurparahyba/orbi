@@ -32,3 +32,14 @@ describe('registro da execução', () => {
     expect(size(81_204)).toBe('81 mil');
   });
 });
+
+describe('diagnóstico por execução', () => {
+  it('conta por execução só o que está aberto, separando o do Orbi do do modelo', async () => {
+    const { byRun } = await import('../src/views/brain/runCalls');
+    const f = (runId: string, category: 'orbi' | 'modelo', status = 'open') => ({ runId, category, status });
+    const by = byRun([f('r1', 'orbi'), f('r1', 'modelo'), f('r1', 'orbi'), f('r2', 'modelo'), f('r2', 'orbi', 'dismissed')]);
+    expect(by.get('r1')).toEqual({ orbi: 2, modelo: 1 });
+    expect(by.get('r2')).toEqual({ orbi: 0, modelo: 1 });
+    expect(by.get('r3')).toBeUndefined();
+  });
+});

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api, type PlaybookRun, type RunCall } from '../../api';
 import { useLive } from '../../hooks';
 import { groupCalls, isProblem, MARK_LABEL, ms, runTotals, size, STATUS_LABEL } from './runCalls';
+import { RunDiagnosis } from './RunDiagnosis';
 
 /** One call: what was called, how it ended, how long it took and how much it made the model read. */
 function Call({ c }: { c: RunCall }) {
@@ -29,6 +30,7 @@ function Call({ c }: { c: RunCall }) {
  */
 export function RunDetail({ run }: { run: PlaybookRun }) {
   const calls = useLive(() => api.runCalls(run.id), ['runs'], [run.id]);
+  const found = useLive(() => api.diagnoses(run.id), ['runs'], [run.id]);
   const [onlyProblems, setOnlyProblems] = useState(false);
   if (!calls.data) return <p className="muted small">Carregando as chamadas…</p>;
   if (calls.data.length === 0) return <p className="muted small">Sem registro desta execução: ela é anterior ao registro de chamadas.</p>;
@@ -41,6 +43,7 @@ export function RunDetail({ run }: { run: PlaybookRun }) {
         {totals.failures > 0 && <> · <strong>{totals.failures}</strong> falhas</>}
         {totals.expensive > 0 && <> · <span className="mark-caro">{totals.expensive} leituras caras ({size(totals.expensiveChars)} caracteres)</span></>}
       </p>
+      <RunDiagnosis found={found.data ?? []} />
       <div className="run-actions">
         <button type="button" className={`btn small ${onlyProblems ? 'on' : ''}`} aria-pressed={onlyProblems} onClick={() => setOnlyProblems((v) => !v)}>Só problemas</button>
         <button type="button" className="btn small" onClick={() => void copyRun(run.id)}>Copiar execução completa</button>

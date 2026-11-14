@@ -305,4 +305,15 @@ CREATE TABLE playbook_proofs (
   playbook TEXT NOT NULL, step TEXT NOT NULL, how TEXT NOT NULL, run_id TEXT, at TEXT NOT NULL,
   PRIMARY KEY (playbook, step));`,
   },
+  {
+    name: 'diagnóstico: o que deu errado por culpa do Orbi ou de uma chamada do modelo, não do procedimento',
+    sql: `
+CREATE TABLE diagnoses (
+  id TEXT PRIMARY KEY, run_id TEXT NOT NULL, playbook TEXT NOT NULL, detector TEXT NOT NULL,
+  category TEXT NOT NULL, title TEXT NOT NULL, detail TEXT NOT NULL, hint TEXT, step TEXT,
+  fingerprint TEXT NOT NULL, times INTEGER NOT NULL DEFAULT 1, minor INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'open', at TEXT NOT NULL);
+CREATE INDEX diagnoses_run ON diagnoses (run_id);
+CREATE INDEX diagnoses_fingerprint ON diagnoses (fingerprint);`,
+  },
 ];

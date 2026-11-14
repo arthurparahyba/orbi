@@ -850,6 +850,12 @@ button.teach-way:hover { border-color: var(--amber); }
 .fix-env { margin-top: 10px; padding: 10px 12px; border: 1px solid rgba(108, 168, 255, 0.45); border-radius: var(--radius); background: rgba(108, 168, 255, 0.06); display: flex; flex-direction: column; gap: 6px; }
 .fix-env p { margin: 0; }
 .fix-env .kv { margin: 0; }
+.run-diagnosis { display: flex; flex-direction: column; gap: 4px; }
+.diagnoses { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.diagnoses li { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 8px 10px; border: 1px solid #3d3466; border-radius: 8px; background: var(--surface-2); }
+.diag-head { overflow-wrap: anywhere; }
+.pill.diag-orbi { color: #cfc3f5; border-color: #5a4a8a; }
+.pill.diag-modelo { color: var(--muted); }
 .run-detail { padding: 6px 2px 10px; display: flex; flex-direction: column; gap: 10px; }
 .run-totals { margin: 0; }
 .run-actions { display: flex; gap: 8px; }

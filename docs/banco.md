@@ -289,6 +289,12 @@ argumentos), `status` (`ok`, `erro`, `pediu`, `negado`, `observado`, `recusado`)
 que voltou ao modelo) e `marks` (JSON: `caro`, `cortado`, `chamada`, `recusado-depois`). O
 conteúdo das respostas não é guardado. No máximo 400 por execução. Vira evento `runs`.
 
+**`diagnoses`** · o que deu errado por culpa do Orbi ou de uma chamada do modelo, não do
+procedimento (documento 24): `detector`, `category` (`orbi` ou `modelo`), `title`, `detail`,
+`hint` (onde olhar no código), `step`, `fingerprint` (o mesmo defeito em outra execução),
+`times`, `minor` (deslize que o modelo corrigiu na hora: fica guardado, não interrompe) e
+`status` (`open` ou `dismissed`). Vira evento `runs`.
+
 **`playbook_proofs`** · quais passos de cada procedimento já rodaram como estão escritos
 (documento 25): `how` guarda a instrução que rodou (sem diferença de espaços, até mil
 caracteres), `run_id` a execução que provou, ou nulo quando o desenvolvedor dispensou o passo.
@@ -485,6 +491,7 @@ editada, sempre se cria outra.
 | 25 | Tabela `playbook_learnings`: aprendizados do procedimento, por passo (documento 25) |
 | 26 | Tabela `run_calls`: registro da execução, uma linha por chamada (documento 24) |
 | 27 | Tabela `playbook_proofs`: quais passos já rodaram como estão escritos (documento 25) |
+| 28 | Tabela `diagnoses`: o que é defeito do Orbi ou chamada errada do modelo (documento 24) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

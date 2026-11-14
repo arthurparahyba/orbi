@@ -1,5 +1,6 @@
 import { failedAttempts, learningLines } from '../brain/domain/step-learnings.ts';
 import { retrospective } from './retrospective.ts';
+import { countsLine, worthTelling } from '../diagnosis/index.ts';
 import type { ExecutionReview, Finding } from '@orbi/contracts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
 import { judge } from '../brain/domain/judge.ts';
@@ -21,7 +22,7 @@ import type { Agent } from '../agents/runtime-port.ts';
  * steps given as done whose tool failed), the level settled on that basis, and, in an esteira,
  * the configuration problems. Returns null when there was nothing to review.
  */
-export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pipelines'>, conversationId: string): ExecutionReview | null {
+export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pipelines' | 'diagnoses'>, conversationId: string): ExecutionReview | null {
   // A delivery is reviewed once, when it ends or stops for a decision, not at every approval on the way.
   const delivery = s.pipelines.runs.inConversation(conversationId);
   if (delivery?.status === 'running') return null;
@@ -49,8 +50,13 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     const after = s.brain.run(run.id) ?? run;
     // What this run tried that did not work stays with the procedure (docs/funcionalidades/25).
     for (const l of failedAttempts(after)) s.brain.learnings.add(l);
-    const findings = judged(after, analyzeRun(after, { open: false, calls: s.brain.calls.list(after.id) }));
-    const retro = retrospective(after, s.brain.calls.list(after.id));
+    const calls = s.brain.calls.list(after.id);
+    const findings = judged(after, analyzeRun(after, { open: false, calls }));
+    const retro = retrospective(after, calls);
+    // What is the Orbi's own fault, or a wrong call of the model: apart from the procedure's review.
+    for (const f of worthTelling(s.diagnoses.record({ run: after, calls, playbook: s.brain.playbook(after.playbook) }))) {
+      (out.orbi ??= []).push({ id: f.id, runId: f.runId, category: f.category, title: f.title, detail: f.detail, times: f.times });
+    }
     const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', findings, ...(retro.length ? { retro } : {}) };
     if (settled.change) {
       const { from, to, reason } = settled.change;
@@ -132,7 +138,7 @@ const KIND_LINE: Record<Finding['kind'], (playbook: string) => string> = {
 
 /** Something the model must act on: a change allowed, a problem to learn, an environment to explain, the esteira's configuration. */
 export const hasProblems = (r: ExecutionReview) =>
-  r.config.length > 0 || (r.change?.length ?? 0) > 0 || (r.environment?.length ?? 0) > 0 || r.runs.some((x) => x.findings.some((f) => f.kind === 'aprender'));
+  r.config.length > 0 || (r.change?.length ?? 0) > 0 || (r.environment?.length ?? 0) > 0 || (r.orbi?.length ?? 0) > 0 || r.runs.some((x) => x.findings.some((f) => f.kind === 'aprender'));
 
 /** What the model reads with the review: only what the judge let through, and to propose it in one batch. */
 /**
@@ -142,6 +148,14 @@ export const hasProblems = (r: ExecutionReview) =>
 export function reviewInstruction(r: ExecutionReview, machine?: string, tried: (playbook: string) => string[] = () => []): string {
   if (!hasProblems(r)) {
     return `Revisão da execução: ${r.runs.map((x) => x.playbook).join(', ')} sem nada para mudar. O cartão já está na conversa: responda no máximo uma linha curta, ou nada. Não proponha melhorias.`;
+  }
+  const orbi = r.orbi ?? [];
+  const orbiLine = orbi.length
+    ? `${countsLine(orbi)} nesta execução, que não são do procedimento: ${orbi.map((f) => `${f.title}${f.times > 1 ? ` (${f.times}ª vez)` : ''}`).join('; ')}`
+    : '';
+  // Nothing of the procedure to change: the developer only has to know, in one line, and nothing is proposed.
+  if (orbi.length && !r.config.length && !(r.change?.length ?? 0) && !(r.environment?.length ?? 0) && !r.runs.some((x) => x.findings.some((f) => f.kind === 'aprender'))) {
+    return `Revisão da execução: ${orbiLine}. Não proponha mudança nenhuma no procedimento nem rode nada. Diga ao desenvolvedor, em uma linha, que houve ${countsLine(orbi)} nesta execução, que isso é do Orbi e não do procedimento dele, e que os detalhes estão na execução (Cérebro › Execuções › Ver detalhes). Nada mais.`;
   }
   const changed = new Set((r.change ?? []).map((c) => c.playbook));
   const findings = r.runs.flatMap((x) => x.findings.filter((f) => f.kind === 'aprender' || changed.has(x.playbook)));
@@ -167,6 +181,7 @@ export function reviewInstruction(r: ExecutionReview, machine?: string, tried: (
       (e.raiz ? `A correção de vez guardada é "${e.raiz}". ` : 'Ainda não há correção de vez (raiz) guardada: investigue em modo leitura e inclua raiz no problema conhecido no mesmo brain_learn. '),
     ),
     ...groupConfig(r.config).map(([pb, texts]) => `- configuração de ${pb}: ${texts.join(' ')}`),
+    ...(orbiLine ? [`- ${orbiLine}. Não mude o procedimento por causa disso; diga numa linha ao desenvolvedor que aconteceu e siga com o resto.`] : []),
     ...((r.change?.length ?? 0) > 0 ? ['Antes de propor a mudança, ative a skill `corrigir-procedimento`.'] : []),
     ...(machine ? [`O que esta máquina oferece: ${machine}.`] : []),
     'Proponha tudo com UM brain_learn' +

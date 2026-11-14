@@ -12,6 +12,18 @@ export const ms = (duration: number) => (duration >= 1000 ? `${(duration / 1000)
 
 export interface CallGroup { step: string | null; title: string; calls: RunCall[] }
 
+/** Quantos problemas de cada execução não são do procedimento: a lista mostra isso em cada linha. */
+export function byRun(found: ReadonlyArray<{ runId: string; category: 'orbi' | 'modelo'; status: string }>): Map<string, { orbi: number; modelo: number }> {
+  const out = new Map<string, { orbi: number; modelo: number }>();
+  for (const f of found) {
+    if (f.status !== 'open') continue;
+    const got = out.get(f.runId) ?? { orbi: 0, modelo: 0 };
+    got[f.category] += 1;
+    out.set(f.runId, got);
+  }
+  return out;
+}
+
 /** The calls grouped by step, in the procedure's order; what is outside a step (or in a step that is gone) comes last. */
 export function groupCalls(calls: readonly RunCall[], steps: PlaybookRun['steps']): CallGroup[] {
   const known = new Set(steps.map((s) => s.id));

@@ -3,9 +3,9 @@
 Decidido em 13/11 com o desenvolvedor. Protótipo (telas A a F):
 https://claude.ai/artifact/AqyyCGi56FKhFZmFdWFQ29
 
-**Feito (fase 1):** o registro da execução, a tela de detalhes com "Copiar execução completa" e a
-marca de leitura cara. **Ainda não implementado:** os detectores, as três categorias, o
-diagnóstico (pelo modelo ou pelo agente instalado) e a issue.
+**Feito (fases 1 e 2):** o registro da execução, a tela de detalhes com "Copiar execução
+completa", a marca de leitura cara, os detectores e as três categorias.
+**Ainda não implementado:** o diagnóstico escrito pelo modelo ou pelo agente instalado, e a issue.
 
 ## O problema
 
@@ -75,19 +75,36 @@ parte da revisão do procedimento. Cada achado cai em uma de três categorias:
 | do procedimento | passo que não cumpre o que promete | revisão, como hoje (documento 19) |
 | do modelo | chamada errada (argumento, ferramenta que não existe) | contado à parte; muitos iguais indicam instrução confusa |
 
-Detectores iniciais (um arquivo cada, com impressão digital própria):
+Detectores (`diagnosis/detectors.ts`, regras puras; um detector novo é uma entrada ali com o
+seu teste). Cada achado tem uma **impressão digital**: o mesmo defeito em outra execução é
+contado ("2a vez"), e é por ela que a issue vai somar ocorrências em vez de abrir outra.
 
-- arquivo gravado cortado ou `.json` inválido;
-- comando aprovado e depois recusado;
-- passo fechado fora de ordem ou ação contada em passo que não a pediu;
-- procedimento que perdeu entregas, scripts ou entradas numa correção;
-- **chamada cara**: uma resposta grande indo ao modelo (imagem da página, `take_snapshot`
-  inteiro, saída longa de comando). Pedido do desenvolvedor em 13/11: além de aparecer no
-  diagnóstico, vira **alerta para o usuário** (abaixo);
-- a mesma ferramenta falhando do mesmo jeito em execuções seguidas sem problema conhecido.
+| Detector | Categoria | Quando |
+|---|---|---|
+| `arquivo-cortado` | do Orbi | uma chamada que gravou arquivo (`saveTo`) veio com a resposta cortada |
+| `recusado-depois` | do Orbi | você aprovou e o Orbi recusou na hora de rodar |
+| `chamada-errada` | do modelo | ferramenta que não existe ou argumento que não valida, agrupado por ferramenta |
+| `passo-fora-de-ordem` | do modelo | tentou fechar um passo antes do anterior (o runtime recusou) |
+| `passo-sem-ferramenta` | do modelo | passo cuja instrução nomeia uma ferramenta foi dado como feito sem nenhuma chamada |
 
-Vários desses defeitos foram corrigidos no documento 23; o detector fica como alarme de
-regressão.
+Os dois primeiros foram corrigidos no documento 23: ficam como alarme de regressão. O último
+é novo e só existe por causa do registro: sem ele não havia como saber que um passo não teve
+chamada nenhuma.
+
+**O que não interrompe.** Um deslize que o modelo corrigiu na hora (chamou errado e acertou
+em seguida) fica guardado e aparece na execução, marcado como menor, mas não acorda a
+conversa: ele só importa somado (muitos iguais significam descrição confusa).
+
+**Onde aparece.** Na lista de Execuções, cada linha diz "2 do Orbi, 1 do modelo"; em "Ver
+detalhes", a seção "Diagnóstico: não é do procedimento" traz, para cada achado, o que
+aconteceu com os números do registro, onde olhar no código (quando o detector sabe), quantas
+vezes já aconteceu e **Dispensar**. No fim da execução, se houver algo que mereça, a revisão
+manda o Orbi dizer **uma linha** na conversa ("houve 1 problema do modelo nesta execução;
+não é do seu procedimento") e proíbe propor mudança no procedimento por causa disso.
+
+Ainda fora: "a mesma ferramenta falhando do mesmo jeito em execuções seguidas" (precisaria
+decidir o que é do Orbi e o que é do ambiente, e erraria a categoria) e "procedimento que
+perdeu entregas" (o documento 23 tirou a causa, e não há sinal confiável no registro).
 
 **Quem explica e confirma** (Configurações › Diagnóstico do Orbi):
 
@@ -150,7 +167,7 @@ contraditório: ela deve pegar carona no cartão da revisão, quando ele já vai
 ## Fases
 
 1. ~~Registro (`run_calls`) e a tela de detalhes, com "Copiar execução completa".~~ Feito.
-2. Detectores, as três categorias, o resumo na lista e a linha no fim da conversa.
+2. ~~Detectores, as três categorias, o resumo na lista e a linha no fim da conversa.~~ Feito.
 3. Diagnóstico pelo modelo do Orbi e pelo agente instalado; a configuração.
 4. Issue: texto, anonimização, página preenchida; depois o `gh` e a soma de ocorrências.
 
@@ -162,8 +179,15 @@ e em `agents/gate.ts` (a decisão do desenvolvedor cai na mesma linha), rotas em
 `http/routes/brain.ts`, tela em `views/brain/RunDetail.tsx` com as regras em
 `views/brain/runCalls.ts`, analisador em `review/analyzers/reads.ts`.
 
+O diagnóstico fica em `diagnosis/` (detectores puros e a tabela `diagnoses`), fora do cérebro:
+o cérebro é o que o Orbi sabe do domínio do desenvolvedor, não o que ele sabe de si. A revisão
+(`review/review.ts`) roda os detectores quando a execução termina e nunca transforma um achado
+deles em mudança de procedimento. Rotas em `http/routes/diagnoses.ts`; tela em
+`views/brain/RunDiagnosis.tsx` e a contagem por execução em `views/brain/runCalls.ts`.
+
 Testes: `run-calls.test.ts`, `flow-run-calls.test.ts`, `review.test.ts` (leituras caras),
-`runCalls.test.ts` (app).
+`diagnosis.test.ts`, `flow-diagnosis.test.ts`, `flow-learn-run.test.ts` (passo sem
+ferramenta), `runCalls.test.ts` (app).
 
 ## Depende de
 
