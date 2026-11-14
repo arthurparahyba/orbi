@@ -3,9 +3,10 @@
 Decidido em 13/11 com o desenvolvedor. Protótipo (telas A a F):
 https://claude.ai/artifact/AqyyCGi56FKhFZmFdWFQ29
 
-**Feito (fases 1 e 2):** o registro da execução, a tela de detalhes com "Copiar execução
-completa", a marca de leitura cara, os detectores e as três categorias.
-**Ainda não implementado:** o diagnóstico escrito pelo modelo ou pelo agente instalado, e a issue.
+**Feito (fases 1, 2 e 4):** o registro da execução, a tela de detalhes com "Copiar execução
+completa", a marca de leitura cara, os detectores, as três categorias e a issue (pelo `gh`, com a
+página do GitHub como reserva). **Ainda não implementado:** o diagnóstico escrito pelo modelo ou
+pelo agente instalado (fase 3).
 
 ## O problema
 
@@ -122,14 +123,30 @@ execução". Achado que o agente não confirma no código sai como **hipótese**
 
 ### Issue no repositório do Orbi
 
-- De um achado "do Orbi", **Preparar issue** monta o texto: resumo, o que aconteceu (com os
-  números do registro), causa, efeito, ambiente (versão, sistema), detector e impressão digital.
-- **Nada do seu trabalho sai**: nomes de arquivo, site, procedimento e repositório viram
-  `<arquivo-1>`, `<site-1>`…; conteúdo de página, texto dos passos, conversa, entradas,
-  entregas e o Cérebro não entram. A tela mostra o texto exato e a lista do que foi trocado.
-- **Nada sai sem você enviar.** Dois caminhos: abrir a página do GitHub já preenchida (padrão),
-  ou enviar pelo `gh` da máquina, que também soma uma ocorrência em issue de mesma impressão
-  digital em vez de abrir outra.
+**Como funciona** (decisão de 14/11): **Reportar no Orbi**, num achado do Orbi, monta o texto
+e mostra antes de enviar. Enviar tenta o `gh` desta máquina, que é quem já está logado:
+
+- se já existe issue com a mesma impressão digital, entra como **ocorrência nela**
+  (`gh issue comment`) em vez de abrir outra;
+- se não existe, abre uma (`gh issue create`);
+- **sem o `gh`, ou se ele falhar** (não instalado, não logado, erro), volta a página do GitHub
+  já preenchida, dizendo o motivo, para você conferir e enviar. Nunca fica sem caminho.
+
+O corpo traz o que aconteceu, onde olhar no código (quando o detector sabe), as chamadas do
+passo em que aconteceu, a versão, o sistema, o detector e a impressão digital.
+
+**Nada do seu trabalho sai.** Os nomes que são seus — procedimento, passos, arquivos, sites —
+são trocados por `<procedimento-1>`, `<passo-2>`, `<arquivo-1>`, `<site-1>`, e a troca é por
+nome conhecido, nunca por adivinhação. A tela mostra o texto exato e a lista do que foi
+trocado. O conteúdo das respostas nunca entra, porque o registro não o guarda.
+
+`ORBI_ISSUES_REPO` diz para onde vai (padrão `arthurparahyba/orbi`).
+
+**Não usamos o Playwright** para isso: o que falta no caminho de reserva não é automatizar o
+navegador, é você conferir e clicar. E o navegador que importa é o seu, com o login do GitHub
+que você já tem; um navegador limpo teria de fazer login. Quem quiser o Playwright num
+procedimento pode cadastrá-lo como servidor MCP por comando (documento 20), sem embutir.
+
 
 ### Alerta de gasto
 
@@ -169,7 +186,7 @@ contraditório: ela deve pegar carona no cartão da revisão, quando ele já vai
 1. ~~Registro (`run_calls`) e a tela de detalhes, com "Copiar execução completa".~~ Feito.
 2. ~~Detectores, as três categorias, o resumo na lista e a linha no fim da conversa.~~ Feito.
 3. Diagnóstico pelo modelo do Orbi e pelo agente instalado; a configuração.
-4. Issue: texto, anonimização, página preenchida; depois o `gh` e a soma de ocorrências.
+4. ~~Issue: texto, anonimização, `gh` com soma de ocorrências e a página preenchida como reserva.~~ Feito.
 
 ## Peças
 
@@ -185,9 +202,12 @@ o cérebro é o que o Orbi sabe do domínio do desenvolvedor, não o que ele sab
 deles em mudança de procedimento. Rotas em `http/routes/diagnoses.ts`; tela em
 `views/brain/RunDiagnosis.tsx` e a contagem por execução em `views/brain/runCalls.ts`.
 
+A issue fica em `diagnosis/issue.ts` (o texto e a troca de nomes, regras puras) e
+`diagnosis/send.ts` (o `gh`, trocável no teste).
+
 Testes: `run-calls.test.ts`, `flow-run-calls.test.ts`, `review.test.ts` (leituras caras),
-`diagnosis.test.ts`, `flow-diagnosis.test.ts`, `flow-learn-run.test.ts` (passo sem
-ferramenta), `runCalls.test.ts` (app).
+`diagnosis.test.ts`, `issue.test.ts`, `flow-diagnosis.test.ts`, `flow-learn-run.test.ts` (passo
+sem ferramenta), `runCalls.test.ts` (app).
 
 ## Depende de
 

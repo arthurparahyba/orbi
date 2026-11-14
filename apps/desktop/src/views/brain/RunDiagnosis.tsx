@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { Diagnosis } from '../../api';
 import { api } from '../../api';
+import { IssuePanel } from './IssuePanel';
 
 export const CATEGORY_LABEL: Record<Diagnosis['category'], string> = { orbi: 'do Orbi', modelo: 'do modelo' };
 
@@ -9,6 +11,7 @@ export const CATEGORY_LABEL: Record<Diagnosis['category'], string> = { orbi: 'do
  * nunca volta como mudança no procedimento do desenvolvedor.
  */
 export function RunDiagnosis({ found }: { found: Diagnosis[] }) {
+  const [issue, setIssue] = useState<string>();
   const open = found.filter((f) => f.status === 'open');
   if (open.length === 0) return null;
   return (
@@ -23,7 +26,12 @@ export function RunDiagnosis({ found }: { found: Diagnosis[] }) {
             </span>
             <span className="small">{f.detail}</span>
             {f.hint && <span className="small muted mono">{f.hint}</span>}
-            <button type="button" className="btn small" onClick={() => void api.dismissDiagnosis(f.id)}>Dispensar</button>
+            <span className="run-actions">
+              {f.category === 'orbi' && (issue === f.id
+                ? <IssuePanel found={f} onClose={() => setIssue(undefined)} />
+                : <button type="button" className="btn small" onClick={() => setIssue(f.id)}>Reportar no Orbi</button>)}
+              <button type="button" className="btn small" onClick={() => void api.dismissDiagnosis(f.id)}>Dispensar</button>
+            </span>
           </li>
         ))}
       </ul>

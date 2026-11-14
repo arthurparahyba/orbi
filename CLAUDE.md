@@ -159,7 +159,9 @@ cofre ou ponte MCP, `npm run e2e`.
   (documento 22).
 - **Diagnóstico** (`diagnosis/`, documento 24): defeito do Orbi e chamada errada do modelo ficam
   fora da revisão do procedimento, e um achado deles nunca vira mudança no procedimento do
-  desenvolvedor. O cérebro é o que o Orbi sabe do domínio dele; o que o Orbi sabe de si mesmo
+  desenvolvedor. A issue para o repositório do Orbi sai só com o clique do desenvolvedor, com o
+  texto à vista, e os nomes dele (procedimento, passo, arquivo, site) trocados por apelido:
+  nunca mande para fora nada que ele escreveu ou abriu. O cérebro é o que o Orbi sabe do domínio dele; o que o Orbi sabe de si mesmo
   mora em `diagnosis/`.
 - **Procedimento provado** (`playbook_proofs`, documento 25): um passo está provado enquanto a
   instrução que rodou ainda é a que ele tem, então mudar o texto do passo tira a prova sozinho.

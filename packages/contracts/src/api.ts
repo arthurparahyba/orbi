@@ -114,6 +114,22 @@ export interface ReviewNote {
   id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
   conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
 }
+/** GET /api/diagnoses/:id/issue — o texto exato que iria para o repositório do Orbi, já sem nada do trabalho do desenvolvedor. */
+export interface IssueDraft {
+  title: string; body: string;
+  /** O que foi trocado antes de sair: "saida/promo.json" vira "&lt;arquivo-1&gt;". */
+  swaps: Array<{ from: string; to: string }>;
+  fingerprint: string;
+}
+/** POST /api/diagnoses/:id/issue — como a issue saiu. */
+export interface IssueSent {
+  via: 'gh' | 'browser';
+  url: string;
+  /** Já existia issue com a mesma impressão digital: entrou como ocorrência nela. */
+  commented?: boolean;
+  /** Por que não foi pelo `gh`. */
+  why?: string;
+}
 /** GET /api/diagnoses — o que deu errado por culpa do Orbi ou de uma chamada do modelo (docs/funcionalidades/24). */
 export interface Diagnosis {
   id: string; runId: string; playbook: string; detector: string; category: 'orbi' | 'modelo';

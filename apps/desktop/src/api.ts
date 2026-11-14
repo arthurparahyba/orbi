@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, TestMcpServer, EditMcpServer, SetMcpTool, ReviewNote, RunCall, PlaybookProof, Diagnosis, StepLearning, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, TestMcpServer, EditMcpServer, SetMcpTool, ReviewNote, RunCall, PlaybookProof, Diagnosis, IssueDraft, IssueSent, StepLearning, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -113,6 +113,9 @@ export const api = {
   runs: () => request<PlaybookRun[]>('/api/brain/runs'),
   /** O que deu errado por culpa do Orbi ou de uma chamada do modelo; sem `run`, os que estão abertos. */
   diagnoses: (run?: string) => request<Diagnosis[]>(`/api/diagnoses${run ? `?run=${encodeURIComponent(run)}` : ''}`),
+  /** "Ver o que vai": o texto exato da issue, com a lista do que foi trocado. */
+  issueDraft: (id: string) => request<IssueDraft>(`/api/diagnoses/${encodeURIComponent(id)}/issue`),
+  sendIssue: (id: string) => request<IssueSent>(`/api/diagnoses/${encodeURIComponent(id)}/issue`, { method: 'POST' }),
   dismissDiagnosis: (id: string) => request<{ ok: true }>(`/api/diagnoses/${encodeURIComponent(id)}/dismiss`, { method: 'POST' }),
   /** Where each procedure stands: which of its steps already ran as they are written. */
   proofs: () => request<Record<string, PlaybookProof>>('/api/brain/proofs'),

@@ -61,6 +61,11 @@ export class Diagnoses {
     });
   }
 
+  get(id: string): Diagnosis | undefined {
+    const r = this.db.prepare('SELECT * FROM diagnoses WHERE id = ?').get(id) as Row | undefined;
+    return r ? toDiagnosis(r) : undefined;
+  }
+
   forRun(runId: string): Diagnosis[] {
     return (this.db.prepare('SELECT * FROM diagnoses WHERE run_id = ? ORDER BY at, rowid').all(runId) as Row[]).map(toDiagnosis);
   }

@@ -76,6 +76,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
 
     /** CLIs the agent may run. No shell: each call is binary + arguments. */
     allowedBinaries: list(env.ORBI_ALLOWED_BINARIES, DEFAULT_ALLOWED),
+    /** Onde abrir a issue de um defeito do Orbi (documento 24): o repositório do próprio Orbi. */
+    issuesRepo: (env.ORBI_ISSUES_REPO ?? 'arthurparahyba/orbi').trim(),
     /** The developer's shell (Git Bash on Windows): .cmd programs and run_shell (terminal/shell.ts). */
     shell: findShell(env),
 

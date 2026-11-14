@@ -43,6 +43,13 @@ test('diagnóstico: problema do modelo não vira mudança no procedimento, e a r
 
   const api = await (await app.request(`/api/diagnoses?run=${run.id}`)).json() as Array<{ id: string; title: string }>;
   assert.equal(api.length, 1);
+  // "Ver o que vai": o texto da issue, sem nada do trabalho do desenvolvedor.
+  const draft = await (await app.request(`/api/diagnoses/${api[0]!.id}/issue`)).json() as { title: string; body: string; swaps: Array<{ to: string }> };
+  assert.match(draft.title, /o modelo chamou show_ui errado \(chamada-errada\)/);
+  assert.match(draft.body, /## Ambiente/);
+  assert.doesNotMatch(draft.body, /listar/, 'o nome do procedimento e do passo não saem');
+  assert.ok(draft.swaps.some((x) => x.to === '<procedimento-1>'));
+  assert.equal((await app.request('/api/diagnoses/nao-existe/issue')).status, 404);
   assert.equal((await app.request(`/api/diagnoses/${api[0]!.id}/dismiss`, { method: 'POST' })).status, 200);
   assert.equal(services().diagnoses.list().filter((f) => f.runId === run.id).length, 0, 'dispensado sai da lista');
   assert.equal((await app.request('/api/diagnoses/nao-existe/dismiss', { method: 'POST' })).status, 404);
