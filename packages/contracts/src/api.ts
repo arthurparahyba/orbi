@@ -107,6 +107,13 @@ export interface ReviewNote {
   id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
   conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
 }
+/** GET /api/brain/runs/:id/calls — what each tool call of an execution did (docs/funcionalidades/24). */
+export interface RunCall {
+  id: string; runId: string | null; conversationId: string; step: string | null; tool: string; summary: string;
+  status: 'ok' | 'erro' | 'pediu' | 'negado' | 'observado' | 'recusado';
+  approval: 'sozinha' | 'pedida' | 'aprovada' | 'negada' | null;
+  error: string; durationMs: number; chars: number; marks: Array<'caro' | 'cortado' | 'chamada' | 'recusado-depois'>; at: string;
+}
 /** GET /api/step-learnings?playbook= — what was already tried in a procedure, by step (docs/funcionalidades/25). */
 export interface StepLearning {
   id: string; playbook: string; step: string | null; tried: string; outcome: 'falhou' | 'funcionou' | 'negado' | 'orbi'; why: string;

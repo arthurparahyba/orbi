@@ -4,11 +4,12 @@ import type { RunAnalyzer, RunContext } from './types.ts';
 import { deviations, openRun, stepClaims } from './run-state.ts';
 import { inlineScripts, tablesByHand } from './scripts.ts';
 import { knownProblems } from './knowledge.ts';
+import { expensiveReads } from './reads.ts';
 
 export type { FindingKind, RunAnalyzer, RunContext } from './types.ts';
 
 /** Every check of a run, in the order its findings are shown. A new check: a new file, one entry here. */
-export const ANALYZERS: readonly RunAnalyzer[] = [openRun, stepClaims, deviations, inlineScripts, tablesByHand, knownProblems];
+export const ANALYZERS: readonly RunAnalyzer[] = [openRun, stepClaims, deviations, inlineScripts, tablesByHand, knownProblems, expensiveReads];
 
 /** What every analyzer finds in a run (each text once). */
 export function analyzeRun(run: PlaybookRun, ctx: RunContext, analyzers: readonly RunAnalyzer[] = ANALYZERS): Finding[] {

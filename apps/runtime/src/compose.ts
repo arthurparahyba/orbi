@@ -1,4 +1,5 @@
 import { isCallError, stepUses } from './brain/domain/levels.ts';
+import { callSummary, marksOf, type CallApproval, type CallStatus } from './brain/domain/run-calls.ts';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import type { Agent } from './agents/runtime-port.ts';
@@ -115,6 +116,55 @@ export async function createOrbi(
   };
 }
 
+/** The step a call counts in: the one running now, else the next pending one. */
+const openStep = (run: { steps: ReadonlyArray<{ id: string; status: string }> } | undefined): string | null =>
+  (run?.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run?.steps.find((x) => x.status === 'pending'))?.id ?? null;
+
+/**
+ * A call started: written down now if an execution is open, so a turn that dies halfway still
+ * leaves its trail (docs/funcionalidades/24). A call that opens the execution itself
+ * (`playbook_start`) has none yet: it is kept until it ends, and lands in the run it created.
+ */
+export function recordCallStart(s: Pick<OrbiServices, 'brain' | 'toolOutcomes'>, conversationId: string, call: { id: string; tool: string; args: unknown }): void {
+  const summary = callSummary(call.args);
+  const run = s.brain.openRunIn(conversationId);
+  if (run) s.brain.calls.begin({ id: call.id, runId: run.id, conversationId, step: openStep(run), tool: call.tool, summary });
+  else s.toolOutcomes.startCall(call.id, { tool: call.tool, summary });
+}
+
+/** What the gate's answer says it did with the call, when the call went through the gate. */
+function gateOutcome(text: string | undefined): { status: CallStatus; approval: CallApproval | null } {
+  const status = /^\{"status":"([a-z_]+)"/.exec(text ?? '')?.[1];
+  if (status === 'pending_approval') return { status: 'pediu', approval: 'pedida' };
+  if (status === 'not_executed') return { status: 'observado', approval: null };
+  if (status === 'invalid') return { status: 'recusado', approval: null };
+  if (status === 'executed') return { status: 'ok', approval: 'sozinha' };
+  return { status: 'ok', approval: null };
+}
+
+/** A call ended: the registry of the execution gets how it went, how long and how much it read. */
+export function recordCallEnd(s: Pick<OrbiServices, 'brain' | 'toolOutcomes'>, conversationId: string, outcome: ToolOutcome): void {
+  if (!outcome.id) return;
+  const run = s.brain.openRunIn(conversationId);
+  const started = s.toolOutcomes.takeCall(outcome.id);
+  // The call that opened this execution: its line is written now, in the run it created.
+  if (!s.brain.calls.get(outcome.id)) {
+    if (!run || !started) return;
+    s.brain.calls.begin({ id: outcome.id, runId: run.id, conversationId, step: openStep(run), tool: started.tool, summary: started.summary });
+  }
+  const chars = outcome.chars ?? 0;
+  const gate = outcome.failed ? { status: 'erro' as CallStatus, approval: null } : gateOutcome(outcome.result);
+  const call = { chars, status: gate.status, error: outcome.error ?? '' };
+  s.brain.calls.finish(outcome.id, {
+    ...gate,
+    error: outcome.error,
+    durationMs: outcome.durationMs ?? 0,
+    chars,
+    marks: marksOf(call, outcome.result ?? outcome.error ?? '', isCallError),
+    step: openStep(run),
+  });
+}
+
 /**
  * A tool call ended. A failure inside a running playbook is a deviation of that run: the run
  * does not count toward the next level, and the Orbi is asked to propose a fix at the end.
@@ -195,7 +245,11 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
   const unwatch = watchAgents({
     usage: s.usage,
     log,
-    onTool: (conversationId, outcome) => recordToolOutcome(s, conversationId, outcome),
+    onToolStart: (conversationId, call) => recordCallStart(s, conversationId, call),
+    onTool: (conversationId, outcome) => {
+      recordCallEnd(s, conversationId, outcome);
+      recordToolOutcome(s, conversationId, outcome);
+    },
     onTurn: (conversationId, u) => s.brain.execution.addUsage(conversationId, u),
     // When a turn ends: review the runs that ended in it (problems, level, configuration).
     onSettled: (conversationId) => {

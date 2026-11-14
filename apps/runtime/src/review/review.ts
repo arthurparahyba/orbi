@@ -38,7 +38,7 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
   if (runs.length === 0 && open.length === 0) return null;
   const judged = (run: PlaybookRun, findings: Finding[]) => applyVerdicts(s, out, run, findings, conversationId);
   for (const run of open) {
-    const findings = judged(run, analyzeRun(run, { open: true }));
+    const findings = judged(run, analyzeRun(run, { open: true, calls: s.brain.calls.list(run.id) }));
     out.runs.push({ runId: run.id, playbook: run.playbook, status: 'open', findings });
     s.brain.markReviewed(run.id);
   }
@@ -48,7 +48,7 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     const after = s.brain.run(run.id) ?? run;
     // What this run tried that did not work stays with the procedure (docs/funcionalidades/25).
     for (const l of failedAttempts(after)) s.brain.learnings.add(l);
-    const findings = judged(after, analyzeRun(after, { open: false }));
+    const findings = judged(after, analyzeRun(after, { open: false, calls: s.brain.calls.list(after.id) }));
     const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', findings };
     if (settled.change) {
       const { from, to, reason } = settled.change;

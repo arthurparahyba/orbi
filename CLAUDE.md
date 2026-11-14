@@ -154,6 +154,10 @@ cofre ou ponte MCP, `npm run e2e`.
   nome com outro id é recusado no `brain_learn`), aprender soma propriedades em vez de trocar a
   entidade, e o passo que achou o fato muda, no mesmo cartão, para consultar o Cérebro antes
   (documento 22).
+- **Registro da execução** (`run_calls`, documento 24): guarda o que cada chamada fez, nunca o
+  que ela devolveu. Só tamanho, duração, passo, aprovação, marcas, a primeira linha do erro e um
+  resumo curto dos argumentos, que são os que o modelo escreveu (credencial só aparece como
+  `{{segredo:nome}}`). Não ponha conteúdo de resposta, de página nem de arquivo nessa tabela.
 - **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
   modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
   ou com a permissão do agente.

@@ -850,6 +850,21 @@ button.teach-way:hover { border-color: var(--amber); }
 .fix-env { margin-top: 10px; padding: 10px 12px; border: 1px solid rgba(108, 168, 255, 0.45); border-radius: var(--radius); background: rgba(108, 168, 255, 0.06); display: flex; flex-direction: column; gap: 6px; }
 .fix-env p { margin: 0; }
 .fix-env .kv { margin: 0; }
+.run-detail { padding: 6px 2px 10px; display: flex; flex-direction: column; gap: 10px; }
+.run-totals { margin: 0; }
+.run-actions { display: flex; gap: 8px; }
+.btn.small.on { border-color: var(--accent-2, #6a5224); color: var(--amber, #f2b13c); }
+.call-step { display: flex; flex-direction: column; gap: 4px; }
+.calls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.call { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.call.is-erro { border-color: rgba(255, 138, 138, 0.4); }
+.call-head { min-width: 0; overflow-wrap: anywhere; }
+.call-tags { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; justify-content: flex-end; }
+.call-error { grid-column: 1 / -1; color: var(--red, #ffb4b4); overflow-wrap: anywhere; }
+.pill.mark-caro, .mark-caro { color: var(--amber, #f2b13c); }
+.pill.mark-cortado, .pill.mark-recusado-depois, .mark-cortado { color: #cfc3f5; }
+.pill.mark-chamada { color: var(--muted); }
+.run-detail-row > td { background: var(--surface-1); }
 .learn-tried { margin: 8px 0; font-size: 13px; }
 .learn-tried ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .pb-learnings { margin: 8px 0; }

@@ -322,6 +322,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `PUT /api/conversations/:id/model` | O modelo desta conversa (`null` volta ao padrão) |
 | `GET /api/review-notes` · `POST /api/review-notes/:id/status` | O que a revisão guardou: ideias por procedimento e ambientes a corrigir ("Agora não", corrigido, descartar) |
 | `GET /api/step-learnings?playbook=` · `DELETE /api/step-learnings/:id` | O que já foi tentado num procedimento, por passo; tirar um aprendizado |
+| `GET /api/brain/runs/:id/calls` · `GET /api/brain/runs/:id/transcript` | O registro da execução: cada chamada (passo, aprovação, tamanho lido, marcas) e a execução inteira como texto |
 | `PATCH /api/brain/playbooks/:name` `{autonomy?, level?, levelMax?}` · `GET …/:name/autonomy` | Nível de autonomia, ações conhecidas e histórico (documento 3) |
 | `POST /api/inbox/:id/dismiss` · `POST /api/inbox/:id/keep` | Aviso de nível: visto, ou desfazer a mudança |
 | `POST /api/pipelines/:name/fix` | O Orbi propõe a correção da configuração de uma esteira (documento 16) |

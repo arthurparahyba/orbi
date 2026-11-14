@@ -12,14 +12,17 @@ export interface TelemetryDeps {
   log: Logger;
   /** Every tool call's outcome, per conversation (failed steps, deviations of a run). */
   /** `result`: what a successful tool returned (text, up to 4 000 characters), for the review of what was learned. */
-  onTool?: (conversationId: string, outcome: { tool: string; failed: boolean; error?: string; result?: string }) => void;
+  /** `id`: the tool call's id, and `chars`: everything it returned to the model, for the registry of the execution. */
+  onTool?: (conversationId: string, outcome: { tool: string; failed: boolean; error?: string; result?: string; id?: string; chars?: number; durationMs?: number }) => void;
+  /** A tool call started, with its arguments: the registry of the execution writes it down now, so a turn that dies halfway still leaves its trail. */
+  onToolStart?: (conversationId: string, call: { id: string; tool: string; args: unknown }) => void;
   /** Every model turn's tokens and cost, per conversation (they also count in the open run). */
   onTurn?: (conversationId: string, usage: { tokensIn: number; tokensOut: number; costUsd: number }) => void;
   /** A conversation's turn ended (every tool outcome of it has been reported). */
   onSettled?: (conversationId: string, outcome: 'completed' | 'failed' | 'aborted') => void;
 }
 
-export function handleObservation(event: FlueObservation, { usage, log, onTool, onSettled, onTurn }: TelemetryDeps): void {
+export function handleObservation(event: FlueObservation, { usage, log, onTool, onToolStart, onSettled, onTurn }: TelemetryDeps): void {
   // Orbi's conversations are Flue agent instances (`chat:…`); Flue's own conversationId is an
   // internal stream id. Subagent work carries the parent's instance, so it counts there too.
   const conversation = event.instanceId ?? event.conversationId;
@@ -42,11 +45,18 @@ export function handleObservation(event: FlueObservation, { usage, log, onTool, 
       else log.info('turno do modelo', attrs);
       return;
     }
+    case 'tool_start':
+      if (conversation) onToolStart?.(conversation, { id: event.toolCallId, tool: event.toolName, args: event.args });
+      return;
     case 'tool': {
       if (conversation) usage.recordTool({ conversationId: conversation, durationMs: event.durationMs, failed: event.isError });
       if (conversation) {
-        const result = event.isError ? undefined : toolText(event.result, 4000);
-        onTool?.(conversation, { tool: event.toolName, failed: event.isError, ...(event.isError ? { error: toolError(event.result) } : {}), ...(result ? { result } : {}) });
+        const whole = toolText(event.result, Number.MAX_SAFE_INTEGER);
+        const result = event.isError ? undefined : whole?.slice(0, 4000);
+        onTool?.(conversation, {
+          tool: event.toolName, failed: event.isError, id: event.toolCallId, chars: whole?.length ?? 0, durationMs: event.durationMs,
+          ...(event.isError ? { error: toolError(event.result) } : {}), ...(result ? { result } : {}),
+        });
       }
       const attrs = { conversation, tool: event.toolName, ms: event.durationMs };
       if (event.isError) log.warn('ferramenta falhou', { ...attrs, error: toolError(event.result) });

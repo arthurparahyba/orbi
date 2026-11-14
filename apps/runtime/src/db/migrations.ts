@@ -288,4 +288,14 @@ CREATE TABLE playbook_learnings (
   times INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE INDEX playbook_learnings_playbook ON playbook_learnings (playbook, step);`,
   },
+  {
+    name: 'registro da execução: uma linha por chamada de ferramenta (passo, aprovação, tamanho lido, marcas)',
+    sql: `
+CREATE TABLE run_calls (
+  id TEXT PRIMARY KEY, run_id TEXT NOT NULL, conversation_id TEXT NOT NULL, step TEXT,
+  tool TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '', status TEXT NOT NULL, approval TEXT,
+  error TEXT NOT NULL DEFAULT '', duration_ms INTEGER NOT NULL DEFAULT 0, chars INTEGER NOT NULL DEFAULT 0,
+  marks TEXT NOT NULL DEFAULT '[]', at TEXT NOT NULL);
+CREATE INDEX run_calls_run ON run_calls (run_id, at);`,
+  },
 ];

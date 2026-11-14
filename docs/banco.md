@@ -282,6 +282,13 @@ tocar, por 2 horas, na mesma conversa). `subject` é o analisador, o problema ou
 `status` `kept`, `open`, `dismissed`, `done` ou `applied`; `times` conta quantas vezes apareceu.
 Vira evento `brain`.
 
+**`run_calls`** · o registro da execução (documento 24): uma linha por chamada de ferramenta
+dentro de uma execução, com `step` (o passo aberto quando ela começou), `summary` (uma linha dos
+argumentos), `status` (`ok`, `erro`, `pediu`, `negado`, `observado`, `recusado`), `approval`
+(`sozinha`, `pedida`, `aprovada`, `negada`), `error` (primeira linha), `duration_ms`, `chars` (o
+que voltou ao modelo) e `marks` (JSON: `caro`, `cortado`, `chamada`, `recusado-depois`). O
+conteúdo das respostas não é guardado. No máximo 400 por execução. Vira evento `runs`.
+
 **`playbook_learnings`** · o que já foi tentado em cada procedimento (documento 25): `step` (o
 passo, ou nulo para o procedimento todo), `tried` (a tentativa), `outcome` (`falhou`,
 `funcionou`, `negado`, `orbi`), `why`, `source` (`execucao`, `revisao`, `pedido`, `orbi`),
@@ -470,6 +477,7 @@ editada, sempre se cria outra.
 | 23 | Ferramentas MCP: tabelas `mcp_servers` e `mcp_tools` (documento 20) |
 | 24 | `inbox_items.version` e `inbox_items.versions`: pendência atualizada na conversa do cartão (documento 21) |
 | 25 | Tabela `playbook_learnings`: aprendizados do procedimento, por passo (documento 25) |
+| 26 | Tabela `run_calls`: registro da execução, uma linha por chamada (documento 24) |
 
 O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).

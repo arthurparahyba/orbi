@@ -1,3 +1,4 @@
+import { transcript } from '../../brain/domain/run-calls.ts';
 import { Hono } from 'hono';
 import { RUNS_FOR_N3 } from '../../brain/domain/levels.ts';
 import { EditEntity, EditPlaybook, SetPlaybookAutonomy } from '@orbi/contracts';
@@ -56,6 +57,16 @@ export function brainRoutes({ brain, config }: OrbiServices) {
       return c.json({ deleted: true, ...brain.deletePlaybook(c.req.param('name')) });
     })
     .get('/runs', (c) => c.json(brain.runs()))
+    // What an execution actually did, call by call (documento 24), and the whole thing as text.
+    .get('/runs/:id/calls', (c) => {
+      if (!brain.run(c.req.param('id'))) throw notFound('execução');
+      return c.json(brain.calls.list(c.req.param('id')));
+    })
+    .get('/runs/:id/transcript', (c) => {
+      const run = brain.run(c.req.param('id'));
+      if (!run) throw notFound('execução');
+      return c.text(transcript(run, brain.calls.list(run.id), run.deviations));
+    })
     // Takes back what a run learned by itself about an input (passo 0): the fact it created or the other name.
     .post('/runs/:id/resolved/:input/undo', (c) => {
       if (!brain.run(c.req.param('id'))) throw notFound('execução');

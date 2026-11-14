@@ -228,3 +228,22 @@ test('variação nasce com os scripts, as entradas e as entregas da base; a prov
   assert.deepEqual(v.outputs.map((o) => o.name), ['html_path']);
   assert.equal(v.testedRun ?? null, null);
 });
+
+test('leituras caras: uma execução que leu demais vira ideia guardada, dizendo em qual passo e com qual ferramenta', async () => {
+  const { expensiveReads } = await import('../src/review/analyzers/reads.ts');
+  const run = {
+    id: 'r1', playbook: 'promo',
+    steps: [{ id: 'abrir', label: 'Abrir', status: 'done' }, { id: 'categoria', label: 'Ir à categoria', status: 'done' }],
+  } as never;
+  const call = (over: Record<string, unknown>) => ({ id: 'x', step: 'categoria', tool: 'mcp__chrome__take_snapshot', chars: 0, marks: ['caro'], ...over }) as never;
+  // One big read is life: nothing to say.
+  assert.deepEqual(expensiveReads.analyze(run, { open: false, calls: [call({ chars: 25_000 })] }), []);
+  const found = expensiveReads.analyze(run, {
+    open: false,
+    calls: [call({ chars: 141_000 }), call({ chars: 45_000 }), call({ id: 'y', step: 'abrir', tool: 'run_command', chars: 300, marks: [] })],
+  });
+  assert.match(found[0]!, /186 mil caracteres ao modelo em 2 leituras caras/);
+  assert.match(found[0]!, /passo 2 · Ir à categoria: 186 mil caracteres com mcp__chrome__take_snapshot/);
+  assert.doesNotMatch(found[0]!, /run_command/, 'leitura pequena não entra');
+  assert.deepEqual(expensiveReads.analyze(run, { open: false }), [], 'execução antiga, sem registro: nada');
+});

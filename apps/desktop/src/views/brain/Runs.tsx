@@ -1,20 +1,23 @@
+import { useState } from 'react';
 import { api, type PlaybookRun } from '../../api';
 import { useLive } from '../../hooks';
 import { fmt } from './look';
+import { RunDetail } from './RunDetail';
 
 const pairs = (o: Record<string, string>) => Object.entries(o).map(([k, v]) => `${k}=${v.length > 40 ? `${v.slice(0, 40)}…` : v}`).join(' · ');
 
 /** Recent playbook runs and the state of each step. */
 export function Runs() {
   const runs = useLive(api.runs, ['runs']);
+  const [open, setOpen] = useState<string>();
   if (!runs.data) return <p className="muted pad">Carregando…</p>;
   if (runs.data.length === 0) return <p className="muted pad">Nenhuma execução ainda.</p>;
   return (
     <div className="table-scroll pad-x">
       <table className="runs">
-        <thead><tr><th scope="col">Playbook</th><th scope="col">Status</th><th scope="col">Passos</th><th scope="col">Início</th><th scope="col">Fim</th></tr></thead>
+        <thead><tr><th scope="col">Playbook</th><th scope="col">Status</th><th scope="col">Passos</th><th scope="col">Início</th><th scope="col">Fim</th><th scope="col"><span className="sr-only">Detalhes</span></th></tr></thead>
         <tbody>
-          {runs.data.map((r: PlaybookRun) => (
+          {runs.data.flatMap((r: PlaybookRun) => [
             <tr key={r.id}>
               <td>
                 <strong>{r.playbook}</strong>
@@ -29,8 +32,18 @@ export function Runs() {
               </td>
               <td className="muted">{fmt(r.startedAt)}</td>
               <td className="muted">{r.finishedAt ? fmt(r.finishedAt) : '—'}</td>
-            </tr>
-          ))}
+              <td>
+                <button type="button" className="btn small" aria-expanded={open === r.id} onClick={() => setOpen(open === r.id ? undefined : r.id)}>
+                  {open === r.id ? 'Fechar' : 'Ver detalhes'}
+                </button>
+              </td>
+            </tr>,
+            open === r.id && (
+              <tr key={`${r.id}-detail`} className="run-detail-row">
+                <td colSpan={6}><RunDetail run={r} /></td>
+              </tr>
+            ),
+          ])}
         </tbody>
       </table>
     </div>

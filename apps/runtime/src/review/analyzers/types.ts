@@ -1,4 +1,5 @@
 import type { PlaybookRun } from '../../brain/domain/types.ts';
+import type { RunCall } from '../../brain/domain/run-calls.ts';
 
 /**
  * One check of a finished (or abandoned) run. The review runs every analyzer registered in
@@ -10,6 +11,8 @@ export type FindingKind = 'problema' | 'melhoria' | 'aprender';
 export interface RunContext {
   /** The run never finished: the delivery ended with a step still open. */
   open: boolean;
+  /** What the run actually did, call by call (docs/funcionalidades/24); absent in an older run. */
+  calls?: readonly RunCall[];
 }
 
 export interface RunAnalyzer {

@@ -3,7 +3,8 @@ import type * as v from 'valibot';
 import type { UiComponent } from '@orbi/contracts';
 import type { Deps } from './capability.ts';
 import { decide, effectOfCategory, type Category } from '../autonomy/policy.ts';
-import { askReason, defaultFingerprint, fingerprintWith, type RunAction } from '../brain/domain/levels.ts';
+import { askReason, defaultFingerprint, fingerprintWith, isCallError, type RunAction } from '../brain/domain/levels.ts';
+import { marksOf } from '../brain/domain/run-calls.ts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
 import type { InboxItem } from '../conversations/inbox.ts';
@@ -133,6 +134,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
     if (!call) return;
     setPending(({ [approvalId]: _done, ...rest }) => rest);
     if (decision !== 'approve') {
+      brain.calls.decided(approvalId, { approval: 'negada', status: 'negado' });
       if (call.runId) brain.addRunDeviation(call.runId, { kind: 'negado', detail: `você negou: ${call.action?.summary ?? call.tool}`, tool: call.tool, step: call.action?.step ?? null });
       onDenied.get(call.tool)?.(call.args as Record<string, unknown>);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} negou ${call.tool} (${approvalId}). Não tente de novo; pergunte como seguir.` });
@@ -140,9 +142,14 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
     }
     try {
       const result = await executors.get(call.tool)!(call.args, approvalId, 'approved');
+      // What the approved call read goes back to the model in this signal: counted and marked here.
+      brain.calls.decided(approvalId, { approval: 'aprovada', status: 'ok', chars: result.length, marks: marksOf({ chars: result.length, status: 'ok', error: '' }, result, isCallError) });
       if (call.runId && call.action) brain.recordRunAction(call.runId, call.action);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} aprovou ${call.tool} (${approvalId}). Resultado: ${result}` });
     } catch (error) {
+      // Approved and then refused anyway (a program this machine does not allow): the Orbi's own fault.
+      const refused = /não está entre os comandos permitidos|não é permitido/i.test(String(error));
+      brain.calls.decided(approvalId, { approval: 'aprovada', status: 'erro', error: String(error), ...(refused ? { marks: ['recusado-depois' as const] } : {}) });
       if (call.runId) brain.addRunDeviation(call.runId, { kind: 'falha', detail: `${call.tool} falhou: ${String(error).slice(0, 200)}`, tool: call.tool, step: call.action?.step ?? null });
       append({ kind: 'signal', type: 'tool-approval-result', body: `${call.tool} (${approvalId}) foi aprovado mas falhou: ${String(error)}` });
     }

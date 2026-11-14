@@ -1,7 +1,11 @@
 # 24. Registro da execução e diagnóstico do Orbi
 
-Decidido em 13/11 com o desenvolvedor. **Ainda não implementado.** Protótipo (telas A a F):
+Decidido em 13/11 com o desenvolvedor. Protótipo (telas A a F):
 https://claude.ai/artifact/AqyyCGi56FKhFZmFdWFQ29
+
+**Feito (fase 1):** o registro da execução, a tela de detalhes com "Copiar execução completa" e a
+marca de leitura cara. **Ainda não implementado:** os detectores, as três categorias, o
+diagnóstico (pelo modelo ou pelo agente instalado) e a issue.
 
 ## O problema
 
@@ -27,18 +31,38 @@ Cada chamada de ferramenta feita dentro de uma execução fica guardada, limpa d
 | aprovação | pedida, aprovada, negada, sozinha |
 | marcas | cortado, recusado depois de aprovado, chamada errada, recuperado |
 
-Hoje isso está espalhado e em parte só na memória (`tool-outcomes.ts`,
-`run-observations.ts`, `deviations` e `actions` da execução). O registro passa a ser uma
-tabela (`run_calls`), alimentada pela telemetria das ferramentas e pelo portão. O conteúdo
-das respostas **não** é guardado: só tamanho, começo e fim curtos (para mostrar um arquivo
-quebrado), já limpos.
+Antes isso estava espalhado e em parte só na memória (`tool-outcomes.ts`, `run-observations.ts`,
+`deviations` e `actions` da execução). O registro é a tabela `run_calls`, escrita pela telemetria
+das ferramentas (`tool_start` e `tool`) e pelo portão. O **conteúdo** das respostas não é
+guardado: só o tamanho, o resumo dos argumentos (uma linha curta) e a primeira linha do erro.
+
+A linha é escrita quando a chamada **começa**, então um turno que morre no meio deixa o rastro.
+A chamada que abre a execução (`playbook_start`) ainda não tem execução quando começa: a linha
+dela é escrita quando ela termina, na execução que criou. O passo de uma chamada é o que estava
+aberto quando ela **começou**, não o de agora: `playbook_step` fecha um passo, e a linha dela
+pertence ao passo que fechou (foi assim que o cartão mostrava o passo errado, documento 23).
+
+As marcas de uma chamada são `caro` (voltou ao modelo 20 mil caracteres ou mais), `cortado` (a
+resposta não cabia e a ferramenta cortou), `chamada` (o modelo chamou errado: argumento inválido
+ou ferramenta que não existe) e `recusado-depois` (aprovado e recusado na hora de rodar). Uma
+chamada guarda também se foi `sozinha`, `pedida`, `aprovada` ou `negada`.
+
+São guardadas as chamadas **dentro de uma execução**, no máximo 400 por execução (as mais novas).
 
 ### B. Tela "Detalhes da execução"
 
-- Execuções ganha o resumo da semana e filtros: com problema, do Orbi, do procedimento.
-- Abrir uma execução mostra a linha do tempo por passo, com o filtro "Problemas", e o detalhe
-  da chamada escolhida ao lado.
-- **Copiar execução completa**: o registro inteiro, sem cortes, para mandar a quem depura.
+- **Ver detalhes**, em cada execução da lista, abre a linha do tempo por passo: cada chamada com
+  o que foi chamado, como terminou, quanto durou e quanto fez o modelo ler, mais as marcas.
+- No alto, o que a execução custou: chamadas, caracteres ao modelo, aprovações, falhas e leituras
+  caras.
+- **Só problemas** deixa à vista o que falhou, o que tem marca e o que você decidiu.
+- **Copiar execução completa** põe o registro inteiro como texto na área de transferência
+  (`GET /api/brain/runs/:id/transcript`), por passo, com os desvios: é o que se manda a quem vai
+  depurar, no lugar de copiar a conversa (que corta os trechos longos).
+
+Ainda não feito desta tela: o resumo da semana e os filtros por categoria na lista de execuções
+(dependem dos detectores), e o detalhe da chamada escolhida ao lado (começo e fim do que foi
+gravado).
 
 ### C. Diagnóstico do Orbi
 
@@ -103,8 +127,16 @@ foi ao modelo. Com isso:
 - quando a mesma leitura cara se repete num passo, a revisão sugere trocá-la (um
   `evaluate_script` pequeno, `saveTo` num arquivo) e guarda como ideia do procedimento.
 
-Por ora há só a regra no prompt (`prompts/orbi/procedimento.md`): preferir uma leitura
-pequena a imagem ou página inteira.
+**Feito:** cada chamada cara aparece marcada na linha do tempo, com o tamanho, e o alto da tela
+soma as leituras caras da execução. Quando uma execução passa de 60 mil caracteres em leituras
+caras, o analisador `leituras-caras` guarda uma ideia no procedimento dizendo em qual passo e com
+qual ferramenta (ela aparece no Cérebro, sem cartão e sem gastar turno de modelo). Há também a
+regra no prompt (`prompts/orbi/procedimento.md`): preferir uma leitura pequena a imagem ou
+página inteira.
+
+**Falta:** a linha no fim da conversa e o quanto do gasto veio dessas chamadas na tela de
+Consumo. A linha na conversa pede um turno de modelo só para avisar de gasto, o que seria
+contraditório: ela deve pegar carona no cartão da revisão, quando ele já vai acontecer.
 
 ## Segurança
 
@@ -117,10 +149,21 @@ pequena a imagem ou página inteira.
 
 ## Fases
 
-1. Registro (`run_calls`) e a tela de detalhes, com "Copiar execução completa".
+1. ~~Registro (`run_calls`) e a tela de detalhes, com "Copiar execução completa".~~ Feito.
 2. Detectores, as três categorias, o resumo na lista e a linha no fim da conversa.
 3. Diagnóstico pelo modelo do Orbi e pelo agente instalado; a configuração.
 4. Issue: texto, anonimização, página preenchida; depois o `gh` e a soma de ocorrências.
+
+## Peças
+
+Regras puras em `brain/domain/run-calls.ts` (marcas, resumo da chamada, a execução como texto),
+tabela em `brain/repo/run-calls.ts`, escrita em `compose.ts` (`recordCallStart`, `recordCallEnd`)
+e em `agents/gate.ts` (a decisão do desenvolvedor cai na mesma linha), rotas em
+`http/routes/brain.ts`, tela em `views/brain/RunDetail.tsx` com as regras em
+`views/brain/runCalls.ts`, analisador em `review/analyzers/reads.ts`.
+
+Testes: `run-calls.test.ts`, `flow-run-calls.test.ts`, `review.test.ts` (leituras caras),
+`runCalls.test.ts` (app).
 
 ## Depende de
 

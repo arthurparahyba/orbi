@@ -1,7 +1,7 @@
 import type {
   CodeAgent, CodeAgentsState, CodeAgentTask, SaveCodeAgent, ChooseModel, ModelStatus, ModelTestResult,
   AgentClient, AgentClientCreated, ProvideSecret, VoiceStatus, Followup, Pipeline, PipelineRun, SavePipeline, AgentRequest, AgentSuggestion, EditAgentClient,
-  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, TestMcpServer, EditMcpServer, SetMcpTool, ReviewNote, StepLearning, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
+  ApiError, Autonomy, UsageReport, BrainSnapshot, Category, ConversationInfo, ConversationNotebook, ModelChoices, ModelRoles, ChromeSettings, SetChromeSettings, McpServer, McpServerDetail, McpTestResult, AddMcpServer, TestMcpServer, EditMcpServer, SetMcpTool, ReviewNote, RunCall, StepLearning, EditEntity, EditPlaybook, Entity, EntityDetail, Health, InboxItem, Playbook, PlaybookAutonomy, PlaybookRun, Recording, SecretInfo,
 } from '@orbi/contracts';
 
 export type * from '@orbi/contracts';
@@ -111,6 +111,9 @@ export const api = {
     request<Playbook>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'PATCH', body: JSON.stringify(change) }),
   playbookAutonomy: (name: string) => request<PlaybookAutonomy>(`/api/brain/playbooks/${encodeURIComponent(name)}/autonomy`),
   runs: () => request<PlaybookRun[]>('/api/brain/runs'),
+  /** What each tool call of an execution did, and the whole execution as text to hand over. */
+  runCalls: (id: string) => request<RunCall[]>(`/api/brain/runs/${encodeURIComponent(id)}/calls`),
+  runTranscript: (id: string) => fetch(`${RUNTIME_URL}/api/brain/runs/${encodeURIComponent(id)}/transcript`).then((r) => r.text()),
   autonomy: () => request<{ categories: Record<Category, Autonomy> }>('/api/autonomy'),
   setAutonomy: (category: Category, level: Autonomy) =>
     request<{ categories: Record<Category, Autonomy> }>('/api/autonomy', { method: 'PATCH', body: JSON.stringify({ category, level }) }),

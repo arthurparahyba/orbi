@@ -1,3 +1,4 @@
+import { RunCallRepo } from './repo/run-calls.ts';
 import { StepLearningRepo } from './repo/step-learnings.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { mergeEntity } from './domain/fact-match.ts';
@@ -61,6 +62,8 @@ export class BrainStore {
   readonly review: ReviewService;
   /** What was already tried in each procedure (docs/funcionalidades/25). */
   readonly learnings: StepLearningRepo;
+  /** What each tool call of an execution did (docs/funcionalidades/24). */
+  readonly calls: RunCallRepo;
 
   /** Takes an open database (shared with the app state) or a file path / ':memory:'. */
   constructor(db: DatabaseSync | string) {
@@ -78,6 +81,7 @@ export class BrainStore {
     this.execution = new ExecutionService(parts, this);
     this.pipelineDefs = new PipelineDefsService(parts, this);
     this.learnings = new StepLearningRepo(this.db);
+    this.calls = new RunCallRepo(this.db);
     this.review = new ReviewService({ ...parts, reviewNotes: new ReviewNoteRepo(this.db) }, this);
   }
 
