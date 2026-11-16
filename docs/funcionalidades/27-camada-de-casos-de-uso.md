@@ -38,11 +38,21 @@ As regras, e `test/use-cases.test.ts` guarda todas:
 3. **É curto.** Passou de 25 linhas de corpo, ou tem comportamento escondido dentro, ou são duas
    funcionalidades.
 4. **É exportado pelo `index.ts` do contexto**, senão ninguém de fora o alcança.
+5. **A pasta não guarda ajudante exportado.** Tudo que a pasta exporta tem o nome no `index.ts`:
+   ou é funcionalidade, e aparece no mapa, ou é comportamento, e mora no módulo de quem é. Esta
+   regra entrou depois, quando `whereFrom` (formatar de onde um agente pediu) ficou exportado em
+   `delegate-task.ts` só para o segundo caso de uso usar — e passou por todas as outras quatro.
+   Foi para `requests/src/requests.ts`, ao lado do tipo que ele formata. Um ajudante
+   compartilhado entre dois casos de uso de verdade é sinal de uma das duas coisas: ou é
+   comportamento de um módulo (como `whereFrom`), ou é leitura que vale no mapa — e aí entra no
+   `index.ts` e ganha linha, como `conversationStateReader` e `procedureProofState`.
 
-Onde **não** há camada: `trust`, `secrets`, `telemetry` e `platform` não têm nenhum handler com
+Onde **não** há camada: `learning`, `secrets`, `telemetry` e `platform` não têm nenhum handler com
 três chamadas — as funcionalidades deles *são* uma chamada. Um `flows/guardar-segredo.ts` com uma
 linha dentro seria pior do que não ter. **A regra é "existe caso de uso onde existe orquestração"**, não
 "todo contexto ganha uma pasta".
+
+Com os doze contextos migrados, a camada tem **28 casos de uso** em oito contextos.
 
 ## Como isto responde "como funciona X?"
 

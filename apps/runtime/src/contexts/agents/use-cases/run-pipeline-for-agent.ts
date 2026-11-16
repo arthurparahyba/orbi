@@ -1,7 +1,6 @@
 import type { OrbiServices } from '../../../services.ts';
 import type { AgentClient } from '../clients/src/clients.ts';
-import type { AgentRequest } from '../requests/src/requests.ts';
-import { whereFrom } from './delegate-task.ts';
+import { whereFrom, type AgentRequest } from '../requests/src/requests.ts';
 
 /**
  * Um agente de código manda rodar uma esteira (`orbi_run_pipeline`), com os dados de entrada e,

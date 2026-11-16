@@ -9,6 +9,12 @@ export interface AgentRequestContext {
 }
 export type AgentRequestStatus = 'running' | 'waiting' | 'done' | 'failed';
 
+/** Onde o agente estava quando pediu, nas palavras dele, em linhas para o Orbi ler. */
+export function whereFrom(context: AgentRequestContext = {}): string[] {
+  return [context.repo && `repositório ${context.repo}`, context.branch && `branch ${context.branch}`,
+    context.session && `sessão ${context.session}`].filter(Boolean) as string[];
+}
+
 /**
  * A task a coding agent delegated (orbi_delegate). Each one is a conversation
  * in the app; this keeps who asked, for what, and the short result Orbi

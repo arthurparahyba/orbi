@@ -118,3 +118,20 @@ test('todo caso de uso é exportado pelo index.ts do seu contexto', () => {
   }
   assert.deepEqual(faltando, [], `caso de uso que ninguém de fora alcança:\n${faltando.join('\n')}`);
 });
+
+/**
+ * Pasta de casos de uso não guarda ajudante exportado: ou o nome está no `index.ts` do contexto,
+ * e então é funcionalidade, ou é comportamento e mora no módulo de quem é. Sem isto, um ajudante
+ * compartilhado entre dois casos de uso passa a viver aqui sem aparecer no mapa.
+ */
+test('uma pasta de casos de uso não exporta ajudante', () => {
+  const soltos: string[] = [];
+  for (const file of useCaseFiles()) {
+    const context = relative(CONTEXTS, file).split('/')[0]!;
+    const index = readFileSync(join(CONTEXTS, context, 'index.ts'), 'utf8');
+    for (const { exported, name } of declarations(readFileSync(file, 'utf8'))) {
+      if (exported && !new RegExp(`\\b${name}\\b`).test(index)) soltos.push(`${relative(CONTEXTS, file)}: ${name}`);
+    }
+  }
+  assert.deepEqual(soltos, [], `exportado pelo caso de uso e ausente do index.ts:\n${soltos.join('\n')}`);
+});

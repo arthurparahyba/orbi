@@ -46,7 +46,8 @@ uma conversa), `TitleOf` (`telemetry` → `talk`) e `NotesDeps` (`improvement`).
 recebe o pedido, chama os vizinhos pela porta deles e devolve o que aconteceu — sem SQL, sem
 schema de ferramenta, sem texto de prompt, e sem falar com a conversa ou com a tela. É esse o
 código para ler quando a pergunta é "como funciona X": o índice de cada contexto está na sua
-seção, abaixo. `test/use-cases.test.ts` guarda as regras. Contexto cuja funcionalidade *é* uma
+seção, abaixo. `test/use-cases.test.ts` guarda as cinco regras (a quinta: a pasta não exporta
+ajudante — tudo que ela exporta tem o nome no `index.ts`). Contexto cuja funcionalidade *é* uma
 chamada não tem a camada: a regra é "existe caso de uso onde existe orquestração".
 
 **A linguagem compartilhada** fica em `src/language/` (fase 4a): as palavras que todo contexto

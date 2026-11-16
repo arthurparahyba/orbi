@@ -1,6 +1,6 @@
 import type { OrbiServices } from '../../../services.ts';
 import type { AgentClient } from '../clients/src/clients.ts';
-import type { AgentRequest } from '../requests/src/requests.ts';
+import { whereFrom, type AgentRequest } from '../requests/src/requests.ts';
 
 /**
  * Um agente de código delega uma tarefa (`orbi_delegate`): abre uma conversa que o desenvolvedor
@@ -42,12 +42,6 @@ export function delegateTask(d: Deps, delegation: Delegation, client: AgentClien
 
   const body = requestMessage(client.name, request.id, delegation);
   return { request, conversationId: conversation.id, signal: { body, attributes: { requestId: request.id, agent: client.name } } };
-}
-
-/** Onde o agente estava quando pediu, nas palavras dele. */
-export function whereFrom(context: { repo?: string; branch?: string; session?: string } = {}): string[] {
-  return [context.repo && `repositório ${context.repo}`, context.branch && `branch ${context.branch}`,
-    context.session && `sessão ${context.session}`].filter(Boolean) as string[];
 }
 
 /** O texto que o Orbi recebe. O que o agente escreveu é dado, não instrução para o Orbi. */
