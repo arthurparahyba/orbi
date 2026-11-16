@@ -218,3 +218,65 @@ test('modelo por conversa: opções do provedor com custo, escolher, voltar ao p
   assert.equal(cleared.json.aprender.set, false);
   assert.equal((await call('PUT', '/api/model/roles', { role: 'outro', model: null })).status, 400);
 });
+
+test('domínios: criar, abrir, renomear, apagar — e `-` é comum (documento 28)', async () => {
+  const { orbi, call } = await setup();
+
+  const vazio = await call('GET', '/api/brain/domains');
+  assert.equal(vazio.status, 200);
+  assert.deepEqual(vazio.json.domains.map((d: any) => d.name), [''], 'comum vem sempre, mesmo sem domínio nenhum');
+  assert.deepEqual(vazio.json.lends, []);
+
+  assert.equal((await call('POST', '/api/brain/domains', { name: 'AWS' })).status, 400, 'nome não é palavra de conversa');
+  isApiError((await call('POST', '/api/brain/domains', { name: 'AWS' })).json, 'invalid_body');
+
+  const criado = await call('POST', '/api/brain/domains', { name: 'aws', description: 'Infra e publicação' });
+  assert.equal(criado.status, 201);
+  assert.equal(criado.json.name, 'aws');
+  assert.equal((await call('POST', '/api/brain/domains', { name: 'aws' })).status, 409, 'dois domínios com o mesmo nome, não');
+
+  orbi.knowledge.upsertType({ name: 'Conta', description: 'conta', relations: {}, requires: [], domain: 'aws' });
+  orbi.knowledge.upsertEntity({ id: 'conta-prod', type: 'Conta', props: {}, body: '', domain: 'aws' });
+
+  const aberto = await call('GET', '/api/brain/domains/aws');
+  assert.equal(aberto.status, 200);
+  assert.deepEqual(aberto.json.types, ['Conta']);
+  assert.deepEqual(aberto.json.facts.map((f: any) => f.id), ['conta-prod']);
+  assert.deepEqual(aberto.json.bridges, []);
+
+  const comum = await call('GET', '/api/brain/domains/-');
+  assert.equal(comum.status, 200, '`-` é comum, porque segmento de rota não pode ser vazio');
+  assert.equal(comum.json.domain.name, '');
+
+  assert.equal((await call('GET', '/api/brain/domains/cozinha')).status, 404);
+
+  assert.equal((await call('PUT', '/api/brain/entities/conta-prod/domain', { domain: 'cozinha' })).status, 404, 'domínio que não existe');
+  const movido = await call('PUT', '/api/brain/entities/conta-prod/domain', { domain: null });
+  assert.equal(movido.status, 200);
+  assert.equal(movido.json.domain, null);
+
+  const renomeado = await call('PATCH', '/api/brain/domains/aws', { name: 'infra' });
+  assert.equal(renomeado.status, 200);
+  assert.equal(renomeado.json.name, 'infra');
+  assert.equal(orbi.knowledge.type('Conta')?.domain, 'infra', 'renomear alcança o tipo');
+
+  assert.equal((await call('DELETE', '/api/brain/domains/infra')).status, 200);
+  assert.ok(orbi.knowledge.type('Conta'), 'apagar domínio não apaga o tipo');
+  assert.equal(orbi.knowledge.type('Conta')?.domain, null, 'o que era dele virou comum');
+})
+
+test('fato em desacordo com o tipo: comum embaixo de tipo com domínio (documento 28)', async () => {
+  const { orbi, call } = await setup();
+  await call('POST', '/api/brain/domains', { name: 'aws' });
+  orbi.knowledge.upsertType({ name: 'Cluster', description: 'cluster', relations: {}, requires: [], domain: 'aws' });
+  // Aprendido antes de existirem domínios: sem domínio, embaixo de um tipo que tem.
+  orbi.knowledge.upsertEntity({ id: 'cluster-antigo', type: 'Cluster', props: {}, body: '' });
+
+  const antes = await call('GET', '/api/brain/domains');
+  assert.deepEqual(antes.json.mismatched, [{ id: 'cluster-antigo', type: 'Cluster', typeDomain: 'aws' }]);
+
+  await call('PUT', '/api/brain/entities/cluster-antigo/domain', { domain: 'aws' });
+  const depois = await call('GET', '/api/brain/domains');
+  assert.deepEqual(depois.json.mismatched, [], 'aplicada a regra do tipo, o desacordo some');
+  assert.equal(depois.json.domains.find((d: any) => d.name === 'aws').entities, 1);
+})

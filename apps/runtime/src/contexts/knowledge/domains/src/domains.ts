@@ -129,8 +129,8 @@ export class Domains {
     return rows.map((r) => String(r.domain));
   }
 
-  withoutDomain(limit?: number): Array<{ id: string; type: string }> {
-    return this.repo.withoutDomain(limit);
+  disagreeingWithType(limit?: number): Array<{ id: string; type: string; typeDomain: string }> {
+    return this.repo.disagreeingWithType(limit);
   }
 
   domainOfType(name: string): string | null {

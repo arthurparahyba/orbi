@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
-import { EditEntity, EditPlaybook, SetPlaybookAutonomy } from '@orbi/contracts';
+import { CreateDomain, EditEntity, EditPlaybook, RenameDomain, SetDomain, SetPlaybookAutonomy } from '@orbi/contracts';
 import { procedureProofs, runTranscript, setProcedureAutonomy, unwaiveStepProof, waiveStepProof } from '../procedures/index.ts';
 import { procedureAutonomy } from '../trust/index.ts';
 import { entityPanel } from './use-cases/entity-panel.ts';
+import { domainOverview } from './use-cases/domain-overview.ts';
+import { domainDetail } from './use-cases/domain-detail.ts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound } from '../../http/errors.ts';
 
@@ -15,6 +17,9 @@ const invalid = (fn: () => unknown) => {
   }
 };
 
+/** `comum` não tem nome, e um segmento de rota não pode ser vazio: a tela manda `-` por ele. */
+const nameOf = (segment: string) => (segment === '-' ? '' : segment);
+
 /** The Cérebro screen. */
 /**
  * The two readings that cross contexts (`stats` and the export) come from the composition, like
@@ -26,7 +31,7 @@ export interface BrainOverview {
 }
 
 export function brainRoutes(s: OrbiServices, overview: BrainOverview) {
-  const { knowledge, procedures, trust, config } = s;
+  const { knowledge, domains, procedures, trust, config } = s;
   return new Hono()
     .get('/', (c) => c.json({ stats: overview.stats(), gaps: knowledge.gaps(), ...knowledge.graph() }))
     .get('/entities/:id', (c) => {
@@ -42,6 +47,47 @@ export function brainRoutes(s: OrbiServices, overview: BrainOverview) {
     .delete('/entities/:id', (c) => {
       if (!knowledge.get(c.req.param('id'))) throw notFound('entidade');
       return c.json({ deleted: true, ...knowledge.deleteEntity(c.req.param('id')) });
+    })
+    .put('/entities/:id/domain', async (c) => {
+      const { domain } = await body(c, SetDomain);
+      if (!knowledge.get(c.req.param('id'))) throw notFound('entidade');
+      if (domain && !domains.get(domain)) throw notFound('domínio');
+      domains.setEntityDomain(c.req.param('id'), domain);
+      return c.json(knowledge.get(c.req.param('id')));
+    })
+    .put('/types/:name/domain', async (c) => {
+      const { domain } = await body(c, SetDomain);
+      if (!knowledge.type(c.req.param('name'))) throw notFound('tipo');
+      if (domain && !domains.get(domain)) throw notFound('domínio');
+      domains.setTypeDomain(c.req.param('name'), domain);
+      return c.json(knowledge.type(c.req.param('name')));
+    })
+    .get('/domains', (c) => c.json(domainOverview(s)))
+    .post('/domains', async (c) => {
+      const pedido = await body(c, CreateDomain);
+      if (domains.get(pedido.name)) throw new HttpError(409, 'conflict', `o domínio ${pedido.name} já existe`);
+      return c.json(domains.create(pedido), 201);
+    })
+    // O nome vazio é `comum`, e nenhuma rota tem segmento vazio: a tela manda `-`.
+    .get('/domains/:name', (c) => {
+      const detail = domainDetail(s, nameOf(c.req.param('name')));
+      if ('refused' in detail) throw notFound(detail.refused);
+      return c.json(detail);
+    })
+    .patch('/domains/:name', async (c) => {
+      const from = nameOf(c.req.param('name'));
+      const { name } = await body(c, RenameDomain);
+      if (!from || !domains.get(from)) throw notFound('domínio');
+      if (domains.get(name)) throw new HttpError(409, 'conflict', `o domínio ${name} já existe`);
+      domains.rename(from, name);
+      return c.json(domains.get(name));
+    })
+    .delete('/domains/:name', (c) => {
+      const name = nameOf(c.req.param('name'));
+      if (!name || !domains.get(name)) throw notFound('domínio');
+      // O que era dele volta para comum: apagar um domínio nunca apaga conhecimento.
+      domains.remove(name);
+      return c.json({ deleted: true });
     })
     .get('/search', (c) => c.json(knowledge.search(c.req.query('q') ?? '')))
     .get('/playbooks', (c) => c.json(procedures.definition.playbooks()))

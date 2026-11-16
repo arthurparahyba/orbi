@@ -964,3 +964,27 @@ strong .merged { display: inline; font-weight: 600; }
 .card-decided .card-thread { flex-basis: 100%; border-top: 0; margin-top: 0; }
 .card-decided .muted .link-btn { display: inline; padding: 0; }
 .fact-effect { color: #8fe3b8; font-size: 12.5px; }
+
+/* ── Domínios: o assunto em que cada coisa foi aprendida (documento 28) ──────── */
+.domains { display: flex; flex-direction: column; gap: 14px; padding: 14px 16px 24px; }
+.domain-name { font-size: 15px; color: var(--blue); }
+.domain-name.amber { color: var(--amber); }
+.domain-base { background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.domain-base-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.domain-card { background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.domain-card-open { background: none; border: none; padding: 0; text-align: left; cursor: pointer; }
+.domain-card-open:hover .domain-name { text-decoration: underline; }
+.domain-counts { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.domain-count { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.domain-count strong { color: var(--text); font-weight: 500; }
+.domain-bridges { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.domain-bridges .ok { color: var(--green); }
+.domain-undecided { background: var(--surface-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.domain-undecided-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 3px; }
+.domain-detail { display: flex; flex-direction: column; gap: 14px; padding: 14px 16px 24px; }
+.domain-crumbs { display: flex; align-items: center; gap: 10px; }
+.domain-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+.domain-detail h2 { font-size: 14px; margin: 0 0 4px; }
+.domain-list, .domain-bridge-list { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.domain-list li, .domain-bridge-list li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }

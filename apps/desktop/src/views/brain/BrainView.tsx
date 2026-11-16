@@ -6,14 +6,15 @@ import { Playbooks } from './Playbooks';
 import { Runs } from './Runs';
 import { Ontology } from './Ontology';
 import { Suggestions } from './Suggestions';
+import { Domains } from './Domains';
 
-type Tab = 'grafo' | 'playbooks' | 'execucoes' | 'sugestoes' | 'ontologia';
+type Tab = 'dominios' | 'grafo' | 'playbooks' | 'execucoes' | 'sugestoes' | 'ontologia';
 
 export function BrainView() {
   const brain = useLive(api.brain, ['brain']);
   const playbooks = useLive(api.playbooks, ['brain']);
   const suggestions = useLive(() => api.suggestions('open'), ['agents', 'brain']);
-  const [tab, setTab] = useState<Tab>('grafo');
+  const [tab, setTab] = useState<Tab>('dominios');
   const [exported, setExported] = useState<string>();
   const s = brain.data?.stats;
 
@@ -22,7 +23,7 @@ export function BrainView() {
       <header className="brain-head">
         <div>
           <h1>Cérebro</h1>
-          <p className="muted">O que o Orbi aprendeu: tipos da ontologia, coisas do seu ambiente, como elas se relacionam e os procedimentos (playbooks).</p>
+          <p className="muted">O que o Orbi aprendeu, separado pelo assunto em que aprendeu: tipos da ontologia, coisas do seu ambiente, como elas se relacionam e os procedimentos (playbooks).</p>
         </div>
         <div className="stats" aria-label="Resumo do cérebro">
           <Stat n={s?.types} label="tipos" />
@@ -33,7 +34,7 @@ export function BrainView() {
         </div>
       </header>
       <div className="tabs" role="tablist">
-        {([['grafo', 'Conhecimento'], ['playbooks', 'Playbooks'], ['execucoes', 'Execuções'], ['sugestoes', 'Sugestões'], ['ontologia', 'Ontologia']] as const).map(([k, l]) => (
+        {([['dominios', 'Domínios'], ['grafo', 'Conhecimento'], ['playbooks', 'Playbooks'], ['execucoes', 'Execuções'], ['sugestoes', 'Sugestões'], ['ontologia', 'Ontologia']] as const).map(([k, l]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tab ${tab === k ? 'active' : ''}`} onClick={() => setTab(k)}>
             {l}
             {k === 'sugestoes' && !!suggestions.data?.length && <span className="badge tab-badge" aria-label={`${suggestions.data.length} esperando você`}>{suggestions.data.length}</span>}
@@ -47,6 +48,8 @@ export function BrainView() {
       {exported && <p className="muted small pad-x">Exportado: {exported}</p>}
       {!brain.data ? (
         <p className="muted pad">{brain.error ? `Erro: ${brain.error}` : 'Carregando…'}</p>
+      ) : tab === 'dominios' ? (
+        <Domains />
       ) : tab === 'grafo' && brain.data.entities.length === 0 ? (
         <EmptyBrain />
       ) : tab === 'grafo' ? (

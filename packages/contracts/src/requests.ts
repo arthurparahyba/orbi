@@ -88,6 +88,18 @@ export const EditEntity = v.object({
   props: v.optional(v.record(v.string(), v.unknown())),
   body: v.optional(v.string()),
 });
+/** Um nome de domínio: minúsculas, dígitos e hífen, para servir de palavra na conversa. */
+const DomainName = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(40), v.regex(/^[a-z0-9][a-z0-9-]*$/, 'domínio: só minúsculas, dígitos e hífen'));
+/** POST /api/brain/domains — criar um domínio (documento 28). */
+export const CreateDomain = v.object({
+  name: DomainName,
+  description: v.optional(v.string()),
+  bornFrom: v.optional(v.nullable(v.string())),
+});
+/** PATCH /api/brain/domains/:name — renomear. */
+export const RenameDomain = v.object({ name: DomainName });
+/** PUT /api/brain/entities/:id/domain e .../types/:name/domain — nulo é comum. */
+export const SetDomain = v.object({ domain: v.nullable(DomainName) });
 const PlaybookStep = v.object({
   id: v.pipe(v.string(), v.trim(), v.minLength(1, 'passo sem id')),
   label: v.pipe(v.string(), v.trim(), v.minLength(1, 'passo sem nome')),
@@ -239,6 +251,9 @@ export type StopRecording = v.InferOutput<typeof StopRecording>;
 export type SetSecret = v.InferOutput<typeof SetSecret>;
 export type SetPlaybookAutonomy = v.InferOutput<typeof SetPlaybookAutonomy>;
 export type EditEntity = v.InferOutput<typeof EditEntity>;
+export type CreateDomain = v.InferOutput<typeof CreateDomain>;
+export type RenameDomain = v.InferOutput<typeof RenameDomain>;
+export type SetDomain = v.InferOutput<typeof SetDomain>;
 export type EditPlaybook = v.InferOutput<typeof EditPlaybook>;
 export type SetAutonomy = v.InferOutput<typeof SetAutonomy>;
 export type CreateAgentClient = v.InferOutput<typeof CreateAgentClient>;

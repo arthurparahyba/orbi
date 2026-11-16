@@ -10,8 +10,12 @@ export interface DomainOverview {
   domains: DomainSize[];
   /** Por domínio: para quais ele empresta fato, e quantos. */
   lends: Array<{ from: string; to: string; facts: number }>;
-  /** Fatos de antes dos domínios, que entram em toda busca até alguém dizer de onde são. */
-  undecided: Array<{ id: string; type: string }>;
+  /**
+   * Fato comum cujo tipo é de um domínio: pela regra 1 ele deveria ser do domínio do tipo. São os
+   * de antes do documento 28, e é o único caso que vale revisar — nulo é comum, então não existe
+   * "sem domínio" para arrumar.
+   */
+  mismatched: Array<{ id: string; type: string; typeDomain: string }>;
 }
 
 type Deps = Pick<OrbiServices, 'domains'>;
@@ -27,5 +31,5 @@ export function domainOverview(d: Deps): DomainOverview {
     return { from, to, facts };
   });
 
-  return { domains: d.domains.sizes(), lends, undecided: d.domains.withoutDomain(10) };
+  return { domains: d.domains.sizes(), lends, mismatched: d.domains.disagreeingWithType(10) };
 }

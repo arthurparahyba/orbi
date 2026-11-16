@@ -29,6 +29,8 @@ export class Facts {
       requires: type.requires ?? before?.requires ?? [],
       props: { ...before?.props, ...type.props },
       knows: { ...before?.knows, ...type.knows },
+      // Quem já tem domínio não o perde por um upsert que não fala dele (documento 28).
+      domain: type.domain ?? before?.domain ?? null,
     });
   }
 

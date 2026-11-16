@@ -18,6 +18,7 @@ import type { PipelineRun } from './contexts/procedures/index.ts';
 import type { Pipeline } from './contexts/procedures/index.ts';
 import type { CatalogEntry, CodeAgent, TaskAssignment } from './contexts/tools/index.ts';
 import type { AgentClient, AgentRequest, AgentSuggestion } from './contexts/agents/index.ts';
+import type { Bridge, Domain, DomainDetail, DomainOverview, DomainSize } from './contexts/knowledge/index.ts';
 import type { ModelStatus } from './contexts/models/index.ts';
 import type { Followup } from './contexts/talk/index.ts';
 import type { ConversationState } from './contexts/talk/index.ts';
@@ -70,6 +71,11 @@ export type ContractChecks = [
   Check<Fits<Pipeline, C.Pipeline>>,
   Check<Fits<AgentRequest, C.AgentRequest>>,
   Check<Fits<AgentSuggestion, C.AgentSuggestion>>,
+  Check<Fits<Domain, C.Domain>>,
+  Check<Fits<DomainSize, C.DomainSize>>,
+  Check<Fits<Bridge, C.Bridge>>,
+  Check<Fits<DomainOverview, C.DomainOverview>>,
+  Check<Fits<DomainDetail, C.DomainDetail>>,
   // Enumerations must match exactly: the app offers every value as a choice.
   Check<Same<Autonomy, C.Autonomy>>,
   Check<Same<AutonomyLevel, C.Autonomy>>,

@@ -59,7 +59,9 @@ export function classifyEntity(cand: Candidate, byType: (type: string) => Entity
 export function mergeEntity(existing: Entity | undefined, next: Omit<Entity, 'updatedAt'>): Omit<Entity, 'updatedAt'> {
   if (!existing) return next;
   const aliases = [...new Set([...(existing.aliases ?? []), ...(next.aliases ?? [])])].filter((a) => compact(a) !== compact(next.id));
-  return { ...next, props: { ...existing.props, ...next.props }, body: next.body?.trim() ? next.body : existing.body, aliases, source: next.source || existing.source };
+  // O domínio de quem já está no cérebro não muda por um aprendizado que não fala dele (doc 28).
+  const domain = next.domain ?? existing.domain ?? null;
+  return { ...next, props: { ...existing.props, ...next.props }, body: next.body?.trim() ? next.body : existing.body, aliases, source: next.source || existing.source, domain };
 }
 
 /** One line for the card and the instruction: what happens to this fact. */

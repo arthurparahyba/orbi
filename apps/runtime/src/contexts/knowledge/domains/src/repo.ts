@@ -89,10 +89,19 @@ export class DomainRepo {
     this.db.prepare('UPDATE types SET domain = ? WHERE name = ?').run(domain, name);
   }
 
-  /** Fatos sem domínio nenhum e sem serem comum de propósito: os de antes do documento 28. */
-  withoutDomain(limit = 50): Array<{ id: string; type: string }> {
-    return (
-      this.db.prepare('SELECT id, type FROM entities WHERE domain IS NULL ORDER BY updated_at DESC LIMIT ?').all(limit) as Row[]
-    ).map((r) => ({ id: String(r.id), type: String(r.type) }));
+  /**
+   * Fato comum cujo tipo é de um domínio: é desacordo, não indecisão. Nulo significa comum, então
+   * não há como distinguir "ainda não decidi" de "comum de propósito" — e não precisa: o que vale
+   * revisar é só onde a regra 1 (o tipo ganha) ainda não foi aplicada, nos fatos de antes do
+   * documento 28.
+   */
+  disagreeingWithType(limit = 50): Array<{ id: string; type: string; typeDomain: string }> {
+    const rows = this.db
+      .prepare(
+        `SELECT e.id, e.type, t.domain FROM entities e JOIN types t ON t.name = e.type
+          WHERE e.domain IS NULL AND t.domain IS NOT NULL ORDER BY e.updated_at DESC LIMIT ?`,
+      )
+      .all(limit) as Row[];
+    return rows.map((r) => ({ id: String(r.id), type: String(r.type), typeDomain: String(r.domain) }));
   }
 }

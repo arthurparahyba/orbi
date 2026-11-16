@@ -83,12 +83,30 @@ um domínio devolve o que era dele para `comum` sem apagar conhecimento.
 
 ## As fases
 
-- **A** — o domínio existe, é sugerido e herdado, e a tela mostra. Nenhuma busca muda: risco baixo,
-  ganho de leitura imediato.
+- **A** — feita. O domínio existe, é sugerido e herdado, e a tela mostra. Nenhuma busca mudou.
 - **B** — o escopo entra na busca, no `playbook_similar` e no passo 0. É onde o comportamento pode
   quebrar, e é onde está o ganho real.
 - **C** — procedência estruturada de cada dado (abaixo).
 - **D** — o procedimento que atualiza um dado (abaixo).
+
+## O que a fase A2/A3 ensinou
+
+**Não existe "fato sem domínio" para arrumar.** Desenhando a tela eu pus um aviso "3 fatos sem
+domínio" com um botão "marcar como comum" — e o botão não fazia nada, porque `comum` **é** nulo.
+Com nulo significando comum, não há como distinguir "ainda não decidi" de "comum de propósito", e
+não precisa haver: o que vale revisar é o **desacordo** — fato comum cujo tipo é de um domínio,
+contra a regra 1. Esses são os de antes dos domínios, e pôr cada um no domínio do tipo é aplicar a
+regra 1 para trás. É a migração dos fatos que já existiam, e ela é um clique.
+
+**O upsert reconstruía o objeto campo por campo e deixava o `domain` cair.** `Facts.upsertType`
+monta um objeto novo (`name`, `description`, `relations`, `requires`, `props`, `knows`) e o
+`domain` não estava na lista: um tipo criado com domínio nascia sem. O banco estava protegido
+(`COALESCE(excluded.domain, types.domain)` preserva o que já existe), mas a inserção de um tipo
+novo não — e é justamente o caso que importa. O teste de rota pegou. Mesma classe de erro da fase
+4b, quando a porta `FactsForRun` deixou o `ftsQuery` para trás: **quando um campo novo entra num
+tipo, todo lugar que reconstrói aquele tipo campo por campo é um lugar onde ele cai.** Ficou
+corrigido nos dois (`upsertType` e `mergeEntity`), e nos dois a regra é a mesma: quem já tem
+domínio não o perde por um aprendizado que não fala dele.
 
 ## C e D · A procedência e a atualização de cada dado
 
