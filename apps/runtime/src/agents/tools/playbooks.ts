@@ -6,7 +6,7 @@ import type { BrainStore } from '../../brain/store.ts';
 import type { Inbox } from '../../conversations/inbox.ts';
 import type { Followups } from '../../followups/service.ts';
 import { defineCapability, type Deps } from '../capability.ts';
-import { redact } from '../../vault/vault.ts';
+import { redact } from '../../contexts/secrets/index.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
 import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
 import { RESOLVE_RULES, RUN_RULES, RUN_RULES_WITH_CODE } from '../prompt.ts';

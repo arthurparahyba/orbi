@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { McpToolKind } from '@orbi/contracts';
-import { SECRET_REF } from '../vault/vault.ts';
+import { SECRET_REF } from '../contexts/secrets/index.ts';
 import type { Effect } from '../brain/domain/levels.ts';
 import type { McpCategory } from '../autonomy/policy.ts';
 

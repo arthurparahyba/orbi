@@ -96,11 +96,11 @@ nunca o valor.
 
 | Onde | O quê |
 | --- | --- |
-| `apps/runtime/src/vault/vault.ts` | Cofre: armazenamentos, índice, `resolve`, `redact`, nomes |
+| `apps/runtime/src/contexts/secrets/src/vault.ts` | Cofre: armazenamentos, índice, `resolve`, `redact`, nomes |
 | `apps/runtime/src/browser/page-recorder.ts` | Reconhece campos de credencial na página |
 | `apps/runtime/src/browser/recorder.ts` | Manda o valor ao cofre e grava só a referência |
 | `apps/runtime/src/agents/tools/browser.ts` | Resolve na hora de agir e limpa a saída |
-| `apps/runtime/src/http/routes/vault.ts` | Listar (só nomes), gravar (valida o nome), apagar |
+| `apps/runtime/src/http/contexts/secrets/http.ts` | Listar (só nomes), gravar (valida o nome), apagar |
 | `apps/runtime/src/agents/tools/secrets.ts` | `ask_secret`: o cartão que pede uma credencial na conversa |
 | `apps/runtime/src/http/routes/inbox.ts` | `POST /api/inbox/:id/secret`: grava no cofre e avisa a conversa só com a referência |
 | `apps/runtime/src/agents/orbi.ts` | Passa ao modelo os nomes do cofre a cada turno |

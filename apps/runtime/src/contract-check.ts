@@ -12,7 +12,7 @@ import type { DemoAction, NarrationSegment, Recording, Target } from './browser/
 import type { ConversationInfo } from './conversations/conversations.ts';
 import type { InboxItem } from './conversations/inbox.ts';
 import type { AutonomyLevel, Category } from './autonomy/policy.ts';
-import type { SecretInfo } from './vault/vault.ts';
+import type { SecretInfo } from './contexts/secrets/index.ts';
 import type { AgentClient } from './mcp/clients.ts';
 import type { VoiceStatus } from './voice/model.ts';
 import type { PipelineRun } from './pipelines/runs.ts';

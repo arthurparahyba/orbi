@@ -154,14 +154,14 @@ sequenceDiagram
 | Onde | O quê |
 | --- | --- |
 | `packages/plugin-sdk/` | Contrato do adaptador e do plugin, e o modelo de plugin |
-| `apps/runtime/src/llm/index.ts` | Escolhe o provedor (`configureLlm`) e monta as configurações |
-| `apps/runtime/src/llm/pi-bridge.ts` | Tradução entre o Pi e o adaptador |
-| `apps/runtime/src/llm/adapters/openai-compatible.ts` | Adaptador para `/chat/completions` |
-| `apps/runtime/src/llm/plugins.ts` | Achar, validar e descrever plugins |
-| `apps/runtime/src/llm/setup.ts` + `http/routes/model.ts` | Opções desta máquina, teste, escolher e aplicar sem reiniciar (`/api/model`) |
+| `apps/runtime/src/contexts/models/provider/src/provider.ts` | Escolhe o provedor (`configureLlm`) e monta as configurações |
+| `apps/runtime/src/contexts/models/provider/src/flue-bridge.ts` | Tradução entre o Pi e o adaptador |
+| `apps/runtime/src/contexts/models/adapters/openai-compatible.ts` | Adaptador para `/chat/completions` |
+| `apps/runtime/src/contexts/models/plugins/src/plugins.ts` | Achar, validar e descrever plugins |
+| `apps/runtime/src/contexts/models/setup/src/setup.ts` + `http/contexts/models/http.ts` | Opções desta máquina, teste, escolher e aplicar sem reiniciar (`/api/model`) |
 | `apps/desktop/src/views/setup/` | A tela da primeira abertura e o formulário comum (`ModelChoice`) |
 | `apps/desktop/src/views/autonomy/ModelPage.tsx` | Configurações → Modelo |
-| `apps/runtime/src/llm/plugin-check.ts` + `apps/runtime/scripts/plugin-test.ts` | O teste de plugin |
+| `apps/runtime/src/contexts/models/plugins/src/check.ts` + `apps/runtime/scripts/plugin-test.ts` | O teste de plugin |
 | `scripts/plugin-new.mjs` | Cria um plugin a partir do modelo |
 
 ## Tecnologias

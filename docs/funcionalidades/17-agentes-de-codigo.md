@@ -170,7 +170,7 @@ na próxima vez é o caminho do problema conhecido.
 | Tipos, catálogo, linha de comando | `apps/runtime/src/code-agents/{types,catalog,command}.ts` |
 | Cadastro e tarefas | `apps/runtime/src/code-agents/registry.ts` (`CodeAgents`) |
 | Teste do agente | `apps/runtime/src/code-agents/tester.ts` |
-| Janela do terminal, e onde roda | `apps/runtime/src/code-agents/terminal-window.ts`, `run.ts`; `terminalWindow` em `src/platform/` |
+| Janela do terminal, e onde roda | `apps/runtime/src/code-agents/terminal-window.ts`, `run.ts`; `terminalWindow` em `src/contexts/platform/os/src/` |
 | Executor na cópia | `apps/runtime/src/code-agents/fixer.ts` |
 | Ferramentas do Orbi | `apps/runtime/src/agents/tools/code.ts` (investigar, corrigir conhecido, aplicar, descartar) |
 | Parte do prompt | `apps/runtime/src/prompts/orbi/agentes-de-codigo.md` |

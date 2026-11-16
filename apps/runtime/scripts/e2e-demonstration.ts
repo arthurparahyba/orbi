@@ -30,7 +30,7 @@ Object.assign(process.env, {
 
 const { startFakePortal, FAKE_PORTAL_CREDENTIALS } = await import('./fake-portal.ts');
 const { demonstrationMessage } = await import('../src/browser/recorder.ts');
-const { redact } = await import('../src/vault/vault.ts');
+const { redact } = await import('../src/contexts/secrets/index.ts');
 const { startBridge } = await import('../src/browser/mcp/bridge.ts');
 const { loadConfig } = await import('../src/config.ts');
 const { createOrbi } = await import('../src/compose.ts');

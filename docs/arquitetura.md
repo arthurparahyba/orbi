@@ -63,10 +63,12 @@ src/
   browser/                  Chrome compartilhado, gravador de demonstrações e
     mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
   voice/stt.ts              transcrição da narração (Whisper local ou HTTP)
-  vault/vault.ts            cofre de credenciais (Keychain / arquivo criptografado)
   contexts/                 contextos já migrados (documento 26): de fora, só pelo index.ts
     models/                 com o que o Orbi pensa: provider (porta LlmAdapter e ponte para o Pi),
                             plugins, roles, cost, setup; a rota /api/model em http.ts
+    platform/               onde ele roda: os (um por sistema), env (.env), preferences
+                            (dono da tabela settings: ninguém mais a escreve em SQL cru)
+    secrets/                cofre de credenciais (Keychain / arquivo criptografado) e /api/vault
   observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
                             usage.ts (uso por conversa e por dia)
 

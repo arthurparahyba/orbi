@@ -15,10 +15,22 @@ import { join, relative, resolve } from 'node:path';
 const SRC = resolve(import.meta.dirname, '../src');
 const CONTEXTS = join(SRC, 'contexts');
 
-/** Pastas que ainda não viraram contexto e que um contexto pode alcançar por enquanto. */
+/**
+ * O que qualquer contexto pode alcançar sempre: as peças da composição com que todo contexto
+ * conversa. `services.ts` é o conjunto que a rota recebe e `http/errors.ts` é o formato de erro
+ * da API — contrato, não funcionalidade de outro contexto. Esta lista não cresce sem discussão.
+ */
+const SEMPRE_PERMITIDO = ['services.ts', 'http/errors.ts'];
+
+/**
+ * Pastas que ainda não viraram contexto e que um contexto pode alcançar por enquanto.
+ * É o placar da migração: só pode encurtar, e cada item diz em que fase sai.
+ */
 const AINDA_FORA: Record<string, string[]> = {
-  // `platform` e `settings` viram o contexto `platform` na fase 2; `terminal`, o `tools` na fase 5.
-  models: ['platform/', 'settings/', 'terminal/', 'services.ts', 'observability/', 'http/errors.ts'],
+  // `terminal/` vira o contexto `tools` e `observability/`, o `telemetry` (fase 5).
+  models: ['terminal/', 'observability/'],
+  platform: [],
+  secrets: [],
 };
 
 const files = (dir: string): string[] =>
@@ -67,6 +79,11 @@ test('um contexto não alcança o de dentro de outro', () => {
   assert.deepEqual(quebras, [], `importe pelo index.ts do vizinho:\n${quebras.join('\n')}`);
 });
 
+test('todo contexto migrado está declarado em AINDA_FORA', () => {
+  const faltando = contexts.filter((c) => !(c in AINDA_FORA));
+  assert.deepEqual(faltando, [], 'declare o contexto em AINDA_FORA (lista vazia, se ele já está limpo)');
+});
+
 test('um contexto só alcança a estrutura antiga pelo que está em AINDA_FORA', () => {
   const quebras: string[] = [];
   for (const context of contexts) {
@@ -74,7 +91,7 @@ test('um contexto só alcança a estrutura antiga pelo que está em AINDA_FORA',
     for (const file of files(join(CONTEXTS, context))) {
       for (const target of importsOf(file)) {
         if (target.startsWith('contexts/')) continue;
-        if (allowed.some((prefix) => target === prefix || target.startsWith(prefix))) continue;
+        if ([...SEMPRE_PERMITIDO, ...allowed].some((prefix) => target === prefix || target.startsWith(prefix))) continue;
         quebras.push(`${relative(SRC, file)} → ${target}`);
       }
     }

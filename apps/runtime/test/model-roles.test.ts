@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { ModelRoles, modelForTurn, resolveRoles, turnRole } from '../src/contexts/models/roles/src/roles.ts';
 import { commandProblems } from '../src/agents/tools/brain.ts';
+import { Preferences } from '../src/contexts/platform/index.ts';
 
 /** A model per kind of work (docs/funcionalidades/12): talking, running, learning and correcting, the knowledge review. */
 
@@ -39,7 +40,7 @@ test('papéis: a escolha da conversa vale para conversar e executar, não para a
 test('papéis: guardados nas configurações; limpar volta ao padrão', () => {
   const db = new DatabaseSync(':memory:');
   db.exec('CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
-  const roles = new ModelRoles(db);
+  const roles = new ModelRoles(new Preferences(db));
   roles.set('aprender', 'yara-max');
   roles.set('conhecimento', 'yara-mini');
   assert.deepEqual(roles.all(), { aprender: 'yara-max', conhecimento: 'yara-mini' });

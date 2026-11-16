@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { platformFor } from '../platform/index.ts';
+import { platformFor } from '../contexts/platform/index.ts';
 
 /**
  * The developer's shell (Git Bash on Windows, bash elsewhere). Orbi runs programs without a

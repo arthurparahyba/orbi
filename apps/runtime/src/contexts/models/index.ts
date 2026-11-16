@@ -15,7 +15,7 @@
 export { configureLlm, llmChoice, llmSettings, ADAPTERS } from './provider/src/provider.ts';
 export type { ActiveLlm, LlmChoice, LlmAdapter, LlmAdapterFactory, LlmSettings } from './provider/src/provider.ts';
 
-export { discoverPlugins, pluginDirs, describePlugins, appDataHome } from './plugins/src/plugins.ts';
+export { discoverPlugins, pluginDirs, describePlugins } from './plugins/src/plugins.ts';
 export type { PluginInfo } from './plugins/src/plugins.ts';
 
 export { ModelRoles, MODEL_ROLES, resolveRoles, turnRole, modelForTurn } from './roles/src/roles.ts';

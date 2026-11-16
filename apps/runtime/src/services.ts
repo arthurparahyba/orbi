@@ -5,7 +5,7 @@ import type { Inbox } from './conversations/inbox.ts';
 import type { PolicyStore } from './autonomy/policy.ts';
 import type { Conversations } from './conversations/conversations.ts';
 import type { Followups } from './followups/service.ts';
-import type { Vault } from './vault/vault.ts';
+import type { Vault } from './contexts/secrets/index.ts';
 import type { SttSlot } from './voice/stt.ts';
 import type { SharedChrome } from './browser/chrome.ts';
 import type { BrowserMcp } from './browser/mcp/chrome-devtools.ts';

@@ -70,7 +70,9 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/followups/      retornos agendados: estados, um por conversa, agendador com nova tentativa
   src/contexts/       contextos já migrados (documento 26); de fora, só pelo index.ts do contexto
     models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
-  src/{autonomy,browser,conversations,observability,terminal,vault,voice}/
+    platform/           onde ele roda: os, env, preferences; dono da tabela settings
+    secrets/            o cofre de credenciais (um módulo só, código plano em src/)
+  src/{autonomy,browser,conversations,observability,terminal,voice}/
   test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
@@ -232,8 +234,8 @@ cofre ou ponte MCP, `npm run e2e`.
   estável (só os mais usados, em ordem fixa).
 - **Semicolons** quebram mensagens em diagramas Mermaid de sequência. Use vírgula.
 - O app empacotado só se gera na plataforma de destino (o `.exe` sai do GitHub Actions, `app-windows.yml`).
-- **Diferenças de sistema operacional ficam em `src/platform/`** (uma implementação por sistema): não teste
-  `process.platform` fora dali.
+- **Diferenças de sistema operacional ficam no contexto `platform`** (`contexts/platform/os/`, uma
+  implementação por sistema): não teste `process.platform` fora dali.
 
 ## Convenções
 

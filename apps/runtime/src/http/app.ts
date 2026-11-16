@@ -8,7 +8,7 @@ import type { Agent } from './routes/types.ts';
 import { conversationRoutes } from './routes/conversations.ts';
 import { inboxRoutes } from './routes/inbox.ts';
 import { recordingRoutes } from './routes/recordings.ts';
-import { vaultRoutes } from './routes/vault.ts';
+import { vaultRoutes } from '../contexts/secrets/index.ts';
 import { brainRoutes } from './routes/brain.ts';
 import { autonomyRoutes } from './routes/autonomy.ts';
 import { healthRoutes } from './routes/health.ts';

@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { SetSecret } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
-import { HttpError, body } from '../errors.ts';
+import { HttpError, body } from '../../http/errors.ts';
 
-/** Same shape as a {{segredo:nome}} reference (vault/vault.ts). */
+/** Same shape as a {{segredo:nome}} reference (src/vault.ts). */
 const SECRET_NAME = /^[a-z0-9][a-z0-9._/@-]{0,127}$/;
 
 /** Credentials: names and descriptions only — values never leave the vault through the API. */

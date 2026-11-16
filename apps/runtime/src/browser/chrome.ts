@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { platform } from '../platform/index.ts';
+import { platform } from '../contexts/platform/index.ts';
 import { existsSync, mkdirSync } from 'node:fs';
 import type { OrbiConfig } from '../config.ts';
 

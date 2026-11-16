@@ -63,7 +63,7 @@ test('no Windows, .cmd (npm) roda pelo Git Bash com os argumentos protegidos', a
 });
 
 test('.env: troca a linha ativa, aproveita o exemplo comentado, ou acrescenta', async () => {
-  const { withEnvValue } = await import('../src/settings/env-file.ts');
+  const { withEnvValue } = await import('../src/contexts/platform/index.ts');
   const path = 'C:\\Program Files\\Git\\bin\\bash.exe';
   assert.equal(withEnvValue('A=1\nORBI_SHELL=/x\n', 'ORBI_SHELL', path), `A=1\nORBI_SHELL='${path}'\n`);
   assert.equal(withEnvValue('# ORBI_SHELL=C:\\\\algo\nB=2\n', 'ORBI_SHELL', path), `ORBI_SHELL='${path}'\nB=2\n`);
@@ -101,7 +101,7 @@ test('pendências: cada tipo tem seu handler, o mais específico primeiro', asyn
 });
 
 test('plataforma: o que muda por sistema vem de uma implementação por sistema', async () => {
-  const { platformFor } = await import('../src/platform/index.ts');
+  const { platformFor } = await import('../src/contexts/platform/index.ts');
   const win = platformFor('win32'), mac = platformFor('darwin'), lin = platformFor('freebsd');
   assert.equal(lin.id, 'linux', 'outro sistema se comporta como Linux');
   assert.deepEqual(win.programAliases('python3').map((a) => a.name), ['python', 'py', 'python3']);

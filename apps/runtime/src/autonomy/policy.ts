@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Preferences } from '../contexts/platform/index.ts';
 import { decideAction, type Effect, type Level, type LevelBy } from '../brain/domain/levels.ts';
 import { commandEffectOf, commandReads } from '../commands/index.ts';
 
@@ -133,12 +133,15 @@ export function browserCategory(tool: string): Category {
   return (BROWSER_READ_TOOLS as readonly string[]).includes(tool) ? 'navegador-leitura' : 'navegador-escrita';
 }
 
-/** The developer's autonomy settings, kept in the `settings` table. */
+/** The key this store keeps in `platform`'s preferences. */
+const PREFERENCE = 'autonomy';
+
+/** The developer's autonomy settings, kept in `platform`'s preferences. */
 export class PolicyStore {
   private policy: AutonomyPolicy;
-  constructor(private readonly db: DatabaseSync) {
-    const row = db.prepare("SELECT value FROM settings WHERE key = 'autonomy'").get() as { value: string } | undefined;
-    this.policy = row ? parsePolicy(JSON.parse(row.value)) : DEFAULT_POLICY;
+  constructor(private readonly preferences: Preferences) {
+    const saved = preferences.get<unknown>(PREFERENCE);
+    this.policy = saved === undefined ? DEFAULT_POLICY : parsePolicy(saved);
   }
   get(): AutonomyPolicy {
     return this.policy;
@@ -157,6 +160,6 @@ export class PolicyStore {
   /** Replaces the whole policy (validated); used to import the old autonomy.json. */
   replace(policy: unknown): void {
     this.policy = parsePolicy(policy);
-    this.db.prepare("INSERT INTO settings (key, value) VALUES ('autonomy', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify(this.policy));
+    this.preferences.set(PREFERENCE, this.policy);
   }
 }

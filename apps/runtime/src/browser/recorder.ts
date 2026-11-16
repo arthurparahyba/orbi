@@ -2,7 +2,7 @@ import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import { ulid } from 'ulidx';
 import type { SharedChrome } from './chrome.ts';
 import { pageRecorderScript } from './page-recorder.ts';
-import { secretName, secretRef, type Vault } from '../vault/vault.ts';
+import { secretName, secretRef, type Vault } from '../contexts/secrets/index.ts';
 import type { SttSlot } from '../voice/stt.ts';
 
 /** What a recording needs from the rest of Orbi. */

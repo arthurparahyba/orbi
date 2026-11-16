@@ -4,7 +4,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { McpServer, McpTestResult } from '@orbi/contracts';
-import { redact, type Vault } from '../vault/vault.ts';
+import { redact, type Vault } from '../contexts/secrets/index.ts';
 import { commandText, effectiveKind, hintOf, type McpCommand } from './domain.ts';
 import { needsApproval, type DiscoveredTool, type McpServers } from './store.ts';
 

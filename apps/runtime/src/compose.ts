@@ -11,7 +11,8 @@ import { PolicyStore } from './autonomy/policy.ts';
 import { Conversations } from './conversations/conversations.ts';
 import { Followups } from './followups/service.ts';
 import { startFollowups } from './followups/scheduler.ts';
-import { Vault } from './vault/vault.ts';
+import { Vault } from './contexts/secrets/index.ts';
+import { Preferences } from './contexts/platform/index.ts';
 import { createStt } from './voice/stt.ts';
 import { VoiceModel } from './voice/model.ts';
 import { warmVoice } from './voice/warm.ts';
@@ -76,14 +77,16 @@ export async function createOrbi(
   adoptLegacyBrain(config.dbFile, config.legacyBrainFile);
   const db = openDatabase(config.dbFile);
   watchTables(db, events);
+  // What the developer chose and the app keeps between runs: `platform` owns the `settings` table.
+  const preferences = new Preferences(db);
   // The transcription model: chosen in .env or on the Autonomia screen, its files and their state.
-  const voice = overrides.voice ?? new VoiceModel(db, config.stt, () => events.emit('voice'));
+  const voice = overrides.voice ?? new VoiceModel(preferences, config.stt, () => events.emit('voice'));
   const stt = overrides.stt ?? createStt(() => voice.config(), (state) => voice.report(state));
   vault.onChange = () => events.emit('vault');
   const inbox = overrides.inbox ?? new Inbox(db);
   const conversations = overrides.conversations ?? new Conversations(db);
   const followups = overrides.followups ?? new Followups(db);
-  const policy = overrides.policy ?? new PolicyStore(db);
+  const policy = overrides.policy ?? new PolicyStore(preferences);
   importLegacyState(config, { inbox, conversations, policy });
   const brain = overrides.brain ?? new BrainStore(db);
   const pipelineRuns = new PipelineRuns(db);
@@ -93,8 +96,8 @@ export async function createOrbi(
   return {
     config: finalConfig,
     llm,
-    modelTiers: new ModelTiers(db),
-    modelRoles: new ModelRoles(db),
+    modelTiers: new ModelTiers(preferences),
+    modelRoles: new ModelRoles(preferences),
     mcpServers,
     mcpHub: new McpHub(mcpServers, vault, join(config.dataDir, 'mcp')),
     observations: new RunObservations(),
@@ -117,7 +120,7 @@ export async function createOrbi(
     recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt, onChange: (id) => events.emit('recording', id) }),
     codeAgents,
     diagnoses: overrides.diagnoses ?? new Diagnoses(db),
-    diagnosisSettings: overrides.diagnosisSettings ?? new DiagnosisSettings(db),
+    diagnosisSettings: overrides.diagnosisSettings ?? new DiagnosisSettings(preferences),
     codeFixer: overrides.codeFixer ?? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, agents: codeAgents, shell: () => config.shell }),
   };
 }

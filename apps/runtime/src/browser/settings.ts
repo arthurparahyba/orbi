@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import type { ChromeSettings, SetChromeSettings } from '@orbi/contracts';
 import type { OrbiConfig } from '../config.ts';
-import { setEnvValue } from '../settings/env-file.ts';
+import { setEnvValue } from '../contexts/platform/index.ts';
 import { chromeExecutable } from './chrome.ts';
 
 /**

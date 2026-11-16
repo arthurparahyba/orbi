@@ -3,7 +3,7 @@ import type { Agent } from '../agents/runtime-port.ts';
 import type { PlaybookRun } from '../brain/domain/types.ts';
 import type { Observation } from '../observability/run-observations.ts';
 import { tellAgent } from '../conversations/tell.ts';
-import { redact } from '../vault/vault.ts';
+import { redact } from '../contexts/secrets/index.ts';
 import { log } from '../observability/log.ts';
 import { classifyEntity, verdictLine } from '../brain/domain/fact-match.ts';
 

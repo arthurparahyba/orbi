@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { ulid } from 'ulidx';
-import { platform } from '../platform/index.ts';
+import { platform } from '../contexts/platform/index.ts';
 import { shQuote } from '../terminal/shell.ts';
 import { developerEnv } from '../terminal/orbi-env.ts';
 import type { RunResult } from '../terminal/exec.ts';

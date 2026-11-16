@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import type { Platform } from './types.ts';
 import { windows } from './windows.ts';
 import { linux, macos } from './unix.ts';
@@ -11,3 +12,11 @@ export function platformFor(id: string): Platform {
 
 /** This machine's system. */
 export const platform = (): Platform => platformFor(process.platform);
+
+/**
+ * The installed app's folder for the developer's own things (the same the desktop app uses:
+ * Tauri's app data dir). Updating the app never touches it.
+ */
+export function appDataHome(env: NodeJS.ProcessEnv = process.env, id: string = process.platform, home = homedir()): string {
+  return platformFor(id).appDataHome(env, home);
+}

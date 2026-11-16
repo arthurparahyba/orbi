@@ -169,7 +169,7 @@ test('janela do terminal: o script roda a linha, guarda a saída e o código, e 
 });
 
 test('plataforma: como abrir uma janela do terminal', async () => {
-  const { platformFor } = await import('../src/platform/index.ts');
+  const { platformFor } = await import('../src/contexts/platform/index.ts');
   assert.deepEqual(platformFor('darwin').terminalWindow('/t/run.command', null), { command: '/usr/bin/open', args: ['-a', 'Terminal', '/t/run.command'] });
   const win = platformFor('win32').terminalWindow('C:\\t\\run.command', 'C:\\Program Files\\Git\\bin\\bash.exe');
   assert.equal(win?.command, 'C:\\Program Files\\Git\\usr\\bin\\mintty.exe');

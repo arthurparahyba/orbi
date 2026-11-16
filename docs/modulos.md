@@ -23,8 +23,12 @@ responde) e **módulo** (uma parte da resposta).
   ler a tabela do outro. Precisa de dado do vizinho, pede pelo `index.ts` dele.
 - **O `index.ts` é do contexto, não do módulo.** Quem está fora enxerga o contexto e nada mais;
   nem um módulo irmão de outro contexto alcança o de dentro.
-- **O `migrations.ts` é do contexto.** Uma tabela aparece em um `migrations.ts` só, e isso
-  responde "onde isso é guardado" sem busca.
+- **Cada contexto é dono das suas tabelas**, e isso responde "onde isso é guardado" sem busca.
+  O `migrations.ts` do contexto vale **de agora em diante**: o runner conta as migrações por
+  índice (`PRAGMA user_version`), então `db/migrations.ts` continua sendo a cadeia histórica
+  congelada, e as novas de cada contexto são concatenadas no fim, numa ordem de contextos
+  declarada em um lugar só. Esse mecanismo entra junto com o primeiro contexto que precisar de
+  tabela nova.
 
 Os três identificadores que circulam entre contextos são `conversation_id`, `run_id` e
 `playbook`. Carregar o id é livre; amarrar com chave estrangeira não.
@@ -141,7 +145,7 @@ Tabelas: `code_agents`, `code_agent_tasks`, `mcp_servers`, `mcp_tools`.
 
 Interface pública: `configureLlm`, `llmChoice`, `llmSettings`, `ADAPTERS`, `ModelRoles`,
 `resolveRoles`, `turnRole`, `modelForTurn`, `ModelTiers`, `modelChoices`, `knownTier`,
-`CLAUDE_MODELS`, `discoverPlugins`, `pluginDirs`, `describePlugins`, `appDataHome`,
+`CLAUDE_MODELS`, `discoverPlugins`, `pluginDirs`, `describePlugins`,
 `modelOptions`, `modelStatus`, `testModel`, `applyModel`, `envFor`, `modelRoutes`.
 
 `configureLlm` **devolve** o provedor do Flue em `ActiveLlm.provider`; quem registra é o
@@ -149,17 +153,21 @@ Interface pública: `configureLlm`, `llmChoice`, `llmSettings`, `ADAPTERS`, `Mod
 
 Tabelas: nenhuma própria; usa o namespace `models` em `settings`.
 
-Ainda alcança a estrutura antiga em `platform/`, `settings/env-file.ts` e `terminal/orbi-env.ts`
-(fases 2 e 5). A lista está em `test/boundary.test.ts`, em `AINDA_FORA`, e só pode encurtar.
+`appDataHome` saiu daqui para `platform` na fase 2: é caminho por sistema operacional.
+Ainda alcança a estrutura antiga em `terminal/orbi-env.ts` e `observability/` (fase 5); a lista
+está em `test/boundary.test.ts`, em `AINDA_FORA`, e só pode encurtar.
 
 ### segredos (`secrets`) — o que nunca pode sair
 
-Hoje em `vault/`.
+**Migrado** (fase 2): `src/contexts/secrets/`, com `index.ts`, a rota em `http.ts` e, por ser um
+módulo só, o código plano em `src/`.
 
-Um módulo só. Guarda credenciais no cofre, resolve `{{segredo:nome}}` dentro da ferramenta e
-devolve para fora apenas os nomes. O valor nunca chega ao modelo, ao cérebro, à conversa nem ao log.
+Guarda credenciais no cofre (Keychain ou arquivo cifrado), resolve `{{segredo:nome}}` dentro da
+ferramenta e devolve para fora apenas os nomes. O valor nunca chega ao modelo, ao cérebro, à
+conversa nem ao log.
 
-Interface pública: `nomes`, `guardar`, `resolverNaFerramenta`, `limpar`.
+Interface pública: `Vault`, `redact`, `secretName`, `secretRef`, `SECRET_REF`, `vaultRoutes`,
+e os tipos `SecretInfo` e `VaultBackend`.
 
 Tabelas: nenhuma; arquivo próprio cifrado.
 
@@ -176,15 +184,24 @@ Tabelas: `usage`.
 
 ### plataforma (`platform`) — onde ele está rodando
 
-Hoje em `platform/`, `settings/`, `db/`.
+**Migrado** (fase 2): `src/contexts/platform/`.
 
-Um módulo só. Caminhos por sistema operacional, o shell, o arquivo de ambiente, o banco e as
-preferências guardadas. Dono de `settings`, que serve a todos por namespace: ninguém mais
-escreve nessa tabela em SQL cru.
+| Módulo | O que faz |
+|---|---|
+| `so` (`os`) | diferenças de sistema operacional, uma implementação por sistema, e a pasta de dados do app |
+| `ambiente` (`env`) | o arquivo `.env` da instalação |
+| `preferências` (`preferences`) | o que o desenvolvedor escolheu e fica entre execuções |
 
-Interface pública: `caminhos`, `shell`, `preferencias(namespace)`, `banco`.
+Interface pública: `platform`, `platformFor`, `appDataHome`, `setEnvValue`, `withEnvValue`,
+`Preferences`, e os tipos `Platform` e `PlatformId`.
 
-Tabelas: `settings`.
+Dono da tabela `settings`: **ninguém mais a lê ou escreve em SQL cru.** Quem guardava direto
+(`PolicyStore`, `VoiceModel`, `ModelRoles`, `ModelTiers`, `DiagnosisSettings`) passou a receber
+`Preferences` no construtor e nenhum deles depende mais do banco.
+
+O `db/` **não** é deste contexto: ele roda as migrações de todos, e isso é composição.
+
+
 
 ## Composição
 

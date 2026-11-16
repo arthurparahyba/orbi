@@ -1,9 +1,12 @@
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { DatabaseSync } from 'node:sqlite';
+import type { Preferences } from '../contexts/platform/index.ts';
 import type { OrbiConfig } from '../config.ts';
 import { log } from '../observability/log.ts';
 import { loadWhisper, modelLoadError, type ModelProgress } from './stt.ts';
+
+/** The key this model keeps in `platform`'s preferences. */
+const PREFERENCE = 'stt';
 
 type SttConfig = OrbiConfig['stt'];
 
@@ -66,15 +69,14 @@ export class VoiceModel {
   private download?: Promise<void>;
 
   constructor(
-    private readonly db: DatabaseSync,
+    private readonly preferences: Preferences,
     private readonly base: SttConfig,
     private readonly onChange: () => void,
   ) {}
 
   /** The configuration in effect: the .env plus the model chosen on the screen. */
   config(): SttConfig {
-    const row = this.db.prepare("SELECT value FROM settings WHERE key = 'stt'").get() as { value: string } | undefined;
-    const saved = row ? (JSON.parse(row.value) as { model?: string }) : {};
+    const saved = this.preferences.get<{ model?: string }>(PREFERENCE) ?? {};
     return { ...this.base, localModel: saved.model || this.base.localModel };
   }
 
@@ -131,11 +133,8 @@ export class VoiceModel {
 
   /** Another model (or back to the default with null). Takes effect at the next transcription. */
   choose(model: string | null): void {
-    if (model) {
-      this.db.prepare("INSERT INTO settings (key, value) VALUES ('stt', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify({ model }));
-    } else {
-      this.db.prepare("DELETE FROM settings WHERE key = 'stt'").run();
-    }
+    if (model) this.preferences.set(PREFERENCE, { model });
+    else this.preferences.clear(PREFERENCE);
     this.set({ state: 'idle' });
   }
 

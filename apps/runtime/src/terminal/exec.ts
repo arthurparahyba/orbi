@@ -3,7 +3,7 @@ import { orbiOwn } from './orbi-env.ts';
 import { existsSync, statSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { gitToolDirs, shellLine } from './shell.ts';
-import { platform, platformFor } from '../platform/index.ts';
+import { platform, platformFor } from '../contexts/platform/index.ts';
 import { installHint } from '../commands/index.ts';
 
 /**

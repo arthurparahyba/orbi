@@ -59,7 +59,7 @@ e as duas são do mesmo contexto. JOIN: cinco, dos quais três são FTS com a pr
 |---|---|---|
 | `usage` faz JOIN em `conversations` só para o título | `observability/usage.ts:92` | guardar o título ou pedir pela fachada de `conversa` |
 | `conversations.ts` lê e escreve `agent_requests`, `followups` e `inbox_items` | `conversations/conversations.ts` | pedir por id a quem é dono |
-| `settings` é escrita por 6 módulos em SQL cru | `autonomy/policy`, `diagnosis/settings`, `llm/choices`, `llm/roles`, `voice/model` | `plataforma` passa a ser dona, com namespace por contexto |
+| ~~`settings` é escrita por 5 módulos em SQL cru~~ **resolvida na fase 2** | `autonomy/policy`, `diagnosis/settings`, `models/cost`, `models/roles`, `voice/model` | `platform` virou dona; os cinco recebem `Preferences` |
 
 E dois repos atravessam dois assuntos hoje: `brain/repo/playbooks.ts` (dono de `playbooks` e
 `playbook_runs`) e `brain/repo/levels.ts` (tabelas da autonomia morando dentro do cérebro).
@@ -75,8 +75,9 @@ E dois repos atravessam dois assuntos hoje: `brain/repo/playbooks.ts` (dono de `
   melhora", e `review_notes` com `diagnoses` têm as mesmas colunas de referência.
 - **`voz` fica em `conversa`.** É um canal de entrada do desenvolvedor; o modelo local de
   transcrição é detalhe de implementação dela.
-- **`appDataHome` e `pluginDirs` saem de `llm/plugins.ts` para `plataforma`.** São caminho por
-  sistema operacional, não assunto de modelo.
+- **`appDataHome` sai de `llm/plugins.ts` para `platform`.** É caminho por sistema operacional,
+  não assunto de modelo. `pluginDirs` fica em `models`: onde os plugins de modelo moram é
+  assunto dele, e ele pede o caminho a `platform`.
 - **`modeloDoTurno` fica em `modelos`.** O que varia é o modelo, e quem sabe o custo é esse
   contexto.
 
@@ -126,8 +127,30 @@ Sobre profundidade: o nível `modules/` que o esboço tinha foi cortado. Um mód
 `contexts/<contexto>/<modulo>/src/`, e os arquivos do contexto (`index.ts`, `http.ts`,
 `migrations.ts`) ficam na raiz dele — o que já distingue os dois níveis sem uma pasta a mais.
 
-**Fase 2 — `plataforma` e `segredos`.** Pequenos, e `plataforma` precisa vir cedo porque vira
-dona de `settings`: resolve a violação dos 6 módulos escrevendo na mesma tabela.
+**Fase 2 — `platform` e `secrets`. Feita.** `platform/` e `settings/` viraram
+`src/contexts/platform/` com três módulos — `os`, `env` e `preferences` —, e `vault/` virou
+`src/contexts/secrets/` (um módulo só, código plano em `src/`, rota em `http.ts`).
+
+`platform` é dona da tabela `settings`, e a violação dos cinco módulos escrevendo nela em SQL
+cru acabou: `PolicyStore`, `VoiceModel`, `ModelRoles`, `ModelTiers` e `DiagnosisSettings`
+recebem `Preferences` no construtor e nenhum deles depende mais do banco. `appDataHome` saiu de
+`models/plugins` para `platform/os`, que é onde mora caminho por sistema operacional.
+
+O que a fase 2 ensinou:
+
+- **O teste de fronteira precisava de duas listas, não uma.** `services.ts` e `http/errors.ts`
+  não são estrutura antiga: são o contrato da composição com que toda rota de contexto conversa.
+  Viraram `SEMPRE_PERMITIDO`, separado de `AINDA_FORA`, e essa lista não cresce sem discussão.
+  E entrou um teste a mais: todo contexto migrado tem de estar declarado em `AINDA_FORA`, mesmo
+  com lista vazia — assim um contexto novo não entra sem declarar o que ainda alcança.
+- **`db/` não é de `platform`.** O mapa dizia que era, e estava errado: `db/` roda as migrações
+  de todos os contextos, e quem faz isso é composição. `platform` ficou com sistema operacional,
+  `.env` e `settings`.
+- **A promessa do `migrations.ts` por contexto ganhou ressalva.** O runner conta por índice
+  (`PRAGMA user_version`), então mover uma migração que já rodou quebra o banco de quem já
+  atualizou. `db/migrations.ts` fica como cadeia congelada e o arquivo do contexto vale de agora
+  em diante. O mecanismo de concatenação entra com o primeiro contexto que precisar de tabela
+  nova — máquina sem usuário é dívida.
 
 **Fase 3 — `melhoria`.** `diagnosis/` e `code-agents/` já têm `index.ts`; aqui o trabalho é
 cortar a dependência de `brain/domain/{types,run-calls}`, que passa pela linguagem compartilhada.
@@ -136,8 +159,8 @@ cortar a dependência de `brain/domain/{types,run-calls}`, que passa pela lingua
 última: é o `BrainStore` sendo repartido. Nesta fase os dois repos que atravessam assuntos se
 dividem e `brain/domain/types.ts` vira `linguagem/`.
 
-**Fase 5 — `conversa`, `ferramentas`, `telemetria`.** Conserta as duas violações de JOIN e
-leitura de tabela alheia.
+**Fase 5 — `talk`, `tools`, `telemetry`.** Conserta as duas violações que sobram: o JOIN de
+`usage` em `conversations` e `conversations.ts` escrevendo em `agent_requests`.
 
 **Fase 6 — contrato com o desktop.** `packages/contracts/src/api.ts` tem 439 linhas e é o
 acoplamento mais caro: cada funcionalidade nova mexe nele e no `apps/desktop/src/api.ts`. Duas

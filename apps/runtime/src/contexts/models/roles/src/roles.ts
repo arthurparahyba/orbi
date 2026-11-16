@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Preferences } from '../../../platform/index.ts';
 import type { ModelTier } from '@orbi/plugin-sdk';
 import type { ActiveLlm } from '../../provider/src/provider.ts';
 import { modelChoices, modelSpecFor } from '../../cost/src/cost.ts';
@@ -15,24 +15,22 @@ export const MODEL_ROLES: readonly ModelRole[] = ['conversa', 'executar', 'apren
 
 type Llm = Pick<ActiveLlm, 'model' | 'adapter' | 'anthropic'>;
 
-/** The roles the developer set (settings `model-roles`); a role left out uses its default. */
+/** The key this store keeps in `platform`'s preferences. */
+const PREFERENCE = 'model-roles';
+
+/** The roles the developer set; a role left out uses its default. */
 export class ModelRoles {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly preferences: Preferences) {}
 
   all(): Partial<Record<ModelRole, string>> {
-    const row = this.db.prepare("SELECT value FROM settings WHERE key = 'model-roles'").get() as { value: string } | undefined;
-    try {
-      return row ? (JSON.parse(row.value) as Partial<Record<ModelRole, string>>) : {};
-    } catch {
-      return {};
-    }
+    return this.preferences.get<Partial<Record<ModelRole, string>>>(PREFERENCE) ?? {};
   }
 
   set(role: ModelRole, model: string | null): Partial<Record<ModelRole, string>> {
     const next = { ...this.all() };
     if (model) next[role] = model;
     else delete next[role];
-    this.db.prepare("INSERT INTO settings (key, value) VALUES ('model-roles', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify(next));
+    this.preferences.set(PREFERENCE, next);
     return next;
   }
 }

@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { setEnvValue } from '../../../../settings/env-file.ts';
+import { setEnvValue } from '../../../platform/index.ts';
 import { rememberOrbiEnvKeys } from '../../../../terminal/orbi-env.ts';
 import { ADAPTERS, configureLlm, llmSettings, type ActiveLlm } from '../../provider/src/provider.ts';
 import type { PluginInfo } from '../../plugins/src/plugins.ts';

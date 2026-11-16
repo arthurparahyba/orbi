@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Preferences } from '../../../platform/index.ts';
 import type { ModelTier } from '@orbi/plugin-sdk';
 import type { ActiveLlm } from '../../provider/src/provider.ts';
 import { ADAPTER_PROVIDER } from '../../provider/src/flue-bridge.ts';
@@ -49,24 +49,22 @@ export function modelSpecFor(llm: Pick<ActiveLlm, 'model' | 'adapter' | 'anthrop
   return llm.anthropic ? `anthropic/${chosen}` : `${ADAPTER_PROVIDER}/${chosen}`;
 }
 
-/** How costly each model is, as the developer classified them (settings `model-tiers`). */
+/** The key this store keeps in `platform`'s preferences. */
+const PREFERENCE = 'model-tiers';
+
+/** How costly each model is, as the developer classified them. */
 export class ModelTiers {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly preferences: Preferences) {}
 
   all(): Record<string, ModelTier> {
-    const row = this.db.prepare("SELECT value FROM settings WHERE key = 'model-tiers'").get() as { value: string } | undefined;
-    try {
-      return row ? (JSON.parse(row.value) as Record<string, ModelTier>) : {};
-    } catch {
-      return {};
-    }
+    return this.preferences.get<Record<string, ModelTier>>(PREFERENCE) ?? {};
   }
 
   set(model: string, tier: ModelTier | null): Record<string, ModelTier> {
     const next = { ...this.all() };
     if (tier) next[model] = tier;
     else delete next[model];
-    this.db.prepare("INSERT INTO settings (key, value) VALUES ('model-tiers', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify(next));
+    this.preferences.set(PREFERENCE, next);
     return next;
   }
 }

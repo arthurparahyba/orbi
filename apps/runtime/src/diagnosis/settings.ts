@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Preferences } from '../contexts/platform/index.ts';
 
 /**
  * Quem escreve o relatório do diagnóstico e quando (docs/funcionalidades/24). As regras (os
@@ -23,20 +23,15 @@ export const DEFAULT_SETUP: DiagnosisSetup = { who: 'regras', when: 'quando-houv
 const KEY = 'diagnosis-setup';
 
 export class DiagnosisSettings {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly preferences: Preferences) {}
 
   get(): DiagnosisSetup {
-    const row = this.db.prepare('SELECT value FROM settings WHERE key = ?').get(KEY) as { value: string } | undefined;
-    try {
-      return row ? { ...DEFAULT_SETUP, ...(JSON.parse(row.value) as Partial<DiagnosisSetup>) } : DEFAULT_SETUP;
-    } catch {
-      return DEFAULT_SETUP;
-    }
+    return { ...DEFAULT_SETUP, ...(this.preferences.get<Partial<DiagnosisSetup>>(KEY) ?? {}) };
   }
 
   set(next: Partial<DiagnosisSetup>): DiagnosisSetup {
     const setup = { ...this.get(), ...next };
-    this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(KEY, JSON.stringify(setup));
+    this.preferences.set(KEY, setup);
     return setup;
   }
 }

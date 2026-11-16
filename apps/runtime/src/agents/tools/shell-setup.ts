@@ -2,8 +2,8 @@ import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Inbox } from '../../conversations/inbox.ts';
 import type { OrbiConfig } from '../../config.ts';
-import { setEnvValue } from '../../settings/env-file.ts';
-import { platform } from '../../platform/index.ts';
+import { setEnvValue } from '../../contexts/platform/index.ts';
+import { platform } from '../../contexts/platform/index.ts';
 import type { UiComponent } from '@orbi/contracts';
 
 /**

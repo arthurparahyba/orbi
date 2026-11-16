@@ -1,9 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { delimiter, join, resolve } from 'node:path';
-import { platformFor } from '../../../../platform/index.ts';
 import { pathToFileURL } from 'node:url';
-import { homedir } from 'node:os';
 import { PLUGIN_API_VERSION, type OrbiPlugin } from '@orbi/plugin-sdk';
+import { appDataHome } from '../../../platform/index.ts';
 
 /**
  * Plugins: folders with code that implements a contract from @orbi/plugin-sdk,
@@ -23,14 +22,6 @@ export interface PluginInfo {
   /** Why it could not be used. Absent when it loaded fine. */
   error?: string;
   plugin?: OrbiPlugin;
-}
-
-/**
- * The installed app's folder for the developer's own things (the same the desktop app uses:
- * Tauri's app data dir). Updating the app never touches it.
- */
-export function appDataHome(env: NodeJS.ProcessEnv = process.env, platform: string = process.platform, home = homedir()): string {
-  return platformFor(platform).appDataHome(env, home);
 }
 
 /**
