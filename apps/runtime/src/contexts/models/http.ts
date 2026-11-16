@@ -5,7 +5,7 @@ import { modelChoices } from './cost/src/cost.ts';
 import type { OrbiServices } from '../../services.ts';
 import { applyModel, modelStatus, testModel } from './setup/src/setup.ts';
 import { discoverPlugins, pluginDirs } from './plugins/src/plugins.ts';
-import { log } from '../../observability/log.ts';
+import { log } from '../telemetry/index.ts';
 import { body } from '../../http/errors.ts';
 
 /**

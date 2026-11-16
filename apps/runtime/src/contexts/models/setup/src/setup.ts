@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { setEnvValue } from '../../../platform/index.ts';
-import { rememberOrbiEnvKeys } from '../../../../terminal/orbi-env.ts';
+import { rememberOrbiEnvKeys } from '../../../tools/index.ts';
 import { ADAPTERS, configureLlm, llmSettings, type ActiveLlm } from '../../provider/src/provider.ts';
 import type { PluginInfo } from '../../plugins/src/plugins.ts';
 import { CLAUDE_MODELS } from '../../cost/src/cost.ts';

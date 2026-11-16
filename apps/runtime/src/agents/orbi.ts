@@ -5,7 +5,7 @@ import { useOrbi } from './capabilities.ts';
 import { investigadorFor } from '../subagents/investigador.ts';
 import { aprenderProcedimento } from '../skills/aprender-procedimento.ts';
 import { composePrompt } from './prompt.ts';
-import { situationLine } from '../followups/domain.ts';
+import { situationLine } from '../contexts/talk/index.ts';
 import { modelForTurn, resolveRoles, turnRole } from '../contexts/models/index.ts';
 import { corrigirProcedimento } from '../skills/corrigir-procedimento.ts';
 

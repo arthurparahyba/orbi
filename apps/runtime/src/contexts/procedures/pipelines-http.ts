@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { DecidePipeline, SavePipeline, StartPipeline } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
-import { tellAgent } from '../../conversations/tell.ts';
+import { tellAgent } from '../talk/index.ts';
 import { HttpError, body, notFound } from '../../http/errors.ts';
 import type { Agent } from '../../http/routes/types.ts';
 import { reviewInstruction } from '../improvement/index.ts';

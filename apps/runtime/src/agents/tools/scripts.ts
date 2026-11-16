@@ -4,10 +4,10 @@ import * as v from 'valibot';
 import { UiComponent } from '@orbi/contracts';
 import type { BrainStore } from '../../brain.ts';
 import { defineCapability, type Deps } from '../capability.ts';
-import { runCommand } from '../../terminal/exec.ts';
+import { runCommand } from '../../contexts/tools/index.ts';
 import { scriptVersion, type PlaybookScript } from '../../contexts/procedures/index.ts';
 import { savePath, shortCommand } from './terminal.ts';
-import { runAndReport } from '../../terminal/runner.ts';
+import { runAndReport } from '../../contexts/tools/index.ts';
 import type { AgentContext } from '../context.ts';
 
 /**

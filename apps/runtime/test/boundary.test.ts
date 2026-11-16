@@ -22,30 +22,37 @@ const CONTEXTS = join(SRC, 'contexts');
  * `http/routes/types.ts`, o formato da API, e `db/{database,rows}.ts`, a conexão e os ajudantes
  * de linha. Contrato e encanamento, não funcionalidade de outro contexto. Não cresce sem discussão.
  */
-const SEMPRE_PERMITIDO = ['services.ts', 'http/errors.ts', 'http/routes/types.ts', 'language/', 'db/database.ts', 'db/rows.ts'];
+const SEMPRE_PERMITIDO = [
+  'language/',              // o vocabulário: só tipos e constantes, importa contexto nenhum
+  'services.ts',            // o conjunto de serviços que a rota recebe
+  'config.ts',              // a forma da configuração da instalação
+  'version.ts',             // a versão do app
+  'events.ts',              // o barramento de eventos da interface
+  'db/database.ts',         // a conexão e a transação
+  'db/rows.ts',             // os ajudantes de linha do SQLite
+  'http/errors.ts',         // o formato de erro da API
+  'http/routes/types.ts',   // a forma de uma rota
+  'agents/runtime-port.ts', // o contrato com o runtime de agentes (Flue)
+  'agents/directory.ts',    // para qual agente vai uma conversa
+];
 
 /**
- * Pastas que ainda não viraram contexto e que um contexto pode alcançar por enquanto.
- * É o placar da migração: só pode encurtar, e cada item diz em que fase sai.
+ * Pastas que ainda não viraram contexto e que um contexto pode alcançar por enquanto. Era o
+ * placar da migração e **zerou na fase 5**: todo contexto agora conversa só pela porta do
+ * vizinho. Se uma entrada voltar a aparecer aqui, é uma fronteira sendo furada, não um atalho.
  */
 const AINDA_FORA: Record<string, string[]> = {
-  // `terminal/` vira o contexto `tools` e `observability/`, o `telemetry` (fase 5).
-  models: ['terminal/', 'observability/'],
+  knowledge: [],
+  procedures: [],
+  learning: [],
+  trust: [],
+  improvement: [],
+  talk: [],
+  tools: [],
+  telemetry: [],
+  models: [],
   platform: [],
   secrets: [],
-  // `brain/domain/` vira `linguagem/` e os contextos `knowledge`, `procedures` e `trust` na
-  // fase 4; `pipelines/` vai para `procedures` na mesma fase; `conversations/`, `terminal/`,
-  // `code-agents/` e `observability/` viram `talk`, `tools` e `telemetry` na fase 5.
-  improvement: ['brain/domain/', 'pipelines/', 'conversations/', 'terminal/', 'code-agents/', 'observability/', 'version.ts', 'agents/runtime-port.ts'],
-  // `commands/` e `mcp-client/` viram o contexto `tools` na fase 5; `db/database.ts` é o
-  // runner das migrações, que fica na composição, e `brain/repo/rows.ts` sai na fase 4b.
-  trust: ['commands/', 'mcp-client/'],
-  // `knowledge` não alcança nada: é o contexto folha.
-  knowledge: [],
-  // `conversations/`, `terminal/`, `code-agents/` e `observability/` viram `talk`, `tools` e
-  // `telemetry` na fase 5; `agents/` é composição (o adaptador do Flue).
-  procedures: ['conversations/', 'terminal/', 'code-agents/', 'observability/', 'agents/'],
-  learning: [],
 };
 
 const files = (dir: string): string[] =>
@@ -124,4 +131,32 @@ test('o index.ts do contexto não reexporta arquivo de dentro de outro contexto'
       );
     }
   }
+});
+
+/**
+ * Cada tabela tem um dono (documento 26). O dono é quem a nomeia em SQL: um contexto, ou a
+ * composição. Duas pastas tocando a mesma tabela é a fronteira sendo furada — o vizinho tem de
+ * pedir pelo `index.ts`. `db/` fica de fora: é o runner das migrações, que vê todas.
+ */
+const TABELAS = `types entities edges playbooks playbook_runs proposals followups inbox_items
+  conversations settings usage agent_clients agent_requests agent_suggestions
+  deleted_conversations pipelines pipeline_runs playbook_known_actions autonomy_events
+  code_agents code_agent_tasks review_notes mcp_servers mcp_tools playbook_learnings run_calls
+  playbook_proofs diagnoses diagnosis_reports`.split(/\s+/);
+
+test('cada tabela tem um dono só', () => {
+  const owners = new Map<string, Set<string>>();
+  for (const file of files(SRC)) {
+    const rel = relative(SRC, file);
+    if (rel.startsWith('db/')) continue;
+    const text = readFileSync(file, 'utf8');
+    const who = /^contexts\/([^/]+)\//.exec(rel)?.[1] ?? 'composição';
+    for (const table of TABELAS) {
+      if (new RegExp(`\\b(FROM|INTO|UPDATE|JOIN|TABLE)\\s+${table}\\b`).test(text)) {
+        (owners.get(table) ?? owners.set(table, new Set()).get(table)!).add(who);
+      }
+    }
+  }
+  const shared = [...owners].filter(([, who]) => who.size > 1).map(([table, who]) => `${table}: ${[...who].join(', ')}`);
+  assert.deepEqual(shared, [], `tabela com mais de um dono:\n${shared.join('\n')}`);
 });

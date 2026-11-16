@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { conversationState } from '../src/conversations/state.ts';
+import { conversationState } from '../src/contexts/talk/conversations/src/state.ts';
 import { finishRehearsal, newRehearsal, rehearsalStep } from '../src/contexts/procedures/rehearsal/src/rehearsal.ts';
 import type { PlaybookRun } from '../src/language/index.ts';
 

@@ -5,7 +5,7 @@
  */
 import { dispatch } from '@flue/runtime';
 import { getRegisteredFlueAgents } from '@flue/runtime/internal';
-import { log } from '../observability/log.ts';
+import { log } from '../contexts/telemetry/index.ts';
 
 // ── defining an agent: model, MCP, subagents, skills, tools ──────────────────
 export { useModel, useMcpConnection, useSubagent, useSkill, useTool, defineTool, defineSkill, defineSubagent, defineMcpConnection } from '@flue/runtime';

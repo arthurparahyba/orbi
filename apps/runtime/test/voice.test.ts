@@ -11,7 +11,7 @@ import { loadConfig } from '../src/config.ts';
 import { createOrbi } from '../src/compose.ts';
 import { createHttpApp } from '../src/http/app.ts';
 import { Orbi } from '../src/agents/orbi.ts';
-import { MODEL_FILES } from '../src/voice/model.ts';
+import { MODEL_FILES } from '../src/contexts/talk/voice/src/model.ts';
 
 const background = { bridge: () => undefined, bridgeError: () => 'desligado', restartChrome: async () => {}, stop: async () => {} };
 

@@ -79,7 +79,7 @@ test('enviar: pelo gh quando ele existe; a mesma impressão digital entra como o
 
 test('enviar: sem o gh, ou com o gh deslogado, volta a página do GitHub preenchida com o motivo', async () => {
   const { sendIssue } = await import('../src/contexts/improvement/index.ts');
-  const { CommandNotFoundError } = await import('../src/terminal/exec.ts');
+  const { CommandNotFoundError } = await import('../src/contexts/tools/terminal/src/exec.ts');
   const draft = draftIssue(diag, ctx);
   const missing = await sendIssue('o/orbi', draft, () => Promise.reject(new CommandNotFoundError('`gh` não está instalado')));
   assert.equal(missing.via, 'browser');

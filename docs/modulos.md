@@ -4,8 +4,9 @@ Este é o mapa que o desenvolvedor e o Claude leem antes de cada funcionalidade 
 quais contextos existem, o que cada módulo faz, qual é a interface pública de cada contexto e
 quem é dono de cada tabela. Mudou a estrutura, atualize este arquivo no mesmo commit.
 
-A decisão que gerou este mapa, com as medições e o plano de migração, está no
-documento 26 (`funcionalidades/26-monolito-modular.md`).
+A decisão que gerou este mapa, com as medições e o que cada fase ensinou, está no documento 26
+(`funcionalidades/26-monolito-modular.md`). **A migração terminou:** os onze contextos existem,
+`src/contexts/` é toda a funcionalidade, e a lista de exceções do teste de fronteira está vazia.
 
 **Nome e caminho.** A convenção do projeto é código e nomes em inglês, documentação em
 português. Então cada contexto e cada módulo aparecem aqui com o termo que a gente fala e o
@@ -33,6 +34,14 @@ responde) e **módulo** (uma parte da resposta).
 Os três identificadores que circulam entre contextos são `conversation_id`, `run_id` e
 `playbook`. Carregar o id é livre; amarrar com chave estrangeira não.
 
+**Cada uma das 28 tabelas tem um dono só**, e `test/boundary.test.ts` falha se duas pastas
+tocarem a mesma. Quando um contexto precisa de algo do vizinho, ele recebe uma **porta**: um
+`interface` com as poucas operações que usa, declarado do lado de quem precisa e implementado por
+quem é dono. As que existem hoje: `FactsForRun` (`knowledge` → quem executa, para o passo 0),
+`ProcedureStore` (`trust` → `procedures`, para o nível), `CommandMemory` (`tools` → o que sabe de
+problemas conhecidos), `EngineStore` (o motor da esteira), `DeleteHook` (`talk` → quem referencia
+uma conversa), `TitleOf` (`telemetry` → `talk`) e `NotesDeps` (`improvement`).
+
 **A linguagem compartilhada** fica em `src/language/` (fase 4a): as palavras que todo contexto
 usa para falar das mesmas coisas — `Entity`, `Playbook`, `PlaybookRun`, `StepStatus`, `Level`,
 `Effect`, `Proposal`. Só tipos e constantes, sem estado e sem banco, então qualquer contexto a
@@ -43,19 +52,29 @@ pertencem: `decideAction` é de `confiança`, não da linguagem.
 
 ### conhecimento (`knowledge`) — o que o Orbi sabe
 
-Hoje em `brain/{domain,repo,services}` (ontologia, grafo, fatos, propostas).
+**Migrado** (fase 4b): `src/contexts/knowledge/`, com `index.ts` e a rota em `http.ts`.
+É o contexto folha: **não importa contexto nenhum.**
 
 | Módulo | O que faz |
 |---|---|
 | `ontologia` (`ontology`) | os tipos que o desenvolvedor ensinou e o que cada um pode se ligar a quê |
 | `fatos` (`facts`) | entidades e ligações; decide se um fato novo já existe (veredictos `known`/`update`/`same`/`new`) |
 | `busca` (`search`) | índice FTS5 sobre entidades e procedimentos; o mínimo é travado por `eval:search` |
-| `propostas` (`proposals`) | o lote que espera aprovação no cartão e a aplicação tudo ou nada |
+| `problemas` (`problems`) | fatos do tipo problema, casados com o texto de um erro |
 
-Interface pública: `tipos`, `fato`, `fatos`, `buscar`, `classificar`, `propor`, `aplicar`,
-`rejeitar`, `estatisticas`.
+Interface pública: `Facts`, `GraphRepo`, `OntologyRepo`, `factsForRun`, `entityProblems`,
+`edgeProblems`, `findGaps`, `isTypeName`, `EXAMPLE_TYPES`, `classifyEntity`, `mergeEntity`,
+`compact`, `verdictLine`, `ftsQuery`, `sharedStems`, `stem`, `words`, `asKnownProblem`,
+`knownProblemsFor`, `errorTail`, `knowledgeSuggestions`, `problemsIn`, `recurrence`,
+`brainRoutes`, e os tipos `Candidate`, `FactVerdict`, `FactsForRun`, `KnownProblem`.
 
-Tabelas: `types`, `entities`, `edges`, `proposals`.
+**`FactsForRun`** é a porta estreita por onde um procedimento em execução lê fatos e, no passo 0,
+grava um (documento 22). Quem executa nunca segura os repositórios deste contexto.
+
+As propostas que esperam aprovação **não são deste contexto**: são do `aprendizado`, porque um
+lote atravessa `conhecimento` e `procedimentos` numa transação só.
+
+Tabelas: `types`, `entities`, `edges`.
 
 ### procedimentos (`procedures`) — o que ele sabe fazer, e o que está fazendo
 
@@ -152,32 +171,42 @@ Tabelas: `proposals`.
 
 ### conversa (`talk`) — por onde o desenvolvedor fala
 
-Hoje em `conversations/`, `inbox/`, `followups/`, `voice/`.
+**Migrado** (fase 5): `src/contexts/talk/`, com `index.ts` e cinco rotas.
 
 | Módulo | O que faz |
 |---|---|
-| `conversas` (`conversations`) | as conversas, seus títulos, o apagar e a limpeza |
-| `caixa` (`inbox`) | a caixa de entrada: cartões, aprovações, avisos, perguntas |
-| `followups` | o Orbi se acordando depois: agendado, entregue, falhou, cancelado |
+| `conversas` (`conversations`) | as conversas, seus títulos, o estado, o apagar e a limpeza |
+| `caixa` (`inbox`) | os cartões que o desenvolvedor responde: aprovação, pergunta, aviso, segredo |
+| `followups` (`followups`) | o Orbi se acordando depois: agendado, entregue, falhou, cancelado |
 | `voz` (`voice`) | transcrição local: o modelo, onde ficam os arquivos, o aquecimento |
 
-Interface pública: `conversas`, `caixa`, `followups`, `transcrever`, `tituloDe`.
+Interface pública: `Conversations`, `Inbox`, `Followups`, `startFollowups`, `VoiceModel`,
+`createStt`, `warmVoice`, `buildNotebook`, `nextLevel`, `conversationState`,
+`purgeDeletedTranscripts`, `HANDLERS`, `handlerFor`, `tellAgent`, as cinco rotas, e os tipos
+`ConversationInfo`, `DeleteHook`, `InboxItem`, `InboxKind`, `ConversationNotebook`,
+`ConversationState`, `TeachingStage`, `VoiceState`, `VoiceStatus`, `SttSlot`, `Transcriber`.
+
+**`DeleteHook`** resolve a violação que sobrava: apagar uma conversa precisava falhar os pedidos
+de agente de código, e isso era um `UPDATE agent_requests` dentro deste contexto. Agora quem é
+dono da tabela registra um gancho no início, e ele roda na mesma transação.
 
 Tabelas: `conversations`, `deleted_conversations`, `inbox_items`, `followups`.
 
 ### ferramentas (`tools`) — com o que ele age no mundo
 
-Hoje em `terminal/`, `browser/`, `mcp-client/`, `code-agents/`, `commands/`.
+**Migrado** (fase 5): `src/contexts/tools/`, com `index.ts` e quatro rotas. É o segundo maior.
 
 | Módulo | O que faz |
 |---|---|
-| `terminal` (`terminal`) | comandos na máquina, com os programas permitidos e a limpeza da saída |
+| `terminal` (`terminal`) | comandos na máquina, os programas permitidos, a limpeza da saída e o caminho do shell |
 | `navegador` (`browser`) | o Chrome compartilhado, a gravação da tela e a ponte MCP do devtools |
 | `mcp-cliente` (`mcp-client`) | servidores MCP que o desenvolvedor cadastrou e as conexões com eles |
 | `agentes-de-código` (`code-agents`) | os agentes de código da máquina, suas tarefas e a cópia descartável |
 | `comandos` (`commands`) | o que cada programa conhecido faz (git, gh, aws, build) |
 
-Interface pública: `rodar`, `navegador`, `servidores`, `agentes`, `programaConhecido`.
+Interface pública: o que cada módulo exporta, mais as rotas `browserRoutes`, `recordingRoutes`,
+`codeAgentRoutes` e `mcpServerRoutes`. Rodar um comando recebe a porta `CommandMemory`
+(problema conhecido, anotar a tentativa, saber se há execução aberta) em vez do agregado.
 
 Tabelas: `code_agents`, `code_agent_tasks`, `mcp_servers`, `mcp_tools`.
 
@@ -223,12 +252,17 @@ Tabelas: nenhuma; arquivo próprio cifrado.
 
 ### telemetria (`telemetry`) — o que aconteceu
 
-Hoje em `observability/`.
+**Migrado** (fase 5): `src/contexts/telemetry/`, um módulo só, código plano em `src/`.
 
-Um módulo só. Uso de modelo e ferramenta por conversa, o log, o resultado da última chamada e
-as observações da execução em curso.
+Uso de modelo e ferramenta por conversa, o log, o resultado da última chamada e as observações
+da execução em curso.
 
-Interface pública: `log`, `uso`, `resultados`, `observacoes`.
+Interface pública: `log`, `createLogger`, `logOptionsFromEnv`, `setLogger`, `UsageStore`,
+`ToolOutcomes`, `RunObservations`, `handleObservation`, `usageRoutes`, e os tipos `TitleOf`,
+`UsageReport`, `Logger`.
+
+**`TitleOf`** resolve a outra violação: o relatório mostrava o nome da conversa com
+`usage LEFT JOIN conversations`. Agora pede o nome a `talk` e junta em memória.
 
 Tabelas: `usage`.
 

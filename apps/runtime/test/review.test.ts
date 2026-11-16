@@ -8,7 +8,7 @@ import { savePath } from '../src/agents/tools/terminal.ts';
 import { join, resolve } from 'node:path';
 import { reviewInstruction } from '../src/contexts/improvement/index.ts';
 import { reviewConversation } from '../src/contexts/improvement/review/src/review.ts';
-import { Inbox } from '../src/conversations/inbox.ts';
+import { Inbox } from '../src/contexts/talk/conversations/src/inbox.ts';
 import { PipelineRuns } from '../src/contexts/procedures/pipelines/src/runs.ts';
 import { PipelineEngine } from '../src/contexts/procedures/pipelines/src/engine.ts';
 import { Diagnoses } from '../src/contexts/improvement/index.ts';

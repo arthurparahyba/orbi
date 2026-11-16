@@ -5,10 +5,10 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as v from 'valibot';
-import { agentToolName, categoryOf, effectiveKind, effectOf, headerProblems, hintOf, serverIdFor, urlProblem } from '../src/mcp-client/domain.ts';
-import { toValibot } from '../src/mcp-client/schema.ts';
-import { McpServers } from '../src/mcp-client/store.ts';
-import { McpHub } from '../src/mcp-client/hub.ts';
+import { agentToolName, categoryOf, effectiveKind, effectOf, headerProblems, hintOf, serverIdFor, urlProblem } from '../src/contexts/tools/mcp-client/src/domain.ts';
+import { toValibot } from '../src/contexts/tools/mcp-client/src/schema.ts';
+import { McpServers } from '../src/contexts/tools/mcp-client/src/store.ts';
+import { McpHub } from '../src/contexts/tools/mcp-client/src/hub.ts';
 import { migrate } from '../src/db/database.ts';
 import { decide, levelOf, parsePolicy } from '../src/contexts/trust/index.ts';
 import { startFakeMcp } from './support/fake-mcp.ts';
@@ -125,7 +125,7 @@ test('mcp: o hub conecta com a credencial do cofre e nada dela volta', async () 
 });
 
 test('mcp por comando: só roda aprovado, mudou pede de novo, ambiente só o declarado, credencial limpa', async () => {
-  const { commandApproval, splitCommand, commandText } = await import('../src/mcp-client/domain.ts');
+  const { commandApproval, splitCommand, commandText } = await import('../src/contexts/tools/mcp-client/src/domain.ts');
   assert.deepEqual(splitCommand('npx -y servicenow-mcp --instance "minha empresa"'), { program: 'npx', args: ['-y', 'servicenow-mcp', '--instance', 'minha empresa'] });
   assert.deepEqual(splitCommand("node 'C:\\\\mcp\\\\srv.js' ''"), { program: 'node', args: ['C:\\\\mcp\\\\srv.js', ''] });
   assert.equal(splitCommand('npx "sem fim'), undefined);

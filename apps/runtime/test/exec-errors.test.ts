@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CommandNotFoundError, findBinary, runCommand } from '../src/terminal/exec.ts';
+import { CommandNotFoundError, findBinary, runCommand } from '../src/contexts/tools/terminal/src/exec.ts';
 import { tmpdir } from 'node:os';
 
 test('pasta inexistente: erro diz que é a pasta, não o programa', async () => {
@@ -27,7 +27,7 @@ test('programa presente roda normalmente', async () => {
 test('Windows: python3 vira python ou py, sem os atalhos da Store; dica de instalação com winget', async () => {
   const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
   const { join, delimiter } = await import('node:path');
-  const { resolveBinary, installHint } = await import('../src/terminal/exec.ts');
+  const { resolveBinary, installHint } = await import('../src/contexts/tools/terminal/src/exec.ts');
   const root = mkdtempSync(join(tmpdir(), 'orbi-win-'));
   const store = join(root, 'WindowsApps');
   const py = join(root, 'Python312');

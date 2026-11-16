@@ -5,7 +5,7 @@
  * with "não transcrito", this shows why.
  */
 import { loadConfig, loadDotEnv } from '../src/config.ts';
-import { loadWhisper } from '../src/voice/stt.ts';
+import { loadWhisper } from '../src/contexts/talk/voice/src/stt.ts';
 
 loadDotEnv();
 const { stt } = loadConfig();

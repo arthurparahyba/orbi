@@ -2,7 +2,7 @@ import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
-import { whenLabel } from '../../followups/domain.ts';
+import { whenLabel } from '../../contexts/talk/index.ts';
 
 /**
  * Wake up later in the same conversation (docs/funcionalidades/11). One follow-up per conversation:

@@ -3,9 +3,9 @@ import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
 import { codeFixCategory } from '../../contexts/trust/index.ts';
 import { asKnownProblem, fixedByCodeAgent } from '../../contexts/knowledge/index.ts';
-import { askShellPath } from './shell-setup.ts';
+import { askShellPath } from '../../contexts/tools/index.ts';
 import type { AgentContext } from '../context.ts';
-import type { PreparedFix } from '../../code-agents/index.ts';
+import type { PreparedFix } from '../../contexts/tools/index.ts';
 
 /**
  * Code work by the coding agents registered on this machine (code-agents/), always in a throwaway

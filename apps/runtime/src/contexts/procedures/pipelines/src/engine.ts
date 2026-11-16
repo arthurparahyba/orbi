@@ -15,7 +15,7 @@ export interface EngineStore {
 }
 import { chooseOption, pipelineInputProblems, passageNeedsDeveloper, resolveParams, withDefaults, type Pipeline, type PipelineData } from './pipelines.ts';
 import { playbookParams } from '../../definition/src/playbooks.ts';
-import type { Inbox } from '../../../../conversations/inbox.ts';
+import type { Inbox } from '../../../talk/index.ts';
 import type { PipelineRun, PipelineRunStage, PipelineRuns } from './runs.ts';
 
 /**

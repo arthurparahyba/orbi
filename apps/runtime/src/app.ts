@@ -9,7 +9,7 @@ import { Diagnosticador } from './agents/diagnosticador.ts';
 import { KNOWLEDGE_PREFIX } from './contexts/improvement/index.ts';
 import { REPORT_PREFIX } from './contexts/improvement/index.ts';
 import { routeConversations } from './agents/directory.ts';
-import { createLogger, logOptionsFromEnv, setLogger } from './observability/log.ts';
+import { createLogger, logOptionsFromEnv, setLogger } from './contexts/telemetry/index.ts';
 
 /**
  * Entry point Flue serves (`dist/server.mjs` imports it): read the

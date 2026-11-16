@@ -4,9 +4,9 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig } from '../src/config.ts';
-import { applyChromeSettings, browserUrlProblem, chromeSettings } from '../src/browser/settings.ts';
+import { applyChromeSettings, browserUrlProblem, chromeSettings } from '../src/contexts/tools/browser/src/settings.ts';
 import { Hono } from 'hono';
-import { browserRoutes } from '../src/http/routes/browser.ts';
+import { browserRoutes } from '../src/contexts/tools/browser-http.ts';
 import { installErrorHandling } from '../src/http/errors.ts';
 
 /** Orbi's browser configured from Configurações › Ferramentas (MCP) (docs/funcionalidades/20, fase 2). */

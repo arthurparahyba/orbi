@@ -1,4 +1,4 @@
-import type { InboxItem } from '../conversations/inbox.ts';
+import type { InboxItem } from '../contexts/talk/index.ts';
 import type { PlaybookRun } from '../brain.ts';
 import type { AgentRequest, AgentRequestStatus } from './requests.ts';
 import type { PipelineRun } from '../contexts/procedures/index.ts';

@@ -8,7 +8,7 @@ import { askReason, defaultFingerprint, fingerprintWith, isCallError } from '../
 import { marksOf } from '../contexts/procedures/index.ts';
 import type { PlaybookRun } from '../language/index.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
-import type { InboxItem } from '../conversations/inbox.ts';
+import type { InboxItem } from '../contexts/talk/index.ts';
 
 type Pending = { tool: string; args: unknown; category: Category; requestedAt: string; runId?: string; action?: RunAction };
 

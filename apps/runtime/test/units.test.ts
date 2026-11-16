@@ -8,8 +8,8 @@ import { BrainStore, EXAMPLE_TYPES } from '../src/brain.ts';
 import { openDatabase } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
 import { inLearningOrder } from '../src/agents/tools/brain.ts';
-import { purgeDeletedTranscripts } from '../src/conversations/purge.ts';
-import { runCommand, CommandNotAllowedError } from '../src/terminal/exec.ts';
+import { purgeDeletedTranscripts } from '../src/contexts/talk/conversations/src/purge.ts';
+import { runCommand, CommandNotAllowedError } from '../src/contexts/tools/terminal/src/exec.ts';
 import {
   DEFAULT_POLICY,
   browserCategory,

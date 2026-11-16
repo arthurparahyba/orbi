@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDatabase } from '../src/db/database.ts';
-import { Followups } from '../src/followups/service.ts';
-import { deliverDue } from '../src/followups/scheduler.ts';
-import { MAX_ATTEMPTS, afterFailedDelivery, situationLine, wakeMessage, whenLabel } from '../src/followups/domain.ts';
+import { Followups } from '../src/contexts/talk/followups/src/service.ts';
+import { deliverDue } from '../src/contexts/talk/followups/src/scheduler.ts';
+import { MAX_ATTEMPTS, afterFailedDelivery, situationLine, wakeMessage, whenLabel } from '../src/contexts/talk/followups/src/domain.ts';
 
 /** Follow-ups with an owner (docs/funcionalidades/11): one per conversation, delivered for real, never lost. */
 

@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig } from '../src/config.ts';
 import { createOrbi, startBackground } from '../src/compose.ts';
-import { applyChromeSettings } from '../src/browser/settings.ts';
+import { applyChromeSettings } from '../src/contexts/tools/browser/src/settings.ts';
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FALHOU: ${message}`);

@@ -1,9 +1,9 @@
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
-import { agentToolName, categoryOf, effectOf } from '../../mcp-client/domain.ts';
-import { toValibot } from '../../mcp-client/schema.ts';
-import { needsApproval } from '../../mcp-client/store.ts';
-import { log } from '../../observability/log.ts';
+import { agentToolName, categoryOf, effectOf } from '../../contexts/tools/index.ts';
+import { toValibot } from '../../contexts/tools/index.ts';
+import { needsApproval } from '../../contexts/tools/index.ts';
+import { log } from '../../contexts/telemetry/index.ts';
 
 /** Past this many tools the prompt gets heavy: the rest stays out (and the log says so). */
 const MAX_TOOLS = 60;

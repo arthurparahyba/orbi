@@ -1,4 +1,4 @@
-import { CommandNotFoundError, runCommand, type RunResult } from '../../../../terminal/exec.ts';
+import { CommandNotFoundError, runCommand, type RunResult } from '../../../tools/index.ts';
 import { issueUrl, type IssueDraft } from './issue.ts';
 
 /** Como a issue saiu: pelo `gh` desta máquina, ou pela página do GitHub para você clicar. */

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import type { Health } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import type { Background } from '../../compose.ts';
-import { binaryStatus } from '../../terminal/exec.ts';
+import { binaryStatus } from '../../contexts/tools/index.ts';
 import { describePlugins } from '../../contexts/models/index.ts';
 import { BUILD } from '../../build.ts';
 

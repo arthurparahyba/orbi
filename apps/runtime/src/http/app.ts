@@ -5,28 +5,28 @@ import type { OrbiServices } from '../services.ts';
 import type { Background } from '../compose.ts';
 import { HttpError, installErrorHandling } from './errors.ts';
 import type { Agent } from './routes/types.ts';
-import { conversationRoutes } from './routes/conversations.ts';
-import { inboxRoutes } from './routes/inbox.ts';
-import { recordingRoutes } from './routes/recordings.ts';
+import { conversationRoutes } from '../contexts/talk/index.ts';
+import { inboxRoutes } from '../contexts/talk/index.ts';
+import { recordingRoutes } from '../contexts/tools/index.ts';
 import { vaultRoutes } from '../contexts/secrets/index.ts';
 import { brainRoutes } from '../contexts/knowledge/index.ts';
 import { autonomyRoutes } from '../contexts/trust/index.ts';
 import { healthRoutes } from './routes/health.ts';
 import { eventRoutes } from './routes/events.ts';
-import { usageRoutes } from './routes/usage.ts';
+import { usageRoutes } from '../contexts/telemetry/index.ts';
 import { agentRoutes } from './routes/agents.ts';
 import { mcpRoutes } from './routes/mcp.ts';
-import { transcribeRoutes } from './routes/transcribe.ts';
-import { voiceRoutes } from './routes/voice.ts';
+import { transcribeRoutes } from '../contexts/talk/index.ts';
+import { voiceRoutes } from '../contexts/talk/index.ts';
 import { pipelineRoutes, pipelineRunRoutes } from '../contexts/procedures/index.ts';
-import { codeAgentRoutes } from './routes/code-agents.ts';
-import { followupRoutes } from './routes/followups.ts';
+import { codeAgentRoutes } from '../contexts/tools/index.ts';
+import { followupRoutes } from '../contexts/talk/index.ts';
 import { reviewNoteRoutes } from '../contexts/improvement/index.ts';
 import { stepLearningRoutes } from '../contexts/procedures/index.ts';
 import { diagnosisRoutes } from '../contexts/improvement/index.ts';
 import { modelRoutes } from '../contexts/models/index.ts';
-import { browserRoutes } from './routes/browser.ts';
-import { mcpServerRoutes } from './routes/mcp-servers.ts';
+import { browserRoutes } from '../contexts/tools/index.ts';
+import { mcpServerRoutes } from '../contexts/tools/index.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local
 // dev servers are the only origins allowed to call the runtime from a browser.

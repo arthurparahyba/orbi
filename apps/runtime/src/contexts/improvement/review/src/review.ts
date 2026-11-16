@@ -10,10 +10,10 @@ import { pipelineConfigProblems, type ConfigProblem } from '../../../procedures/
 import { defaultSuggestions } from '../../judge/src/suggestions.ts';
 import { analyzeRun, howToFix } from './analyzers/index.ts';
 import { collected } from '../../../procedures/index.ts';
-import { tellAgent } from '../../../../conversations/tell.ts';
+import { tellAgent } from '../../../talk/index.ts';
 import { startKnowledgeReview } from './knowledge.ts';
 import { startReport } from '../../diagnosis/src/start.ts';
-import { log } from '../../../../observability/log.ts';
+import { log } from '../../../telemetry/index.ts';
 import type { Agent } from '../../../../agents/runtime-port.ts';
 
 

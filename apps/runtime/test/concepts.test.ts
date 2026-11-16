@@ -132,7 +132,7 @@ test('passo 0: só fatos de um conceito que existe, do tipo da entrada', () => {
 });
 
 // ── fase 4: sei / não sei ──
-import { afterCommand } from '../src/terminal/runner.ts';
+import { afterCommand } from '../src/contexts/tools/terminal/src/runner.ts';
 
 function environmentBrain(): BrainStore {
   const brain = new BrainStore(':memory:');

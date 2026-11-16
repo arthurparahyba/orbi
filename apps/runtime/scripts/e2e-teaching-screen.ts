@@ -35,7 +35,7 @@ const { start } = await import('@flue/runtime/node');
 const { serve } = await import('@hono/node-server');
 const { createServer } = await import('vite');
 const puppeteer = (await import('puppeteer-core')).default;
-const { chromeExecutable } = await import('../src/browser/chrome.ts');
+const { chromeExecutable } = await import('../src/contexts/tools/browser/src/chrome.ts');
 
 const faux = pi.fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }] });
 flue.setProvider(faux.provider);

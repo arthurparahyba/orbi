@@ -8,7 +8,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase } from '../src/db/database.ts';
-import { CATALOG, CodeAgents, agentLine, commandProblems } from '../src/code-agents/index.ts';
+import { CATALOG, CodeAgents, agentLine, commandProblems } from '../src/contexts/tools/code-agents/src/index.ts';
 
 const db = () => openDatabase(join(mkdtempSync(join(tmpdir(), 'orbi-ca-')), 'orbi.db'));
 
@@ -62,12 +62,12 @@ test('ORBI_CODE_AGENT continua valendo enquanto nada foi cadastrado', () => {
 });
 
 test('agente de código de verdade (um script no lugar do claude): corrige na cópia, devolve arquivos e diff, e o push sobe', async (t) => {
-  const { findShell } = await import('../src/terminal/shell.ts');
+  const { findShell } = await import('../src/contexts/tools/terminal/src/shell.ts');
   const shell = findShell(process.env);
   if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
   const { execFileSync } = await import('node:child_process');
   const { mkdtempSync, writeFileSync, readFileSync } = await import('node:fs');
-  const { createCodeFixer } = await import('../src/code-agents/index.ts');
+  const { createCodeFixer } = await import('../src/contexts/tools/code-agents/src/index.ts');
   const root = mkdtempSync(join(tmpdir(), 'orbi-agent-'));
   const g = (cwd: string, ...a: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd, stdio: 'pipe' }).toString();
   // A bare "origin" and a clone in the workspace, with a bug.
@@ -100,7 +100,7 @@ test('agente de código de verdade (um script no lugar do claude): corrige na c�
 
 test('API: cadastra, escolhe agente e modelo por tarefa, recusa comando com dois programas', async () => {
   const { Hono } = await import('hono');
-  const { codeAgentRoutes } = await import('../src/http/routes/code-agents.ts');
+  const { codeAgentRoutes } = await import('../src/contexts/tools/code-agents-http.ts');
   const { installErrorHandling } = await import('../src/http/errors.ts');
   const app = new Hono();
   installErrorHandling(app);
@@ -121,9 +121,9 @@ test('API: cadastra, escolhe agente e modelo por tarefa, recusa comando com dois
 });
 
 test('o agente roda com a sessão do desenvolvedor, sem as chaves e configurações do Orbi', async (t) => {
-  const { findShell } = await import('../src/terminal/shell.ts');
-  const { runShell } = await import('../src/terminal/exec.ts');
-  const { rememberOrbiEnvKeys } = await import('../src/terminal/orbi-env.ts');
+  const { findShell } = await import('../src/contexts/tools/terminal/src/shell.ts');
+  const { runShell } = await import('../src/contexts/tools/terminal/src/exec.ts');
+  const { rememberOrbiEnvKeys } = await import('../src/contexts/tools/terminal/src/orbi-env.ts');
   const shell = findShell(process.env);
   if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
   Object.assign(process.env, { HTTPS_PROXY: 'http://proxy.empresa:8080', ANTHROPIC_API_KEY: 'sk-do-orbi', ORBI_LLM: 'yara', GH_TOKEN_DO_ORBI: 'x' }); // ANTHROPIC_API_KEY here plays the developer's own
@@ -138,7 +138,7 @@ test('o agente roda com a sessão do desenvolvedor, sem as chaves e configuraç�
 });
 
 test('Orbi iniciado de dentro de uma sessão do Claude Code: o agente não herda a identidade dela', async () => {
-  const { orbiOwn } = await import('../src/terminal/orbi-env.ts');
+  const { orbiOwn } = await import('../src/contexts/tools/terminal/src/orbi-env.ts');
   const parent = { CLAUDECODE: '1', CLAUDE_CODE_SESSION_ID: 's' };
   assert.equal(orbiOwn('ANTHROPIC_BASE_URL', parent), true);
   assert.equal(orbiOwn('CLAUDE_CODE_OAUTH_TOKEN', parent), true);
@@ -147,10 +147,10 @@ test('Orbi iniciado de dentro de uma sessão do Claude Code: o agente não herda
 });
 
 test('janela do terminal: o script roda a linha, guarda a saída e o código, e o Orbi espera', async (t) => {
-  const { findShell } = await import('../src/terminal/shell.ts');
+  const { findShell } = await import('../src/contexts/tools/terminal/src/shell.ts');
   const shell = findShell(process.env);
   if (!shell || process.platform === 'win32') return t.skip('precisa de bash');
-  const { runInTerminalWindow, windowScript } = await import('../src/code-agents/terminal-window.ts');
+  const { runInTerminalWindow, windowScript } = await import('../src/contexts/tools/code-agents/src/terminal-window.ts');
   const { spawn } = await import('node:child_process');
   const script = windowScript({ line: "echo 'oi do agente'", cwd: 'C:\\Users\\a', title: 'teste', log: 'C:\\x\\log', done: 'C:\\x\\fim' });
   assert.match(script, /cd 'C:\/Users\/a'/, 'caminhos do Windows com / para o bash');

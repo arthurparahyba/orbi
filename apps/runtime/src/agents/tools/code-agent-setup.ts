@@ -4,7 +4,7 @@ import * as v from 'valibot';
 import { useTool } from '../runtime-port.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
-import { CATALOG, CODE_AGENT_TASKS, agentHelp, commandProblems, findAgents, testAgent } from '../../code-agents/index.ts';
+import { CATALOG, CODE_AGENT_TASKS, agentHelp, commandProblems, findAgents, testAgent } from '../../contexts/tools/index.ts';
 
 /**
  * Setting up the coding agents of this machine, for the configuration chat (agents/configurador.ts):

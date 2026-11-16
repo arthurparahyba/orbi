@@ -61,11 +61,8 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
-  src/mcp-client/     servidores MCP que o Orbi usa (documento 20): regras puras, esquema, cadastro, conexões (McpHub)
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
-  src/code-agents/    agentes de código da máquina: cadastro, catálogo (dado), tarefas, executor na cópia descartável
-  src/followups/      retornos agendados: estados, um por conversa, agendador com nova tentativa
-  src/contexts/       contextos já migrados (documento 26); de fora, só pelo index.ts do contexto
+  src/contexts/       toda a funcionalidade, em onze contextos (documento 26); de fora, só pelo index.ts
     models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
     platform/           onde ele roda: os, env, preferences; dono da tabela settings
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)
@@ -75,9 +72,11 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
     procedures/         o que sabe fazer e está fazendo: definition, rehearsal, execution,
                         proofs, learnings, pipelines
     learning/           o que espera aprovação, e a transação tudo-ou-nada do lote
+    talk/               por onde o desenvolvedor fala: conversations, inbox, followups, voice
+    tools/              com o que ele age: terminal, browser, mcp-client, code-agents, commands
+    telemetry/          uso por conversa, log, resultado da última chamada
   src/language/         a linguagem compartilhada: só tipos e constantes, importa contexto nenhum
   src/brain.ts          agregado da composição (era o BrainStore): dívida declarada, ver doc 26
-  src/{browser,conversations,observability,terminal,voice}/
   test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime

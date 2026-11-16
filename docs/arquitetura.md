@@ -54,14 +54,8 @@ src/
   skills/                   a única skill de fábrica: como aprender
   prompts/*.md              os textos que o modelo lê (Orbi, investigador, skill)
 
-  conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
-  terminal/exec.ts          execução sem shell, com allowlist
-  followups/                retornos agendados: estados, serviço, agendador (entrega com nova tentativa)
-  code-agents/              agentes de código da máquina: cadastro, catálogo, tarefas, descoberta, executor em worktree
-  browser/                  Chrome compartilhado, gravador de demonstrações e
-    mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
-  voice/stt.ts              transcrição da narração (Whisper local ou HTTP)
-  contexts/                 contextos já migrados (documento 26): de fora, só pelo index.ts
+  contexts/                 toda a funcionalidade, em onze contextos (documento 26): de fora, só
+                            pelo index.ts de cada um
     models/                 com o que o Orbi pensa: provider (porta LlmAdapter e ponte para o Pi),
                             plugins, roles, cost, setup; a rota /api/model em http.ts
     platform/               onde ele roda: os (um por sistema), env (.env), preferences
@@ -80,12 +74,18 @@ src/
                             execution (passos, passo 0, registro das chamadas), proofs,
                             learnings, pipelines (motor incluído) e /api/pipelines
     learning/               o que espera aprovação e a transação tudo-ou-nada do lote
+    talk/                   por onde o desenvolvedor fala: conversations (títulos, estado,
+                            apagar, limpeza), inbox (os cartões), followups (o Orbi se
+                            acordando depois), voice (transcrição local) e cinco rotas
+    tools/                  com o que ele age: terminal (comandos, programas permitidos),
+                            browser (Chrome compartilhado, gravação, ponte devtools),
+                            mcp-client, code-agents, commands e quatro rotas
+    telemetry/              uso de modelo e ferramenta por conversa, log, resultado da última
+                            chamada, observações da execução em curso e /api/usage
   language/                 a linguagem compartilhada: Entity, Playbook, PlaybookRun, Level,
                             Effect, Proposal — só tipos e constantes, importa contexto nenhum
   brain.ts                  agregado da composição (era o BrainStore): liga os contextos, guarda
                             stats e exportMarkdown, e tem atalhos que são dívida declarada
-  observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
-                            usage.ts (uso por conversa e por dia)
 
   http/                     a API: app.ts monta, errors.ts, routes/ (uma por recurso)
   db/                       banco único (orbi.db), migrações e changes.ts (escrita → evento)

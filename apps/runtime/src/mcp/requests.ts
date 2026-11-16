@@ -89,6 +89,16 @@ export class AgentRequests {
   }
 
   /** Orbi reports the outcome (agent_reply). A finished request stays finished. */
+  /**
+   * The developer deleted the conversation a request was made in: it cannot finish. `talk` calls
+   * this through the hook it was given at start — it never writes this table itself (fase 5).
+   */
+  failForDeletedConversation(conversationId: string, at: string): void {
+    this.db
+      .prepare("UPDATE agent_requests SET status = 'failed', summary = 'O desenvolvedor apagou a conversa deste pedido.', finished_at = ? WHERE conversation_id = ? AND status IN ('running', 'waiting')")
+      .run(at, conversationId);
+  }
+
   finish(id: string, outcome: { status: 'done' | 'failed'; summary: string; links?: string[] }): AgentRequest | undefined {
     this.db
       .prepare("UPDATE agent_requests SET status = ?, summary = ?, links = ?, finished_at = ? WHERE id = ? AND status IN ('running', 'waiting')")

@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { findShell, gitToolDirs, shQuote, shellEffect, shellLine } from '../src/terminal/shell.ts';
-import { runCommand, runShell } from '../src/terminal/exec.ts';
+import { findShell, gitToolDirs, shQuote, shellEffect, shellLine } from '../src/contexts/tools/terminal/src/shell.ts';
+import { runCommand, runShell } from '../src/contexts/tools/terminal/src/exec.ts';
 import { commandCategory, commandEffect } from '../src/contexts/trust/index.ts';
 import { DEFAULT_ALLOWED } from '../src/config.ts';
 
@@ -89,8 +89,8 @@ test('agente duas vezes no build (Windows): a entrega usa a cópia registrada', 
 });
 
 test('pendências: cada tipo tem seu handler, o mais específico primeiro', async () => {
-  const { handlerFor } = await import('../src/inbox/index.ts');
-  const { noteSubject } = await import('../src/inbox/level.ts');
+  const { handlerFor } = await import('../src/contexts/talk/inbox/src/index.ts');
+  const { noteSubject } = await import('../src/contexts/talk/inbox/src/level.ts');
   const item = (x: object) => ({ id: 'i', conversationId: 'c', title: '', detail: '', status: 'open', createdAt: '', ...x }) as never;
   assert.equal(handlerFor(item({ kind: 'question', routine: 'config:shell' }))?.id, 'caminho-do-shell');
   assert.equal(handlerFor(item({ kind: 'question' }))?.id, 'pergunta');

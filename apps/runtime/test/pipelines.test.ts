@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../src/db/database.ts';
 import { BrainStore } from '../src/brain.ts';
-import { Inbox } from '../src/conversations/inbox.ts';
+import { Inbox } from '../src/contexts/talk/conversations/src/inbox.ts';
 import { PipelineRuns } from '../src/contexts/procedures/pipelines/src/runs.ts';
 import { PipelineEngine } from '../src/contexts/procedures/pipelines/src/engine.ts';
 import { pipelineInputProblems, resolveParams } from '../src/contexts/procedures/pipelines/src/pipelines.ts';

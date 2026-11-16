@@ -247,12 +247,56 @@ O que a fase 4b ensinou:
   `db/rows.ts` e `http/routes/types.ts`. São a conexão, os ajudantes de linha e o formato da API
   — encanamento que todo contexto usa, não funcionalidade de um vizinho.
 
-**Fase 5 — `talk`, `tools`, `telemetry`.** Conserta as duas violações que sobram: o JOIN de
-`usage` em `conversations` e `conversations.ts` escrevendo em `agent_requests`.
+**Fase 5 — `talk`, `tools`, `telemetry`. Feita. A migração terminou.** `src/contexts/` passou a
+ser toda a funcionalidade, e a lista `AINDA_FORA` do teste de fronteira **está vazia**: nenhum
+contexto alcança a estrutura antiga, porque não há mais estrutura antiga.
 
-**Fase 6 — contrato com o desktop.** `packages/contracts/src/api.ts` tem 439 linhas e é o
-acoplamento mais caro: cada funcionalidade nova mexe nele e no `apps/desktop/src/api.ts`. Duas
-saídas, e a escolha fica para depois da fase 5, com informação melhor:
+`talk` com quatro módulos (`conversations`, `inbox`, `followups`, `voice`), `tools` com cinco
+(`terminal`, `browser`, `mcp-client`, `code-agents`, `commands`) e `telemetry` com um só.
+
+**As duas violações de schema que sobravam, consertadas:**
+
+- `conversations.delete` fazia `UPDATE agent_requests`, tabela do servidor MCP. Agora
+  `Conversations` aceita ganchos `DeleteHook`, e a composição registra o de quem é dono: o gancho
+  roda dentro da mesma transação, então o comportamento não mudou e a fronteira fechou.
+- O relatório de uso fazia `usage LEFT JOIN conversations` só para mostrar o título. `UsageStore`
+  recebe a porta `TitleOf` e junta em memória. Custa N buscas no lugar de um join, e N é o
+  tamanho de uma lista na tela.
+
+Mais três violações que só apareceram quando a fronteira fechou:
+
+- **Dois contextos importavam o agregado `brain.ts`.** O agendador de followups (que só queria o
+  nome do procedimento de uma execução) e o executor de comandos (que queria problema conhecido,
+  anotar a tentativa e saber se há execução aberta). Viraram as portas `RunLookup` e
+  `CommandMemory`.
+- **Uma rota importava o `compose.ts`** para o tipo `Background`, de que usava um método. Virou
+  uma `interface` local de uma linha.
+- **`agents/tools/shell-setup.ts` era usado pela caixa de entrada.** O caminho do shell é assunto
+  de `tools`, não um utilitário de agente: virou `tools/terminal/src/shell-path.ts`, e tanto o
+  agente quanto a caixa pedem pelo `index.ts`.
+
+**O teste de fronteira ficou com sete verificações**, e a última é nova: **cada uma das 28 tabelas
+tem um dono só**. Ele falha se duas pastas tocarem a mesma tabela. Isso transforma a regra de
+schema deste documento em algo executável, em vez de uma combinação que alguém precisa lembrar.
+
+**A lista `SEMPRE_PERMITIDO` ficou com onze itens, cada um com o motivo escrito ao lado**:
+`language/`, `services.ts`, `config.ts`, `version.ts`, `events.ts`, `db/database.ts`,
+`db/rows.ts`, `http/errors.ts`, `http/routes/types.ts`, `agents/runtime-port.ts` e
+`agents/directory.ts`. São contrato e encanamento — nada que um contexto possa chamar de seu.
+
+## Onde isto termina, e o que fica aberto
+
+Onze contextos, cada um com `index.ts` e dono das suas tabelas. Fica aberto, de propósito:
+
+- **Os atalhos do `src/brain.ts`**: cerca de 400 chamadas `brain.x` em 74 arquivos, trocadas
+  conforme cada arquivo é tocado. Código novo pede ao contexto.
+- **A fase 6, o contrato com o desktop**, que continua sendo a escolha entre quebrar
+  `packages/contracts/src/api.ts` por contexto e levar a fatia vertical até a tela. Agora há
+  informação para decidir: a fronteira do runtime fechou sem precisar mexer no app.
+
+**Fase 6 — contrato com o desktop.** Não feita. `packages/contracts/src/api.ts` tem 439 linhas e
+é o acoplamento mais caro: cada funcionalidade nova mexe nele e no `apps/desktop/src/api.ts`.
+Duas saídas:
 
 - **conservadora**: quebrar o contrato em um arquivo por contexto, com o `index.ts`
   reexportando. Resolve a legibilidade e mantém o pacote compartilhado;

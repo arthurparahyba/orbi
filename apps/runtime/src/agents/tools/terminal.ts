@@ -5,13 +5,13 @@ import * as v from 'valibot';
 import { ulid } from 'ulidx';
 import type { OrbiConfig } from '../../config.ts';
 import { defineCapability, type Deps } from '../capability.ts';
-import { ShellNeededError, runCommand, runShell } from '../../terminal/exec.ts';
-import { askShellPath } from './shell-setup.ts';
-import { shellEffect } from '../../terminal/shell.ts';
+import { ShellNeededError, runCommand, runShell } from '../../contexts/tools/index.ts';
+import { askShellPath } from '../../contexts/tools/index.ts';
+import { shellEffect } from '../../contexts/tools/index.ts';
 import { commandCategory, commandEffect } from '../../contexts/trust/index.ts';
 import { homedir } from 'node:os';
 import type { AgentContext } from '../context.ts';
-import { runAndReport } from '../../terminal/runner.ts';
+import { runAndReport } from '../../contexts/tools/index.ts';
 
 /** Terminal: git, gh, aws and python3, without a shell, inside the workspace. */
 
@@ -28,7 +28,7 @@ export function savePath(saveTo: string, workspace: string, home = homedir()): s
   return isAbsolute(saveTo) ? saveTo : resolve(workspace, saveTo);
 }
 
-export { afterCommand } from '../../terminal/runner.ts';
+export { afterCommand } from '../../contexts/tools/index.ts';
 
 async function execCommand({ config, brain }: Deps<'config' | 'brain'>, args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
   const { report } = await runAndReport({

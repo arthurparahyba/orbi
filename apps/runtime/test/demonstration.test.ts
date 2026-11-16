@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Vault, redact, secretName } from '../src/contexts/secrets/index.ts';
-import { wavToFloat32 } from '../src/voice/stt.ts';
+import { wavToFloat32 } from '../src/contexts/talk/voice/src/stt.ts';
 import { BrainStore } from '../src/brain.ts';
 
 const dir = () => mkdtempSync(join(tmpdir(), 'orbi-test-'));

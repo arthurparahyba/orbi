@@ -1,6 +1,6 @@
 import { sqlite } from './agents/runtime-port.ts';
 import { loadConfig, loadDotEnv } from './config.ts';
-import { purgeDeletedTranscripts } from './conversations/purge.ts';
+import { purgeDeletedTranscripts } from './contexts/talk/index.ts';
 
 // Flue's own store (conversations and their streams). Flue loads this file by
 // convention, possibly before app.ts, so it reads the configuration itself.

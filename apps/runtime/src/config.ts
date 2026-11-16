@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { rememberOrbiEnvKeys } from './terminal/orbi-env.ts';
+import { rememberOrbiEnvKeys } from './contexts/tools/index.ts';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { llmChoice } from './contexts/models/index.ts';
-import { findShell } from './terminal/shell.ts';
+import { findShell } from './contexts/tools/index.ts';
 
 /** Programs the Orbi may run when ORBI_ALLOWED_BINARIES is not set. */
 export const DEFAULT_ALLOWED = ['git', 'gh', 'aws', 'python3', 'python', 'py', 'node', 'npm', 'mvn', 'cp', 'mkdir', 'cat'];

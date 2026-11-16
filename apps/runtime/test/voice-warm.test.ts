@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { warmVoice } from '../src/voice/warm.ts';
+import { warmVoice } from '../src/contexts/talk/voice/src/warm.ts';
 
 test('voz: o modelo local é carregado ao abrir só se já está no disco e o pré-carregamento está ligado', () => {
   let warmed = 0;

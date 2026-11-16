@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import type { Agent } from '../agents/runtime-port.ts';
 import type { OrbiServices } from '../services.ts';
-import { tellAgent } from '../conversations/tell.ts';
+import { tellAgent } from '../contexts/talk/index.ts';
 import { playbookParams, stepId } from '../contexts/procedures/index.ts';
 import { stem, words } from '../contexts/knowledge/index.ts';
 import type { AgentClient } from './clients.ts';

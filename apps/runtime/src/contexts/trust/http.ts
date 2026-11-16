@@ -3,7 +3,7 @@ import { SetAutonomy } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { body } from '../../http/errors.ts';
 import { levelOf, type AutonomyLevel } from './policy/src/policy.ts';
-import { categoryOf } from '../../mcp-client/domain.ts';
+import { categoryOf } from '../tools/index.ts';
 
 /** Global autonomy levels per kind of action (the Autonomia screen). */
 export function autonomyRoutes({ policy, mcpServers }: OrbiServices) {

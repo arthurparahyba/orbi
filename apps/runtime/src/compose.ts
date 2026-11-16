@@ -6,42 +6,42 @@ import { mkdirSync } from 'node:fs';
 import { setProvider, type Agent } from './agents/runtime-port.ts';
 import { validateConfig, type OrbiConfig } from './config.ts';
 import { BrainStore } from './brain.ts';
-import { Inbox } from './conversations/inbox.ts';
+import { Inbox } from './contexts/talk/index.ts';
 import { PolicyStore } from './contexts/trust/index.ts';
-import { Conversations } from './conversations/conversations.ts';
-import { Followups } from './followups/service.ts';
-import { startFollowups } from './followups/scheduler.ts';
+import { Conversations } from './contexts/talk/index.ts';
+import { Followups } from './contexts/talk/index.ts';
+import { startFollowups } from './contexts/talk/index.ts';
 import { Vault } from './contexts/secrets/index.ts';
 import { Preferences } from './contexts/platform/index.ts';
-import { createStt } from './voice/stt.ts';
-import { VoiceModel } from './voice/model.ts';
-import { warmVoice } from './voice/warm.ts';
+import { createStt } from './contexts/talk/index.ts';
+import { VoiceModel } from './contexts/talk/index.ts';
+import { warmVoice } from './contexts/talk/index.ts';
 import { PipelineRuns } from './contexts/procedures/index.ts';
 import { PipelineEngine } from './contexts/procedures/index.ts';
-import { createChrome } from './browser/chrome.ts';
-import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
-import { createRecorder } from './browser/recorder.ts';
-import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
+import { createChrome } from './contexts/tools/index.ts';
+import { createBrowserMcp } from './contexts/tools/index.ts';
+import { createRecorder } from './contexts/tools/index.ts';
+import { CodeAgents, createCodeFixer } from './contexts/tools/index.ts';
 import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './contexts/models/index.ts';
 import { ModelTiers } from './contexts/models/index.ts';
 import { ModelRoles } from './contexts/models/index.ts';
-import { McpServers } from './mcp-client/store.ts';
-import { McpHub } from './mcp-client/hub.ts';
-import { RunObservations } from './observability/run-observations.ts';
+import { McpServers } from './contexts/tools/index.ts';
+import { McpHub } from './contexts/tools/index.ts';
+import { RunObservations } from './contexts/telemetry/index.ts';
 import { KnowledgeCandidates, deliverKnowledge, KNOWLEDGE_PREFIX } from './contexts/improvement/index.ts';
 import { adoptLegacyBrain, openDatabase, takeLegacyJson } from './db/database.ts';
 import { watchTables } from './db/changes.ts';
 import { createEvents } from './events.ts';
-import { tellAgent } from './conversations/tell.ts';
-import { UsageStore } from './observability/usage.ts';
-import { watchAgents } from './observability/telemetry.ts';
+import { tellAgent } from './contexts/talk/index.ts';
+import { UsageStore } from './contexts/telemetry/index.ts';
+import { watchAgents } from './contexts/telemetry/index.ts';
 import { sendReview } from './contexts/improvement/index.ts';
-import { ToolOutcomes, type ToolOutcome } from './observability/tool-outcomes.ts';
-import { log } from './observability/log.ts';
-import type { InboxItem } from './conversations/inbox.ts';
-import type { ConversationInfo } from './conversations/conversations.ts';
-import { startBridge, type RunningBridge } from './browser/mcp/bridge.ts';
-import { binaryStatus } from './terminal/exec.ts';
+import { ToolOutcomes, type ToolOutcome } from './contexts/telemetry/index.ts';
+import { log } from './contexts/telemetry/index.ts';
+import type { InboxItem } from './contexts/talk/index.ts';
+import type { ConversationInfo } from './contexts/talk/index.ts';
+import { startBridge, type RunningBridge } from './contexts/tools/index.ts';
+import { binaryStatus } from './contexts/tools/index.ts';
 import type { OrbiServices } from './services.ts';
 import { AgentClients } from './mcp/clients.ts';
 import { AgentRequests } from './mcp/requests.ts';
@@ -93,7 +93,7 @@ export async function createOrbi(
   const codeAgents = overrides.codeAgents ?? new CodeAgents(db, config.codeAgent);
   const mcpServers = new McpServers(db);
 
-  return {
+  const services: OrbiServices = {
     config: finalConfig,
     llm,
     modelTiers: new ModelTiers(preferences),
@@ -103,7 +103,8 @@ export async function createOrbi(
     observations: new RunObservations(),
     knowledge: new KnowledgeCandidates(),
     events,
-    usage: overrides.usage ?? new UsageStore(db),
+    // `telemetry` mostra o nome da conversa, mas a tabela é de `talk`: pede em vez de dar JOIN.
+    usage: overrides.usage ?? new UsageStore(db, (id) => conversations.get(id)?.title),
     toolOutcomes: overrides.toolOutcomes ?? new ToolOutcomes(),
     agents: overrides.agents ?? { clients: new AgentClients(db), requests: new AgentRequests(db), suggestions: new AgentSuggestions(db) },
     brain,
@@ -123,6 +124,12 @@ export async function createOrbi(
     diagnosisSettings: overrides.diagnosisSettings ?? new DiagnosisSettings(preferences),
     codeFixer: overrides.codeFixer ?? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, agents: codeAgents, shell: () => config.shell }),
   };
+
+  // Apagar a conversa não pode deixar um pedido de agente de código pendurado. `talk` avisa,
+  // quem é dono de `agent_requests` desfaz — na mesma transação (documento 26, fase 5).
+  conversations.whenDeleted((id, at) => services.agents.requests.failForDeletedConversation(id, at));
+
+  return services;
 }
 
 /** The step a call counts in: the one running now, else the next pending one. */

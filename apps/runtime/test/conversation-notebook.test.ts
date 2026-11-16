@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildNotebook, nextLevel } from '../src/conversations/notebook.ts';
+import { buildNotebook, nextLevel } from '../src/contexts/talk/conversations/src/notebook.ts';
 import { finishRehearsal, newRehearsal, rehearsalStep } from '../src/contexts/procedures/rehearsal/src/rehearsal.ts';
 import type { Entity, Playbook, PlaybookRun } from '../src/language/index.ts';
 

@@ -1,10 +1,10 @@
 import type { OrbiServices } from '../../../../services.ts';
 import type { Agent } from '../../../../agents/runtime-port.ts';
 import type { PlaybookRun } from '../../../../language/index.ts';
-import type { Observation } from '../../../../observability/run-observations.ts';
-import { tellAgent } from '../../../../conversations/tell.ts';
+import type { Observation } from '../../../telemetry/index.ts';
+import { tellAgent } from '../../../talk/index.ts';
 import { redact } from '../../../secrets/index.ts';
-import { log } from '../../../../observability/log.ts';
+import { log } from '../../../telemetry/index.ts';
 import { classifyEntity, verdictLine } from '../../../knowledge/index.ts';
 
 /**
