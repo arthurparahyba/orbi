@@ -328,9 +328,7 @@ Três coisas que apareceram no caminho:
   `packages/contracts/src/api.ts` por contexto e levar a fatia vertical até a tela. Agora há
   informação para decidir: a fronteira do runtime fechou sem precisar mexer no app.
 
-**Fase 6 — contrato com o desktop.** Não feita. `packages/contracts/src/api.ts` tem 439 linhas e
-é o acoplamento mais caro: cada funcionalidade nova mexe nele e no `apps/desktop/src/api.ts`.
-Duas saídas:
+**Fase 6 — contrato com o desktop.** Feita, pela saída conservadora. Eram duas:
 
 - **conservadora**: quebrar o contrato em um arquivo por contexto, com o `index.ts`
   reexportando. Resolve a legibilidade e mantém o pacote compartilhado;
@@ -338,5 +336,23 @@ Duas saídas:
   importa a tela de dentro do contexto. Resolve o pedágio das camadas, mas mexe no build do
   Tauri, no bundler e nos 162 arquivos do app.
 
-A recomendação é a conservadora primeiro, e a fatia vertical só se, com dois ou três contextos
-migrados, atravessar camada continuar custando caro.
+O que foi feito, nos dois lados:
+
+- `packages/contracts/src/api.ts`: 439 linhas viraram 18 — onze `export *`, um por contexto, em
+  `src/api/`. Os 75 tipos foram para o contexto de quem responde por eles.
+- `apps/desktop/src/api.ts`: 202 linhas viraram 34. Os 99 métodos do objeto `api` foram para
+  `src/api/<contexto>.ts`, cada arquivo exportando o seu pedaço (`talkApi`, `proceduresApi`…), e
+  `api` continua sendo um objeto só, montado por espalhamento. Nenhum dos 162 arquivos do app
+  mudou: `api.conversations()` continua `api.conversations()`.
+- O `request` e as URLs do runtime foram para `src/api/request.ts`.
+
+**O corte confirmou a fronteira.** Só duas dependências entre arquivos de contrato apareceram:
+`procedures` → `trust` (um procedimento tem autonomia e nível) e `platform` → `knowledge` (o
+health mostra o tamanho do cérebro). As outras nove não precisaram importar nada de ninguém. É a
+medida mais honesta que temos de que os onze contextos são os contextos certos: se o corte fosse
+errado, o contrato não teria se separado sem um emaranhado de imports cruzados.
+
+A fatia vertical continua de pé como opção, agora com menos pressa: atravessar camada ficou mais
+barato de ler, e o pedágio que sobra é o de mexer em dois arquivos pequenos em vez de um grande.
+
+
