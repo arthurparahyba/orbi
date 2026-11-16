@@ -20,12 +20,12 @@ Object.assign(process.env, {
 });
 delete process.env.ANTHROPIC_API_KEY;
 
-const { ADAPTERS, configureLlm } = await import('../src/llm/index.ts');
-type ChatRequest = Parameters<import('../src/llm/types.ts').LlmAdapter['chat']>[0];
+const { ADAPTERS, configureLlm } = await import('../src/contexts/models/provider/src/provider.ts');
+type ChatRequest = Parameters<import('../src/contexts/models/provider/src/types.ts').LlmAdapter['chat']>[0];
 
 // A scripted adapter: what a corporate gateway adapter would do, minus the HTTP.
 const seen: ChatRequest[] = [];
-let script: Array<(req: ChatRequest) => Awaited<ReturnType<import('../src/llm/types.ts').LlmAdapter['chat']>> | AsyncIterable<unknown>> = [];
+let script: Array<(req: ChatRequest) => Awaited<ReturnType<import('../src/contexts/models/provider/src/types.ts').LlmAdapter['chat']>> | AsyncIterable<unknown>> = [];
 ADAPTERS.roteiro = () => ({
   name: 'roteiro',
   models: [{ id: 'modelo-interno-1', contextWindow: 64_000 }],

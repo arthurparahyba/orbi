@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { delimiter, join, resolve } from 'node:path';
-import { platformFor } from '../platform/index.ts';
+import { platformFor } from '../../../../platform/index.ts';
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { PLUGIN_API_VERSION, type OrbiPlugin } from '@orbi/plugin-sdk';

@@ -3,7 +3,7 @@ import { rememberOrbiEnvKeys } from './terminal/orbi-env.ts';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-import { llmChoice } from './llm/index.ts';
+import { llmChoice } from './contexts/models/index.ts';
 import { findShell } from './terminal/shell.ts';
 
 /** Programs the Orbi may run when ORBI_ALLOWED_BINARIES is not set. */

@@ -10,10 +10,10 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
 import { createServer } from 'node:http';
-import { appDataHome, discoverPlugins, pluginDirs } from '../src/llm/plugins.ts';
-import { configureLlm } from '../src/llm/index.ts';
-import { checkAdapter } from '../src/llm/plugin-check.ts';
-import type { LlmAdapter } from '../src/llm/types.ts';
+import { appDataHome, discoverPlugins, pluginDirs } from '../src/contexts/models/plugins/src/plugins.ts';
+import { configureLlm } from '../src/contexts/models/provider/src/provider.ts';
+import { checkAdapter } from '../src/contexts/models/plugins/src/check.ts';
+import type { LlmAdapter } from '../src/contexts/models/provider/src/types.ts';
 
 const plugin = (dir: string, name: string, body: string, pkg?: object) => {
   mkdirSync(join(dir, name), { recursive: true });

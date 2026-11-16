@@ -1,4 +1,4 @@
-import type { ChatEvent, ChatRequest, ChatResult, LlmAdapter } from './types.ts';
+import type { ChatEvent, ChatRequest, ChatResult, LlmAdapter } from '../../provider/src/types.ts';
 
 /**
  * Checks an LlmAdapter against what Orbi needs, by calling the real model:

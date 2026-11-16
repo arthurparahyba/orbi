@@ -1,13 +1,12 @@
 import { isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { setProvider } from '../agents/runtime-port.ts';
-import { ADAPTER_PROVIDER, toPiProvider } from './pi-bridge.ts';
+import { ADAPTER_PROVIDER, toPiProvider, type Provider } from './flue-bridge.ts';
 import { openAICompatible } from './adapters/openai-compatible.ts';
-import { discoverPlugins, pluginDirs, type PluginInfo } from './plugins.ts';
+import { discoverPlugins, pluginDirs, type PluginInfo } from '../../plugins/src/plugins.ts';
 import type { LlmAdapter, LlmAdapterFactory, LlmSettings } from './types.ts';
 
 export type { LlmAdapter, LlmAdapterFactory, LlmSettings } from './types.ts';
-export { describePlugins, discoverPlugins, pluginDirs, type PluginInfo } from './plugins.ts';
+export { describePlugins, discoverPlugins, pluginDirs, type PluginInfo } from '../../plugins/src/plugins.ts';
 
 /**
  * Which model Orbi talks to, chosen in .env:
@@ -92,11 +91,17 @@ export interface ActiveLlm extends LlmChoice {
   error?: string;
   /** Plugins found at start (with load errors, if any). */
   plugins: PluginInfo[];
+  /**
+   * The provider for the agent runtime, when the choice is an adapter. This context does not
+   * register it: `createOrbi` hands it to `agents/runtime-port.ts`, so the boundary only points
+   * outward (documento 26). Anthropic needs nothing: Flue registers it from the build.
+   */
+  provider?: Provider;
 }
 
 /**
- * Register the chosen model with the agent runtime. Call once at start, before
- * any conversation. Anthropic needs nothing: Flue registers it from the build.
+ * Work out the chosen model and, for an adapter, build the provider the runtime needs.
+ * Call once at start, before any conversation; the caller registers `provider`.
  */
 export async function configureLlm(
   env: NodeJS.ProcessEnv = process.env,
@@ -112,6 +117,5 @@ export async function configureLlm(
   // ORBI_LLM_MODEL picks among the adapter's models; without it, the first one.
   const modelId = settings.model ?? adapter.models[0].id;
   if (!adapter.models.some((m) => m.id === modelId)) adapter.models.unshift({ id: modelId });
-  setProvider(toPiProvider(adapter));
-  return { ...choice, model: `${ADAPTER_PROVIDER}/${modelId}`, adapter, plugins: found };
+  return { ...choice, model: `${ADAPTER_PROVIDER}/${modelId}`, adapter, plugins: found, provider: toPiProvider(adapter) };
 }

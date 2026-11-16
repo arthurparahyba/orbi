@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { ModelRoles, modelForTurn, resolveRoles, turnRole } from '../src/llm/roles.ts';
+import { ModelRoles, modelForTurn, resolveRoles, turnRole } from '../src/contexts/models/roles/src/roles.ts';
 import { commandProblems } from '../src/agents/tools/brain.ts';
 
 /** A model per kind of work (docs/funcionalidades/12): talking, running, learning and correcting, the knowledge review. */

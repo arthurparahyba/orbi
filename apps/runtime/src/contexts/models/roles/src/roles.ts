@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ModelTier } from '@orbi/plugin-sdk';
-import type { ActiveLlm } from './index.ts';
-import { modelChoices, modelSpecFor } from './choices.ts';
+import type { ActiveLlm } from '../../provider/src/provider.ts';
+import { modelChoices, modelSpecFor } from '../../cost/src/cost.ts';
 
 /**
  * A model for each kind of work (docs/funcionalidades/12): talking and running a procedure can be

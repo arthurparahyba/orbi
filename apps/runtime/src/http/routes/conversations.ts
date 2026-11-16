@@ -6,7 +6,7 @@ import type { OrbiServices } from '../../services.ts';
 import { body, HttpError, notFound } from '../errors.ts';
 import { conversationState, type ConversationState } from '../../conversations/state.ts';
 import { buildNotebook } from '../../conversations/notebook.ts';
-import { modelChoices } from '../../llm/choices.ts';
+import { modelChoices } from '../../contexts/models/index.ts';
 
 /** Where each conversation is, from the brain: open learning cards and the procedure learned in each one. */
 function stateReader({ brain, inbox, pipelines }: OrbiServices): (id: string) => ConversationState {

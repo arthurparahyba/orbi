@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
-import { setEnvValue } from '../settings/env-file.ts';
-import { rememberOrbiEnvKeys } from '../terminal/orbi-env.ts';
-import { ADAPTERS, configureLlm, llmSettings, type ActiveLlm } from './index.ts';
-import type { PluginInfo } from './plugins.ts';
-import type { ChatEvent, ChatResult, LlmAdapter, LlmAdapterFactory } from './types.ts';
+import { setEnvValue } from '../../../../settings/env-file.ts';
+import { rememberOrbiEnvKeys } from '../../../../terminal/orbi-env.ts';
+import { ADAPTERS, configureLlm, llmSettings, type ActiveLlm } from '../../provider/src/provider.ts';
+import type { PluginInfo } from '../../plugins/src/plugins.ts';
+import { CLAUDE_MODELS } from '../../cost/src/cost.ts';
+import type { ChatEvent, ChatResult, LlmAdapter, LlmAdapterFactory } from '../../provider/src/types.ts';
 
 /**
  * Choosing the model from the app (first opening, Configurações › Modelo) instead of editing a .env
@@ -54,7 +55,6 @@ export interface TestResult {
   detail: string;
 }
 
-export const CLAUDE_MODELS = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5'];
 const ANTHROPIC_MODELS_URL = 'https://api.anthropic.com/v1/models';
 
 const shortModel = (spec: string) => spec.replace(/^(anthropic|orbi-llm)\//, '');

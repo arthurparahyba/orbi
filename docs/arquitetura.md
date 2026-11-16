@@ -64,7 +64,9 @@ src/
     mcp/                    a ponte stdio → HTTP do chrome-devtools-mcp
   voice/stt.ts              transcrição da narração (Whisper local ou HTTP)
   vault/vault.ts            cofre de credenciais (Keychain / arquivo criptografado)
-  llm/                      porta LlmAdapter, ponte para o Pi, adaptadores e plugins
+  contexts/                 contextos já migrados (documento 26): de fora, só pelo index.ts
+    models/                 com o que o Orbi pensa: provider (porta LlmAdapter e ponte para o Pi),
+                            plugins, roles, cost, setup; a rota /api/model em http.ts
   observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
                             usage.ts (uso por conversa e por dia)
 

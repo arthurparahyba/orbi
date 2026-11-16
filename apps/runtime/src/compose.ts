@@ -3,7 +3,7 @@ import { isCallError, stepUses } from './brain/domain/levels.ts';
 import { callSummary, marksOf, type CallApproval, type CallStatus } from './brain/domain/run-calls.ts';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
-import type { Agent } from './agents/runtime-port.ts';
+import { setProvider, type Agent } from './agents/runtime-port.ts';
 import { validateConfig, type OrbiConfig } from './config.ts';
 import { BrainStore } from './brain/store.ts';
 import { Inbox } from './conversations/inbox.ts';
@@ -21,9 +21,9 @@ import { createChrome } from './browser/chrome.ts';
 import { createBrowserMcp } from './browser/mcp/chrome-devtools.ts';
 import { createRecorder } from './browser/recorder.ts';
 import { CodeAgents, createCodeFixer } from './code-agents/index.ts';
-import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './llm/index.ts';
-import { ModelTiers } from './llm/choices.ts';
-import { ModelRoles } from './llm/roles.ts';
+import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './contexts/models/index.ts';
+import { ModelTiers } from './contexts/models/index.ts';
+import { ModelRoles } from './contexts/models/index.ts';
 import { McpServers } from './mcp-client/store.ts';
 import { McpHub } from './mcp-client/hub.ts';
 import { RunObservations } from './observability/run-observations.ts';
@@ -62,7 +62,10 @@ export async function createOrbi(
   for (const dir of [config.dataDir, config.workspace, config.scratchDir]) mkdirSync(dir, { recursive: true });
 
   // The model first: an adapter or plugin must be registered before any conversation.
+  // The `models` context works the provider out; registering it with Flue is this root's job
+  // (documento 26: a fronteira do contexto só aponta para fora).
   const llm = overrides.llm ?? (await configureLlmOrExplain(env, config.cwd));
+  if (llm.provider) setProvider(llm.provider);
   const finalConfig: OrbiConfig = { ...config, model: llm.model };
 
   const events = overrides.events ?? createEvents();

@@ -104,10 +104,27 @@ envelhecer.
 Incremental, um contexto por vez, com o teste de fronteira entrando na fase 1 e apertando a
 cada fase. Nada de mover tudo de uma vez.
 
-**Fase 1 — piloto: `modelos`.** É o contexto mais limpo que existe: 989 linhas e 18 imports de
-fora, todos de composição, rota ou agente, e **nenhuma funcionalidade depende das entranhas
-dele**. Dá para fechar a fronteira sem renegociar nada, e serve para validar a forma do
-`index.ts`, o `migrations.ts` do contexto, a rota de dentro do módulo e o teste de fronteira.
+**Fase 1 — piloto: `models`. Feita.** Era o contexto mais limpo que existia: 989 linhas e 18
+imports de fora, todos de composição, rota ou agente, e nenhuma funcionalidade dependendo das
+entranhas dele. `llm/` virou `src/contexts/models/` com cinco módulos — `provider`, `plugins`,
+`roles`, `cost`, `setup` —, `index.ts` como única porta, `http/routes/model.ts` virou
+`contexts/models/http.ts` e `test/boundary.test.ts` passou a guardar a fronteira.
+
+Três coisas que a fase 1 ensinou e que valem para as próximas:
+
+- **Apareceu um módulo que o mapa não previa.** `llm/setup.ts` responde "como o desenvolvedor
+  escolhe, testa e aplica um provedor", que é outra pergunta que a de `provider` ("qual provedor
+  está ativo"). Virou `setup`. É o critério do combinado funcionando na primeira vez que foi usado.
+- **A fronteira obrigou uma inversão.** `configureLlm` chamava `setProvider` de
+  `agents/runtime-port.ts` — o contexto chamando a composição. Agora devolve o provedor em
+  `ActiveLlm.provider` e o `compose.ts` registra.
+- **O teste de fronteira precisa de uma lista de exceções, e ela é o placar.** `models` ainda
+  alcança `platform/`, `settings/` e `terminal/`, que só viram contexto nas fases 2 e 5.
+  A lista `AINDA_FORA` em `test/boundary.test.ts` declara isso por contexto e só pode encurtar.
+
+Sobre profundidade: o nível `modules/` que o esboço tinha foi cortado. Um módulo é
+`contexts/<contexto>/<modulo>/src/`, e os arquivos do contexto (`index.ts`, `http.ts`,
+`migrations.ts`) ficam na raiz dele — o que já distingue os dois níveis sem uma pasta a mais.
 
 **Fase 2 — `plataforma` e `segredos`.** Pequenos, e `plataforma` precisa vir cedo porque vira
 dona de `settings`: resolve a violação dos 6 módulos escrevendo na mesma tabela.

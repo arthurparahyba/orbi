@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { applyModel, envFor, modelStatus, testModel } from '../src/llm/setup.ts';
-import type { PluginInfo } from '../src/llm/plugins.ts';
+import { applyModel, envFor, modelStatus, testModel } from '../src/contexts/models/setup/src/setup.ts';
+import type { PluginInfo } from '../src/contexts/models/plugins/src/plugins.ts';
 
 const yara = (text = 'ok'): PluginInfo => ({
   name: 'yara', kind: 'llm', dir: '/plugins/yara', description: 'Modelo da empresa',

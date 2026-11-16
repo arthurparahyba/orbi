@@ -1,8 +1,10 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ModelTier } from '@orbi/plugin-sdk';
-import type { ActiveLlm } from './index.ts';
-import { ADAPTER_PROVIDER } from './pi-bridge.ts';
-import { CLAUDE_MODELS } from './setup.ts';
+import type { ActiveLlm } from '../../provider/src/provider.ts';
+import { ADAPTER_PROVIDER } from '../../provider/src/flue-bridge.ts';
+
+/** The Claude models the Orbi offers when the key is the developer's own (cheapest first). */
+export const CLAUDE_MODELS = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5'];
 
 /**
  * Which models a conversation may use: the active provider's (the plugin's list, or Claude's),

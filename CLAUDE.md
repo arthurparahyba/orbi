@@ -42,9 +42,9 @@ Não implemente antes do ok. Se ele pedir para seguir direto, mostre o combinado
 primeira entrega, não depois dela. Terminada a implementação, atualize `docs/modulos.md` no
 mesmo commit e diga em uma linha o que mudou na interface pública.
 
-Fora do combinado também: ao falar de uma parte da aplicação, use o nome do módulo
-(`fatos`, `portao`, `papeis`), não o caminho do arquivo. É esse vocabulário que mantém os dois
-alinhados.
+Fora do combinado também: ao falar de uma parte da aplicação, use o nome do módulo em português
+(*fatos*, *portão*, *papéis*), não o caminho do arquivo. O caminho é em inglês, como manda a
+convenção, e `docs/modulos.md` traz os dois lados. É esse vocabulário que mantém os dois alinhados.
 
 ## Estrutura
 
@@ -68,8 +68,10 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
   src/code-agents/    agentes de código da máquina: cadastro, catálogo (dado), tarefas, executor na cópia descartável
   src/followups/      retornos agendados: estados, um por conversa, agendador com nova tentativa
-  src/{autonomy,browser,conversations,llm,observability,terminal,vault,voice}/
-  test/               node:test (+ fixtures/search-eval.json)
+  src/contexts/       contextos já migrados (documento 26); de fora, só pelo index.ts do contexto
+    models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
+  src/{autonomy,browser,conversations,observability,terminal,vault,voice}/
+  test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
   src/views/{conversation,pipelines,brain,autonomy}/   telas (autonomy/agents: agentes que pedem; autonomy/mcp: ferramentas MCP)

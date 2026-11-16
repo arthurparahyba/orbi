@@ -22,6 +22,8 @@ import type { ChatEvent, ChatMessage, ChatRequest, ChatResult, LlmAdapter, StopR
  * with plain messages and tools.
  */
 
+export type { Provider };
+
 /** Provider id agents use: model spec = `orbi-llm/<model id>`. */
 export const ADAPTER_PROVIDER = 'orbi-llm';
 const API = 'orbi-adapter';

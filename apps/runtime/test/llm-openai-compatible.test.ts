@@ -85,7 +85,7 @@ test('gateway compatível com OpenAI: ferramentas, resultado e resposta', async 
 test('erro HTTP do gateway chega com status e corpo', async () => {
   const fail = createServer((_req, res) => res.writeHead(503).end('manutenção programada'));
   await new Promise<void>((r) => fail.listen(0, '127.0.0.1', r));
-  const { openAICompatible } = await import('../src/llm/adapters/openai-compatible.ts');
+  const { openAICompatible } = await import('../src/contexts/models/provider/src/adapters/openai-compatible.ts');
   const adapter = await openAICompatible({ baseUrl: `http://127.0.0.1:${(fail.address() as { port: number }).port}/v1`, model: 'x', env: {} });
   await assert.rejects(
     Promise.resolve(adapter.chat({ model: 'x', system: 's', messages: [{ role: 'user', content: 'oi' }], tools: [] }, new AbortController().signal)),

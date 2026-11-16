@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { knownTier, modelChoices, modelSpecFor } from '../src/llm/choices.ts';
+import { knownTier, modelChoices, modelSpecFor } from '../src/contexts/models/cost/src/cost.ts';
 
 /** Choosing the model per conversation (docs/funcionalidades/12): what is offered, its cost, what the agent runs with. */
 

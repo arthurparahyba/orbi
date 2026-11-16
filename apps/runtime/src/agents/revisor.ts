@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import { defineTool, useModel, useTool } from './runtime-port.ts';
 import { services, type OrbiServices } from '../services.ts';
 import { brainQuery } from './tools/brain.ts';
-import { modelForTurn, resolveRoles } from '../llm/roles.ts';
+import { modelForTurn, resolveRoles } from '../contexts/models/index.ts';
 import { KNOWLEDGE_PREFIX, matchFacts, type FactCandidate } from '../review/knowledge.ts';
 import instructions from '../prompts/revisor.md?raw';
 

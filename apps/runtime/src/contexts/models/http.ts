@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { ChooseModel, SetModelRole, SetModelTier } from '@orbi/contracts';
-import { resolveRoles } from '../../llm/roles.ts';
-import { modelChoices } from '../../llm/choices.ts';
+import { resolveRoles } from './roles/src/roles.ts';
+import { modelChoices } from './cost/src/cost.ts';
 import type { OrbiServices } from '../../services.ts';
-import { applyModel, modelStatus, testModel } from '../../llm/setup.ts';
-import { discoverPlugins, pluginDirs } from '../../llm/index.ts';
+import { applyModel, modelStatus, testModel } from './setup/src/setup.ts';
+import { discoverPlugins, pluginDirs } from './plugins/src/plugins.ts';
 import { log } from '../../observability/log.ts';
-import { body } from '../errors.ts';
+import { body } from '../../http/errors.ts';
 
 /**
  * The model, chosen from the app: where it stands, a test that saves nothing, and the choice

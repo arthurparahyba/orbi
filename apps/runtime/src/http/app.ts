@@ -24,7 +24,7 @@ import { followupRoutes } from './routes/followups.ts';
 import { reviewNoteRoutes } from './routes/review-notes.ts';
 import { stepLearningRoutes } from './routes/step-learnings.ts';
 import { diagnosisRoutes } from './routes/diagnoses.ts';
-import { modelRoutes } from './routes/model.ts';
+import { modelRoutes } from '../contexts/models/index.ts';
 import { browserRoutes } from './routes/browser.ts';
 import { mcpServerRoutes } from './routes/mcp-servers.ts';
 

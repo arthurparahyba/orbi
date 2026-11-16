@@ -7,9 +7,9 @@
  */
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { checkAdapter } from '../src/llm/plugin-check.ts';
-import { discoverPlugins, pluginDirs } from '../src/llm/plugins.ts';
-import { llmSettings } from '../src/llm/index.ts';
+import { checkAdapter } from '../src/contexts/models/plugins/src/check.ts';
+import { discoverPlugins, pluginDirs } from '../src/contexts/models/plugins/src/plugins.ts';
+import { llmSettings } from '../src/contexts/models/provider/src/provider.ts';
 
 const args = process.argv.slice(2);
 const name = args.find((a) => !a.startsWith('--'));
