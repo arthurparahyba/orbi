@@ -6,8 +6,9 @@
  */
 
 /** What the Orbi asks an agent to do. Each task has its own agent and model. */
-export type CodeAgentTask = 'investigar' | 'corrigir';
-export const CODE_AGENT_TASKS: readonly CodeAgentTask[] = ['investigar', 'corrigir'];
+/** `diagnosticar` lê o código do Orbi para confirmar um defeito dele (documento 24): só leitura. */
+export type CodeAgentTask = 'investigar' | 'corrigir' | 'diagnosticar';
+export const CODE_AGENT_TASKS: readonly CodeAgentTask[] = ['investigar', 'corrigir', 'diagnosticar'];
 
 export type CodeAgentRunIn = 'window' | 'background';
 

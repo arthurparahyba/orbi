@@ -5,7 +5,9 @@ import { createHttpApp } from './http/app.ts';
 import { Orbi } from './agents/orbi.ts';
 import { CONFIG_PREFIX, Configurador } from './agents/configurador.ts';
 import { Revisor } from './agents/revisor.ts';
+import { Diagnosticador } from './agents/diagnosticador.ts';
 import { KNOWLEDGE_PREFIX } from './review/knowledge.ts';
+import { REPORT_PREFIX } from './diagnosis/report.ts';
 import { routeConversations } from './agents/directory.ts';
 import { createLogger, logOptionsFromEnv, setLogger } from './observability/log.ts';
 
@@ -22,6 +24,8 @@ provideServices(orbi);
 routeConversations(CONFIG_PREFIX, Configurador);
 // The knowledge review of a finished run (revisao:<runId>) has its own agent, on the cheap model.
 routeConversations(KNOWLEDGE_PREFIX, Revisor);
+// O relatório do diagnóstico de uma execução (diagnostico:<runId>), também no modelo mais barato.
+routeConversations(REPORT_PREFIX, Diagnosticador);
 const background = startBackground(orbi, Orbi);
 
 export default createHttpApp(orbi, background, Orbi, { configurador: Configurador });

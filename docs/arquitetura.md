@@ -326,6 +326,7 @@ evento `usage`. Adaptadores de LLM que não informam uso aparecem com zero.
 | `GET /api/brain/proofs` · `POST`/`DELETE /api/brain/playbooks/:name/steps/:step/waive` | Onde cada procedimento está (rascunho, parcial, provado) e dispensar um passo de ser provado |
 | `GET /api/diagnoses` · `POST /api/diagnoses/:id/dismiss` | O que não é do procedimento: defeito do Orbi ou chamada errada do modelo, por execução |
 | `GET /api/diagnoses/:id/issue` · `POST /api/diagnoses/:id/issue` | O texto da issue do defeito (sem nada do trabalho do desenvolvedor) e enviar: pelo `gh`, com a página do GitHub como reserva |
+| `GET`/`PUT /api/diagnoses/setup` · `GET`/`POST /api/diagnoses/report?run=` | Quem escreve o relatório do diagnóstico e quando; o relatório de uma execução e "Analisar esta execução" |
 | `PATCH /api/brain/playbooks/:name` `{autonomy?, level?, levelMax?}` · `GET …/:name/autonomy` | Nível de autonomia, ações conhecidas e histórico (documento 3) |
 | `POST /api/inbox/:id/dismiss` · `POST /api/inbox/:id/keep` | Aviso de nível: visto, ou desfazer a mudança |
 | `POST /api/pipelines/:name/fix` | O Orbi propõe a correção da configuração de uma esteira (documento 16) |

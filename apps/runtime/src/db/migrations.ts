@@ -316,4 +316,10 @@ CREATE TABLE diagnoses (
 CREATE INDEX diagnoses_run ON diagnoses (run_id);
 CREATE INDEX diagnoses_fingerprint ON diagnoses (fingerprint);`,
   },
+  {
+    name: 'relatório do diagnóstico: o que o modelo ou o agente de código escreveu sobre uma execução',
+    sql: `
+CREATE TABLE diagnosis_reports (
+  run_id TEXT PRIMARY KEY, text TEXT NOT NULL, by TEXT NOT NULL, model TEXT, at TEXT NOT NULL);`,
+  },
 ];

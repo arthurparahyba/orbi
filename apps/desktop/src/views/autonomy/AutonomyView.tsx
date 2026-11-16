@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Health, InboxItem } from '../../api';
 import { Usage } from './Usage';
+import { DiagnosisPage } from './DiagnosisPage';
 import { Vault } from './Vault';
 import { Voice } from './Voice';
 import { Capabilities } from './Capabilities';
@@ -10,7 +11,7 @@ import { ModelPage } from './ModelPage';
 import { AgentsView } from './agents/AgentsView';
 import { McpToolsPage } from './mcp/McpToolsPage';
 
-export type AutonomySection = 'regras' | 'cofre' | 'ferramentas' | 'pedem' | 'agentes-de-codigo' | 'modelo' | 'voz' | 'uso' | 'capacidades';
+export type AutonomySection = 'regras' | 'cofre' | 'ferramentas' | 'pedem' | 'agentes-de-codigo' | 'modelo' | 'voz' | 'uso' | 'diagnostico' | 'capacidades';
 
 type Section = { id: AutonomySection; label: string; hint: string };
 /** The sub-menu, in groups (docs/funcionalidades/20). */
@@ -30,6 +31,7 @@ const GROUPS: Array<{ label: string; sections: Section[] }> = [
   ] },
   { label: 'Acompanhar', sections: [
     { id: 'uso', label: 'Uso', hint: 'Quanto o modelo e as ferramentas foram usados.' },
+    { id: 'diagnostico', label: 'Diagnóstico do Orbi', hint: 'Quem escreve o relatório do que deu errado por culpa do Orbi, e quando.' },
     { id: 'capacidades', label: 'Capacidades', hint: 'O que está conectado e configurado.' },
   ] },
 ];
@@ -72,6 +74,7 @@ export function AutonomyView({ health, focus, onModelChanged, waiting, onOpenCon
           {section === 'cofre' && <Vault />}
           {section === 'ferramentas' && <McpToolsPage health={health} onChanged={onModelChanged} />}
           {section === 'uso' && <Usage />}
+          {section === 'diagnostico' && <DiagnosisPage />}
           {section === 'voz' && <Voice />}
           {section === 'capacidades' && <Capabilities health={health} />}
         </div>

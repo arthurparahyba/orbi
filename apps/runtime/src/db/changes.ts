@@ -15,6 +15,7 @@ const WATCHED: Record<string, { topic: Topic; id?: string }> = {
   playbook_proofs: { topic: 'brain' },
   run_calls: { topic: 'runs' },
   diagnoses: { topic: 'runs' },
+  diagnosis_reports: { topic: 'runs' },
   mcp_servers: { topic: 'mcp-servers', id: 'id' },
   mcp_tools: { topic: 'mcp-servers', id: 'server_id' },
   playbook_runs: { topic: 'runs', id: 'id' },

@@ -4,6 +4,9 @@ import { detect, type Detected, type DiagnosisCategory, type Seen } from './dete
 
 export { detect, countsLine, DETECTORS } from './detectors.ts';
 export type { Detected, DiagnosisCategory, Seen } from './detectors.ts';
+export { DEFAULT_SETUP, DiagnosisSettings } from './settings.ts';
+export type { DiagnosisSetup, DiagnosisWhen, DiagnosisWho } from './settings.ts';
+export { AGENT_PROMPT, REPORT_PREFIX, reportBrief } from './report.ts';
 
 export interface Diagnosis extends Detected {
   id: string;
@@ -14,6 +17,16 @@ export interface Diagnosis extends Detected {
   /** Times this very defect was seen (same fingerprint), here and in earlier executions. */
   times: number;
   status: 'open' | 'dismissed';
+  at: string;
+}
+
+/** GET /api/diagnoses/report?run= — o relatório que o modelo ou o agente escreveu. */
+export interface DiagnosisReport {
+  runId: string;
+  text: string;
+  /** `modelo` ou o id do agente de código que escreveu. */
+  by: string;
+  model: string | null;
   at: string;
 }
 
@@ -73,6 +86,21 @@ export class Diagnoses {
   /** The open ones, newest first: the list of executions shows them and the detail screen reads them. */
   list(limit = 200): Diagnosis[] {
     return (this.db.prepare('SELECT * FROM diagnoses WHERE status = \'open\' ORDER BY at DESC, rowid DESC LIMIT ?').all(limit) as Row[]).map(toDiagnosis);
+  }
+
+  /** O relatório de uma execução: quem escreveu, quando e o texto. */
+  report(runId: string): DiagnosisReport | undefined {
+    const r = this.db.prepare('SELECT * FROM diagnosis_reports WHERE run_id = ?').get(runId) as Row | undefined;
+    return r ? { runId: String(r.run_id), text: String(r.text), by: String(r.by), model: (r.model as string | null) ?? null, at: String(r.at) } : undefined;
+  }
+
+  /** Um relatório por execução: escrever de novo substitui o anterior. */
+  saveReport(runId: string, report: { text: string; by: string; model?: string | null }): DiagnosisReport {
+    const at = new Date().toISOString();
+    this.db
+      .prepare('INSERT INTO diagnosis_reports (run_id, text, by, model, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET text = excluded.text, by = excluded.by, model = excluded.model, at = excluded.at')
+      .run(runId, report.text, report.by, report.model ?? null, at);
+    return { runId, text: report.text, by: report.by, model: report.model ?? null, at };
   }
 
   /** The developer read it and does not want it on the list any more. */

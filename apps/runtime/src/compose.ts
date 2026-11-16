@@ -1,4 +1,4 @@
-import { Diagnoses } from './diagnosis/index.ts';
+import { Diagnoses, DiagnosisSettings } from './diagnosis/index.ts';
 import { isCallError, stepUses } from './brain/domain/levels.ts';
 import { callSummary, marksOf, type CallApproval, type CallStatus } from './brain/domain/run-calls.ts';
 import { join } from 'node:path';
@@ -114,6 +114,7 @@ export async function createOrbi(
     recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt, onChange: (id) => events.emit('recording', id) }),
     codeAgents,
     diagnoses: overrides.diagnoses ?? new Diagnoses(db),
+    diagnosisSettings: overrides.diagnosisSettings ?? new DiagnosisSettings(db),
     codeFixer: overrides.codeFixer ?? createCodeFixer({ workspace: config.workspace, scratchDir: config.scratchDir, cliEnv: config.cliEnv, agents: codeAgents, shell: () => config.shell }),
   };
 }

@@ -3,10 +3,9 @@
 Decidido em 13/11 com o desenvolvedor. Protótipo (telas A a F):
 https://claude.ai/artifact/AqyyCGi56FKhFZmFdWFQ29
 
-**Feito (fases 1, 2 e 4):** o registro da execução, a tela de detalhes com "Copiar execução
-completa", a marca de leitura cara, os detectores, as três categorias e a issue (pelo `gh`, com a
-página do GitHub como reserva). **Ainda não implementado:** o diagnóstico escrito pelo modelo ou
-pelo agente instalado (fase 3).
+**Feito.** O registro da execução, a tela de detalhes com "Copiar execução completa", a marca de
+leitura cara, os detectores, as três categorias, o relatório (pelo modelo ou pelo agente
+instalado) e a issue (pelo `gh`, com a página do GitHub como reserva).
 
 ## O problema
 
@@ -116,10 +115,23 @@ perdeu entregas" (o documento 23 tirou a causa, e não há sinal confiável no r
 | Agente instalado | lê o código do Orbi e confirma a causa, com arquivo e linha | a assinatura do agente |
 
 O agente instalado reusa os agentes de código (documento 17), com uma terceira tarefa,
-`diagnosticar`: roda numa pasta com a cópia do código do Orbi **na versão instalada** (tag do
-repositório), o registro da execução e os achados das regras; só lê; escreve `relatorio.md`
-num formato fixo. Roda quando as regras acham algo, ou quando você pede "Analisar esta
-execução". Achado que o agente não confirma no código sai como **hipótese**.
+`diagnosticar`: roda numa pasta temporária com o registro da execução e os achados, lendo o código
+do Orbi de onde ele está nesta máquina (`ORBI_SOURCE_DIR`); só lê, não muda, não roda, não
+commita; escreve `relatorio.md`. Sem agente da tarefa, sem `ORBI_SOURCE_DIR`, ou se ele falhar, o
+**modelo escreve** em vez dele — nunca fica sem relatório.
+
+**Não clonamos o repositório do Orbi** na versão instalada, como a proposta dizia: pedir ao
+desenvolvedor comum que baixe o código do Orbi para diagnosticá-lo é muito para pouco. Quem tem o
+código é quem desenvolve o Orbi, e para esse basta apontar `ORBI_SOURCE_DIR`.
+
+**Quando escreve** (Configurações › Diagnóstico do Orbi, "Quando"): quando as regras acham algo
+(padrão), só quando você pede, ou em toda execução. **Analisar esta execução**, na tela da
+execução, escreve na hora, seja qual for a escolha.
+
+O relatório pelo modelo é um agente próprio (`agents/diagnosticador.ts`, conversa
+`diagnostico:<runId>`), no modelo mais barato, com uma ferramenta só: entregar o texto. Ele recebe
+os achados e **só o que chama atenção** no registro (falhas, marcas, aprovações), não a execução
+inteira, e é instruído a não inventar arquivo nem linha, porque não lê o código.
 
 ### Issue no repositório do Orbi
 
@@ -185,7 +197,7 @@ contraditório: ela deve pegar carona no cartão da revisão, quando ele já vai
 
 1. ~~Registro (`run_calls`) e a tela de detalhes, com "Copiar execução completa".~~ Feito.
 2. ~~Detectores, as três categorias, o resumo na lista e a linha no fim da conversa.~~ Feito.
-3. Diagnóstico pelo modelo do Orbi e pelo agente instalado; a configuração.
+3. ~~Diagnóstico pelo modelo do Orbi e pelo agente instalado; a configuração.~~ Feito.
 4. ~~Issue: texto, anonimização, `gh` com soma de ocorrências e a página preenchida como reserva.~~ Feito.
 
 ## Peças
@@ -202,14 +214,20 @@ o cérebro é o que o Orbi sabe do domínio do desenvolvedor, não o que ele sab
 deles em mudança de procedimento. Rotas em `http/routes/diagnoses.ts`; tela em
 `views/brain/RunDiagnosis.tsx` e a contagem por execução em `views/brain/runCalls.ts`.
 
+O relatório fica em `diagnosis/report.ts` (o que o diagnosticador recebe e o pedido ao agente),
+`diagnosis/start.ts` (quem escreve, conforme a configuração) e `diagnosis/settings.ts`.
+
 A issue fica em `diagnosis/issue.ts` (o texto e a troca de nomes, regras puras) e
 `diagnosis/send.ts` (o `gh`, trocável no teste).
 
 Testes: `run-calls.test.ts`, `flow-run-calls.test.ts`, `review.test.ts` (leituras caras),
-`diagnosis.test.ts`, `issue.test.ts`, `flow-diagnosis.test.ts`, `flow-learn-run.test.ts` (passo
-sem ferramenta), `runCalls.test.ts` (app).
+`diagnosis.test.ts`, `issue.test.ts`, `flow-diagnosis.test.ts`, `flow-report.test.ts`,
+`flow-learn-run.test.ts` (passo sem ferramenta), `runCalls.test.ts` (app).
 
-## Depende de
+## Limites
 
-- Uma tag por versão no repositório (o processo de release precisa criá-la).
+- O relatório pelo modelo não lê o código: ele explica o que as regras acharam e o que o registro
+  mostra, e diz quando é hipótese. Quem confirma no código é o agente instalado.
+- Com `agente` escolhido mas sem o código ou sem agente da tarefa, o modelo escreve e a tela diz
+  quem escreveu. Isso é melhor que ficar sem nada, mas não é a mesma coisa.
 - Testes que chamem um modelo real usam sempre o Haiku 5.5 (regra do `CLAUDE.md`).

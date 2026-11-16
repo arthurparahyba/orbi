@@ -29,6 +29,7 @@ const { start } = await import('@flue/runtime/node');
 export const { Orbi } = await import('../../src/agents/orbi.ts');
 export const { Configurador } = await import('../../src/agents/configurador.ts');
 export const { Revisor } = await import('../../src/agents/revisor.ts');
+export const { Diagnosticador } = await import('../../src/agents/diagnosticador.ts');
 export const { default: app } = await import('../../src/app.ts');
 export const { brain, inbox } = (await import('../../src/services.ts')).services();
 export const { stepClaimProblems: stepClaimProblemsOf } = await import('../../src/brain/domain/review.ts');
@@ -39,7 +40,7 @@ flueRuntime.setProvider(faux.provider);
 // app.ts runs startBackground: tool outcomes and the review at the end of each turn are wired.
 let flue: { [Symbol.asyncDispose](): Promise<void> };
 before(async () => {
-  flue = (await start({ agents: [Orbi, Configurador, Revisor] })) as never;
+  flue = (await start({ agents: [Orbi, Configurador, Revisor, Diagnosticador] })) as never;
 });
 after(async () => {
   await flue[Symbol.asyncDispose]();

@@ -78,6 +78,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     allowedBinaries: list(env.ORBI_ALLOWED_BINARIES, DEFAULT_ALLOWED),
     /** Onde abrir a issue de um defeito do Orbi (documento 24): o repositório do próprio Orbi. */
     issuesRepo: (env.ORBI_ISSUES_REPO ?? 'arthurparahyba/orbi').trim(),
+    /**
+     * O código do próprio Orbi nesta máquina, quando o desenvolvedor o tem (documento 24): com
+     * ele, o agente de código pode confirmar no código a causa de um defeito. Só leitura.
+     */
+    sourceDir: env.ORBI_SOURCE_DIR ? path(env.ORBI_SOURCE_DIR) : null,
     /** The developer's shell (Git Bash on Windows): .cmd programs and run_shell (terminal/shell.ts). */
     shell: findShell(env),
 

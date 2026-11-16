@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { draftIssue } from '../../diagnosis/issue.ts';
 import { sendIssue } from '../../diagnosis/send.ts';
 import { VERSION } from '../../version.ts';
+import { startReport } from '../../diagnosis/start.ts';
+import type { Agent } from '../../agents/runtime-port.ts';
 import type { OrbiServices } from '../../services.ts';
 import { notFound } from '../errors.ts';
 
@@ -10,7 +12,8 @@ import { notFound } from '../errors.ts';
  * apart from the review of the procedure. `?run=` traz os de uma execução (inclusive os já
  * dispensados); sem parâmetro, os que estão abertos. Mudanças viram evento `runs`.
  */
-export function diagnosisRoutes({ diagnoses, brain, config }: Pick<OrbiServices, 'diagnoses' | 'brain' | 'config'>) {
+export function diagnosisRoutes(s: Pick<OrbiServices, 'diagnoses' | 'brain' | 'config' | 'diagnosisSettings' | 'codeAgents' | 'events'>, agent: Agent) {
+  const { diagnoses, brain, config } = s;
   /** O texto exato que sairia, já sem nada do trabalho do desenvolvedor. */
   const draft = (id: string) => {
     const found = diagnoses.get(id);
@@ -27,6 +30,20 @@ export function diagnosisRoutes({ diagnoses, brain, config }: Pick<OrbiServices,
     .get('/:id/issue', (c) => c.json(draft(c.req.param('id'))))
     // Enviar: pelo `gh` desta máquina; sem ele, a página do GitHub já preenchida para você clicar.
     .post('/:id/issue', async (c) => c.json(await sendIssue(config.issuesRepo, draft(c.req.param('id')))))
+    // Quem escreve o relatório e quando (documento 24).
+    .get('/setup', (c) => c.json(s.diagnosisSettings.get()))
+    .put('/setup', async (c) => c.json(s.diagnosisSettings.set(await c.req.json())))
+    // O relatório de uma execução, e "Analisar esta execução".
+    .get('/report', (c) => {
+      const report = diagnoses.report(c.req.query('run') ?? '');
+      return report ? c.json(report) : c.json(null);
+    })
+    .post('/report', async (c) => {
+      const runId = c.req.query('run') ?? '';
+      if (!brain.run(runId)) throw notFound('execução');
+      await startReport(s, agent, runId, true);
+      return c.json(diagnoses.report(runId) ?? { pendente: true });
+    })
     .post('/:id/dismiss', (c) => {
       if (!diagnoses.dismiss(c.req.param('id'))) throw notFound('diagnóstico');
       return c.json({ ok: true });

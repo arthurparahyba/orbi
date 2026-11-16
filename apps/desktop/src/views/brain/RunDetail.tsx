@@ -31,6 +31,7 @@ function Call({ c }: { c: RunCall }) {
 export function RunDetail({ run }: { run: PlaybookRun }) {
   const calls = useLive(() => api.runCalls(run.id), ['runs'], [run.id]);
   const found = useLive(() => api.diagnoses(run.id), ['runs'], [run.id]);
+  const report = useLive(() => api.diagnosisReport(run.id), ['runs'], [run.id]);
   const [onlyProblems, setOnlyProblems] = useState(false);
   if (!calls.data) return <p className="muted small">Carregando as chamadas…</p>;
   if (calls.data.length === 0) return <p className="muted small">Sem registro desta execução: ela é anterior ao registro de chamadas.</p>;
@@ -44,7 +45,16 @@ export function RunDetail({ run }: { run: PlaybookRun }) {
         {totals.expensive > 0 && <> · <span className="mark-caro">{totals.expensive} leituras caras ({size(totals.expensiveChars)} caracteres)</span></>}
       </p>
       <RunDiagnosis found={found.data ?? []} />
+      {report.data && (
+        <section className="diag-report" aria-label="Relatório do diagnóstico">
+          <span className="ui-kicker">Relatório · {report.data.by === 'modelo' ? 'modelo do Orbi' : report.data.by}{report.data.model ? ` · ${report.data.model}` : ''}</span>
+          <p className="small">{report.data.text}</p>
+        </section>
+      )}
       <div className="run-actions">
+        <button type="button" className="btn small" onClick={() => void api.analyseRun(run.id).then(() => report.reload())}>
+          {report.data ? 'Analisar de novo' : 'Analisar esta execução'}
+        </button>
         <button type="button" className={`btn small ${onlyProblems ? 'on' : ''}`} aria-pressed={onlyProblems} onClick={() => setOnlyProblems((v) => !v)}>Só problemas</button>
         <button type="button" className="btn small" onClick={() => void copyRun(run.id)}>Copiar execução completa</button>
       </div>

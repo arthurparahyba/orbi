@@ -11,6 +11,7 @@ import { analyzeRun, howToFix } from './analyzers/index.ts';
 import { collected } from '../pipelines/engine.ts';
 import { tellAgent } from '../conversations/tell.ts';
 import { startKnowledgeReview } from './knowledge.ts';
+import { startReport } from '../diagnosis/start.ts';
 import { log } from '../observability/log.ts';
 import type { Agent } from '../agents/runtime-port.ts';
 
@@ -208,7 +209,11 @@ export async function sendReview(s: OrbiServices, agent: Agent, conversationId: 
   try {
     const review = reviewConversation(s, conversationId);
     // What each reviewed run read goes to the knowledge reviewer, whatever else the review found.
-    for (const r of review?.runs ?? []) void startKnowledgeReview(s, agent, r.runId);
+    for (const r of review?.runs ?? []) {
+      void startKnowledgeReview(s, agent, r.runId);
+      // O relatório do diagnóstico, se o desenvolvedor pediu que alguém escreva (documento 24).
+      void startReport(s, agent, r.runId).catch((error) => log.error('relatório do diagnóstico não começou', { error: error instanceof Error ? error.message : String(error) }));
+    }
     if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
     await tellAgent(s.events, agent, {
       id: conversationId,

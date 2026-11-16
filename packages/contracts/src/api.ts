@@ -114,6 +114,17 @@ export interface ReviewNote {
   id: string; playbook: string; kind: 'idea' | 'environment' | 'change'; subject: string; text: string; runId: string | null;
   conversationId: string; status: 'kept' | 'open' | 'dismissed' | 'done' | 'applied'; times: number; createdAt: string; updatedAt: string;
 }
+/** GET/PUT /api/diagnoses/setup — quem escreve o relatório do diagnóstico e quando (docs/funcionalidades/24). */
+export interface DiagnosisSetup {
+  who: 'regras' | 'modelo' | 'agente';
+  when: 'quando-houver' | 'so-pedindo' | 'sempre';
+}
+/** GET /api/diagnoses/report?run= — o relatório daquela execução. */
+export interface DiagnosisReport {
+  runId: string; text: string;
+  /** `modelo` ou o id do agente de código que escreveu. */
+  by: string; model: string | null; at: string;
+}
 /** GET /api/diagnoses/:id/issue — o texto exato que iria para o repositório do Orbi, já sem nada do trabalho do desenvolvedor. */
 export interface IssueDraft {
   title: string; body: string;
@@ -328,7 +339,7 @@ export interface PipelineRun {
 }
 
 /** Coding agents of this machine (Autonomia › Agentes de código). */
-export type CodeAgentTask = 'investigar' | 'corrigir';
+export type CodeAgentTask = 'investigar' | 'corrigir' | 'diagnosticar';
 export interface CodeAgent {
   id: string; name: string; binary: string;
   /** One-shot command: `{prompt}` is the request, `{modelo}` the task's model. */
