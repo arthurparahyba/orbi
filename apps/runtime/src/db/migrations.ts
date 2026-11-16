@@ -335,6 +335,10 @@ ALTER TABLE entities ADD COLUMN found_in TEXT;
 ALTER TABLE entities ADD COLUMN checked_at TEXT;`,
   },
   {
+    name: 'receita de atualização: qual procedimento confere na fonte um fato deste tipo (documento 28, fase D)',
+    sql: `ALTER TABLE types ADD COLUMN refresh TEXT;`,
+  },
+  {
     name: 'relatório do diagnóstico: o que o modelo ou o agente de código escreveu sobre uma execução',
     sql: `
 CREATE TABLE diagnosis_reports (

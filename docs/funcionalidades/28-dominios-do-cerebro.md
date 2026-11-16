@@ -87,7 +87,7 @@ um domínio devolve o que era dele para `comum` sem apagar conhecimento.
 - **B** — o escopo entra na busca, no `playbook_similar` e no passo 0. É onde o comportamento pode
   quebrar, e é onde está o ganho real.
 - **C** — feita. Procedência estruturada de cada dado (abaixo).
-- **D** — o procedimento que atualiza um dado (abaixo).
+- **D** — feita. O procedimento que atualiza um dado (abaixo).
 
 ## O que a fase A2/A3 ensinou
 
@@ -210,6 +210,30 @@ vez de um registro vazio, e o store só sobrescreve quando há algo.
 (`cat` num arquivo que não existe) conta como procedência, porque o Orbi distingue "a chamada da
 ferramenta falhou" de "o programa saiu com código diferente de zero". Na prática o modelo não
 deveria aprender fato de um comando que falhou; se isso aparecer, o lugar de arrumar é aqui.
+
+### O que a fase D ensinou
+
+**A receita ganhou campo próprio, e não a chave `knows.atualizar`.** Eu havia proposto pendurá-la
+em `knows` (`Record<string, string>`, nome → como, em prosa). Escrevendo, ficou claro que um leitor
+não distinguiria prosa de referência: `knows.achar` é uma frase, `knows.atualizar` seria um nome de
+procedimento. São coisas diferentes e agora têm campos diferentes: `OntologyType.refresh` é o nome
+do procedimento, e `knows` continua sendo prosa.
+
+**A receita apontando para procedimento que não existe tem de ser dita, não calada.** `howToRefresh`
+recusa com `receita-nao-existe` e diz para onde o tipo aponta. Um tipo que diz saber se conferir e
+não sabe é pior do que um tipo que não diz nada, porque promete.
+
+**O laço é um campo no resultado de uma ferramenta, não um mecanismo novo.** Quando um passo é dado
+como `failed`, o `reportStep` devolve `canRefresh`: os fatos daquela execução cujo tipo tem receita.
+Os fatos que o passo usou já estavam ali — são as entradas resolvidas da execução, guardadas desde
+o passo 0. A ferramenta `playbook_step` passa a lista ao modelo com uma dica dizendo o que fazer:
+rodar o procedimento pelo `playbook_start`, que já passa pelo portão, e nunca mudar o fato por
+conta própria. Nenhum caso de uso executa procedimento nem fala com a conversa.
+
+**O que não foi feito de propósito:** nada roda sozinho. O Orbi não reconfere, não repete o passo e
+não atualiza o fato sem passar pelo cartão. A autonomia disso é decisão para depois de o laço
+existir e ser visto funcionando — e é o tipo de coisa que, posta cedo, faz o Orbi insistir em
+caminhos errados com confiança.
 
 ### A ordem recomendada
 

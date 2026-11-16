@@ -25,5 +25,11 @@ export const knowledgeApi = {
     request<Entity>(`/api/brain/entities/${encodeURIComponent(id)}/domain`, { method: 'PUT', body: JSON.stringify({ domain }) }),
   setTypeDomain: (name: string, domain: string | null) =>
     request<OntologyType>(`/api/brain/types/${encodeURIComponent(name)}/domain`, { method: 'PUT', body: JSON.stringify({ domain }) }),
+  setTypeRefresh: (name: string, refresh: string | null) =>
+    request<OntologyType>(`/api/brain/types/${encodeURIComponent(name)}/refresh`, { method: 'PUT', body: JSON.stringify({ refresh }) }),
+  howToRefresh: (id: string) =>
+    request<{ playbook: string; fact: string; type: string; checkedAt: string | null; foundIn: string | null }>(
+      `/api/brain/facts/${encodeURIComponent(id)}/refresh`,
+    ),
   exportBrain: () => request<{ written: number; dir: string }>('/api/brain/export', { method: 'POST' }),
 };

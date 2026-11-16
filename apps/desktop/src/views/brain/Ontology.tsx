@@ -12,8 +12,18 @@ export function Ontology({ snapshot }: { snapshot: BrainSnapshot }) {
     <div className="onto-grid">
       {snapshot.types.map((t) => (
         <article key={t.name} className="onto-card" style={{ borderTopColor: colorOf(t.name) }}>
-          <header><strong>{t.name}</strong><span className="muted small">{counts.get(t.name) ?? 0} entidades</span></header>
+          <header>
+            <strong>{t.name}</strong>
+            {t.domain && <span className="pill tiny">{t.domain}</span>}
+            <span className="muted small">{counts.get(t.name) ?? 0} entidades</span>
+          </header>
           <p className="muted small">{t.description}</p>
+          {/* A receita fica no tipo, não no fato: todas as contas se conferem do mesmo jeito. */}
+          <p className="muted small onto-refresh">
+            {t.refresh
+              ? <>Confere na fonte com <code>{t.refresh}</code></>
+              : <span className="muted">Ninguém sabe conferir um fato deste tipo na fonte</span>}
+          </p>
           {Object.keys(t.relations).length > 0 && (
             <ul className="rels small">
               {Object.entries(t.relations).map(([rel, target]) => (

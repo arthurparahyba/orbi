@@ -98,6 +98,8 @@ export const CreateDomain = v.object({
 });
 /** PATCH /api/brain/domains/:name — renomear. */
 export const RenameDomain = v.object({ name: DomainName });
+/** PUT /api/brain/types/:name/refresh — o procedimento que confere um fato deste tipo (fase D). */
+export const SetRefresh = v.object({ refresh: v.nullable(v.pipe(v.string(), v.trim(), v.minLength(1))) });
 /** PUT /api/brain/entities/:id/domain e .../types/:name/domain — nulo é comum. */
 export const SetDomain = v.object({ domain: v.nullable(DomainName) });
 const PlaybookStep = v.object({
@@ -254,6 +256,7 @@ export type EditEntity = v.InferOutput<typeof EditEntity>;
 export type CreateDomain = v.InferOutput<typeof CreateDomain>;
 export type RenameDomain = v.InferOutput<typeof RenameDomain>;
 export type SetDomain = v.InferOutput<typeof SetDomain>;
+export type SetRefresh = v.InferOutput<typeof SetRefresh>;
 export type EditPlaybook = v.InferOutput<typeof EditPlaybook>;
 export type SetAutonomy = v.InferOutput<typeof SetAutonomy>;
 export type CreateAgentClient = v.InferOutput<typeof CreateAgentClient>;

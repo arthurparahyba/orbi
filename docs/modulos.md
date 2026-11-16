@@ -91,6 +91,7 @@ lote atravessa `conhecimento` e `procedimentos` numa transação só.
 | `suggestDomain` | para qual domínio vai o que está sendo aprendido, e por quê: o tipo ganha da execução, tipo espalhado é comum, empate não decide |
 | `domainOverview` | a primeira tela do Cérebro: os domínios, o tamanho de cada um, quem empresta para quem, e o que ficou sem domínio |
 | `domainDetail` | um domínio aberto: vocabulário, fatos, playbooks que nasceram nele, e as pontes |
+| `howToRefresh` | como conferir um fato na fonte: qual procedimento roda, e desde quando ninguém confere |
 
 O resto da tela do Cérebro é uma checagem e uma chamada (editar, apagar, buscar). As quatro
 funcionalidades de procedimento que a tela usa moram em `procedures` e `trust`, não aqui: a rota
@@ -135,6 +136,7 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 | `procedureProofs` / `procedureProofState` | onde cada procedimento está em termos de prova, com a linha que a tela mostra |
 | `waiveStepProof` / `unwaiveStepProof` | "não provar este passo agora" (um deploy em produção), e o desfazer |
 | `runTranscript` | o que uma execução fez, chamada por chamada, como texto corrido |
+| `staleInputsOfRun` | os fatos que esta execução usou e que sabem se conferir na fonte — o que um passo que falhou pode reconferir |
 
 `startPipeline` serve a ferramenta do chat **e** a rota `POST /api/pipelines/:name/start` — é o
 retorno concreto da camada: um caminho só, não dois.

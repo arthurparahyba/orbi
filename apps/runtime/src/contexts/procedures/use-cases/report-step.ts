@@ -1,6 +1,7 @@
 import type { PlaybookRun, StepStatus } from '../../../language/index.ts';
 import type { OrbiServices } from '../../../services.ts';
 import { redact } from '../../secrets/index.ts';
+import { staleInputsOfRun } from './stale-inputs.ts';
 
 /**
  * Dar o andamento de um passo da execução em curso: rodando, feito, falhou, esperando, pulado.
@@ -17,6 +18,12 @@ export interface Reported {
   learned: ReturnType<OrbiServices['procedures']['execution']['learnedIn']>;
   /** Quando a execução acabou dentro de uma esteira: o que a esteira faz a seguir. */
   next?: ReturnType<OrbiServices['procedures']['pipelineDefs']['notePassage']> | string | null;
+  /**
+   * Quando um passo falhou: os fatos que esta execução usou e que sabem se conferir na fonte
+   * (documento 28, fase D). O passo foi buscar algo com um dado do cérebro e não achou — talvez o
+   * dado tenha mudado. Quem recebe decide se vale reconferir antes de dar a falha por definitiva.
+   */
+  canRefresh?: ReturnType<typeof staleInputsOfRun>;
 }
 
 export interface NotReported {
@@ -25,7 +32,7 @@ export interface NotReported {
   hint?: string;
 }
 
-type Deps = Pick<OrbiServices, 'procedures' | 'pipelines' | 'vault' | 'toolOutcomes' | 'inbox' | 'followups'>;
+type Deps = Pick<OrbiServices, 'knowledge' | 'procedures' | 'pipelines' | 'vault' | 'toolOutcomes' | 'inbox' | 'followups'>;
 
 export async function reportStep(
   d: Deps,
@@ -40,10 +47,17 @@ export async function reportStep(
   } catch (error) {
     return { refused: error instanceof Error ? error.message : String(error) };
   }
-  if (run.status !== 'done' && run.status !== 'failed') return { run, learned: [] };
+  // Um passo que falhou pode ter falhado por dado velho: quem recebe decide se reconfere (doc 28).
+  const canRefresh = request.status === 'failed' ? staleInputsOfRun(d, request.runId) : [];
+  if (run.status !== 'done' && run.status !== 'failed') {
+    return { run, learned: [], ...(canRefresh.length ? { canRefresh } : {}) };
+  }
 
   // O nível e a revisão vêm quando o turno termina, depois de toda falha estar registrada.
-  return { run, learned: d.procedures.execution.learnedIn(run), next: d.pipelines.engine.runFinished(run) };
+  return {
+    run, learned: d.procedures.execution.learnedIn(run), next: d.pipelines.engine.runFinished(run),
+    ...(canRefresh.length ? { canRefresh } : {}),
+  };
 }
 
 /** As duas recusas que são regra, verificadas antes de mexer na execução. */

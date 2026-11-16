@@ -14,6 +14,13 @@ export interface OntologyType {
   requires: string[];
   /** The subject this type belongs to (documento 28). None = `comum`. */
   domain?: string | null;
+  /**
+   * O procedimento que confere na fonte um fato deste tipo (documento 28, fase D): a "receita".
+   * Fica no tipo e não no fato porque `conta-dev`, `conta-hom` e `conta-prod` se atualizam todas
+   * do mesmo jeito, mudando o parâmetro — receita por fato duplicaria e envelheceria em três
+   * lugares. Nulo é o normal: um tipo ganha receita quando merece, não por obrigação.
+   */
+  refresh?: string | null;
   /** Declared properties (name → what it is): what a procedure may cite as {{entrada.propriedade}}. */
   props?: Record<string, string>;
   /** What is known for every entity of the type (name → how): "de pé", "conectar", "achar". */

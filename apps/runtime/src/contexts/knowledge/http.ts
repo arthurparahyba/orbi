@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
-import { CreateDomain, EditEntity, EditPlaybook, RenameDomain, SetDomain, SetPlaybookAutonomy } from '@orbi/contracts';
+import { CreateDomain, EditEntity, EditPlaybook, RenameDomain, SetDomain, SetPlaybookAutonomy, SetRefresh } from '@orbi/contracts';
 import { procedureProofs, runTranscript, setProcedureAutonomy, unwaiveStepProof, waiveStepProof } from '../procedures/index.ts';
 import { procedureAutonomy } from '../trust/index.ts';
 import { entityPanel } from './use-cases/entity-panel.ts';
 import { domainOverview } from './use-cases/domain-overview.ts';
 import { domainDetail } from './use-cases/domain-detail.ts';
+import { howToRefresh } from './use-cases/how-to-refresh.ts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound } from '../../http/errors.ts';
 
@@ -61,6 +62,20 @@ export function brainRoutes(s: OrbiServices, overview: BrainOverview) {
       if (domain && !domains.get(domain)) throw notFound('domínio');
       domains.setTypeDomain(c.req.param('name'), domain);
       return c.json(knowledge.type(c.req.param('name')));
+    })
+    .put('/types/:name/refresh', async (c) => {
+      const { refresh } = await body(c, SetRefresh);
+      const name = c.req.param('name');
+      if (!knowledge.type(name)) throw notFound('tipo');
+      // A receita é o nome de um procedimento: apontar para o que não existe nunca é aceito.
+      if (refresh && !procedures.definition.playbook(refresh)) throw notFound('procedimento');
+      knowledge.upsertType({ ...knowledge.type(name)!, refresh });
+      return c.json(knowledge.type(name));
+    })
+    .get('/facts/:id/refresh', (c) => {
+      const how = howToRefresh(s, c.req.param('id'));
+      if ('refused' in how) throw notFound(how.refused === 'fato-nao-existe' ? 'fato' : how.detail);
+      return c.json(how);
     })
     .get('/domains', (c) => c.json(domainOverview(s)))
     .post('/domains', async (c) => {

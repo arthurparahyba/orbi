@@ -15,6 +15,7 @@ export { entityPanel, type EntityPanel, type NoEntity } from './use-cases/entity
 export { suggestDomain, type About, type Suggestion } from './use-cases/suggest-domain.ts';
 export { domainOverview, type DomainOverview } from './use-cases/domain-overview.ts';
 export { domainDetail, type DomainDetail, type NoDomain } from './use-cases/domain-detail.ts';
+export { howToRefresh, type Refresh, type NoRefresh } from './use-cases/how-to-refresh.ts';
 
 export { Domains } from './domains/src/domains.ts';
 export { DomainRepo } from './domains/src/repo.ts';

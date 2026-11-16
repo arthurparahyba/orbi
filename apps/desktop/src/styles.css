@@ -993,3 +993,5 @@ strong .merged { display: inline; font-weight: 600; }
 .found-in .ok { color: var(--green); }
 .found-in .warn-text { color: var(--amber); }
 .domain-fact { flex-wrap: wrap; }
+.onto-card header { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.onto-refresh { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }

@@ -31,6 +31,7 @@ export class Facts {
       knows: { ...before?.knows, ...type.knows },
       // Quem já tem domínio não o perde por um upsert que não fala dele (documento 28).
       domain: type.domain ?? before?.domain ?? null,
+      refresh: type.refresh ?? before?.refresh ?? null,
     });
   }
 

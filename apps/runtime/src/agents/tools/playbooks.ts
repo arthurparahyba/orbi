@@ -1,3 +1,4 @@
+
 import { reportStep, resolveStepInput, startProcedure } from '../../contexts/procedures/index.ts';
 import { learningLines } from '../../contexts/procedures/index.ts';
 import { proofLabel, proofOf } from '../../contexts/procedures/index.ts';
@@ -28,9 +29,24 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
   return [...playbooks].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, Math.max(0, size));
 }
 
-export const playbooks = defineCapability({ name: 'playbooks', needs: ['procedures', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents', 'followups'], register: usePlaybooks });
+/** O que o modelo faz com um fato que pode estar velho: reconferir é rodar um procedimento. */
+const RECONFERIR =
+  'Este passo usou fato do cérebro que sabe se conferir na fonte. Se a falha pode ser dado velho, ' +
+  'rode o procedimento indicado com playbook_start (o fato vai como parâmetro), veja se o valor ' +
+  'mudou, e só então decida se o passo falhou de verdade. Nunca mude o fato por conta própria: a ' +
+  'atualização passa pelo cartão como qualquer aprendizado.';
 
-function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOutcomes, inbox, config, codeAgents, followups }: Deps<'procedures' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents' | 'followups'>) {
+export const playbooks = defineCapability({
+  name: 'playbooks',
+  // `knowledge` é para saber quais fatos da execução sabem se conferir na fonte (documento 28, D).
+  needs: ['knowledge', 'procedures', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents', 'followups'],
+  register: usePlaybooks,
+});
+
+function usePlaybooks(
+  ctx: AgentContext,
+  { knowledge, procedures, vault, pipelines, toolOutcomes, inbox, config, codeAgents, followups }: Deps<'knowledge' | 'procedures' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents' | 'followups'>,
+) {
 
   const showRun = (runId: string) => {
     const run = procedures.execution.run(runId);
@@ -164,14 +180,18 @@ function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOut
     async run({ data }) {
       if (!ctx.activeRun) return { output: { error: 'nenhum playbook em execução' } };
       const reported = await reportStep(
-        { procedures, pipelines, vault, toolOutcomes, inbox, followups },
+        { knowledge, procedures, pipelines, vault, toolOutcomes, inbox, followups },
         { runId: ctx.activeRun.runId, conversationId: ctx.conversationId, stepId: data.stepId, status: data.status, note: data.note, outputs: data.outputs },
       );
       if ('refused' in reported) return { output: { error: reported.refused, ...(reported.hint ? { hint: reported.hint } : {}) } };
 
       const { run } = reported;
       showRun(run.id);
-      if (run.status !== 'done' && run.status !== 'failed') return { output: { runStatus: run.status } };
+      // Falhou com dado do cérebro no caminho: talvez o dado tenha mudado (documento 28, fase D).
+      const refresh = reported.canRefresh?.length
+        ? { podeReconferir: reported.canRefresh.map((r) => `${r.input} = ${r.fact} (${r.type}): confira com ${r.playbook}${r.checkedAt ? `, conferido em ${r.checkedAt.slice(0, 10)}` : ""}`), dica: RECONFERIR }
+        : {};
+      if (run.status !== 'done' && run.status !== 'failed') return { output: { runStatus: run.status, ...refresh } };
       ctx.setActiveRun(null);
       if (reported.learned.length) {
         ctx.ui({
@@ -182,7 +202,7 @@ function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOut
           items: reported.learned.map((l) => ({ input: l.input, value: l.value, entity: l.entity, learned: l.learned as 'alias' | 'created', undone: !!l.undone })),
         });
       }
-      return { output: { runStatus: run.status, ...(reported.next ? { esteira: reported.next } : {}) } };
+      return { output: { runStatus: run.status, ...(reported.next ? { esteira: reported.next } : {}), ...refresh } };
     },
   });
 }

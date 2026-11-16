@@ -8,6 +8,8 @@ export interface OntologyType {
   props?: Record<string, string>; knows?: Record<string, string>;
   /** O assunto a que o tipo pertence (documento 28). Nulo é `comum`. */
   domain?: string | null;
+  /** O procedimento que confere na fonte um fato deste tipo (documento 28, fase D). */
+  refresh?: string | null;
 }
 
 /**

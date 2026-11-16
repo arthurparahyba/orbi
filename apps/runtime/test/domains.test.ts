@@ -9,7 +9,8 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase } from '../src/db/database.ts';
-import { Domains, suggestDomain } from '../src/contexts/knowledge/index.ts';
+import { Domains, Facts, howToRefresh, suggestDomain } from '../src/contexts/knowledge/index.ts';
+import { PlaybookRepo } from '../src/contexts/procedures/index.ts';
 import { GraphRepo, OntologyRepo } from '../src/contexts/knowledge/index.ts';
 import type { Entity } from '../src/language/index.ts';
 import { foundInOf } from '../src/contexts/telemetry/index.ts';
@@ -142,4 +143,36 @@ test('o último de onde vale até outra chamada trazer informação nova', () =>
 
   outcomes.foundIn('c1', foundInOf('run_command', { binary: 'aws', args: ['ecs', 'list-clusters'] }, '2026-11-16T18:01:00.000Z'));
   assert.equal(outcomes.lastFoundIn('c1')?.kind, 'cli');
+});
+
+test('receita de atualização: como conferir um fato na fonte (documento 28, fase D)', () => {
+  const { db, domains, ontology, graph, type, fact } = fresh();
+  const playbooks = new PlaybookRepo(db);
+  const d = {
+    knowledge: new Facts(db, ontology, graph),
+    procedures: { definition: { playbook: (n: string) => playbooks.get(n) } },
+  } as never;
+
+  type('Conta');
+  fact('conta-dev', 'Conta', null);
+
+  const semReceita = howToRefresh(d, 'conta-dev');
+  assert.deepEqual('refused' in semReceita && semReceita.refused, 'tipo-sem-receita');
+  const semFato = howToRefresh(d, 'nao-existe');
+  assert.equal('refused' in semFato && semFato.refused, 'fato-nao-existe');
+
+  // A receita aponta para um procedimento que ainda não existe: isto tem de ser dito, não calado.
+  ontology.upsert({ name: 'Conta', description: 'conta', relations: {}, requires: [], refresh: 'atualizar-conta' });
+  const quebrada = howToRefresh(d, 'conta-dev');
+  assert.equal('refused' in quebrada && quebrada.refused, 'receita-nao-existe');
+  assert.match('refused' in quebrada ? quebrada.detail : '', /não existe mais/);
+
+  playbooks.save({
+    name: 'atualizar-conta', description: 'confere o número da conta', appliesTo: null, trigger: '',
+    autonomy: 'ask', steps: [{ id: 'ver', label: 'Ver', how: 'aws sts get-caller-identity' }], instructions: '', learnedFrom: null,
+  } as never);
+
+  const pronta = howToRefresh(d, 'conta-dev');
+  assert.deepEqual(pronta, { playbook: 'atualizar-conta', fact: 'conta-dev', type: 'Conta', checkedAt: null, foundIn: null });
+  assert.equal(domains.list().length, 0, 'receita não cria domínio nenhum');
 });

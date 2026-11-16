@@ -20,6 +20,7 @@ export { procedureProofs, procedureProofState } from './use-cases/procedure-proo
 export { waiveStepProof, unwaiveStepProof, type NotWaived } from './use-cases/waive-step-proof.ts';
 export { setProcedureAutonomy, type AutonomyChange, type AutonomyNotSet } from './use-cases/set-procedure-autonomy.ts';
 export { runTranscript, type Transcript, type NoRun } from './use-cases/run-transcript.ts';
+export { staleInputsOfRun, type Refreshable } from './use-cases/stale-inputs.ts';
 export { findSimilarProcedures } from './use-cases/find-similar.ts';
 export type { SimilarProcedure } from './use-cases/find-similar.ts';
 export { startProcedure } from './use-cases/start-procedure.ts';
