@@ -1,4 +1,4 @@
-import type { Edge, Entity, OntologyType, Playbook, PlaybookParam, ResolvedInput } from './types.ts';
+import type { Edge, Entity, OntologyType, Playbook, PlaybookParam, ResolvedInput } from '../../language/index.ts';
 import { DATA_NAME } from './playbooks.ts';
 
 /**

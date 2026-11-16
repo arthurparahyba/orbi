@@ -1,7 +1,7 @@
 import { entityProblems, isTypeName } from './ontology.ts';
 import { scriptProblems, type PlaybookScript } from './scripts.ts';
 import { pipelineProblems, type PipelineInputDef } from './pipelines.ts';
-import type { Autonomy, Edge, Entity, OntologyType, Playbook, PlaybookInput, PlaybookOutput, PlaybookStep, ProposalKind } from './types.ts';
+import type { Autonomy, Edge, Entity, OntologyType, Playbook, PlaybookInput, PlaybookOutput, PlaybookStep, ProposalKind } from '../../language/index.ts';
 
 /**
  * Learning: what Orbi proposes to remember waits for the developer. These rules

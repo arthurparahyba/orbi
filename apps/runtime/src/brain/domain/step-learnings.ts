@@ -4,7 +4,7 @@
  * itself. The run reads them when it starts and the review gets them with its request: whoever proposes
  * a change is trusted to use the history. Nothing is refused because of it. Pure rules.
  */
-import type { PlaybookRun } from './types.ts';
+import type { PlaybookRun } from '../../language/index.ts';
 
 export type LearningOutcome = 'falhou' | 'funcionou' | 'negado' | 'orbi';
 export const LEARNING_OUTCOMES: readonly LearningOutcome[] = ['falhou', 'funcionou', 'negado', 'orbi'];

@@ -1,7 +1,7 @@
 import { transaction } from '../../db/database.ts';
 import { edgeProblems, entityProblems, findGaps } from '../domain/ontology.ts';
 import { ftsQuery } from '../domain/similarity.ts';
-import type { Edge, Entity, Gap, OntologyType } from '../domain/types.ts';
+import type { Edge, Entity, Gap, OntologyType } from '../../language/index.ts';
 import { now } from '../repo/rows.ts';
 import type { BrainParts } from './parts.ts';
 import type { BrainStore } from '../store.ts';

@@ -1,7 +1,7 @@
-import type { Entity, Playbook, PlaybookRun, StepStatus } from '../brain/domain/types.ts';
+import type { Entity, Playbook, PlaybookRun, StepStatus } from '../language/index.ts';
 import type { ReadinessItem } from '../brain/domain/concepts.ts';
 import { agreementOf, type Agreement } from '../brain/domain/rehearsal.ts';
-import { RUNS_FOR_N3, type Level } from '../brain/domain/levels.ts';
+import { RUNS_FOR_N3, type Level } from '../language/index.ts';
 import type { ConversationState } from './state.ts';
 
 /**

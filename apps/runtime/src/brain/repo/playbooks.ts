@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Autonomy, Playbook, PlaybookInput, PlaybookRun } from '../domain/types.ts';
-import type { Deviation, Level, LevelState, RunAction } from '../domain/levels.ts';
+import type { Autonomy, Playbook, PlaybookInput, PlaybookRun } from '../../language/index.ts';
+import type { Deviation, Level, LevelState, RunAction } from '../../language/index.ts';
 import { json, now, nullable, parse, type Row } from './rows.ts';
 
 const toPlaybook = (r: Row): Playbook => ({

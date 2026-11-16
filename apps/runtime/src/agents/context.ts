@@ -1,7 +1,7 @@
 import type * as v from 'valibot';
 import type { UiComponent } from '@orbi/contracts';
-import type { AutonomyLevel, Category } from '../autonomy/policy.ts';
-import type { Effect } from '../brain/domain/levels.ts';
+import type { AutonomyLevel, Category } from '../contexts/trust/index.ts';
+import type { Effect } from '../language/index.ts';
 
 /** The playbook being run in this conversation, if any (persisted across turns). */
 export type ActiveRun = { runId: string; playbook: string; autonomy: AutonomyLevel } | null;

@@ -2,7 +2,7 @@ import type { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.
 import type { OrbiConfig } from './config.ts';
 import type { BrainStore } from './brain/store.ts';
 import type { Inbox } from './conversations/inbox.ts';
-import type { PolicyStore } from './autonomy/policy.ts';
+import type { PolicyStore } from './contexts/trust/index.ts';
 import type { Conversations } from './conversations/conversations.ts';
 import type { Followups } from './followups/service.ts';
 import type { Vault } from './contexts/secrets/index.ts';

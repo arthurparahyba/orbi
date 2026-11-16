@@ -1,6 +1,6 @@
 /** The brain's vocabulary: what it stores, as the rest of Orbi sees it. */
 import type { Deviation, Level, LevelBy, RunAction } from './levels.ts';
-import type { PlaybookScript } from './scripts.ts';
+import type { PlaybookScript } from '../brain/domain/scripts.ts';
 export type { PlaybookScript };
 
 export type Autonomy = 'observe' | 'ask' | 'auto';

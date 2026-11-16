@@ -1,4 +1,4 @@
-import type { Edge, Entity, Gap, OntologyType } from './types.ts';
+import type { Edge, Entity, Gap, OntologyType } from '../../language/index.ts';
 
 /** Ontology rules: which entities and relations are valid, and what is missing. No storage here. */
 

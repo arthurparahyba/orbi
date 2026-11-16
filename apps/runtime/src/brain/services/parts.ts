@@ -4,7 +4,7 @@ import type { GraphRepo } from '../repo/graph.ts';
 import type { PlaybookRepo } from '../repo/playbooks.ts';
 import type { PipelineRepo } from '../repo/pipelines.ts';
 import type { ProposalRepo } from '../repo/proposals.ts';
-import type { LevelRepo } from '../repo/levels.ts';
+import type { LevelRepo } from '../../contexts/trust/index.ts';
 import type { ProofRepo } from '../repo/proofs.ts';
 
 /** The database and the repositories every part of the brain shares. */

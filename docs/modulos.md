@@ -33,6 +33,12 @@ responde) e **módulo** (uma parte da resposta).
 Os três identificadores que circulam entre contextos são `conversation_id`, `run_id` e
 `playbook`. Carregar o id é livre; amarrar com chave estrangeira não.
 
+**A linguagem compartilhada** fica em `src/language/` (fase 4a): as palavras que todo contexto
+usa para falar das mesmas coisas — `Entity`, `Playbook`, `PlaybookRun`, `StepStatus`, `Level`,
+`Effect`, `Proposal`. Só tipos e constantes, sem estado e sem banco, então qualquer contexto a
+importa e ela não importa nenhum. As **regras** que usam essas palavras ficam no contexto a que
+pertencem: `decideAction` é de `confiança`, não da linguagem.
+
 ## Contextos
 
 ### conhecimento (`knowledge`) — o que o Orbi sabe
@@ -71,17 +77,29 @@ Tabelas: `playbooks`, `playbook_runs`, `run_calls`, `playbook_proofs`, `playbook
 
 ### confiança (`trust`) — o que ele pode fazer sozinho
 
-Hoje em `autonomy/`, `agents/gate.ts`, `brain/repo/levels.ts`, `inbox/approval.ts`.
+**Migrado** (fase 4a): `src/contexts/trust/`, com `index.ts` e a rota em `http.ts`.
 
 | Módulo | O que faz |
 |---|---|
-| `níveis` (`levels`) | o nível de autonomia por assunto e como ele sobe e desce |
-| `portão` (`gate`) | toda ação que muda algo passa aqui, com a categoria; decide pedir ou seguir |
-| `aprovação` (`approval`) | o cartão que o desenvolvedor responde e o que acontece depois do sim e do não |
+| `níveis` (`levels`) | o nível em que o procedimento está, como ele sobe e desce, e as ações que ele já conhece |
+| `política` (`policy`) | o que o desenvolvedor permite por assunto, e o efeito que cada ação tem |
 
-Interface pública: `decidir`, `nivel`, `subir`, `pedirAprovacao`, `categoria`.
+Interface pública: `Autonomy`, `LevelRepo`, `levelState`, `decideAction`, `askReason`,
+`settleLevel`, `levelAfterEdit`, `runDeviations`, `activeDeviations`, `workedAround`, `stepUses`,
+`isCallError`, `fingerprintWith`, `defaultFingerprint`, `decide`, `effectOfCategory`, `levelOf`,
+`parsePolicy`, `commandEffect`, `commandCategory`, `codeFixCategory`, `browserCategory`,
+`DEFAULT_POLICY`, `PolicyStore`, `autonomyRoutes`, e os tipos `Category`, `AutonomyLevel`,
+`AutonomyPolicy`, `AutonomyEvent`, `KnownAction`, `ProcedureStore`.
+
+O nível é uma coluna do procedimento, então `trust` decide e `procedures` guarda: o serviço
+recebe a porta estreita `ProcedureStore` (`get`, `setLevel`, `run`) em vez do `BrainStore`, e a
+dependência fica de mão única.
 
 Tabelas: `autonomy_events`, `playbook_known_actions`.
+
+O `portão` **não** é módulo deste contexto: `agents/gate.ts` é capability do Flue e fica na
+composição, aplicando estas regras a cada chamada de ferramenta. E `aprovação`
+(`inbox/approval.ts`, 23 linhas) é um handler da caixa de entrada: vai para `conversa`.
 
 ### melhoria (`improvement`) — como ele fica melhor
 

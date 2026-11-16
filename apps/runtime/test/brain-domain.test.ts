@@ -11,7 +11,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { EXAMPLE_TYPES, edgeProblems, entityProblems, findGaps } from '../src/brain/domain/ontology.ts';
 import { advanceRun, fillParams, newRun, playbookProblems } from '../src/brain/domain/playbooks.ts';
 import { changeFromProposal, proposalProblems } from '../src/brain/domain/learning.ts';
-import type { Edge, Entity, Playbook } from '../src/brain/domain/types.ts';
+import type { Edge, Entity, Playbook } from '../src/language/index.ts';
 import { openDatabase, schemaVersion } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
 

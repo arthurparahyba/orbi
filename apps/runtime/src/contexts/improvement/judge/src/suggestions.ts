@@ -1,5 +1,5 @@
-import type { PlaybookRun } from '../../../../brain/domain/types.ts';
-import { workedAround } from '../../../../brain/domain/levels.ts';
+import type { PlaybookRun } from '../../../../language/index.ts';
+import { workedAround } from '../../../trust/index.ts';
 
 /**
  * What the review learns from a run, without touching the database (documentos 19 and 26): a

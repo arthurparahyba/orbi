@@ -72,7 +72,9 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
     platform/           onde ele roda: os, env, preferences; dono da tabela settings
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)
     improvement/        como ele fica melhor: review, judge, diagnosis, report; rota em http.ts
-  src/{autonomy,browser,conversations,observability,terminal,voice}/
+    trust/              o que ele pode fazer sozinho: levels, policy; rota em http.ts
+  src/language/         a linguagem compartilhada: só tipos e constantes, importa contexto nenhum
+  src/{browser,conversations,observability,terminal,voice}/
   test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
@@ -119,7 +121,7 @@ cofre ou ponte MCP, `npm run e2e`.
 ## Regras da arquitetura
 
 - **Toda ação que muda algo passa pelo portão** (`agents/gate.ts`, via `ctx.gated`), com
-  uma categoria de `autonomy/policy.ts`. Leitura pode ser ferramenta comum. Nunca crie
+  uma categoria do contexto `trust` (`policy`). Leitura pode ser ferramenta comum. Nunca crie
   uma ferramenta que escreve, publica ou apaga sem o portão. `aprender` sempre pede aprovação.
   Única exceção: `playbook_resolve` (passo 0) guarda, sem cartão, o fato que uma entrada virou
   numa execução, só de um conceito que já existe e do tipo da entrada, com origem e Desfazer
@@ -187,7 +189,7 @@ cofre ou ponte MCP, `npm run e2e`.
   sugestão, e só o desenvolvedor aceita (`/api/agents/suggestions/:id/accept`). Rodar
   esteiras e pular perguntas de passagem são permissões desligadas por padrão.
 - **Autonomia que cresce**: dentro de um procedimento, o portão decide pelo nível (N1–N3,
-  `brain/domain/levels.ts`) e pela ação já ser conhecida. Apagar nunca roda sozinho, a não
+  o módulo `levels` de `trust`) e pela ação já ser conhecida. Apagar nunca roda sozinho, a não
   ser no N3 posto pelo desenvolvedor com a ação conhecida. Subir e descer é do runtime
   (`settleRun`), nunca do modelo, e sempre avisa (cartão e Pendências, com Manter).
 - **Revisão no fim da execução** (`review/review.ts`): o nível só muda quando o turno

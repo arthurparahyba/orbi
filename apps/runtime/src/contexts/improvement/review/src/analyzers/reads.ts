@@ -1,4 +1,4 @@
-import type { PlaybookRun } from '../../../../../brain/domain/types.ts';
+import type { PlaybookRun } from '../../../../../language/index.ts';
 import { EXPENSIVE_RUN_CHARS, type RunCall } from '../../../../../brain/domain/run-calls.ts';
 import type { RunAnalyzer, RunContext } from './types.ts';
 

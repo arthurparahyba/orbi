@@ -177,9 +177,44 @@ E um detalhe sobre teste: um teste de unidade pode alcançar o arquivo do módul
 (`improvement/report/src/issue.ts` para testar `anonymize`), porque o teste de fronteira guarda
 `src/`, não `test/`. Assim a interface pública não precisa crescer para acomodar teste.
 
-**Fase 4 — `knowledge`, `procedures` e `trust`.** A parte que dói, e por isso a
-última: é o `BrainStore` sendo repartido. Nesta fase os dois repos que atravessam assuntos se
-dividem e `brain/domain/types.ts` vira `linguagem/`.
+**Fase 4a — `language/` e `trust`. Feita.** A base da repartição do cérebro.
+
+`brain/domain/types.ts` virou `src/language/types.ts` e o vocabulário de autonomia
+(`Level`, `LevelBy`, `Effect`, `LEVEL_NAMES`, `RunAction`, `Deviation`, `LevelState`,
+`LevelChange`) saiu de `brain/domain/levels.ts` para `src/language/levels.ts`. A linguagem tem
+só tipos e constantes, sem estado e sem banco: qualquer contexto a importa e ela não importa
+nenhum, e por isso entrou em `SEMPRE_PERMITIDO` no teste de fronteira.
+
+As **regras** que usam esse vocabulário ficaram no contexto a que pertencem:
+`src/contexts/trust/` com dois módulos, `levels` (regras puras, repo e serviço) e `policy`
+(o que o desenvolvedor permite por assunto), mais a rota `/api/autonomy` em `http.ts`.
+
+O que a fase 4a ensinou:
+
+- **O `AutonomyService` criaria um ciclo, e a porta estreita resolveu.** O nível é uma coluna do
+  procedimento: `trust` decide, `procedures` guarda. Ele recebia o `BrainStore` inteiro — e
+  **nem usava**: só precisava de três operações. Agora recebe `ProcedureStore`
+  (`get`, `setLevel`, `run`), e a dependência é de mão única. Medir antes de mover mostrou que a
+  dependência declarada era maior que a real.
+- **Nem toda função pura vai para a linguagem.** `decideAction`, `settleLevel`, `isCallError` e
+  `fingerprintWith` são puras, mas são **política** — ficam em `trust`. A linguagem leva a
+  palavra, não a regra. Senão `language/` vira o novo depósito, com outro nome.
+- **Mais duas correções no mapa.** O `portão` (`agents/gate.ts`) não é módulo de `trust`: é
+  capability do Flue, adaptador fino como os agentes da fase 3, e fica na composição. E
+  `aprovação` (`inbox/approval.ts`, 23 linhas) é handler da caixa de entrada, e vai para
+  `conversa` na fase 5. `trust` tem dois módulos, não quatro.
+
+**Fase 4b — `knowledge`, `procedures` e o dono da transação.** O que dói de verdade: repartir o
+`BrainStore`, dividir `brain/repo/playbooks.ts` (hoje dono de `playbooks` **e** `playbook_runs`)
+e trazer `review_notes` da fase 3.
+
+A decisão que ainda falta tomar: **`BrainStore.learn` grava tipo, entidade, ligação, esteira e
+procedimento numa transação só, tudo ou nada** (documento 22). Isso atravessa `knowledge` e
+`procedures`, e a garantia não pode ser partida. Os contextos compartilham a mesma conexão
+SQLite, então a transação é possível — só precisa de um dono explícito. Provavelmente um
+contexto `learning`, que não está no mapa: ele seria dono de `proposals` e envolveria as
+operações dos dois vizinhos numa transação só. `stats()` e `exportMarkdown()`, que também
+atravessam contextos, vão para a composição, que é quem já os consome.
 
 **Fase 5 — `talk`, `tools`, `telemetry`.** Conserta as duas violações que sobram: o JOIN de
 `usage` em `conversations` e `conversations.ts` escrevendo em `agent_requests`.

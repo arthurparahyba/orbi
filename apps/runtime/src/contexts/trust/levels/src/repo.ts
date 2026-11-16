@@ -2,8 +2,8 @@ import type { DatabaseSync } from 'node:sqlite';
 import { monotonicFactory } from 'ulidx';
 
 const ulid = monotonicFactory();
-import type { RunAction } from '../domain/levels.ts';
-import { now, nullable, type Row } from './rows.ts';
+import type { RunAction } from '../../../../language/index.ts';
+import { now, nullable, type Row } from '../../../../brain/repo/rows.ts';
 
 export interface KnownAction extends RunAction {
   playbook: string;

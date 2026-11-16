@@ -1,4 +1,4 @@
-import type { Playbook, PlaybookOutput, PlaybookRun, StepStatus } from './types.ts';
+import type { Playbook, PlaybookOutput, PlaybookRun, StepStatus } from '../../language/index.ts';
 import { scriptProblems, type PlaybookScript } from './scripts.ts';
 
 /** Playbook rules: what a valid one looks like and how a run's status follows its steps. */

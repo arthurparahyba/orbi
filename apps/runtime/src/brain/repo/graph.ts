@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Edge, Entity } from '../domain/types.ts';
+import type { Edge, Entity } from '../../language/index.ts';
 import { json, now, parse, type Row } from './rows.ts';
 
 const toEntity = (r: Row): Entity => ({

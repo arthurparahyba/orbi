@@ -1,6 +1,7 @@
-import type { Preferences } from '../contexts/platform/index.ts';
-import { decideAction, type Effect, type Level, type LevelBy } from '../brain/domain/levels.ts';
-import { commandEffectOf, commandReads } from '../commands/index.ts';
+import type { Preferences } from '../../../platform/index.ts';
+import type { Effect, Level, LevelBy } from '../../../../language/index.ts';
+import { decideAction } from '../../levels/src/rules.ts';
+import { commandEffectOf, commandReads } from '../../../../commands/index.ts';
 
 /**
  * Autonomy levels, the same three the Rotinas screen shows:
@@ -98,7 +99,7 @@ export function effectOfCategory(category: Category): Effect {
 // ── command classification ────────────────────────────────────────────────
 // What each CLI does lives in src/commands/ (one profile per CLI): the policy only looks it up.
 
-export { gitVerbArgs } from '../commands/index.ts';
+export { gitVerbArgs } from '../../../../commands/index.ts';
 
 /** What a command does to the world (commands/<cli>.ts): `publica` reaches outside this machine, `apaga` removes. */
 export function commandEffect(binary: string, args: readonly string[]): 'leitura' | 'local' | 'publica' | 'apaga' {

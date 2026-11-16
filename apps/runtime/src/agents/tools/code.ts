@@ -1,7 +1,7 @@
 import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
-import { codeFixCategory } from '../../autonomy/policy.ts';
+import { codeFixCategory } from '../../contexts/trust/index.ts';
 import { asKnownProblem, fixedByCodeAgent } from '../../brain/domain/knowledge.ts';
 import { askShellPath } from './shell-setup.ts';
 import type { AgentContext } from '../context.ts';

@@ -10,7 +10,7 @@ import { edgeProblems, entityProblems, findGaps } from './domain/ontology.ts';
 import { ftsQuery, sharedStems } from './domain/similarity.ts';
 import { advanceRun, newRun, playbookProblems, recordOutputs } from './domain/playbooks.ts';
 import { changeFromProposal, proposalProblems } from './domain/learning.ts';
-import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookInput, PlaybookRun, Proposal, ProposalKind, StepStatus } from './domain/types.ts';
+import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookInput, PlaybookRun, Proposal, ProposalKind, StepStatus } from '../language/index.ts';
 import { OntologyRepo } from './repo/ontology.ts';
 import { PipelineRepo } from './repo/pipelines.ts';
 import { pipelineGaps, pipelineProblems, type Pipeline, type PipelineInputDef } from './domain/pipelines.ts';
@@ -18,11 +18,9 @@ import { playbookParams } from './domain/playbooks.ts';
 import { GraphRepo } from './repo/graph.ts';
 import { PlaybookRepo } from './repo/playbooks.ts';
 import { pipelineConfigProblems } from './domain/review.ts';
-import { LevelRepo, type AutonomyEvent, type KnownAction } from './repo/levels.ts';
-import {
-  decideAction, runDeviations, settleLevel, PASSAGE_STREAK,
-  type Deviation, type Level, type LevelChange, type LevelState, type RunAction,
-} from './domain/levels.ts';
+import { LevelRepo, type AutonomyEvent, type KnownAction } from '../contexts/trust/index.ts';
+import { PASSAGE_STREAK, type Deviation, type Level, type LevelChange, type LevelState, type RunAction } from '../language/index.ts';
+import { decideAction, runDeviations, settleLevel } from '../contexts/trust/index.ts';
 import { ProposalRepo } from './repo/proposals.ts';
 import { exportMarkdown } from './export.ts';
 import { now } from './repo/rows.ts';
@@ -30,13 +28,13 @@ import { now } from './repo/rows.ts';
 import type { BrainParts } from './services/parts.ts';
 import { Facts as FactsService } from './services/facts.ts';
 import { Procedures as ProceduresService } from './services/procedures.ts';
-import { Autonomy as AutonomyService } from './services/autonomy.ts';
+import { Autonomy as AutonomyService } from '../contexts/trust/index.ts';
 import { Execution as ExecutionService } from './services/execution.ts';
 import { PipelineDefs as PipelineDefsService } from './services/pipelineDefs.ts';
 import { Review as ReviewService } from './services/review.ts';
 import { ReviewNoteRepo } from './repo/review-notes.ts';
 
-export * from './domain/types.ts';
+export * from '../language/index.ts';
 export { EXAMPLE_TYPES } from './domain/ontology.ts';
 
 /**
@@ -81,7 +79,13 @@ export class BrainStore {
     const parts: BrainParts = { db: this.db, ontology: this.ontology, graphRepo: this.graphRepo, playbookRepo: this.playbookRepo, pipelineRepo: this.pipelineRepo, proposalRepo: this.proposalRepo, levels: this.levels, proofs: this.proofs };
     this.facts = new FactsService(parts, this);
     this.procedures = new ProceduresService(parts, this);
-    this.autonomy = new AutonomyService(parts, this);
+    // `trust` decides the level; the brain stores it. The port keeps the dependency one-way
+    // (documento 26, fase 4a): the context never reaches back into the brain.
+    this.autonomy = new AutonomyService(this.db, this.levels, {
+      get: (name) => this.playbookRepo.get(name),
+      setLevel: (name, state) => this.playbookRepo.setLevel(name, state),
+      run: (runId) => this.playbookRepo.run(runId),
+    });
     this.execution = new ExecutionService(parts, this);
     this.pipelineDefs = new PipelineDefsService(parts, this);
     this.learnings = new StepLearningRepo(this.db);

@@ -56,7 +56,6 @@ src/
 
   brain/                    cérebro: services/ (por assunto), store.ts (aprendizado + atalhos), domain/ (regras puras), repo/ (SQL)
   conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
-  autonomy/policy.ts        observar · perguntar · automático, por categoria e por playbook
   terminal/exec.ts          execução sem shell, com allowlist
   followups/                retornos agendados: estados, serviço, agendador (entrega com nova tentativa)
   code-agents/              agentes de código da máquina: cadastro, catálogo, tarefas, descoberta, executor em worktree
@@ -72,6 +71,11 @@ src/
     improvement/            como ele fica melhor: review (olha a execução e propõe ajuste),
                             judge (defeito do procedimento x chamada errada do modelo),
                             diagnosis (detectores + tabela), report (relatório e issue)
+    trust/                  o que ele pode fazer sozinho: levels (o nível do procedimento, como
+                            sobe e desce, as ações conhecidas), policy (observar · perguntar ·
+                            automático, por categoria e por playbook) e /api/autonomy
+  language/                 a linguagem compartilhada: Entity, Playbook, PlaybookRun, Level,
+                            Effect, Proposal — só tipos e constantes, importa contexto nenhum
   observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
                             usage.ts (uso por conversa e por dia)
 

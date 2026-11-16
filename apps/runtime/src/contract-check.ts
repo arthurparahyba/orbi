@@ -11,7 +11,7 @@ import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun }
 import type { DemoAction, NarrationSegment, Recording, Target } from './browser/recorder.ts';
 import type { ConversationInfo } from './conversations/conversations.ts';
 import type { InboxItem } from './conversations/inbox.ts';
-import type { AutonomyLevel, Category } from './autonomy/policy.ts';
+import type { AutonomyLevel, Category } from './contexts/trust/index.ts';
 import type { SecretInfo } from './contexts/secrets/index.ts';
 import type { AgentClient } from './mcp/clients.ts';
 import type { VoiceStatus } from './voice/model.ts';

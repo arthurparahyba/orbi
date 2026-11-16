@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { McpToolKind } from '@orbi/contracts';
 import { SECRET_REF } from '../contexts/secrets/index.ts';
-import type { Effect } from '../brain/domain/levels.ts';
-import type { McpCategory } from '../autonomy/policy.ts';
+import type { Effect } from '../language/index.ts';
+import type { McpCategory } from '../contexts/trust/index.ts';
 
 /**
  * MCP servers Orbi uses (docs/funcionalidades/20): the rules, pure. What a tool does, which

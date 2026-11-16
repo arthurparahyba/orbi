@@ -1,4 +1,4 @@
-import { runDeviations } from '../../../../../brain/domain/levels.ts';
+import { runDeviations } from '../../../../trust/index.ts';
 import { stepClaimProblems } from '../../../judge/src/suggestions.ts';
 import type { RunAnalyzer } from './types.ts';
 

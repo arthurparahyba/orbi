@@ -15,7 +15,7 @@ const config = loadConfig();
 const browserMcp = createBrowserMcp({ port: config.chrome.port, token: config.chrome.token });
 const callBrowserTool = (tool: string, args: Record<string, unknown>) => browserMcp.call(tool, args);
 import { createBrowserMcp } from '../src/browser/mcp/chrome-devtools.ts';
-import { BROWSER_READ_TOOLS } from '../src/autonomy/policy.ts';
+import { BROWSER_READ_TOOLS } from '../src/contexts/trust/index.ts';
 
 const PORTAL_HTML = `<!doctype html><html lang="pt-BR"><head><title>Portal interno — menus</title></head><body>
 <h1>Menu: Portal Clientes</h1>

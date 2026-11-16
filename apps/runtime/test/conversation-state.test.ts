@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { conversationState } from '../src/conversations/state.ts';
 import { finishRehearsal, newRehearsal, rehearsalStep } from '../src/brain/domain/rehearsal.ts';
-import type { PlaybookRun } from '../src/brain/domain/types.ts';
+import type { PlaybookRun } from '../src/language/index.ts';
 
 /** Where a conversation is, for the teaching screen (docs/funcionalidades/01): derived, never stored. */
 

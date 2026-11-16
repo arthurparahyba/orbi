@@ -1,7 +1,7 @@
 import { transcript } from '../../brain/domain/run-calls.ts';
 import { proofLabel, proofOf } from '../../brain/domain/proofs.ts';
 import { Hono } from 'hono';
-import { RUNS_FOR_N3 } from '../../brain/domain/levels.ts';
+import { RUNS_FOR_N3 } from '../../language/index.ts';
 import { EditEntity, EditPlaybook, SetPlaybookAutonomy, type PlaybookProof } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { HttpError, body, notFound } from '../errors.ts';

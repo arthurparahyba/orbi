@@ -1,4 +1,4 @@
-import type { PlaybookRun } from '../brain/domain/types.ts';
+import type { PlaybookRun } from '../language/index.ts';
 import { agreementOf } from '../brain/domain/rehearsal.ts';
 
 /**

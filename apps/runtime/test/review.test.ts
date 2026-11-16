@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { BrainStore } from '../src/brain/store.ts';
 import { stepClaimProblems } from '../src/contexts/improvement/judge/src/suggestions.ts';
 import { pipelineConfigProblems } from '../src/brain/domain/review.ts';
-import { commandCategory } from '../src/autonomy/policy.ts';
+import { commandCategory } from '../src/contexts/trust/index.ts';
 import { savePath } from '../src/agents/tools/terminal.ts';
 import { join, resolve } from 'node:path';
 import { reviewInstruction } from '../src/contexts/improvement/index.ts';

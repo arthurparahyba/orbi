@@ -1,4 +1,4 @@
-import type { Entity } from './types.ts';
+import type { Entity } from '../../language/index.ts';
 
 /**
  * A fact someone proposes against what the brain already has (docs/funcionalidades/22), pure:

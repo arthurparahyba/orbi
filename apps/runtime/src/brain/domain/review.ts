@@ -5,10 +5,10 @@
  *
  * What the review learns from a run went to the `improvement` context (judge/src/suggestions.ts).
  */
-import type { Playbook, PlaybookRun } from './types.ts';
+import type { Playbook, PlaybookRun } from '../../language/index.ts';
 import type { Pipeline, PipelineInputDef } from './pipelines.ts';
 import { playbookParams } from './playbooks.ts';
-import { workedAround } from './levels.ts';
+import { workedAround } from '../../contexts/trust/index.ts';
 
 export interface ConfigProblem {
   stage: string;

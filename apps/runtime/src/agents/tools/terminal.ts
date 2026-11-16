@@ -8,7 +8,7 @@ import { defineCapability, type Deps } from '../capability.ts';
 import { ShellNeededError, runCommand, runShell } from '../../terminal/exec.ts';
 import { askShellPath } from './shell-setup.ts';
 import { shellEffect } from '../../terminal/shell.ts';
-import { commandCategory, commandEffect } from '../../autonomy/policy.ts';
+import { commandCategory, commandEffect } from '../../contexts/trust/index.ts';
 import { homedir } from 'node:os';
 import type { AgentContext } from '../context.ts';
 import { runAndReport } from '../../terminal/runner.ts';

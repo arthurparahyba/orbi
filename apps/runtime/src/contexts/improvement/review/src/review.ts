@@ -2,10 +2,10 @@ import { failedAttempts, learningLines } from '../../../../brain/domain/step-lea
 import { retrospective } from './retrospective.ts';
 import { countsLine, worthTelling } from '../../diagnosis/src/diagnoses.ts';
 import type { ExecutionReview, Finding } from '@orbi/contracts';
-import type { PlaybookRun } from '../../../../brain/domain/types.ts';
+import type { PlaybookRun } from '../../../../language/index.ts';
 import { judge } from '../../judge/src/judge.ts';
 import type { OrbiServices } from '../../../../services.ts';
-import { LEVEL_NAMES } from '../../../../brain/domain/levels.ts';
+import { LEVEL_NAMES } from '../../../../language/index.ts';
 import { pipelineConfigProblems, type ConfigProblem } from '../../../../brain/domain/review.ts';
 import { defaultSuggestions } from '../../judge/src/suggestions.ts';
 import { analyzeRun, howToFix } from './analyzers/index.ts';

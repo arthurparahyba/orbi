@@ -10,7 +10,7 @@ import { inboxRoutes } from './routes/inbox.ts';
 import { recordingRoutes } from './routes/recordings.ts';
 import { vaultRoutes } from '../contexts/secrets/index.ts';
 import { brainRoutes } from './routes/brain.ts';
-import { autonomyRoutes } from './routes/autonomy.ts';
+import { autonomyRoutes } from '../contexts/trust/index.ts';
 import { healthRoutes } from './routes/health.ts';
 import { eventRoutes } from './routes/events.ts';
 import { usageRoutes } from './routes/usage.ts';

@@ -1,7 +1,7 @@
 import { defineMcpConnection } from '../../agents/runtime-port.ts';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { BROWSER_READ_TOOLS } from '../../autonomy/policy.ts';
+import { BROWSER_READ_TOOLS } from '../../contexts/trust/index.ts';
 
 export interface BrowserMcp {
   /**

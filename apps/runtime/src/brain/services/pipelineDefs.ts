@@ -2,7 +2,7 @@ import { transaction } from '../../db/database.ts';
 import { pipelineGaps, pipelineProblems, type Pipeline, type PipelineInputDef } from '../domain/pipelines.ts';
 import { playbookParams } from '../domain/playbooks.ts';
 import { pipelineConfigProblems } from '../domain/review.ts';
-import { PASSAGE_STREAK } from '../domain/levels.ts';
+import { PASSAGE_STREAK } from '../../language/index.ts';
 import type { BrainParts } from './parts.ts';
 import type { BrainStore } from '../store.ts';
 

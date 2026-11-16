@@ -16,11 +16,12 @@ const SRC = resolve(import.meta.dirname, '../src');
 const CONTEXTS = join(SRC, 'contexts');
 
 /**
- * O que qualquer contexto pode alcançar sempre: as peças da composição com que todo contexto
- * conversa. `services.ts` é o conjunto que a rota recebe e `http/errors.ts` é o formato de erro
- * da API — contrato, não funcionalidade de outro contexto. Esta lista não cresce sem discussão.
+ * O que qualquer contexto pode alcançar sempre: a linguagem compartilhada (`language/`, só
+ * tipos e constantes, que não importa contexto nenhum) e as peças da composição com que todo
+ * contexto conversa — `services.ts`, o conjunto que a rota recebe, e `http/errors.ts`, o formato
+ * de erro da API. Contrato, não funcionalidade de outro contexto. Não cresce sem discussão.
  */
-const SEMPRE_PERMITIDO = ['services.ts', 'http/errors.ts'];
+const SEMPRE_PERMITIDO = ['services.ts', 'http/errors.ts', 'language/'];
 
 /**
  * Pastas que ainda não viraram contexto e que um contexto pode alcançar por enquanto.
@@ -35,6 +36,9 @@ const AINDA_FORA: Record<string, string[]> = {
   // fase 4; `pipelines/` vai para `procedures` na mesma fase; `conversations/`, `terminal/`,
   // `code-agents/` e `observability/` viram `talk`, `tools` e `telemetry` na fase 5.
   improvement: ['brain/domain/', 'pipelines/', 'conversations/', 'terminal/', 'code-agents/', 'observability/', 'version.ts', 'agents/runtime-port.ts'],
+  // `commands/` e `mcp-client/` viram o contexto `tools` na fase 5; `db/database.ts` é o
+  // runner das migrações, que fica na composição, e `brain/repo/rows.ts` sai na fase 4b.
+  trust: ['commands/', 'mcp-client/', 'db/database.ts', 'brain/repo/rows.ts'],
 };
 
 const files = (dir: string): string[] =>

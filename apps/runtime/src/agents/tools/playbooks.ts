@@ -8,7 +8,7 @@ import type { Followups } from '../../followups/service.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../contexts/secrets/index.ts';
 import type { ActiveRun, AgentContext } from '../context.ts';
-import { LEVEL_NAMES } from '../../brain/domain/levels.ts';
+import { LEVEL_NAMES } from '../../language/index.ts';
 import { RESOLVE_RULES, RUN_RULES, RUN_RULES_WITH_CODE } from '../prompt.ts';
 
 /** The playbook running in this conversation, kept across turns. */

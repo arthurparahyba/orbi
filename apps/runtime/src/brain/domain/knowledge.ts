@@ -7,8 +7,8 @@
  * says who fixes it (`quem_corrige`: the coding agent) and how to check before applying (`conferir`).
  * Pure rules.
  */
-import type { Entity } from './types.ts';
-import type { Deviation } from './levels.ts';
+import type { Entity } from '../../language/index.ts';
+import type { Deviation } from '../../language/index.ts';
 import { stem, words } from './similarity.ts';
 
 export interface KnownProblem {

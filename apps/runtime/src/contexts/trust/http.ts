@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { SetAutonomy } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
-import { body } from '../errors.ts';
-import { levelOf, type AutonomyLevel } from '../../autonomy/policy.ts';
+import { body } from '../../http/errors.ts';
+import { levelOf, type AutonomyLevel } from './policy/src/policy.ts';
 import { categoryOf } from '../../mcp-client/domain.ts';
 
 /** Global autonomy levels per kind of action (the Autonomia screen). */

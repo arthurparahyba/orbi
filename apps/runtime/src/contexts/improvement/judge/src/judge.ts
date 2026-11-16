@@ -6,8 +6,8 @@
  * run did not get to the end or the gain is high. Everything else is kept as an idea, quietly.
  * Pure rules (docs/funcionalidades/19).
  */
-import type { Deviation, RunAction } from '../../../../brain/domain/levels.ts';
-import { workedAround } from '../../../../brain/domain/levels.ts';
+import type { Deviation, RunAction } from '../../../../language/index.ts';
+import { workedAround } from '../../../trust/index.ts';
 import type { KnownProblem } from '../../../../brain/domain/knowledge.ts';
 
 /** A change that saves at least this share of the run's approvals (or time, or tokens) is worth it. */

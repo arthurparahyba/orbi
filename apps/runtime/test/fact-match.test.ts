@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyEntity, mergeEntity, verdictLine } from '../src/brain/domain/fact-match.ts';
-import type { Entity } from '../src/brain/domain/types.ts';
+import type { Entity } from '../src/language/index.ts';
 
 /** A proposed fact against the brain (docs/funcionalidades/22). */
 const pagamentos: Entity = { id: 'pagamentos-api', type: 'Aplicacao', props: { repositorio: 'org/pagamentos-api', time: 'pag' }, body: '', aliases: ['pagamentos'], updatedAt: '' };

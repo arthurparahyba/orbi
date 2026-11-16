@@ -2,10 +2,11 @@ import { useAgentStart, useDelivery, usePersistentState, useTool } from './runti
 import type * as v from 'valibot';
 import type { UiComponent } from '@orbi/contracts';
 import type { Deps } from './capability.ts';
-import { decide, effectOfCategory, type Category } from '../autonomy/policy.ts';
-import { askReason, defaultFingerprint, fingerprintWith, isCallError, type RunAction } from '../brain/domain/levels.ts';
+import { decide, effectOfCategory, type Category } from '../contexts/trust/index.ts';
+import { type RunAction } from '../language/index.ts';
+import { askReason, defaultFingerprint, fingerprintWith, isCallError } from '../contexts/trust/index.ts';
 import { marksOf } from '../brain/domain/run-calls.ts';
-import type { PlaybookRun } from '../brain/domain/types.ts';
+import type { PlaybookRun } from '../language/index.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
 import type { InboxItem } from '../conversations/inbox.ts';
 

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { findShell, gitToolDirs, shQuote, shellEffect, shellLine } from '../src/terminal/shell.ts';
 import { runCommand, runShell } from '../src/terminal/exec.ts';
-import { commandCategory, commandEffect } from '../src/autonomy/policy.ts';
+import { commandCategory, commandEffect } from '../src/contexts/trust/index.ts';
 import { DEFAULT_ALLOWED } from '../src/config.ts';
 
 test('shell: acha o Git Bash no Windows, aceita ORBI_SHELL e desliga com off', () => {

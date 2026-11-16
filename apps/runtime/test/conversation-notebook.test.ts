@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildNotebook, nextLevel } from '../src/conversations/notebook.ts';
 import { finishRehearsal, newRehearsal, rehearsalStep } from '../src/brain/domain/rehearsal.ts';
-import type { Entity, Playbook, PlaybookRun } from '../src/brain/domain/types.ts';
+import type { Entity, Playbook, PlaybookRun } from '../src/language/index.ts';
 
 /** The "O que estou aprendendo" panel (docs/funcionalidades/01): built from the brain, never by the model. */
 

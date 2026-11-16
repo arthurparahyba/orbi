@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Proposal, ProposalKind } from '../domain/types.ts';
+import type { Proposal, ProposalKind } from '../../language/index.ts';
 import { json, parse, type Row } from './rows.ts';
 
 /** Learning that waits for the developer's approval. */

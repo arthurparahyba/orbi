@@ -1,6 +1,6 @@
 import type { OrbiServices } from '../../../../services.ts';
 import type { Agent } from '../../../../agents/runtime-port.ts';
-import type { PlaybookRun } from '../../../../brain/domain/types.ts';
+import type { PlaybookRun } from '../../../../language/index.ts';
 import type { Observation } from '../../../../observability/run-observations.ts';
 import { tellAgent } from '../../../../conversations/tell.ts';
 import { redact } from '../../../secrets/index.ts';

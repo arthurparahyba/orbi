@@ -10,7 +10,7 @@ import { toValibot } from '../src/mcp-client/schema.ts';
 import { McpServers } from '../src/mcp-client/store.ts';
 import { McpHub } from '../src/mcp-client/hub.ts';
 import { migrate } from '../src/db/database.ts';
-import { decide, levelOf, parsePolicy } from '../src/autonomy/policy.ts';
+import { decide, levelOf, parsePolicy } from '../src/contexts/trust/index.ts';
 import { startFakeMcp } from './support/fake-mcp.ts';
 
 /** MCP servers the developer adds (docs/funcionalidades/20, fase 3): the rules, the store, the hub. */

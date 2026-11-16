@@ -1,10 +1,10 @@
-import { levelState } from '../domain/level-state.ts';
+import { levelState } from '../../contexts/trust/index.ts';
 import { transaction } from '../../db/database.ts';
 import { ftsQuery, sharedStems } from '../domain/similarity.ts';
 import { playbookProblems } from '../domain/playbooks.ts';
 import { inputProblems, leakedSpecifics } from '../domain/concepts.ts';
 import { testedRunProblem } from '../domain/rehearsal.ts';
-import type { Autonomy, Playbook, PlaybookInput } from '../domain/types.ts';
+import type { Autonomy, Playbook, PlaybookInput } from '../../language/index.ts';
 import type { BrainParts } from './parts.ts';
 import type { BrainStore } from '../store.ts';
 

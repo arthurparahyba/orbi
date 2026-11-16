@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { dump } from 'js-yaml';
-import type { Edge, Entity, Playbook } from './domain/types.ts';
+import type { Edge, Entity, Playbook } from '../language/index.ts';
 
 /** Read-only Markdown view of the brain (one note per entity and playbook), for Obsidian. */
 export function exportMarkdown(

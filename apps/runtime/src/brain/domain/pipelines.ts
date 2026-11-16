@@ -1,5 +1,5 @@
 import { DATA_NAME } from './playbooks.ts';
-import type { Playbook } from './types.ts';
+import type { Playbook } from '../../language/index.ts';
 
 /**
  * Esteiras: procedures in sequence, each stage handing data to the next. Pure

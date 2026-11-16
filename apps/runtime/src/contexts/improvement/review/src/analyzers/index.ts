@@ -1,5 +1,5 @@
 import type { Finding } from '@orbi/contracts';
-import type { PlaybookRun } from '../../../../../brain/domain/types.ts';
+import type { PlaybookRun } from '../../../../../language/index.ts';
 import type { RunAnalyzer, RunContext } from './types.ts';
 import { deviations, openRun, stepClaims } from './run-state.ts';
 import { inlineScripts, tablesByHand } from './scripts.ts';

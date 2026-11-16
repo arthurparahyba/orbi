@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { OntologyType } from '../domain/types.ts';
+import type { OntologyType } from '../../language/index.ts';
 import { json, parse, type Row } from './rows.ts';
 
 export class OntologyRepo {

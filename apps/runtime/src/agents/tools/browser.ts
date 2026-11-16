@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import type { BrowserMcp } from '../../browser/mcp/chrome-devtools.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import { redact } from '../../contexts/secrets/index.ts';
-import { browserCategory, effectOfCategory } from '../../autonomy/policy.ts';
+import { browserCategory, effectOfCategory } from '../../contexts/trust/index.ts';
 import type { AgentContext } from '../context.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';

@@ -17,7 +17,7 @@ import {
   commandCategory,
   decide,
   parsePolicy,
-} from '../src/autonomy/policy.ts';
+} from '../src/contexts/trust/index.ts';
 
 test('exec: só roda binários permitidos, sem shell', async () => {
   assert.throws(() => runCommand('bash', ['-c', 'echo oi']), CommandNotAllowedError);

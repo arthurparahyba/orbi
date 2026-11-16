@@ -1,3 +1,6 @@
+import type { Level, LevelBy, Effect, RunAction, Deviation, LevelState, LevelChange } from '../../../../language/index.ts';
+import { RUNS_FOR_N3, PASSAGE_STREAK } from '../../../../language/index.ts';
+
 /**
  * Autonomy that grows with use. Each playbook has a level:
  *   1 · Aprendendo  asks before every action that changes something
@@ -8,47 +11,6 @@
  * playbook that finished without deviation. Pure rules; the store keeps the state.
  */
 
-export type Level = 1 | 2 | 3;
-/** Who set the current level: learned (new), promoted/demoted by use, or the developer. */
-export type LevelBy = 'learned' | 'promoted' | 'demoted' | 'user';
-/** What an action does to the world, for deciding and for the approval card. */
-export type Effect = 'leitura' | 'local' | 'publica' | 'apaga';
-
-export const LEVEL_NAMES: Record<Level, string> = { 1: 'N1 · Aprendendo', 2: 'N2 · Assistido', 3: 'N3 · Autônomo' };
-/** Clean runs at N2 needed to reach N3 (one clean run takes N1 to N2). */
-export const RUNS_FOR_N3 = 3;
-/** Times the developer let an esteira's passage go on before it goes on by itself. */
-export const PASSAGE_STREAK = 3;
-
-export interface RunAction {
-  fingerprint: string;
-  tool: string;
-  effect: Effect;
-  /** One line, for the Cérebro screen. */
-  summary: string;
-  step: string | null;
-}
-
-export interface Deviation {
-  /** `comando`: a command that exited with an error. Not a problem by itself (a check may exit 1
-   * on purpose): it only feeds what the Orbi learns (domain/knowledge.ts), never the level. */
-  /** `intervencao`: the developer typed something during the run (often a correction): it may scope a change, never the level. */
-  /** `chamada`: the model called a tool wrongly (invalid arguments, a tool that does not exist): the model's slip, never the step's fault nor the level's. */
-  kind: 'falha' | 'negado' | 'passo' | 'comando' | 'intervencao' | 'chamada';
-  detail: string;
-  /** For `comando`: the command as run, to tell when the same one worked later. */
-  command?: string;
-  /** For `comando`: the error matched a known problem of the brain. */
-  known?: boolean;
-  /** The known problem the error matched (its entity id): to count how often it comes back. */
-  problem?: string;
-  tool?: string;
-  step?: string | null;
-  at: string;
-  /** A failure the same step got past right away (the same tool worked next): not a problem. */
-  recovered?: boolean;
-}
-
 /** The deviations that count: a slip fixed on the spot does not. */
 export const activeDeviations = (deviations: Deviation[]) => deviations.filter((d) => !d.recovered && d.kind !== 'comando' && d.kind !== 'intervencao' && d.kind !== 'chamada');
 
@@ -57,19 +19,6 @@ export const stepUses = (how: string | undefined, tool: string): boolean => !!ho
 
 /** A tool error that is a wrong call (arguments that do not validate, a tool that does not exist), not the tool failing at its work. */
 export const isCallError = (error: string | undefined): boolean => !!error && /^Validation failed for tool|^Tool .{1,80} not found|^Unknown tool|ferramenta .{1,80} não existe/i.test(error.trim());
-
-export interface LevelState {
-  level: Level;
-  levelMax: Level;
-  levelBy: LevelBy;
-  cleanStreak: number;
-}
-
-export interface LevelChange {
-  from: Level;
-  to: Level;
-  reason: string;
-}
 
 /**
  * What the autonomy gate does with one action of a running playbook (after the global rules:

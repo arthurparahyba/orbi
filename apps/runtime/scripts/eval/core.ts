@@ -3,7 +3,7 @@
  * records, the prompts of the simulated developer and of the judge, and reading the judge's
  * answer. Pure: no model, no server; the runner (scripts/eval-behavior.ts) does the calls.
  */
-import type { Entity, OntologyType, Playbook, PlaybookRun } from '../../src/brain/domain/types.ts';
+import type { Entity, OntologyType, Playbook, PlaybookRun } from '../../src/language/index.ts';
 
 /** One turn of a session: what the developer said or did, and what the Orbi answered and showed. */
 export interface Turn {

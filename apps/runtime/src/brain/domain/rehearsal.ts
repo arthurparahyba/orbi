@@ -1,4 +1,4 @@
-import type { PlaybookRun, StepStatus } from './types.ts';
+import type { PlaybookRun, StepStatus } from '../../language/index.ts';
 import { stepId } from './playbooks.ts';
 
 /**

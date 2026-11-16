@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BrainStore } from '../src/brain/store.ts';
-import { decideAction, fingerprintWith, settleLevel, type LevelState } from '../src/brain/domain/levels.ts';
-import { commandCategory, commandEffect, decide, parsePolicy } from '../src/autonomy/policy.ts';
+import { type LevelState } from '../src/language/index.ts';
+import { decideAction, fingerprintWith, settleLevel } from '../src/contexts/trust/index.ts';
+import { commandCategory, commandEffect, decide, parsePolicy } from '../src/contexts/trust/index.ts';
 import { withDefaults, inputProblems } from '../src/brain/domain/pipelines.ts';
 import { shortCommand } from '../src/agents/tools/terminal.ts';
 

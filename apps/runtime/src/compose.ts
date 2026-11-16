@@ -1,5 +1,5 @@
 import { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.ts';
-import { isCallError, stepUses } from './brain/domain/levels.ts';
+import { isCallError, stepUses } from './contexts/trust/index.ts';
 import { callSummary, marksOf, type CallApproval, type CallStatus } from './brain/domain/run-calls.ts';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
@@ -7,7 +7,7 @@ import { setProvider, type Agent } from './agents/runtime-port.ts';
 import { validateConfig, type OrbiConfig } from './config.ts';
 import { BrainStore } from './brain/store.ts';
 import { Inbox } from './conversations/inbox.ts';
-import { PolicyStore } from './autonomy/policy.ts';
+import { PolicyStore } from './contexts/trust/index.ts';
 import { Conversations } from './conversations/conversations.ts';
 import { Followups } from './followups/service.ts';
 import { startFollowups } from './followups/scheduler.ts';
