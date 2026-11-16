@@ -37,6 +37,7 @@ e [plugins](../plugins.md).
 | 23 | [Execução que não ensina errado](23-execucao-que-nao-ensina-errado.md) | O saveTo do navegador inteiro, a ordem dos passos travada, chamada errada do modelo que não culpa o passo, variação que herda da base, menos aprovações |
 | 24 | [Registro e diagnóstico](24-registro-e-diagnostico.md) | Cada chamada da execução guardada, tela de detalhes, leitura cara marcada e o diagnóstico que separa defeito do Orbi, do procedimento e do modelo; proposta: relatório pelo agente e issue |
 | 25 | [Procedimento provado](25-procedimento-provado.md) | Rascunho até rodar como está escrito, prova por passo que cai quando o passo muda, retrospectiva da execução, aprendizados do procedimento e mudança a pedido |
+| 26 | [Monolito modular](26-monolito-modular.md) | Contextos com `index.ts` e `migrations.ts` próprios, id entre contextos em vez de chave estrangeira, teste de fronteira, mapa vivo em `docs/modulos.md` e o combinado antes de cada funcionalidade |
 
 ## Como as funcionalidades se ligam
 

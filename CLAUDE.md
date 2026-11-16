@@ -6,10 +6,45 @@ conforme a autonomia que o desenvolvedor dá. Roda inteiro na máquina do usuár
 um app desktop (Tauri + React) e um runtime Node (Flue) com SQLite.
 
 Antes de mexer numa funcionalidade, leia o documento dela em
-`docs/funcionalidades/` (01 a 25). A visão geral está em `docs/arquitetura.md`, e o mapa visual
+`docs/funcionalidades/` (01 a 26). O mapa dos módulos — quais contextos existem, o que cada
+módulo faz, a interface pública de cada contexto e quem é dono de cada tabela — está em
+`docs/modulos.md`, e é o mapa que o combinado abaixo usa.
+A visão geral está em `docs/arquitetura.md`, e o mapa visual
 (o que o Orbi recebe em cada turno e o que chama em cada ponto de ensinar, executar e revisar) em
 `docs/mapa-visual/`: mudou um fluxo, atualize o quadro dele; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
+
+## Combinado antes de cada funcionalidade
+
+O desenvolvedor quer continuar fluente na arquitetura: usar os nomes dos módulos nas conversas
+e perceber, a cada funcionalidade, se a divisão ainda serve. Então antes de escrever código de
+qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Quatro itens, curtos:
+
+1. **Onde entra** — os contextos e módulos afetados, marcados na árvore de `docs/modulos.md`:
+   `~` alterado, `+` novo. Só os ramos que mudam, não a árvore inteira.
+2. **Interface pública** — o que entra ou muda no `index.ts` de cada contexto afetado, por nome
+   e assinatura. Se nada muda na interface, diga isso com essas palavras: é sinal de que a
+   funcionalidade é interna a um módulo, e isso é uma boa notícia.
+3. **Dados** — tabela ou coluna nova, e qual contexto é dono. Referência a outro contexto é id
+   em coluna solta; nunca chave estrangeira, nunca JOIN.
+4. **Precisa repensar os módulos?** — responda sempre, inclusive quando a resposta é não.
+   Quebre um módulo em dois quando ele passar a responder duas perguntas diferentes, quando a
+   interface pública do contexto passar de uns oito nomes, ou quando dois módulos do mesmo
+   contexto nunca forem usados juntos. Proponha contexto novo quando uma tabela nova não couber
+   na pergunta de nenhum contexto existente.
+
+Como apresentar: texto é suficiente, e a árvore de diretórios marcada costuma ser o mais claro.
+Diagrama de sequência ou de contexto quando a funcionalidade atravessa três contextos ou mais.
+Nunca o código da implementação — o desenvolvedor não quer revisar implementação no combinado,
+quer ver impacto.
+
+Não implemente antes do ok. Se ele pedir para seguir direto, mostre o combinado junto da
+primeira entrega, não depois dela. Terminada a implementação, atualize `docs/modulos.md` no
+mesmo commit e diga em uma linha o que mudou na interface pública.
+
+Fora do combinado também: ao falar de uma parte da aplicação, use o nome do módulo
+(`fatos`, `portao`, `papeis`), não o caminho do arquivo. É esse vocabulário que mantém os dois
+alinhados.
 
 ## Estrutura
 
@@ -85,6 +120,11 @@ cofre ou ponte MCP, `npm run e2e`.
   Única exceção: `playbook_resolve` (passo 0) guarda, sem cartão, o fato que uma entrada virou
   numa execução, só de um conceito que já existe e do tipo da entrada, com origem e Desfazer
   (documento 18). Não amplie a exceção: conceito, propriedade e procedimento passam pelo cartão.
+- **Fronteira de contexto** (documento 26, mapa em `docs/modulos.md`): dentro de um contexto os
+  módulos se conhecem; entre contextos só passa id em coluna solta, e o acesso é pelo `index.ts`
+  do contexto — nunca um arquivo de dentro, nunca chave estrangeira, nunca JOIN. Cada contexto é
+  dono das suas tabelas e as declara no seu próprio `migrations.ts`. O teste de fronteira acusa
+  import que atravessa.
 - **O código não conhece o domínio do usuário.** Nada de CI, GMUD ou portal específico no
   código: isso é aprendido e guardado no cérebro. O código dá capacidades genéricas.
 - **O cérebro começa vazio**, sem tipos. Não reintroduza tipos de fábrica; a demo usa
