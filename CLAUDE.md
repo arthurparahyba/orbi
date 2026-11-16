@@ -27,7 +27,9 @@ qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Cinc
    revisar antes de existir. Funcionalidade de uma ou duas chamadas não ganha caso de uso: diga isso.
 3. **Interface pública** — o que entra ou muda no `index.ts` de cada contexto afetado, por nome
    e assinatura. Se nada muda na interface, diga isso com essas palavras: é sinal de que a
-   funcionalidade é interna a um módulo, e isso é uma boa notícia.
+   funcionalidade é interna a um módulo, e isso é uma boa notícia. Se a tela lê o resultado, diga também o
+   que entra em `packages/contracts/src/api/<contexto>.ts` e em `apps/desktop/src/api/<contexto>.ts`:
+   são os mesmos onze contextos nos três lugares (documento 26, fase 6).
 4. **Dados** — tabela ou coluna nova, e qual contexto é dono. Referência a outro contexto é id
    em coluna solta; nunca chave estrangeira, nunca JOIN.
 5. **Precisa repensar os módulos?** — responda sempre, inclusive quando a resposta é não.

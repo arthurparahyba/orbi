@@ -132,6 +132,10 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 `startPipeline` serve a ferramenta do chat **e** a rota `POST /api/pipelines/:name/start` — é o
 retorno concreto da camada: um caminho só, não dois.
 
+O mesmo corte vale fora do runtime: `packages/contracts/src/api/<contexto>.ts` tem os tipos que a
+tela lê de cada contexto, e `apps/desktop/src/api/<contexto>.ts` os métodos que ela chama. Uma
+funcionalidade nova mexe nos três arquivos do mesmo contexto, e em nenhum arquivo de outro.
+
 Quatro contextos não têm `use-cases/`, e não é falta: `learning` tem a garantia da transação como
 razão de existir (`Learning.learn` é o fluxo, e é um só), `secrets`, `telemetry` e `platform`
 respondem cada rota com uma chamada — abrir uma pasta de casos de uso ali seria uma camada vazia.
