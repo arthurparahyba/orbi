@@ -12,6 +12,9 @@
  * commands      what each known program does (git, gh, aws, build)
  */
 
+export { testCodeAgent, type Tested, type NotTested } from './use-cases/test-code-agent.ts';
+export { startDemonstration, type NotStarted } from './use-cases/start-demonstration.ts';
+
 export * from './terminal/src/runner.ts';
 export * from './terminal/src/shell.ts';
 export * from './terminal/src/exec.ts';

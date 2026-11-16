@@ -4,7 +4,7 @@ import * as v from 'valibot';
 import { useTool } from '../runtime-port.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
-import { CATALOG, CODE_AGENT_TASKS, agentHelp, commandProblems, findAgents, testAgent } from '../../contexts/tools/index.ts';
+import { CATALOG, CODE_AGENT_TASKS, agentHelp, commandProblems, findAgents, testCodeAgent } from '../../contexts/tools/index.ts';
 
 /**
  * Setting up the coding agents of this machine, for the configuration chat (agents/configurador.ts):
@@ -102,12 +102,7 @@ function useCodeAgentSetup(ctx: AgentContext, { codeAgents, config }: Deps<'code
     command: (a) => codeAgents.get(a.agent)?.command ?? a.agent,
     summary: (a) => `Manda um pedido curto a ${a.agent} (gasta um pedido da conta dele)`,
     precheck: (a) => (codeAgents.get(a.agent) ? [] : [`agente não cadastrado: ${a.agent}`]),
-    execute: async (a) => {
-      const agent = codeAgents.get(a.agent)!;
-      const result = await testAgent(agent, { model: a.model ?? null, scratchDir: config.scratchDir, shell: config.shell, env: config.cliEnv });
-      if (agent.source !== 'env') codeAgents.recordTest(agent.id, result);
-      return JSON.stringify(result);
-    },
+    execute: async (a) => JSON.stringify(await testCodeAgent({ codeAgents, config }, a)),
     timeoutMs: 180_000,
   });
 }

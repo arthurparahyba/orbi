@@ -230,6 +230,24 @@ Interface pública: o que cada módulo exporta, mais as rotas `browserRoutes`, `
 `codeAgentRoutes` e `mcpServerRoutes`. Rodar um comando recebe a porta `CommandMemory`
 (problema conhecido, anotar a tentativa, saber se há execução aberta) em vez do agregado.
 
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `testCodeAgent` | manda um pedido curto a um agente cadastrado para saber se ele está instalado, logado e roda de uma vez; guarda o resultado, menos o do agente que veio do ambiente |
+| `startDemonstration` | começa uma gravação no navegador e, se a conversa ainda não tem nome, dá nome a ela |
+
+`testCodeAgent` serve a ferramenta `code_agent_test` **e** a rota `POST /api/code-agents/:id/test`
+— as três linhas estavam escritas nos dois lugares.
+
+Dos onze candidatos que a contagem grossa apontou aqui, só estes dois eram caso de uso. Os outros
+são uma chamada só com argumentos de infraestrutura montados em volta (`run_command` monta pastas,
+timeout, programas permitidos e entrega a `runAndReport`), ou um portão (`browser_read` recusa
+escrita e repassa), ou a mesma chamada repetida num laço (`code_agents_register` salva cada agente
+e atribui cada tarefa: duas chamadas, não cinco), ou falam com a conversa (`POST
+/api/recordings/:id/stop` entrega a linha do tempo ao agente quando a transcrição termina, e isso
+não pode morar num caso de uso). Ficam onde estão.
+
 Tabelas: `code_agents`, `code_agent_tasks`, `mcp_servers`, `mcp_tools`.
 
 ### `models` — com o que ele pensa

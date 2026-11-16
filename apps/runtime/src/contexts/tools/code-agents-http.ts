@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { AssignCodeAgentTask, SaveCodeAgent, TestCodeAgent, type CodeAgentsState } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
-import { CATALOG, CODE_AGENT_TASKS, CodeAgentError, testAgent, type CodeAgentTask } from './code-agents/src/index.ts';
+import { CATALOG, CODE_AGENT_TASKS, CodeAgentError, type CodeAgentTask } from './code-agents/src/index.ts';
+import { testCodeAgent } from './use-cases/test-code-agent.ts';
 import { HttpError, body, notFound } from '../../http/errors.ts';
 
 /**
@@ -38,11 +39,9 @@ export function codeAgentRoutes({ codeAgents, config }: Pick<OrbiServices, 'code
       return c.json(state());
     })
     .post('/:id/test', async (c) => {
-      const agent = codeAgents.get(c.req.param('id'));
-      if (!agent) throw notFound('agente de código');
       const { model } = await body(c, TestCodeAgent);
-      const result = await testAgent(agent, { model, scratchDir: config.scratchDir, shell: config.shell, env: config.cliEnv });
-      if (agent.source !== 'env') codeAgents.recordTest(agent.id, result);
+      const result = await testCodeAgent({ codeAgents, config }, { agent: c.req.param('id'), model });
+      if ('refused' in result) throw notFound('agente de código');
       return c.json(result);
     });
 }

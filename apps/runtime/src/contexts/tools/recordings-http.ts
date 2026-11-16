@@ -3,6 +3,7 @@ import { tellAgent } from '../talk/index.ts';
 import { StartRecording, StopRecording } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { demonstrationMessage } from './browser/src/recorder.ts';
+import { startDemonstration } from './use-cases/start-demonstration.ts';
 import { HttpError, body, notFound } from '../../http/errors.ts';
 import type { Agent } from '../../http/routes/types.ts';
 import { log } from '../telemetry/index.ts';
@@ -20,10 +21,8 @@ export function recordingRoutes({ recorder, conversations, events }: OrbiService
   return new Hono()
     .post('/', async (c) => {
       const req = await body(c, StartRecording);
-      const rec = await recorder.start(req.conversationId, { url: req.url || undefined, narrated: req.narrated }).catch((error: Error) => {
-        throw new HttpError(409, 'conflict', error.message);
-      });
-      if (conversations.get(req.conversationId)?.title === 'Nova conversa') conversations.touch(req.conversationId, 'Demonstração no navegador');
+      const rec = await startDemonstration({ recorder, conversations }, req);
+      if ('refused' in rec) throw new HttpError(409, 'conflict', rec.refused);
       return c.json(rec, 201);
     })
     .get('/active', (c) => c.json(recorder.active() ?? null))

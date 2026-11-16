@@ -2,6 +2,9 @@ import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
 import { transaction } from '../../../../db/database.ts';
 
+/** O nome de uma conversa que ninguém nomeou ainda: quem for dar nome a ela compara com este. */
+export const UNTITLED_CONVERSATION = 'Nova conversa';
+
 /** The sidebar list in the app. Flue keeps the transcripts; this keeps names and order. */
 export interface ConversationInfo {
   id: string;
@@ -32,7 +35,7 @@ export class Conversations {
     this.onDeleted.push(hook);
   }
 
-  create(title = 'Nova conversa'): ConversationInfo {
+  create(title = UNTITLED_CONVERSATION): ConversationInfo {
     const now = new Date().toISOString();
     const item = { id: `chat:${ulid().toLowerCase()}`, title, createdAt: now, updatedAt: now };
     this.insert(item);

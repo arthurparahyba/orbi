@@ -10,7 +10,7 @@
  * voice          local transcription: the model, its files, the warm-up
  */
 
-export { Conversations } from './conversations/src/conversations.ts';
+export { Conversations, UNTITLED_CONVERSATION } from './conversations/src/conversations.ts';
 export type { ConversationInfo, DeleteHook } from './conversations/src/conversations.ts';
 export { Inbox } from './conversations/src/inbox.ts';
 export type { InboxItem, InboxKind } from './conversations/src/inbox.ts';
