@@ -7,6 +7,7 @@
  * of joining its table.
  */
 
+export { foundInOf } from './src/found-in.ts';
 export * from './src/log.ts';
 export { UsageStore } from './src/usage.ts';
 export type { TitleOf, UsageReport } from './src/usage.ts';

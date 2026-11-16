@@ -1,8 +1,9 @@
 import { deniedAttempts } from '../../contexts/procedures/index.ts';
 import { howToProve, proofOf } from '../../contexts/procedures/index.ts';
 import { outOfScope } from '../../contexts/improvement/index.ts';
-import { classifyEntity } from '../../contexts/knowledge/index.ts';
-import type { Entity } from '../../language/index.ts';
+import { classifyEntity, suggestDomain } from '../../contexts/knowledge/index.ts';
+import type { Entity, FoundIn } from '../../language/index.ts';
+import { now } from '../../db/rows.ts';
 import { defineTool, useDelivery, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
@@ -152,9 +153,17 @@ export function learnTitle(items: Array<{ kind: string; payload: { name?: string
   return `Aprender: ${reason}`;
 }
 
-export const memory = defineCapability({ name: 'memory', needs: ['knowledge', 'learning', 'notes', 'procedures', 'config'], register: useBrain });
+export const memory = defineCapability({
+  name: 'memory',
+  // `domains` e `toolOutcomes` são para carimbar domínio e procedência no que entra (documento 28).
+  needs: ['knowledge', 'domains', 'learning', 'notes', 'procedures', 'toolOutcomes', 'config'],
+  register: useBrain,
+});
 
-function useBrain(ctx: AgentContext, { knowledge, learning, notes, procedures, config }: Deps<'knowledge' | 'learning' | 'notes' | 'procedures' | 'config'>) {
+function useBrain(
+  ctx: AgentContext,
+  { knowledge, domains, learning, notes, procedures, toolOutcomes, config }: Deps<'knowledge' | 'domains' | 'learning' | 'notes' | 'procedures' | 'toolOutcomes' | 'config'>,
+) {
   const delivery = useDelivery();
   useTool(brainQuery({ knowledge, procedures }));
   ctx.gated({
@@ -198,7 +207,15 @@ function useBrain(ctx: AgentContext, { knowledge, learning, notes, procedures, c
       }
     },
     execute: async (a) => {
-      const applied = learning.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
+      const stamped = stamp(inLearningOrder(a.items), {
+        foundIn: toolOutcomes.lastFoundIn(ctx.conversationId),
+        domain: suggestDomain({ domains }, {
+          runDomain: procedures.execution.openRunIn(ctx.conversationId)
+            ? procedures.definition.playbook(procedures.execution.openRunIn(ctx.conversationId)!.playbook)?.domain ?? null
+            : null,
+        }).domain,
+      });
+      const applied = learning.learn(stamped as never, a.reason, ctx.conversationId);
       for (const item of a.items as LearnItems) if (item.kind === 'playbook' && item.payload.name) notes.changeApplied(String(item.payload.name));
       saveLearnings({ knowledge, learning, notes, procedures }, a.items as LearnItems, ctx.conversationId, a.asked?.trim() ? 'pedido' : 'revisao');
       // A procedure whose steps never ran as they are written is not finished (documento 25).
@@ -209,6 +226,28 @@ function useBrain(ctx: AgentContext, { knowledge, learning, notes, procedures, c
 }
 
 type LearnItems = Array<{ kind: string; payload: Record<string, unknown> }>;
+
+/**
+ * Carimba em cada fato do lote de onde ele veio e de que domínio é (documento 28). O que o modelo
+ * tiver escrito nesses dois campos é descartado: ele não os escolhe — a ferramenta que produziu a
+ * informação sabe de onde ela é, e a cadeia de regras sabe o domínio. Por isso o carimbo vem
+ * depois, sobrescrevendo.
+ */
+function stamp(items: LearnItems, by: { foundIn: FoundIn | undefined; domain: string | null }): LearnItems {
+  const checkedAt = now();
+  return items.map((item) => {
+    if (item.kind === 'entity') {
+      // Sempre sobrescreve, inclusive com nada: se o modelo escreveu procedência, ela some aqui.
+      // Substituir só quando há o que pôr deixaria passar exatamente o caso que isto existe para
+      // impedir — o modelo dizendo de onde veio uma informação que ele não foi buscar.
+      const foundIn = by.foundIn ?? null;
+      return { ...item, payload: { ...item.payload, domain: by.domain, foundIn, checkedAt: foundIn ? checkedAt : null } };
+    }
+    // O playbook nasce no domínio dos fatos que ele descobriu: é o mesmo domínio do lote.
+    if (item.kind === 'type' || item.kind === 'playbook') return { ...item, payload: { ...item.payload, domain: by.domain } };
+    return item;
+  });
+}
 
 const stepsOf = (item: LearnItems[number]) => (item.payload.steps as Array<Record<string, unknown>>).map((st) => ({ id: String(st.id ?? ''), how: String(st.how ?? '') }));
 

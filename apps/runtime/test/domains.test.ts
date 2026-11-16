@@ -12,6 +12,8 @@ import { openDatabase } from '../src/db/database.ts';
 import { Domains, suggestDomain } from '../src/contexts/knowledge/index.ts';
 import { GraphRepo, OntologyRepo } from '../src/contexts/knowledge/index.ts';
 import type { Entity } from '../src/language/index.ts';
+import { foundInOf } from '../src/contexts/telemetry/index.ts';
+import { ToolOutcomes } from '../src/contexts/telemetry/index.ts';
 
 const fresh = () => {
   const db = openDatabase(join(mkdtempSync(join(tmpdir(), 'orbi-dom-')), 'orbi.db'));
@@ -114,4 +116,30 @@ test('apagar um domínio devolve o que era dele para comum, sem apagar conhecime
   assert.ok(graph.entity('bolo-de-cenoura'), 'o fato continua lá');
   assert.equal(graph.entity('bolo-de-cenoura')?.domain, null, 'e virou comum');
   assert.deepEqual(domains.typesIn(null), ['Receita']);
+});
+
+test('procedência: a chamada que produziu o dado diz de onde ele é (documento 28, fase C)', () => {
+  const at = '2026-11-16T18:00:00.000Z';
+
+  const comando = foundInOf('run_command', { binary: 'aws', args: ['sts', 'get-caller-identity', '--profile', 'dev'] }, at);
+  assert.deepEqual(comando, { kind: 'cli', ref: 'aws sts get-caller-identity --profile dev', at });
+
+  const pagina = foundInOf('browser_read', { tool: 'navigate_page', args: { url: 'https://wiki.empresa.com/gmud' } }, at);
+  assert.deepEqual(pagina, { kind: 'page', ref: 'https://wiki.empresa.com/gmud', at });
+
+  assert.equal(foundInOf('browser_read', { tool: 'take_snapshot' }, at), undefined, 'foto da página aberta não traz endereço: vale a procedência anterior');
+  assert.equal(foundInOf('playbooks', {}, at), undefined, 'pedir a lista de playbooks não traz informação do mundo');
+  assert.equal(foundInOf('ask_secret', { name: 'senha-portal' }, at), undefined, 'nem o nome de um segredo vira rastro');
+});
+
+test('o último de onde vale até outra chamada trazer informação nova', () => {
+  const outcomes = new ToolOutcomes();
+  outcomes.foundIn('c1', foundInOf('browser_read', { tool: 'navigate_page', args: { url: 'https://wiki.empresa.com/gmud' } }, '2026-11-16T18:00:00.000Z'));
+  outcomes.foundIn('c1', foundInOf('browser_read', { tool: 'take_snapshot' }, '2026-11-16T18:00:05.000Z'));
+
+  assert.equal(outcomes.lastFoundIn('c1')?.ref, 'https://wiki.empresa.com/gmud', 'a foto é daquela página mesmo');
+  assert.equal(outcomes.lastFoundIn('c2'), undefined, 'cada conversa tem a sua');
+
+  outcomes.foundIn('c1', foundInOf('run_command', { binary: 'aws', args: ['ecs', 'list-clusters'] }, '2026-11-16T18:01:00.000Z'));
+  assert.equal(outcomes.lastFoundIn('c1')?.kind, 'cli');
 });

@@ -1,3 +1,4 @@
+import { FoundInLine } from './FoundInLine';
 import { useEffect, useState } from 'react';
 import { api, type BrainSnapshot } from '../../api';
 import { colorOf, fmt, labelOf } from './look';
@@ -48,10 +49,11 @@ export function EntityDetail({ id, snapshot, onSelect, onDeleted }: { id?: strin
       )}
       {mode === 'edit' && <EntityEditor entity={e} onDone={(saved) => { setMode('view'); if (saved) setVersion((v) => v + 1); }} />}
       {mode !== 'edit' && e.body && <p>{e.body}</p>}
+      {mode !== 'edit' && <FoundInLine e={e} />}
       {mode !== 'edit' && (e.aliases?.length || e.source) && (
         <p className="muted small">
           {e.aliases?.length ? <>Também chamado: {e.aliases.map((a) => <code key={a}>{a}</code>)}. </> : null}
-          {e.source ? <>Origem: {sourceLabel(e.source)}.</> : null}
+          {e.source ? <>Escrito por: {sourceLabel(e.source)}.</> : null}
         </p>
       )}
       {mode !== 'edit' && props.length > 0 && (

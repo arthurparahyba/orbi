@@ -1,6 +1,8 @@
 import { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.ts';
 import { isCallError, stepUses } from './contexts/trust/index.ts';
 import { callSummary, marksOf, type CallApproval, type CallStatus } from './contexts/procedures/index.ts';
+import { foundInOf } from './contexts/telemetry/index.ts';
+import { now } from './db/rows.ts';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { setProvider, type Agent } from './agents/runtime-port.ts';
@@ -157,9 +159,12 @@ const openStep = (run: { steps: ReadonlyArray<{ id: string; status: string }> } 
  */
 export function recordCallStart(s: Pick<OrbiServices, 'procedures' | 'toolOutcomes'>, conversationId: string, call: { id: string; tool: string; args: unknown }): void {
   const summary = callSummary(call.args);
+  // De onde esta chamada traria informação (documento 28, fase C). Fica guardado com a chamada e
+  // só passa a valer quando ela executa: quem pediu aprovação e não rodou não é fonte de nada.
+  const origin = foundInOf(call.tool, (call.args ?? {}) as Record<string, unknown>, now());
+  s.toolOutcomes.startCall(call.id, { tool: call.tool, summary, origin });
   const run = s.procedures.execution.openRunIn(conversationId);
   if (run) s.procedures.calls.begin({ id: call.id, runId: run.id, conversationId, step: openStep(run), tool: call.tool, summary });
-  else s.toolOutcomes.startCall(call.id, { tool: call.tool, summary });
 }
 
 /** What the gate's answer says it did with the call, when the call went through the gate. */
@@ -177,6 +182,9 @@ export function recordCallEnd(s: Pick<OrbiServices, 'procedures' | 'toolOutcomes
   if (!outcome.id) return;
   const run = s.procedures.execution.openRunIn(conversationId);
   const started = s.toolOutcomes.takeCall(outcome.id);
+  // Executou de verdade: agora o que ela trouxe tem procedência (documento 28, fase C). Antes do
+  // registro, porque ensinar acontece fora de execução — e é justamente aí que se aprende mais.
+  if (!outcome.failed && gateOutcome(outcome.result).status === 'ok') s.toolOutcomes.foundIn(conversationId, started?.origin);
   // The call that opened this execution: its line is written now, in the run it created.
   if (!s.procedures.calls.get(outcome.id)) {
     if (!run || !started) return;

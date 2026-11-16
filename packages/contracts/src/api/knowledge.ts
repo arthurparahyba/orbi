@@ -10,12 +10,25 @@ export interface OntologyType {
   domain?: string | null;
 }
 
+/**
+ * Onde um fato foi achado no mundo (documento 28, fase C): a fonte de verdade dele, não o evento
+ * do Orbi que o escreveu. Derivado da chamada que produziu o dado, nunca escrito pelo modelo.
+ */
+export interface FoundIn {
+  kind: 'cli' | 'page' | 'file' | 'person' | 'screen';
+  /** Como se chega lá de novo: o comando, o endereço, o caminho, a conversa. */
+  ref: string;
+  at: string;
+}
+
 export interface Entity {
   id: string; type: string; props: Record<string, unknown>; body: string; updatedAt: string;
   /** Other names it goes by, and where the fact came from ("cartao:…", "execucao:…"). */
   aliases?: string[]; source?: string;
   /** O assunto em que foi aprendido (documento 28). Nulo é `comum`: vale em todo domínio. */
   domain?: string | null;
+  /** Onde foi achado no mundo, e quando o valor foi conferido lá pela última vez (fase C). */
+  foundIn?: FoundIn | null; checkedAt?: string | null;
 }
 
 export interface Edge { from: string; rel: string; to: string; attrs: Record<string, unknown>; validFrom: string; validTo: string | null }

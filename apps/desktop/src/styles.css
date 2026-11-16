@@ -988,3 +988,8 @@ strong .merged { display: inline; font-weight: 600; }
 .domain-detail h2 { font-size: 14px; margin: 0 0 4px; }
 .domain-list, .domain-bridge-list { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; }
 .domain-list li, .domain-bridge-list li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.found-in { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 0; }
+.found-in code, .found-in a { font-size: 11.5px; }
+.found-in .ok { color: var(--green); }
+.found-in .warn-text { color: var(--amber); }
+.domain-fact { flex-wrap: wrap; }

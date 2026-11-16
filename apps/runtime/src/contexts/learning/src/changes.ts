@@ -89,6 +89,11 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
           body: String(p.body ?? ''),
           ...(Array.isArray(p.aliases) ? { aliases: (p.aliases as unknown[]).map(String) } : {}),
           source: conversationId ? `cartao:${conversationId}` : 'cartao',
+          // Procedência e domínio são carimbados pela ferramenta antes da proposta, não escritos
+          // pelo modelo (documento 28): aqui só passam adiante.
+          ...(p.foundIn ? { foundIn: p.foundIn as Entity['foundIn'] } : {}),
+          ...(p.checkedAt ? { checkedAt: String(p.checkedAt) } : {}),
+          ...(p.domain === undefined ? {} : { domain: p.domain === null ? null : String(p.domain) }),
         },
       };
     case 'edge':
@@ -117,6 +122,8 @@ export function changeFromProposal(kind: ProposalKind, p: Record<string, unknown
           steps: p.steps as PlaybookStep[],
           instructions: String(p.instructions ?? ''),
           learnedFrom: conversationId || null,
+          // Carimbado pela ferramenta, não escrito pelo modelo (documento 28): aqui só passa adiante.
+          ...(p.domain === undefined ? {} : { domain: p.domain === null ? null : String(p.domain) }),
           // Left out (a correction of the steps), intent and inputs stay as they were (Procedures.savePlaybook).
           ...(p.intent !== undefined ? { intent: String(p.intent) } : {}),
           ...(Array.isArray(p.inputs)

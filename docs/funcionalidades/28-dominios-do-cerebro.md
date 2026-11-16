@@ -86,7 +86,7 @@ um domínio devolve o que era dele para `comum` sem apagar conhecimento.
 - **A** — feita. O domínio existe, é sugerido e herdado, e a tela mostra. Nenhuma busca mudou.
 - **B** — o escopo entra na busca, no `playbook_similar` e no passo 0. É onde o comportamento pode
   quebrar, e é onde está o ganho real.
-- **C** — procedência estruturada de cada dado (abaixo).
+- **C** — feita. Procedência estruturada de cada dado (abaixo).
 - **D** — o procedimento que atualiza um dado (abaixo).
 
 ## O que a fase A2/A3 ensinou
@@ -180,6 +180,36 @@ isso é uma falha e ponto. Com C e D, o caminho é mecânico:
 
 É um procedimento que conserta o próprio insumo, e é o motivo de C e D valerem a complexidade que
 o próprio pedido reconheceu ter.
+
+### O que a fase C ensinou
+
+**O carimbo tem de apagar, não só substituir.** Minha primeira versão punha a procedência só
+quando havia o que pôr (`...(by.foundIn ? { foundIn, checkedAt } : {})`). Quando a chamada não
+trazia procedência nenhuma, o que o **modelo** tinha escrito no campo sobrevivia — exatamente o
+caso que a regra existe para impedir: o modelo dizendo de onde veio uma informação que ele não foi
+buscar. O teste ponta a ponta pegou, porque ele escreve de propósito uma procedência falsa
+(`{ kind: 'person', ref: 'eu lembro de cabeça' }`) e confere que ela some. Agora o carimbo
+sobrescreve sempre, inclusive com nada.
+
+**Procedência é do fim da chamada, não do começo.** Eu carimbava em `recordCallStart`, onde os
+argumentos estão. Mas uma chamada que pediu aprovação e ficou esperando, ou que foi recusada, não
+trouxe informação nenhuma do mundo: não é fonte de nada. Agora a procedência fica guardada **com**
+a chamada em `startCall` e só passa a valer em `recordCallEnd`, se ela executou. E a promoção
+acontece antes do retorno antecipado que existe para chamadas fora de execução — senão a
+procedência só funcionaria dentro de uma execução, e ensinar acontece fora dela, que é justamente
+onde se aprende mais.
+
+**Nada guardado é uma resposta.** Uma chamada que não traz informação nova do mundo — tirar uma
+foto da página que já está aberta, pedir a lista de playbooks — deixa valendo a procedência
+anterior da conversa. A foto é daquela página mesmo. Por isso `foundInOf` devolve `undefined` em
+vez de um registro vazio, e o store só sobrescreve quando há algo.
+
+**`ask_secret` está de propósito fora.** Nem o nome de um segredo vira rastro.
+
+**O que ficou impreciso, e eu prefiro dizer:** um comando que executou mas terminou com erro
+(`cat` num arquivo que não existe) conta como procedência, porque o Orbi distingue "a chamada da
+ferramenta falhou" de "o programa saiu com código diferente de zero". Na prática o modelo não
+deveria aprender fato de um comando que falhou; se isso aparecer, o lugar de arrumar é aqui.
 
 ### A ordem recomendada
 

@@ -7,7 +7,7 @@
  * drop or reshape one the app uses.
  */
 import type * as C from '@orbi/contracts';
-import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun } from './language/index.ts';
+import type { Autonomy, Edge, Entity, FoundIn, Gap, OntologyType, Playbook, PlaybookRun } from './language/index.ts';
 import type { DemoAction, NarrationSegment, Recording, Target } from './contexts/tools/index.ts';
 import type { ConversationInfo } from './contexts/talk/index.ts';
 import type { InboxItem } from './contexts/talk/index.ts';
@@ -71,6 +71,7 @@ export type ContractChecks = [
   Check<Fits<Pipeline, C.Pipeline>>,
   Check<Fits<AgentRequest, C.AgentRequest>>,
   Check<Fits<AgentSuggestion, C.AgentSuggestion>>,
+  Check<Fits<FoundIn, C.FoundIn>>,
   Check<Fits<Domain, C.Domain>>,
   Check<Fits<DomainSize, C.DomainSize>>,
   Check<Fits<Bridge, C.Bridge>>,

@@ -20,6 +20,25 @@ export interface OntologyType {
   knows?: Record<string, string>;
 }
 
+/**
+ * Onde um fato foi achado **no mundo** (documento 28, fase C) — a fonte de verdade dele, não o
+ * evento do Orbi que o escreveu (isso é o `source`). Muita coisa que o Orbi guarda não está na
+ * LLM e nunca vai estar: o número de uma conta, uma página da documentação interna da empresa. O
+ * que dá para guardar é por onde se chega nela de novo.
+ *
+ * Nunca é escolhido pelo modelo: é derivado da chamada de ferramenta que produziu o dado — o
+ * terminal sabe o programa e os argumentos, o navegador sabe o endereço, o cofre sabe o nome do
+ * segredo. Mesmo princípio do domínio: herdado, não inventado.
+ */
+export interface FoundIn {
+  /** `cli` um programa, `page` um endereço, `file` um arquivo, `person` alguém disse, `screen` o desenvolvedor digitou. */
+  kind: 'cli' | 'page' | 'file' | 'person' | 'screen';
+  /** Como se chega lá de novo: o comando, o endereço, o caminho, a conversa. */
+  ref: string;
+  /** Quando foi visto assim. */
+  at: string;
+}
+
 export interface Entity {
   id: string;
   type: string;
@@ -31,6 +50,10 @@ export interface Entity {
   source?: string;
   /** The subject it was learned in (documento 28). None = `comum`: it holds in every domain. */
   domain?: string | null;
+  /** Onde foi achado no mundo (documento 28, fase C): a fonte de verdade. */
+  foundIn?: FoundIn | null;
+  /** Quando o valor foi conferido na fonte pela última vez. */
+  checkedAt?: string | null;
   updatedAt: string;
 }
 
@@ -65,6 +88,8 @@ export interface PlaybookOutput {
 }
 
 export interface Playbook {
+  /** O assunto a que o procedimento pertence (documento 28). Nulo é `comum`. */
+  domain?: string | null;
   name: string;
   description: string;
   /** Ontology type or entity the playbook applies to, e.g. "Repositorio" or "classe:FrontEnd". */

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, type Bridge } from '../../api';
 import { useLive } from '../../hooks';
+import { FoundInLine } from './FoundInLine';
 
 
 /**
@@ -105,10 +106,10 @@ export function DomainDetailPanel({ name, onBack, onChanged }: { name: string; o
         {facts.length === 0 ? <p className="muted small">Nenhum.</p> : (
           <ul className="domain-list">
             {facts.slice(0, 40).map((f) => (
-              <li key={f.id}>
+              <li key={f.id} className="domain-fact">
                 <code>{f.id}</code>
                 <span className="pill tiny">{f.type}</span>
-                {f.source && <span className="muted small">{f.source}</span>}
+                <FoundInLine e={f} />
               </li>
             ))}
           </ul>

@@ -1,3 +1,5 @@
+import type { FoundIn } from '../../../language/index.ts';
+
 /**
  * The last tool call of each conversation and whether it failed (fed by telemetry.ts). A playbook
  * step is not accepted as done right after its tool failed: the model fixes it, or reports the step
@@ -25,17 +27,38 @@ export class ToolOutcomes {
    * (docs/funcionalidades/24) writes its line at the start; a call that opens the execution itself
    * (`playbook_start`) has no run yet when it starts, so its line is written when it lands.
    */
-  private readonly starts = new Map<string, { tool: string; summary: string }>();
+  private readonly starts = new Map<string, { tool: string; summary: string; origin?: FoundIn }>();
+  /**
+   * De onde veio a última informação que entrou nesta conversa (documento 28, fase C). Mora aqui,
+   * junto da última chamada, porque é a chamada que sabe: quem aprende só colhe.
+   */
+  private readonly origins = new Map<string, FoundIn>();
 
-  startCall(id: string, call: { tool: string; summary: string }): void {
+  startCall(id: string, call: { tool: string; summary: string; origin?: FoundIn }): void {
     this.starts.set(id, call);
     if (this.starts.size > 500) this.starts.delete(this.starts.keys().next().value!);
   }
 
-  takeCall(id: string): { tool: string; summary: string } | undefined {
+  takeCall(id: string): { tool: string; summary: string; origin?: FoundIn } | undefined {
     const call = this.starts.get(id);
     this.starts.delete(id);
     return call;
+  }
+
+  /**
+   * Uma chamada **que executou** trouxe informação nova do mundo. Nada guardado = segue valendo a
+   * anterior. Uma chamada que pediu aprovação e não rodou, ou que falhou, não trouxe nada: não é
+   * procedência de nada, e o carimbo não pode acontecer no começo da chamada por isso.
+   */
+  foundIn(conversationId: string, origin: FoundIn | undefined): void {
+    if (!origin) return;
+    this.origins.set(conversationId, origin);
+    if (this.origins.size > 500) this.origins.delete(this.origins.keys().next().value!);
+  }
+
+  /** De onde veio a última informação desta conversa, para quem for guardá-la no cérebro. */
+  lastFoundIn(conversationId: string): FoundIn | undefined {
+    return this.origins.get(conversationId);
   }
 
   record(conversationId: string, outcome: ToolOutcome): void {
@@ -50,5 +73,6 @@ export class ToolOutcomes {
 
   clear(conversationId: string): void {
     this.last.delete(conversationId);
+    this.origins.delete(conversationId);
   }
 }

@@ -18,6 +18,7 @@ const toPlaybook = (r: Row): Playbook => ({
   variationOf: nullable(r.variation_of),
   outputs: parse(r.outputs, []),
   scripts: parse(r.scripts, []),
+  domain: (r.domain as string | null) ?? null,
   level: Number(r.level ?? 1) as Level,
   levelMax: Number(r.level_max ?? 3) as Level,
   levelBy: String(r.level_by ?? 'learned') as Playbook['levelBy'],
@@ -52,18 +53,19 @@ export class PlaybookRepo {
   save(pb: PlaybookInput): void {
     this.db
       .prepare(
-        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at, level, level_by, scripts, intent, inputs, tested_run)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO playbooks (name, description, applies_to, trigger, autonomy, steps, instructions, learned_from, variation_of, outputs, uses, successes, updated_at, level, level_by, scripts, intent, inputs, tested_run, domain)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description, applies_to = excluded.applies_to,
            trigger = excluded.trigger, autonomy = excluded.autonomy, steps = excluded.steps,
            instructions = excluded.instructions, learned_from = excluded.learned_from,
            variation_of = excluded.variation_of, outputs = excluded.outputs, scripts = excluded.scripts, updated_at = excluded.updated_at,
-           intent = excluded.intent, inputs = excluded.inputs, tested_run = excluded.tested_run`,
+           intent = excluded.intent, inputs = excluded.inputs, tested_run = excluded.tested_run,
+           domain = COALESCE(excluded.domain, playbooks.domain)`,
       )
       // A new playbook marked "auto" was trusted by whoever made it: it starts at N3, set by the developer.
       .run(pb.name, pb.description, pb.appliesTo, pb.trigger, pb.autonomy, json(pb.steps), pb.instructions, pb.learnedFrom, pb.variationOf ?? null, json(pb.outputs ?? []), now(),
         pb.autonomy === 'auto' ? 3 : 1, pb.autonomy === 'auto' ? 'user' : 'learned', json(pb.scripts ?? []),
-        pb.intent ?? '', json(pb.inputs ?? []), pb.testedRun ?? null);
+        pb.intent ?? '', json(pb.inputs ?? []), pb.testedRun ?? null, pb.domain ?? null);
   }
 
   /** Removes a playbook. Its variations stay, no longer linked; its runs stay as history. Returns the variations detached. */

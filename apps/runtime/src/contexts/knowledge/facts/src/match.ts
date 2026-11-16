@@ -61,7 +61,12 @@ export function mergeEntity(existing: Entity | undefined, next: Omit<Entity, 'up
   const aliases = [...new Set([...(existing.aliases ?? []), ...(next.aliases ?? [])])].filter((a) => compact(a) !== compact(next.id));
   // O domínio de quem já está no cérebro não muda por um aprendizado que não fala dele (doc 28).
   const domain = next.domain ?? existing.domain ?? null;
-  return { ...next, props: { ...existing.props, ...next.props }, body: next.body?.trim() ? next.body : existing.body, aliases, source: next.source || existing.source, domain };
+  const foundIn = next.foundIn ?? existing.foundIn ?? null;
+  const checkedAt = next.checkedAt ?? existing.checkedAt ?? null;
+  return {
+    ...next, props: { ...existing.props, ...next.props }, body: next.body?.trim() ? next.body : existing.body,
+    aliases, source: next.source || existing.source, domain, foundIn, checkedAt,
+  };
 }
 
 /** One line for the card and the instruction: what happens to this fact. */

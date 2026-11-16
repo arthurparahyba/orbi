@@ -10,6 +10,8 @@ const toEntity = (r: Row): Entity => ({
   aliases: parse(r.aliases, []),
   source: String(r.source ?? ''),
   domain: (r.domain as string | null) ?? null,
+  foundIn: parse(r.found_in, null) as Entity['foundIn'],
+  checkedAt: (r.checked_at as string | null) ?? null,
   updatedAt: String(r.updated_at),
 });
 
@@ -32,12 +34,19 @@ export class GraphRepo {
     const updatedAt = now();
     this.db
       .prepare(
-        `INSERT INTO entities (id, type, props, body, aliases, source, domain, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO entities (id, type, props, body, aliases, source, domain, found_in, checked_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET type = excluded.type, props = excluded.props,
            body = excluded.body, aliases = excluded.aliases, source = excluded.source,
-           domain = COALESCE(excluded.domain, entities.domain), updated_at = excluded.updated_at`,
+           domain = COALESCE(excluded.domain, entities.domain),
+           found_in = COALESCE(excluded.found_in, entities.found_in),
+           checked_at = COALESCE(excluded.checked_at, entities.checked_at),
+           updated_at = excluded.updated_at`,
       )
-      .run(entity.id, entity.type, json(entity.props), entity.body, json(entity.aliases ?? []), entity.source ?? '', entity.domain ?? null, updatedAt);
+      .run(
+        entity.id, entity.type, json(entity.props), entity.body, json(entity.aliases ?? []), entity.source ?? '',
+        entity.domain ?? null, entity.foundIn ? json(entity.foundIn) : null, entity.checkedAt ?? null, updatedAt,
+      );
     return { ...entity, updatedAt };
   }
 
