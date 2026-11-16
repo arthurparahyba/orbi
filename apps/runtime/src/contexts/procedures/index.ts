@@ -7,6 +7,7 @@
  * `pipeline_runs` tables. It reads `knowledge` through the narrow `FactsForRun` port and asks
  * `trust` for a procedure's level; neither of them reaches back in here.
  *
+ * flows       what each feature of this context does, step by step, in calls only (documento 27)
  * definition  the procedure, its steps, scripts, inputs, outputs and variations
  * rehearsal   the test run that proves a procedure before it counts
  * execution   the real run: steps, step 0, the call registry, deviations
@@ -14,6 +15,11 @@
  * learnings   what each step already tried, and how it went
  * pipelines   procedures in sequence, and the engine that picks the next stage
  */
+
+export { findSimilarProcedures } from './flows/find-similar.ts';
+export type { SimilarProcedure } from './flows/find-similar.ts';
+export { startProcedure } from './flows/start-procedure.ts';
+export type { Started, Refused } from './flows/start-procedure.ts';
 
 export { Procedures } from './definition/src/service.ts';
 export type { ProceduresDeps } from './definition/src/service.ts';

@@ -18,16 +18,19 @@ tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 O desenvolvedor quer continuar fluente na arquitetura: usar os nomes dos módulos nas conversas
 e perceber, a cada funcionalidade, se a divisão ainda serve. Então antes de escrever código de
-qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Quatro itens, curtos:
+qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Cinco itens, curtos:
 
 1. **Onde entra** — os contextos e módulos afetados, marcados na árvore de `docs/modulos.md`:
    `~` alterado, `+` novo. Só os ramos que mudam, não a árvore inteira.
-2. **Interface pública** — o que entra ou muda no `index.ts` de cada contexto afetado, por nome
+2. **O fluxo** — a função de `contexts/<contexto>/flows/` que é a funcionalidade: assinatura e
+   corpo, em chamadas, sem implementação (documento 27). É este o código que o desenvolvedor quer
+   revisar antes de existir. Funcionalidade de uma ou duas chamadas não ganha fluxo: diga isso.
+3. **Interface pública** — o que entra ou muda no `index.ts` de cada contexto afetado, por nome
    e assinatura. Se nada muda na interface, diga isso com essas palavras: é sinal de que a
    funcionalidade é interna a um módulo, e isso é uma boa notícia.
-3. **Dados** — tabela ou coluna nova, e qual contexto é dono. Referência a outro contexto é id
+4. **Dados** — tabela ou coluna nova, e qual contexto é dono. Referência a outro contexto é id
    em coluna solta; nunca chave estrangeira, nunca JOIN.
-4. **Precisa repensar os módulos?** — responda sempre, inclusive quando a resposta é não.
+5. **Precisa repensar os módulos?** — responda sempre, inclusive quando a resposta é não.
    Quebre um módulo em dois quando ele passar a responder duas perguntas diferentes, quando a
    interface pública do contexto passar de uns oito nomes, ou quando dois módulos do mesmo
    contexto nunca forem usados juntos. Proponha contexto novo quando uma tabela nova não couber
@@ -35,8 +38,8 @@ qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Quat
 
 Como apresentar: texto é suficiente, e a árvore de diretórios marcada costuma ser o mais claro.
 Diagrama de sequência ou de contexto quando a funcionalidade atravessa três contextos ou mais.
-Nunca o código da implementação — o desenvolvedor não quer revisar implementação no combinado,
-quer ver impacto.
+O código da implementação não entra — mas **o fluxo entra**: ele não é implementação, é a
+funcionalidade em chamadas, e é o que o desenvolvedor quer ler.
 
 Não implemente antes do ok. Se ele pedir para seguir direto, mostre o combinado junto da
 primeira entrega, não depois dela. Terminada a implementação, atualize `docs/modulos.md` no
@@ -63,6 +66,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
   src/contexts/       toda a funcionalidade, em onze contextos (documento 26); de fora, só pelo index.ts
+                      cada contexto com orquestração tem flows/: a funcionalidade em chamadas (doc 27)
     models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
     platform/           onde ele roda: os, env, preferences; dono da tabela settings
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)
@@ -129,6 +133,11 @@ cofre ou ponte MCP, `npm run e2e`.
   Única exceção: `playbook_resolve` (passo 0) guarda, sem cartão, o fato que uma entrada virou
   numa execução, só de um conceito que já existe e do tipo da entrada, com origem e Desfazer
   (documento 18). Não amplie a exceção: conceito, propriedade e procedimento passam pelo cartão.
+- **A funcionalidade mora em `flows/`** (documento 27): `contexts/<contexto>/flows/<nome>.ts`, uma
+  função no nome do domínio, só chamadas — sem SQL, sem `valibot`, sem prompt, sem `ctx.`, sem
+  tela. Quem chama (a ferramenta, a rota) faz o schema, a moldagem e o falar com o mundo.
+  `test/flows.test.ts` acusa. Orquestração de três chamadas ou mais é fluxo; menos que isso fica
+  no handler.
 - **Fronteira de contexto** (documento 26, mapa em `docs/modulos.md`): dentro de um contexto os
   módulos se conhecem; entre contextos só passa id em coluna solta, e o acesso é pelo `index.ts`
   do contexto — nunca um arquivo de dentro, nunca chave estrangeira, nunca JOIN. Cada contexto é

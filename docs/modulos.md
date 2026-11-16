@@ -42,6 +42,14 @@ quem é dono. As que existem hoje: `FactsForRun` (`knowledge` → quem executa, 
 problemas conhecidos), `EngineStore` (o motor da esteira), `DeleteHook` (`talk` → quem referencia
 uma conversa), `TitleOf` (`telemetry` → `talk`) e `NotesDeps` (`improvement`).
 
+**A funcionalidade de cada contexto está escrita em chamadas** em `contexts/<contexto>/flows/`
+(documento 27): um arquivo por funcionalidade, uma função no nome do domínio, que recebe o pedido,
+chama os vizinhos pela porta deles e devolve o que aconteceu — sem SQL, sem schema de ferramenta,
+sem texto de prompt, e sem falar com a conversa ou com a tela. É esse o código para ler quando a
+pergunta é "como funciona X": o índice de cada contexto está na sua seção, abaixo.
+`test/flows.test.ts` guarda as regras. Contexto cuja funcionalidade *é* uma chamada não tem a
+camada: a regra é "existe fluxo onde existe orquestração".
+
 **A linguagem compartilhada** fica em `src/language/` (fase 4a): as palavras que todo contexto
 usa para falar das mesmas coisas — `Entity`, `Playbook`, `PlaybookRun`, `StepStatus`, `Level`,
 `Effect`, `Proposal`. Só tipos e constantes, sem estado e sem banco, então qualquer contexto a
@@ -95,6 +103,13 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 (`playbooks`, `scripts`, `concepts`, `rehearsal`, `run-calls`, `proofs`, `learnings`,
 `pipelines`, `config`, `engine`, `runs`) e as rotas `pipelineRoutes`, `pipelineRunRoutes`,
 `stepLearningRoutes`.
+
+**Fluxos** (`flows/`, documento 27) — é aqui que se lê como cada funcionalidade funciona:
+
+| Fluxo | O que faz |
+|---|---|
+| achar parecido (`findSimilarProcedures`) | "já sei algo parecido?": os candidatos ao pedido, com as variações de cada um e o porquê de ele ter vindo |
+| iniciar procedimento (`startProcedure`) | acha o procedimento, confere a ordem na esteira, abre a execução, e devolve o passo 0, o que já se tentou e o estado da prova — ou a recusa |
 
 Lê `knowledge` pela porta `FactsForRun` e pede o nível a `trust`; nenhum dos dois alcança aqui.
 O motor da esteira recebe a porta `EngineStore`, com as seis operações que usa.

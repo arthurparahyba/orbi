@@ -56,6 +56,8 @@ src/
 
   contexts/                 toda a funcionalidade, em onze contextos (documento 26): de fora, só
                             pelo index.ts de cada um
+                            `flows/` é a funcionalidade escrita em chamadas (documento 27): é
+                            onde se lê como cada coisa funciona
     models/                 com o que o Orbi pensa: provider (porta LlmAdapter e ponte para o Pi),
                             plugins, roles, cost, setup; a rota /api/model em http.ts
     platform/               onde ele roda: os (um por sistema), env (.env), preferences
@@ -70,9 +72,10 @@ src/
     knowledge/              o que ele sabe: ontology (tipos), facts (entidades, ligações e se um
                             fato novo já existe), search (FTS5), problems (fatos do tipo problema
                             casados com o texto de um erro) e /api/brain. Contexto folha.
-    procedures/             o que sabe fazer e o que está fazendo: definition, rehearsal,
-                            execution (passos, passo 0, registro das chamadas), proofs,
-                            learnings, pipelines (motor incluído) e /api/pipelines
+    procedures/             o que sabe fazer e o que está fazendo: flows/ (achar parecido,
+                            iniciar procedimento), definition, rehearsal, execution (passos,
+                            passo 0, registro das chamadas), proofs, learnings, pipelines
+                            (motor incluído) e /api/pipelines
     learning/               o que espera aprovação e a transação tudo-ou-nada do lote
     talk/                   por onde o desenvolvedor fala: conversations (títulos, estado,
                             apagar, limpeza), inbox (os cartões), followups (o Orbi se

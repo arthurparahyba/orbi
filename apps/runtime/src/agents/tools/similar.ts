@@ -1,6 +1,7 @@
 import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
+import { findSimilarProcedures } from '../../contexts/procedures/index.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -21,8 +22,9 @@ function useSimilar(ctx: AgentContext, { procedures, inbox }: Deps<'procedures' 
       'Also how you find any playbook not in your skill catalog: run it with playbook_start by name.',
     input: v.object({ text: v.string() }),
     async run({ data }) {
-      const all = procedures.definition.playbooks();
-      const candidates = procedures.definition.searchPlaybooks(data.text, 3).map(({ playbook: p, shared }) => ({
+      const found = findSimilarProcedures({ procedures }, data.text, 3);
+      // Shaping only: what the model reads of each candidate.
+      const candidates = found.map(({ procedure: p, variations, sharedStems, scripts }) => ({
         name: p.name,
         description: p.description,
         trigger: p.trigger,
@@ -30,15 +32,14 @@ function useSimilar(ctx: AgentContext, { procedures, inbox }: Deps<'procedures' 
         autonomy: p.autonomy,
         steps: p.steps,
         instructions: p.instructions,
-        // Names only: a version of it inherits them; brain_query with the name gives the code.
-        scripts: p.scripts.map((x) => ({ name: x.name, description: x.description })),
+        scripts,
         inputs: p.inputs,
         outputs: p.outputs,
         uses: p.uses,
         successes: p.successes,
         variationOf: p.variationOf,
-        variations: all.filter((o) => o.variationOf === p.name).map((o) => o.name),
-        sharedStems: shared,
+        variations,
+        sharedStems,
       }));
       const result = candidates.length ? { candidates } : { candidates, note: 'nada parecido: siga normalmente' };
       return { output: JSON.parse(JSON.stringify(result)) };

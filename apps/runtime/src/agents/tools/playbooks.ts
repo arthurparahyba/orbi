@@ -1,3 +1,4 @@
+import { startProcedure } from '../../contexts/procedures/index.ts';
 import { learningLines } from '../../contexts/procedures/index.ts';
 import { proofLabel, proofOf } from '../../contexts/procedures/index.ts';
 import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
@@ -80,45 +81,35 @@ function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOut
       'Start running a learned playbook. Shows its steps to the developer as a live checklist. Then report each step with playbook_step. Pass the values of its {{parameters}} (e.g. {"mfe": "novo-front", "versao": "2.5.0"}); credentials ({{segredo:…}}) are not parameters.',
     input: v.object({ name: v.string(), target: v.optional(v.string()), params: v.optional(v.record(v.string(), v.string())) }),
     async run({ data }) {
-      const pb = procedures.definition.playbook(data.name);
-      if (!pb) return { output: { error: `playbook não existe: ${data.name}`, available: procedures.definition.playbooks().map((p) => p.name) } };
-      // In an esteira, stages go in order: a later stage does not start while the current is open.
-      const outOfOrder = pipelines.engine.startProblem(ctx.conversationId, pb.name);
-      if (outOfOrder) return { output: { error: outOfOrder } };
-      const run = procedures.execution.startRun(pb.name, ctx.conversationId, data.params);
+      const started = startProcedure({ procedures, pipelines }, { name: data.name, conversationId: ctx.conversationId, params: data.params });
+      if ('refused' in started) return { output: { error: started.refused, ...(started.known ? { available: started.known } : {}) } };
+      const { run, procedure: pb, step0 } = started;
       ctx.setActiveRun({ runId: run.id, playbook: pb.name, autonomy: pb.autonomy });
-      pipelines.engine.runStarted(run);
       showReadiness(run.id);
       showRun(run.id);
-      const steps = run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how }));
-      const level = pb.autonomy === 'observe' ? 'só observar' : LEVEL_NAMES[pb.level];
-      // This turn's prompt was built before the run existed: the rules for running come here.
-      const rules = codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES;
-      // Over concepts: what the brain already knows came filled in; the rest is passo 0.
-      const { toResolve, unknown } = procedures.execution.inputState(run.id);
-      const missing = (pb.inputs ?? []).filter((i) => !data.params?.[i.name]).map((i) => i.name);
-      const passo0 = toResolve.length || unknown.length || missing.length
-        ? { passo0: { toResolve, unknown, ...(missing.length ? { faltam: missing } : {}), regras: RESOLVE_RULES } }
+
+      // Shaping only: what the model reads to run it. The turn's prompt was built before the run
+      // existed, so the rules for running come here.
+      const passo0 = step0.toResolve.length || step0.unknown.length || step0.missing.length
+        ? { passo0: { toResolve: step0.toResolve, unknown: step0.unknown, ...(step0.missing.length ? { faltam: step0.missing } : {}), regras: RESOLVE_RULES } }
         : {};
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
-      const tried = learningLines(procedures.learnings.list(pb.name));
-      const proof = proofOf(pb.steps, procedures.proofs.list(pb.name));
-      const prova = proof.state === 'provado'
+      const prova = started.proof.state === 'provado'
         ? undefined
-        : `${proofLabel(proof, pb.steps)}. Esta execução prova esses passos: rode do começo à entrega e, se um deles falhar, ache outro jeito e siga; no fim, proponha o passo corrigido com o que aprendeu.`;
+        : `${started.proof.label}. Esta execução prova esses passos: rode do começo à entrega e, se um deles falhar, ache outro jeito e proponha a correção no fim.`;
       return {
         output: {
           runId: run.id,
-          autonomy: level,
+          autonomy: started.autonomy,
           ...(pb.intent ? { intent: pb.intent } : {}),
-          steps,
+          steps: run.steps.map((s) => ({ id: s.id, label: s.label, how: s.how })),
           ...passo0,
           ...(outputs.length ? { outputs, note: 'Ao terminar, registre os valores com outputs no playbook_step.' } : {}),
           // What was already tried here: do not repeat what failed, was denied, or was a workaround.
-          ...(tried.length ? { jaTentado: tried } : {}),
+          ...(started.alreadyTried.length ? { jaTentado: started.alreadyTried } : {}),
           // A procedure whose steps never ran as they are written: this run is what proves them.
           ...(prova ? { prova } : {}),
-          regras: rules,
+          regras: codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES,
         },
       };
     },
