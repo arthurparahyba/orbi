@@ -1,8 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
-import type { Playbook, PlaybookStep } from '../language/index.ts';
-import type { OrbiServices } from '../services.ts';
-import { transaction } from '../db/database.ts';
+import type { Playbook, PlaybookStep } from '../../../../language/index.ts';
+import type { OrbiServices } from '../../../../services.ts';
+import { transaction } from '../../../../db/database.ts';
 
 /**
  * Procedures coding agents suggest (orbi_teach). They never go straight into

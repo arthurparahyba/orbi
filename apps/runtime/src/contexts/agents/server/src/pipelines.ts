@@ -1,8 +1,8 @@
-import type { OrbiServices } from '../services.ts';
-import type { Pipeline, PipelineStage } from '../contexts/procedures/index.ts';
-import { playbookParams } from '../contexts/procedures/index.ts';
-import { stem, words } from '../contexts/knowledge/index.ts';
-import type { AgentClient } from './clients.ts';
+import type { OrbiServices } from '../../../../services.ts';
+import type { Pipeline, PipelineStage } from '../../../../contexts/procedures/index.ts';
+import { playbookParams } from '../../../../contexts/procedures/index.ts';
+import { stem, words } from '../../../../contexts/knowledge/index.ts';
+import type { AgentClient } from '../../clients/src/clients.ts';
 
 /**
  * How esteiras look to a coding agent: short, in the words of the screen, and

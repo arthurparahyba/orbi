@@ -1,12 +1,14 @@
 import * as v from 'valibot';
-import type { Agent } from '../agents/runtime-port.ts';
-import type { OrbiServices } from '../services.ts';
-import { tellAgent } from '../contexts/talk/index.ts';
-import { playbookParams, stepId } from '../contexts/procedures/index.ts';
-import { stem, words } from '../contexts/knowledge/index.ts';
-import type { AgentClient } from './clients.ts';
-import { requestStatus } from './status.ts';
+import type { Agent } from '../../../../agents/runtime-port.ts';
+import type { OrbiServices } from '../../../../services.ts';
+import { tellAgent } from '../../../../contexts/talk/index.ts';
+import { playbookParams, stepId } from '../../../../contexts/procedures/index.ts';
+import { stem, words } from '../../../../contexts/knowledge/index.ts';
+import type { AgentClient } from '../../clients/src/clients.ts';
 import { pipelineSummary, pipelineDetail, searchPipelines } from './pipelines.ts';
+import { delegateTask } from '../../use-cases/delegate-task.ts';
+import { runPipelineForAgent } from '../../use-cases/run-pipeline-for-agent.ts';
+import { requestProgress } from '../../use-cases/request-progress.ts';
 
 
 /** What a tool call has: the parts of Orbi, the agent to talk to and who is calling. */
@@ -125,16 +127,15 @@ export const MCP_TOOLS: McpTool[] = [
       },
       required: ['task'],
     },
-    async run({ procedure, task, params, context }, { s, agent, client }) {
-      if (procedure && !s.procedures.definition.playbook(procedure)) throw new ToolError(`procedimento não encontrado: ${procedure}. Use orbi_search.`);
-      const conversation = s.conversations.create((procedure ? `${procedure}: ${task}` : task).slice(0, 80));
-      const req = s.agents.requests.add({ clientId: client.id, conversationId: conversation.id, task, procedure: procedure ?? null, context: context ?? {} });
+    async run(delegation, { s, agent, client }) {
+      const delegated = delegateTask(s, delegation, client);
+      if ('refused' in delegated) throw new ToolError(delegated.refused);
       await tellAgent(s.events, agent, {
-        id: conversation.id,
-        message: { kind: 'signal', type: 'agent-request', tagName: 'agent-request', body: requestMessage(client.name, req.id, task, procedure, params, context ?? {}), attributes: { requestId: req.id, agent: client.name } },
+        id: delegated.conversationId,
+        message: { kind: 'signal', type: 'agent-request', tagName: 'agent-request', ...delegated.signal },
       });
       return {
-        request_id: req.id,
+        request_id: delegated.request.id,
         status: 'running',
         hint: 'O Orbi está executando. Consulte com orbi_status quando precisar do resultado. Aprovações ficam com o desenvolvedor.',
       };
@@ -149,9 +150,9 @@ export const MCP_TOOLS: McpTool[] = [
     input: v.object({ request_id: v.pipe(v.string(), v.minLength(1)) }),
     inputSchema: { type: 'object', properties: { request_id: str('The request_id orbi_delegate returned.') }, required: ['request_id'] },
     run({ request_id }, { s, client }) {
-      const req = s.agents.requests.get(request_id);
-      if (!req || req.clientId !== client.id) throw new ToolError(`pedido não encontrado: ${request_id}`);
-      return requestStatus(req, s.procedures.execution.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }).filter((i) => i.kind !== 'level'), s.pipelines.runs.inConversation(req.conversationId));
+      const progress = requestProgress(s, request_id, client.id);
+      if ('refused' in progress) throw new ToolError(progress.refused);
+      return progress;
     },
   }),
 
@@ -213,35 +214,17 @@ export const MCP_TOOLS: McpTool[] = [
       },
       required: ['name', 'inputs'],
     },
-    async run({ name, inputs, destination, context }, { s, agent, client }) {
-      const p = s.procedures.pipelineDefs.pipeline(name);
-      if (!p) throw new ToolError(`esteira não encontrada: ${name}. Use orbi_pipelines.`);
-      const summary = Object.values(inputs).filter(Boolean).join(' · ');
-      const conversation = s.conversations.create(`${p.name}${summary ? `: ${summary}` : ''}`.slice(0, 80));
-      let started;
-      try {
-        started = s.pipelines.engine.start(p.name, inputs, {
-          conversationId: conversation.id,
-          destination: destination || null,
-          requestedBy: `agent:${client.name}`,
-          skipQuestions: client.canSkipPassages,
-        });
-      } catch (error) {
-        s.conversations.delete(conversation.id);
-        throw new ToolError(error instanceof Error ? error.message : String(error));
-      }
-      const task = `Rodar a esteira ${p.name}${destination ? ` até ${destination}` : ''}${summary ? ` (${summary})` : ''}`;
-      const req = s.agents.requests.add({ clientId: client.id, conversationId: conversation.id, task, procedure: null, pipeline: p.name, context: context ?? {} });
-      const where = context ? [context.repo && `repositório ${context.repo}`, context.branch && `branch ${context.branch}`, context.session && `sessão ${context.session}`].filter(Boolean) : [];
-      const body = [`Pedido do agente "${client.name}" pelo MCP (${req.id}).`, ...(where.length ? [`Contexto: ${where.join(', ')}`] : []), started.instruction].join('\n');
+    async run(delegation, { s, agent, client }) {
+      const started = runPipelineForAgent(s, delegation, client);
+      if ('refused' in started) throw new ToolError(started.refused);
       await tellAgent(s.events, agent, {
-        id: conversation.id,
-        message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', body, attributes: { requestId: req.id, agent: client.name } },
+        id: started.conversationId,
+        message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', ...started.signal },
       });
       return {
-        request_id: req.id,
-        status: started.run.status === 'waiting' ? 'waiting' : 'running',
-        stages: started.run.stages.map((st) => st.label),
+        request_id: started.request.id,
+        status: started.status,
+        stages: started.stages,
         hint: 'O Orbi está rodando a esteira. Consulte com orbi_status quando precisar. Passagens que perguntam e aprovações ficam com o desenvolvedor.',
       };
     },
@@ -313,25 +296,6 @@ export const MCP_TOOLS: McpTool[] = [
     },
   }),
 ];
-
-/** The message Orbi receives for a delegated task. The agent's text is data, not instructions to Orbi. */
-function requestMessage(
-  agent: string,
-  requestId: string,
-  task: string,
-  procedure: string | undefined,
-  params: Record<string, string> | undefined,
-  context: { repo?: string; branch?: string; session?: string },
-): string {
-  const where = [context.repo && `repositório ${context.repo}`, context.branch && `branch ${context.branch}`, context.session && `sessão ${context.session}`].filter(Boolean);
-  return [
-    `Pedido do agente "${agent}" pelo MCP (${requestId}).`,
-    `Tarefa: ${task}`,
-    `Procedimento: ${procedure ?? 'nenhum indicado; procure com playbook_similar'}`,
-    ...(params && Object.keys(params).length ? [`Parâmetros: ${JSON.stringify(params)}`] : []),
-    ...(where.length ? [`Contexto: ${where.join(', ')}`] : []),
-  ].join('\n');
-}
 
 /** The tools this client may use. */
 export function toolsFor(client: AgentClient): McpTool[] {

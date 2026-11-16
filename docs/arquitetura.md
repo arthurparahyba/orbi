@@ -54,10 +54,14 @@ src/
   skills/                   a única skill de fábrica: como aprender
   prompts/*.md              os textos que o modelo lê (Orbi, investigador, skill)
 
-  contexts/                 toda a funcionalidade, em onze contextos (documento 26): de fora, só
+  contexts/                 toda a funcionalidade, em doze contextos (documento 26): de fora, só
                             pelo index.ts de cada um
                             `use-cases/` é a funcionalidade escrita em chamadas (documento 27): é
                             onde se lê como cada coisa funciona
+    agents/                 quem chama o Orbi de fora por MCP (Claude Code, Codex): clients (quem
+                            pode, e o quê), requests (o que delegou), suggestions (o que sugeriu,
+                            esperando aprovação), server (a porta MCP e as ferramentas orbi_*).
+                            Direção contrária de tools/code-agents, que são os que o Orbi chama
     models/                 com o que o Orbi pensa: provider (porta LlmAdapter e ponte para o Pi),
                             plugins, roles, cost, setup; a rota /api/model em http.ts
     platform/               onde ele roda: os (um por sistema), env (.env), preferences

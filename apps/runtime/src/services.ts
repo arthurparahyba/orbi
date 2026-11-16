@@ -16,6 +16,7 @@ import type { SharedChrome } from './contexts/tools/index.ts';
 import type { BrowserMcp } from './contexts/tools/index.ts';
 import type { Recorder } from './contexts/tools/index.ts';
 import type { CodeAgents, CodeFixer } from './contexts/tools/index.ts';
+import type { AgentClients, AgentRequests, AgentSuggestions } from './contexts/agents/index.ts';
 import type { ActiveLlm } from './contexts/models/index.ts';
 import type { ModelTiers } from './contexts/models/index.ts';
 import type { ModelRoles } from './contexts/models/index.ts';
@@ -26,12 +27,9 @@ import type { KnowledgeCandidates } from './contexts/improvement/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './contexts/telemetry/index.ts';
 import type { ToolOutcomes } from './contexts/telemetry/index.ts';
-import type { AgentClients } from './mcp/clients.ts';
 import type { VoiceModel } from './contexts/talk/index.ts';
 import type { PipelineRuns } from './contexts/procedures/index.ts';
 import type { PipelineEngine } from './contexts/procedures/index.ts';
-import type { AgentRequests } from './mcp/requests.ts';
-import type { AgentSuggestions } from './mcp/suggestions.ts';
 
 /**
  * Everything Orbi's code uses, created once by `createOrbi` (compose.ts).

@@ -22,6 +22,7 @@ import { createChrome } from './contexts/tools/index.ts';
 import { createBrowserMcp } from './contexts/tools/index.ts';
 import { createRecorder } from './contexts/tools/index.ts';
 import { CodeAgents, createCodeFixer } from './contexts/tools/index.ts';
+import { AgentClients, AgentRequests, AgentSuggestions } from './contexts/agents/index.ts';
 import { configureLlm, discoverPlugins, llmChoice, pluginDirs, type ActiveLlm } from './contexts/models/index.ts';
 import { ModelTiers } from './contexts/models/index.ts';
 import { ModelRoles } from './contexts/models/index.ts';
@@ -43,9 +44,6 @@ import type { ConversationInfo } from './contexts/talk/index.ts';
 import { startBridge, type RunningBridge } from './contexts/tools/index.ts';
 import { binaryStatus } from './contexts/tools/index.ts';
 import type { OrbiServices } from './services.ts';
-import { AgentClients } from './mcp/clients.ts';
-import { AgentRequests } from './mcp/requests.ts';
-import { AgentSuggestions } from './mcp/suggestions.ts';
 
 /**
  * The composition root: the only place that creates Orbi's parts and wires

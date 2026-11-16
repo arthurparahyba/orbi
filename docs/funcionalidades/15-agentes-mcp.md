@@ -108,11 +108,12 @@ sequenceDiagram
 
 | Onde | O quê |
 | --- | --- |
-| `apps/runtime/src/mcp/server.ts` | Servidor MCP sem sessão, por chamada |
-| `apps/runtime/src/mcp/tools.ts` | As oito ferramentas, esquemas e permissões |
-| `apps/runtime/src/mcp/pipelines.ts` | Busca, resumo e detalhe das esteiras para agentes |
-| `apps/runtime/src/mcp/status.ts` | O que `orbi_status` responde |
-| `apps/runtime/src/mcp/{clients,requests,suggestions}.ts` | Agentes, pedidos e sugestões no banco |
+| `apps/runtime/src/contexts/agents/use-cases/` | `delegateTask`, `runPipelineForAgent`, `requestProgress`: as três funcionalidades em chamadas (documento 27) |
+| `apps/runtime/src/contexts/agents/server/src/server.ts` | Servidor MCP sem sessão, por chamada |
+| `apps/runtime/src/contexts/agents/server/src/tools.ts` | As oito ferramentas, esquemas e permissões |
+| `apps/runtime/src/contexts/agents/server/src/pipelines.ts` | Busca, resumo e detalhe das esteiras para agentes |
+| `apps/runtime/src/contexts/agents/server/src/status.ts` | O que `orbi_status` responde |
+| `apps/runtime/src/contexts/agents/{clients,requests,suggestions}/src/` | Agentes, pedidos e sugestões no banco |
 | `apps/runtime/src/prompts/mcp-servidor.md` | Instruções que o agente recebe ao conectar |
 | `apps/runtime/src/agents/tools/requests.ts` | `agent_reply`, só nas conversas pedidas por agente |
 | `apps/runtime/src/http/routes/{mcp,agents}.ts` | `/mcp` e `/api/agents/...` |

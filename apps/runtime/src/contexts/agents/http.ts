@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { AcceptSuggestion, CreateAgentClient, EditAgentClient, SuggestionStatusQuery } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
-import { HttpError, body, notFound, query } from '../errors.ts';
+import { HttpError, body, notFound, query } from '../../http/errors.ts';
 
 /**
  * The Agentes screen: coding agents connected over MCP, the tasks they

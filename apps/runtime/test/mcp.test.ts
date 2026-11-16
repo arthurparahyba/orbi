@@ -14,8 +14,7 @@ import { loadConfig } from '../src/config.ts';
 import { createOrbi } from '../src/compose.ts';
 import { createHttpApp } from '../src/http/app.ts';
 import { Orbi } from '../src/agents/orbi.ts';
-import { requestStatus } from '../src/mcp/status.ts';
-import { procedureName } from '../src/mcp/tools.ts';
+import { procedureName, requestStatus } from '../src/contexts/agents/index.ts';
 
 const background = { bridge: () => undefined, bridgeError: () => 'desligado', restartChrome: async () => {}, stop: async () => {} };
 

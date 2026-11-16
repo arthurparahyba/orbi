@@ -14,8 +14,6 @@ import { autonomyRoutes } from '../contexts/trust/index.ts';
 import { healthRoutes } from './routes/health.ts';
 import { eventRoutes } from './routes/events.ts';
 import { usageRoutes } from '../contexts/telemetry/index.ts';
-import { agentRoutes } from './routes/agents.ts';
-import { mcpRoutes } from './routes/mcp.ts';
 import { transcribeRoutes } from '../contexts/talk/index.ts';
 import { voiceRoutes } from '../contexts/talk/index.ts';
 import { pipelineRoutes, pipelineRunRoutes } from '../contexts/procedures/index.ts';
@@ -27,6 +25,7 @@ import { diagnosisRoutes } from '../contexts/improvement/index.ts';
 import { modelRoutes } from '../contexts/models/index.ts';
 import { browserRoutes } from '../contexts/tools/index.ts';
 import { mcpServerRoutes } from '../contexts/tools/index.ts';
+import { agentRoutes, mcpRoutes } from '../contexts/agents/index.ts';
 import { stats, exportBrain } from '../overview.ts';
 
 // The desktop app's webview (tauri://localhost, http://tauri.localhost) and local

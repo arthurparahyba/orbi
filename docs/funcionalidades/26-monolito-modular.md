@@ -349,10 +349,41 @@ O que foi feito, nos dois lados:
 **O corte confirmou a fronteira.** Só duas dependências entre arquivos de contrato apareceram:
 `procedures` → `trust` (um procedimento tem autonomia e nível) e `platform` → `knowledge` (o
 health mostra o tamanho do cérebro). As outras nove não precisaram importar nada de ninguém. É a
-medida mais honesta que temos de que os onze contextos são os contextos certos: se o corte fosse
+medida mais honesta que temos de que os doze contextos são os contextos certos: se o corte fosse
 errado, o contrato não teria se separado sem um emaranhado de imports cruzados.
 
 A fatia vertical continua de pé como opção, agora com menos pressa: atravessar camada ficou mais
 barato de ler, e o pedágio que sobra é o de mexer em dois arquivos pequenos em vez de um grande.
 
+## Fase 7 — `agents`, o último pedaço fora do mapa
 
+`src/mcp/` eram 872 linhas em sete arquivos: o Orbi como servidor MCP para agentes de código.
+Ficou de fora das fases 1 a 5 porque não parecia um contexto — parecia infraestrutura de
+protocolo. Não é: responde a uma pergunta tão clara quanto as outras doze, **o que vem de fora, e
+de quem**, e é dono de três tabelas.
+
+Virou `contexts/agents/`, com quatro módulos (`clients`, `requests`, `suggestions`, `server`), as
+duas rotas que eram da composição (`/api/agents` e `/mcp`) e três casos de uso.
+
+O que a migração ensinou:
+
+- **Foi a mais barata de todas**, e por um motivo medível: só onze referências de fora, todas da
+  composição (`compose.ts`, `services.ts`, `contract-check.ts`, `http/app.ts`) e duas de um teste.
+  Nenhum contexto importava `mcp/`. Quando as fases 1 a 5 fecharam as outras fronteiras, esta
+  ficou isolada sozinha, sem ninguém ter trabalhado nela.
+- **A regra "um caso de uso não fala com a conversa" quase caiu aqui**, porque avisar o Orbi é o
+  último passo de delegar. A saída foi o caso de uso devolver o sinal em vez de entregá-lo:
+  `delegateTask` monta a mensagem e quem chama faz o `tellAgent`. O mesmo formato de
+  `startDemonstration`, que devolve a gravação e deixa a rota responder 201.
+- **O teste dos 25 linhas pegou `runPipelineForAgent` com 29** e estava certo: havia cinco linhas
+  montando texto no meio da orquestração. Saíram para `signalBody`.
+- **Um prompt saiu de `src/prompts/`.** O `mcp-servidor.md` tinha um leitor só e agora é
+  `server/src/instructions.md`, dentro do módulo. A regra que fica: um prompt com um leitor só é
+  do contexto desse leitor; os que continuam em `src/prompts/` são dos agentes do próprio Orbi,
+  que são composição.
+- **O nome `agents` é ambíguo e eu escolhi conviver com isso.** São três coisas diferentes com
+  nome parecido: `contexts/agents` (quem chama o Orbi), `contexts/tools/code-agents` (quem o Orbi
+  chama) e `src/agents/` (os agentes do próprio Orbi). Pesou a favor que a tela já se chama
+  Agentes, que o contrato já tinha sido cortado como `api/agents.ts` na fase 6, e que o
+  `index.ts` e este documento dizem a diferença em três linhas. Se na conversa isso atrapalhar, o
+  rename é de um commit.

@@ -2,9 +2,9 @@ import * as v from 'valibot';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { log } from '../contexts/telemetry/index.ts';
+import { log } from '../../../../contexts/telemetry/index.ts';
 import { ToolError, toolsFor, type McpCall } from './tools.ts';
-import instructions from '../prompts/mcp-servidor.md?raw';
+import instructions from './instructions.md?raw';
 
 /**
  * Orbi as an MCP server for coding agents on this machine (Claude Code,

@@ -135,7 +135,7 @@ sequenceDiagram
 | `apps/runtime/src/agents/tools/pipelines.ts` | `pipeline_start` e `pipeline_provide` |
 | `apps/runtime/src/agents/tools/playbooks.ts` | `outputs` no `playbook_step` e o retorno `esteira` |
 | `apps/runtime/src/http/routes/pipelines.ts` | `/api/pipelines` e `/api/pipeline-runs` |
-| `apps/runtime/src/mcp/pipelines.ts` | Como as esteiras aparecem para agentes de código |
+| `apps/runtime/src/contexts/agents/server/src/pipelines.ts` | Como as esteiras aparecem para agentes de código |
 | `apps/desktop/src/views/pipelines/` | Tela Esteiras: em andamento, minhas esteiras, editor |
 | `apps/desktop/src/views/conversation/{PipelineBar,PipelineDecision}.tsx` | Faixa e decisão na conversa |
 | `apps/desktop/src/components/PipelinePreview.tsx` | Prévia no cartão de aprendizado |

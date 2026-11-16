@@ -29,7 +29,7 @@ qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Cinc
    e assinatura. Se nada muda na interface, diga isso com essas palavras: é sinal de que a
    funcionalidade é interna a um módulo, e isso é uma boa notícia. Se a tela lê o resultado, diga também o
    que entra em `packages/contracts/src/api/<contexto>.ts` e em `apps/desktop/src/api/<contexto>.ts`:
-   são os mesmos onze contextos nos três lugares (documento 26, fase 6).
+   são os mesmos doze contextos nos três lugares (documento 26, fase 6).
 4. **Dados** — tabela ou coluna nova, e qual contexto é dono. Referência a outro contexto é id
    em coluna solta; nunca chave estrangeira, nunca JOIN.
 5. **Precisa repensar os módulos?** — responda sempre, inclusive quando a resposta é não.
@@ -101,10 +101,12 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
                       runtime-port.ts é a única porta para o Flue
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
-  src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
-  src/contexts/       toda a funcionalidade, em onze contextos (documento 26); de fora, só pelo index.ts
+  src/contexts/       toda a funcionalidade, em doze contextos (documento 26); de fora, só pelo index.ts
                       cada contexto com orquestração tem use-cases/: a funcionalidade em chamadas (doc 27)
+    agents/             quem chama o Orbi de fora por MCP: clients, requests, suggestions, server;
+                        não confundir com src/agents/ (os agentes do próprio Orbi) nem com
+                        tools/code-agents (os que o Orbi chama)
     models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
     platform/           onde ele roda: os, env, preferences; dono da tabela settings
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)

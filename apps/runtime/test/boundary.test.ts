@@ -42,6 +42,7 @@ const SEMPRE_PERMITIDO = [
  * vizinho. Se uma entrada voltar a aparecer aqui, é uma fronteira sendo furada, não um atalho.
  */
 const AINDA_FORA: Record<string, string[]> = {
+  agents: [],
   knowledge: [],
   procedures: [],
   learning: [],

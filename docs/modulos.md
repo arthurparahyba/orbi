@@ -5,7 +5,7 @@ quais contextos existem, o que cada módulo faz, qual é a interface pública de
 quem é dono de cada tabela. Mudou a estrutura, atualize este arquivo no mesmo commit.
 
 A decisão que gerou este mapa, com as medições e o que cada fase ensinou, está no documento 26
-(`funcionalidades/26-monolito-modular.md`). **A migração terminou:** os onze contextos existem,
+(`funcionalidades/26-monolito-modular.md`). **A migração terminou:** os doze contextos existem,
 `src/contexts/` é toda a funcionalidade, e a lista de exceções do teste de fronteira está vazia.
 
 **Nome e caminho.** A convenção do projeto é código e nomes em inglês, documentação em
@@ -386,11 +386,54 @@ Dono da tabela `settings`: **ninguém mais a lê ou escreve em SQL cru.** Quem g
 O `db/` **não** é deste contexto: ele roda as migrações de todos, e isso é composição.
 
 
+### `agents` — quem chama o Orbi de fora
+
+**Migrado** (fase 7): `src/contexts/agents/`.
+
+Claude Code, Codex e afins, na máquina do desenvolvedor, falando com o Orbi pelo servidor MCP.
+Responde a uma pergunta só: **o que vem de fora, e de quem.**
+
+Dois vizinhos têm nome parecido e não são isto:
+
+- `contexts/tools` guarda os agentes de código que **o Orbi chama** (a tabela `code_agents`) — é a
+  direção contrária desta;
+- `src/agents/` é o runtime dos agentes **do próprio Orbi** (o do chat, o configurador, o revisor,
+  o diagnosticador). Não é contexto: é composição.
+
+| Módulo | O que faz |
+|---|---|
+| `clients` | quem pode chamar, e o que cada um pode (delegar, ensinar, rodar esteira); guarda só o hash do token |
+| `requests` | o que foi delegado: quem pediu, para quê, e o resultado curto que o Orbi devolveu |
+| `suggestions` | o procedimento que um agente sugeriu (`orbi_teach`), esperando o desenvolvedor aceitar |
+| `server` | a porta MCP: as ferramentas `orbi_*`, o que cada cliente vê, e o estado que elas respondem |
+
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `delegateTask` | o agente delega uma tarefa: abre a conversa que o desenvolvedor vê, guarda quem pediu, devolve o sinal a entregar |
+| `runPipelineForAgent` | o agente manda rodar uma esteira; se ela recusar, a conversa aberta é desfeita |
+| `requestProgress` | onde está o pedido — e o id de outro cliente é tratado como pedido que não existe |
+
+Os dois primeiros **não** falam com a conversa: devolvem o sinal, e quem chama entrega. É o que
+mantém a regra do documento 27 de pé num contexto cuja razão de existir é avisar o Orbi.
+
+Interface pública: os três casos de uso, `AgentClients`, `AgentRequests`, `AgentSuggestions`,
+`handleMcp`, `requestStatus`, `toolsFor`, `procedureName`, `agentRoutes` e `mcpRoutes`.
+
+Dono das tabelas `agent_clients`, `agent_requests` e `agent_suggestions`.
+
+Um agente nunca aprova nada, nunca vê credencial e nunca escreve no cérebro.
+
+O prompt do servidor MCP (`instructions.md`) mora dentro do módulo `server`, e é o primeiro a sair
+de `src/prompts/`: um prompt com um leitor só é do contexto desse leitor. Os que ficaram em
+`src/prompts/` são dos agentes do próprio Orbi, que são composição.
+
 
 ## Composição
 
-A composição (`compose.ts`, `wiring.ts`, `overview.ts`, `agents/`, `http/app.ts`, `mcp/`) pode
-usar qualquer contexto.
+A composição (`compose.ts`, `wiring.ts`, `overview.ts`, `src/agents/`, `http/app.ts`) pode usar
+qualquer contexto. O `src/mcp/` não existe mais: virou o contexto `agents`.
 
 **O agregado `brain.ts` não existe mais** (a dívida da fase 4b foi paga). No lugar dele:
 

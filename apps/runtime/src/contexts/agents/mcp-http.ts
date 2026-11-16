@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import type { OrbiServices } from '../../services.ts';
-import { handleMcp } from '../../mcp/server.ts';
-import { HttpError } from '../errors.ts';
-import type { Agent } from './types.ts';
+import { handleMcp } from './server/src/server.ts';
+import { HttpError } from '../../http/errors.ts';
+import type { Agent } from '../../http/routes/types.ts';
 
 /** Only loopback names: a page on another site that resolves to 127.0.0.1 (DNS rebinding) is turned away. */
 const LOCAL_HOST = /^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/;
