@@ -72,20 +72,40 @@ test('um caso de uso não fala com a conversa nem com a tela', () => {
   assert.deepEqual(quebras, [], `caso de uso falando com o mundo:\n${quebras.join('\n')}`);
 });
 
+/**
+ * Conta só o que vai de uma declaração de topo até a próxima: ajudante privado no mesmo arquivo
+ * é bom — é o que mantém a função exportada legível — e não entra na conta dela.
+ */
+const declarations = (text: string): Array<{ exported: boolean; name: string; lines: number }> =>
+  text
+    .split(/\n(?=(?:export )?(?:async )?(?:function|const) )/)
+    .map((part) => ({
+      exported: part.startsWith('export '),
+      name: part.replace(/^(?:export )?(?:async )?(?:function|const) /, '').split(/[(:<= ]/)[0]!,
+      lines: part.split('\n').filter((l) => {
+        const t = l.trim();
+        return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
+      }).length,
+    }));
+
 test('um caso de uso é curto: passou de 25 linhas de corpo, tem comportamento escondido ou são dois', () => {
   const longos: string[] = [];
   for (const file of useCaseFiles()) {
-    const text = readFileSync(file, 'utf8');
-    for (const fn of text.split(/\nexport (?:function|const) /).slice(1)) {
-      const body = fn.split('\n').filter((l) => {
-        const t = l.trim();
-        return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
-      });
-      const name = fn.slice(0, fn.search(/[(:<]/));
-      if (body.length > 25) longos.push(`${relative(SRC, file)}: ${name} com ${body.length} linhas`);
+    for (const d of declarations(readFileSync(file, 'utf8'))) {
+      if (d.exported && d.lines > 25) longos.push(`${relative(SRC, file)}: ${d.name} com ${d.lines} linhas`);
     }
   }
   assert.deepEqual(longos, [], `caso de uso longo demais:\n${longos.join('\n')}`);
+});
+
+test('um ajudante privado de caso de uso também é curto', () => {
+  const longos: string[] = [];
+  for (const file of useCaseFiles()) {
+    for (const d of declarations(readFileSync(file, 'utf8'))) {
+      if (!d.exported && d.lines > 25) longos.push(`${relative(SRC, file)}: ${d.name} com ${d.lines} linhas`);
+    }
+  }
+  assert.deepEqual(longos, [], `ajudante longo demais — é comportamento, e vai para um serviço:\n${longos.join('\n')}`);
 });
 
 test('todo caso de uso é exportado pelo index.ts do seu contexto', () => {

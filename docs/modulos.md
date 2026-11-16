@@ -109,6 +109,14 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 |---|---|
 | `findSimilarProcedures` | "já sei algo parecido?": os candidatos ao pedido, com as variações de cada um e o porquê de ele ter vindo |
 | `startProcedure` | acha o procedimento, confere a ordem na esteira, abre a execução, e devolve o passo 0, o que já se tentou e o estado da prova — ou a recusa |
+| `resolveStepInput` | passo 0: registra o que uma entrada acabou sendo, preenche as citações dos passos e diz o que ainda falta resolver |
+| `reportStep` | o andamento de um passo; recusa o passo dado como feito cuja ferramenta falhou, e o "esperando" sem nada esperando |
+| `findScriptOfRun` | o script do procedimento que está rodando nesta conversa, pelo nome |
+| `startPipeline` | começa uma esteira; na recusa, devolve as entradas que ela declara, para o modelo saber o que perguntar |
+| `pipelineFixBrief` | o briefing para o Orbi revisar uma esteira cuja configuração impede o dado de andar |
+
+`startPipeline` serve a ferramenta do chat **e** a rota `POST /api/pipelines/:name/start` — é o
+retorno concreto da camada: um caminho só, não dois.
 
 Lê `knowledge` pela porta `FactsForRun` e pede o nível a `trust`; nenhum dos dois alcança aqui.
 O motor da esteira recebe a porta `EngineStore`, com as seis operações que usa.

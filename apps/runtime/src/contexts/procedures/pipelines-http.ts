@@ -4,7 +4,7 @@ import type { OrbiServices } from '../../services.ts';
 import { tellAgent } from '../talk/index.ts';
 import { HttpError, body, notFound } from '../../http/errors.ts';
 import type { Agent } from '../../http/routes/types.ts';
-import { reviewInstruction } from '../improvement/index.ts';
+import { pipelineFixBrief, startPipeline } from './index.ts';
 
 /**
  * Esteiras: the definitions (Esteiras › Minhas esteiras) and the deliveries
@@ -39,15 +39,15 @@ export function pipelineRoutes({ procedures, pipelines, conversations, events }:
     })
     // "Pedir correção ao Orbi": a conversation where he proposes the fixes (one learning card).
     .post('/:name/fix', async (c) => {
-      const p = procedures.pipelineDefs.pipeline(c.req.param('name'));
-      if (!p) throw notFound('esteira');
-      const config = procedures.pipelineDefs.pipelineWarnings(p);
-      if (config.length === 0) throw new HttpError(409, 'conflict', 'esta esteira não tem problemas de configuração');
-      const review = { runs: [], config, pipeline: p.name };
-      const conversation = conversations.create(`Corrigir a esteira ${p.name}`);
+      const brief = pipelineFixBrief({ procedures }, c.req.param('name'));
+      if ('refused' in brief) {
+        if (brief.refused === 'nao-existe') throw notFound('esteira');
+        throw new HttpError(409, 'conflict', 'esta esteira não tem problemas de configuração');
+      }
+      const conversation = conversations.create(`Corrigir a esteira ${brief.pipeline}`);
       await tellAgent(events, agent, {
         id: conversation.id,
-        message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review), attributes: { review: JSON.stringify(review) } },
+        message: { kind: 'signal', type: 'review', tagName: 'review', body: brief.instruction, attributes: { review: JSON.stringify(brief.review) } },
       });
       return c.json({ conversationId: conversation.id }, 201);
     })
@@ -59,24 +59,25 @@ export function pipelineRoutes({ procedures, pipelines, conversations, events }:
       const { inputs, destination } = await body(c, StartPipeline);
       const p = procedures.pipelineDefs.pipeline(c.req.param('name'));
       if (!p) throw notFound('esteira');
+      // A execução precisa da conversa para existir, então ela é aberta antes — e desfeita se a
+      // esteira recusar. O caso de uso é o mesmo que a ferramenta do chat usa.
       const summary = Object.values(inputs).filter(Boolean).join(' · ');
       const conversation = conversations.create(`${p.name}${summary ? `: ${summary}` : ''}`.slice(0, 80));
-      let started;
-      try {
-        started = pipelines.engine.start(p.name, inputs, { conversationId: conversation.id, destination: destination ?? null });
-      } catch (error) {
+      const started = startPipeline(
+        { procedures, pipelines },
+        { name: p.name, inputs, conversationId: conversation.id, destination: destination ?? undefined },
+      );
+      if ('refused' in started) {
         conversations.delete(conversation.id);
-        throw new HttpError(400, 'invalid_body', error instanceof Error ? error.message : String(error));
+        throw new HttpError(400, 'invalid_body', started.refused);
       }
-      await tell(conversation.id, started.instruction);
-      return c.json({ run: started.run, conversationId: conversation.id }, 201);
+      await tell(conversation.id, started.next);
+      return c.json({ run: pipelines.runs.get(started.runId), conversationId: conversation.id }, 201);
     });
 }
 
 export function pipelineRunRoutes({ pipelines, events }: OrbiServices, agent: Agent) {
   return new Hono()
-    .get('/', (c) => c.json(pipelines.runs.list({ active: c.req.query('active') === '1' })))
-    .get('/conversation/:id', (c) => c.json(pipelines.runs.inConversation(c.req.param('id')) ?? null))
     .post('/:id/decide', async (c) => {
       const { decision, values } = await body(c, DecidePipeline);
       const run = pipelines.runs.get(c.req.param('id'));

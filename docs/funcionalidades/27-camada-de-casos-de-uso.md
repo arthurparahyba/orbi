@@ -88,30 +88,52 @@ E no combinado (CLAUDE.md), antes de implementar uma funcionalidade nova, entra 
 **mostrar a função de caso de uso**, assinatura e corpo em chamadas. É esse o código que o
 desenvolvedor quer revisar, e ele é curto o bastante para caber num combinado.
 
-## Amostra (feita)
+## O contexto `procedures`, feito
 
-Dois casos de uso em `procedures`, os do exemplo que motivou o documento:
+Sete casos de uso, em `contexts/procedures/use-cases/`:
 
-- **`findSimilarProcedures`** (`use-cases/find-similar.ts`) — "já sei algo parecido?". Busca os
-  candidatos, acha as variações de cada um no conjunto e devolve o que a decisão precisa. Lista
-  vazia quer dizer "nada parecido: siga normalmente".
-- **`startProcedure`** (`use-cases/start-procedure.ts`) — começar a rodar um procedimento. Acha o
-  procedimento, confere a ordem na esteira, abre a execução, avisa a esteira, e devolve o passo 0,
-  o que já se tentou e o estado da prova. Ou a recusa, com o motivo.
+| Caso de uso | De onde saiu |
+|---|---|
+| `findSimilarProcedures` | a ferramenta `playbook_similar` |
+| `startProcedure` | a ferramenta `playbook_start` |
+| `resolveStepInput` | a ferramenta `playbook_resolve` (passo 0) |
+| `reportStep` | a ferramenta `playbook_step` |
+| `findScriptOfRun` | estava em `agents/tools/scripts.ts`, que é composição |
+| `startPipeline` | a ferramenta `pipelines` **e** a rota `POST /api/pipelines/:name/start` |
+| `pipelineFixBrief` | a rota `POST /api/pipelines/:name/fix` |
 
-Os dois handlers viraram o que deviam ser: schema, descrição, **uma chamada** e a moldagem do que
-o modelo lê — e a moldagem ficou marcada com um comentário, para não voltar a se misturar.
+Os handlers viraram o que deviam ser: schema, descrição, uma chamada e a moldagem do que o modelo
+lê — com a moldagem marcada por comentário, para não voltar a se misturar.
 
-A segurança desta refatoração não vem do compilador: vem dos **24 arquivos de teste de caso de uso, 39
-cenários de ponta a ponta** que exercitam esses handlers pelo provedor falso, sem saber nada da
-estrutura interna.
+**O retorno concreto apareceu no `startPipeline`**: ele serve a ferramenta do chat e a rota da
+tela. Antes eram dois caminhos com a mesma regra escrita duas vezes, e a rota tinha uma ordem
+própria (abre a conversa, tenta começar, desfaz a conversa se recusar) que ninguém sabia que
+existia olhando a ferramenta.
+
+### O que a execução ensinou sobre a regra
+
+- **Chamar a mesma coisa quatro vezes não são quatro chamadas.** `run_script` parecia ter seis,
+  mas quatro eram `findScript` repetido nos ganchos do portão (precheck, effect, fingerprint,
+  execute). A orquestração dele é fina, e ele **não ganhou caso de uso** — só o `findScript`
+  saiu de `agents/tools/` para o contexto, que é onde ele sempre devia estar.
+- **Duas chamadas podem merecer um arquivo**, quando atravessam dois módulos do contexto e são
+  pedidas de fora. `findScriptOfRun` lê `execution` e `definition`; o critério de três chamadas
+  diria para deixar no handler, e o handler é composição. A regra ganhou essa ressalva.
+- **Duas das quatro rotas de esteira não ganharam nada.** `/:id/decide` e `/:id/cancel` são duas
+  chamadas cada, dentro de um módulo. Forçar um caso de uso ali seria um salto a mais sem
+  esconder nada.
+- **O teste de tamanho estava errado, e o erro era meu.** Ele contava os ajudantes privados como
+  corpo da função exportada, então o `reportStep` apareceu como gigante. Agora ele mede de uma
+  declaração de topo até a próxima, e há um segundo teste para os ajudantes — porque ajudante
+  privado curto é bom (mantém a função legível) e ajudante privado longo é comportamento
+  escondido, que vai para um serviço.
 
 ## A fazer
 
 | Contexto | Casos de uso |
 |---|---|
 | `tools` | 11 |
-| `procedures` | 9 (2 feitos) |
+| ~~`procedures`~~ | **feito**: 7 casos de uso |
 | `talk` | 4 |
 | `knowledge` + `learning` | 2 |
 | `models` | 1 |

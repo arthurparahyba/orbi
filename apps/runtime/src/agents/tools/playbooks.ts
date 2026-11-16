@@ -1,4 +1,4 @@
-import { startProcedure } from '../../contexts/procedures/index.ts';
+import { reportStep, resolveStepInput, startProcedure } from '../../contexts/procedures/index.ts';
 import { learningLines } from '../../contexts/procedures/index.ts';
 import { proofLabel, proofOf } from '../../contexts/procedures/index.ts';
 import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
@@ -129,22 +129,24 @@ function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOut
     }),
     async run({ data }) {
       if (!ctx.activeRun) return { output: { error: 'nenhum procedimento em execução' } };
-      try {
-        const { run, learned } = procedures.execution.resolveInput(ctx.activeRun.runId, data.input, { entity: data.entity, props: data.props, relations: data.relations });
-        showReadiness(run.id);
-        showRun(run.id);
-        const { toResolve, unknown } = procedures.execution.inputState(run.id);
-        return {
-          output: {
-            learned: learned.learned === 'created' ? `fato novo: ${learned.entity}` : learned.learned === 'alias' ? `"${learned.value}" é outro nome de ${learned.entity}` : `${learned.entity} já era conhecido`,
-            steps: run.steps.filter((s) => s.status === 'pending').map((s) => ({ id: s.id, label: s.label, how: s.how })),
-            ...(toResolve.length ? { toResolve } : {}),
-            ...(unknown.length ? { unknown } : {}),
-          },
-        };
-      } catch (error) {
-        return { output: { error: error instanceof Error ? error.message : String(error) } };
-      }
+      const outcome = resolveStepInput(
+        { procedures },
+        { runId: ctx.activeRun.runId, input: data.input, entity: data.entity, props: data.props, relations: data.relations },
+      );
+      if ('refused' in outcome) return { output: { error: outcome.refused } };
+      showReadiness(outcome.run.id);
+      showRun(outcome.run.id);
+
+      // Shaping only: the sentence the model reads about what the fact became.
+      const { learned } = outcome;
+      return {
+        output: {
+          learned: learned.learned === 'created' ? `fato novo: ${learned.entity}` : learned.learned === 'alias' ? `"${learned.value}" é outro nome de ${learned.entity}` : `já sabia: ${learned.entity}`,
+          steps: outcome.pending.map((s) => ({ id: s.id, label: s.label, how: s.how })),
+          ...(outcome.toResolve.length ? { toResolve: outcome.toResolve } : {}),
+          ...(outcome.unknown.length ? { unknown: outcome.unknown } : {}),
+        },
+      };
     },
   });
 
@@ -161,58 +163,26 @@ function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOut
     }),
     async run({ data }) {
       if (!ctx.activeRun) return { output: { error: 'nenhum playbook em execução' } };
-      // A step whose last tool failed is not done: fix it, or say it failed or was skipped.
-      const last = toolOutcomes.lastIn(ctx.conversationId);
-      if (data.status === 'done' && last?.failed) {
-        return {
-          output: {
-            error: `o passo ${data.stepId} não pode ser dado como feito: a última ferramenta (${last.tool}) falhou${last.error ? ` (${last.error.slice(0, 200)})` : ''}.`,
-            hint: 'Corrija e tente de novo, ou marque o passo como failed ou skipped com uma nota do que aconteceu.',
-          },
-        };
-      }
-      // "Waiting" must be for something real: an approval card, a question or a scheduled follow-up.
-      // Saying it before calling the tool left the developer with no button to press.
-      if (data.status === 'waiting' && !(await somethingWaits({ inbox, followups }, ctx.conversationId))) {
-        return {
-          output: {
-            error: `nada está esperando nesta conversa: não há aprovação, pergunta nem retorno agendado para o passo ${data.stepId}.`,
-            hint: 'Chame a ferramenta do passo (run_command, run_script…): se ela precisar de aprovação, o portão pede e o cartão aparece. Para esperar CI ou deploy, use schedule_followup. Só então marque waiting.',
-          },
-        };
-      }
-      let outputs = data.outputs;
-      if (outputs && Object.keys(outputs).length) {
-        // A value that happens to be a credential never gets stored as a result.
-        const secrets = (await Promise.all(vault.list().map((x) => vault.get(x.name)))).filter((x): x is string => !!x);
-        outputs = Object.fromEntries(Object.entries(outputs).map(([k, val]) => [k, redact(val, secrets)]));
-      }
-      let run;
-      try {
-        run = procedures.execution.updateRunStep(ctx.activeRun.runId, data.stepId, data.status, data.note, outputs);
-      } catch (error) {
-        return { output: { error: error instanceof Error ? error.message : String(error) } };
-      }
+      const reported = await reportStep(
+        { procedures, pipelines, vault, toolOutcomes, inbox, followups },
+        { runId: ctx.activeRun.runId, conversationId: ctx.conversationId, stepId: data.stepId, status: data.status, note: data.note, outputs: data.outputs },
+      );
+      if ('refused' in reported) return { output: { error: reported.refused, ...(reported.hint ? { hint: reported.hint } : {}) } };
+
+      const { run } = reported;
       showRun(run.id);
-      if (run.status !== 'done' && run.status !== 'failed') {
-        return { output: { runStatus: run.status } };
-      }
+      if (run.status !== 'done' && run.status !== 'failed') return { output: { runStatus: run.status } };
       ctx.setActiveRun(null);
-      // What the run learned by itself (passo 0) is shown at the end, each with Desfazer.
-      const learned = procedures.execution.learnedIn(run);
-      if (learned.length) {
+      if (reported.learned.length) {
         ctx.ui({
           component: 'learned_facts',
           id: `learned-${run.id}`,
           title: `Aprendi executando ${run.playbook}`,
           runId: run.id,
-          items: learned.map((l) => ({ input: l.input, value: l.value, entity: l.entity, learned: l.learned as 'alias' | 'created', undone: !!l.undone })),
+          items: reported.learned.map((l) => ({ input: l.input, value: l.value, entity: l.entity, learned: l.learned as 'alias' | 'created', undone: !!l.undone })),
         });
       }
-      // The level and the review come when the turn ends (review/review.ts), after every failure is in.
-      // Part of an esteira: the engine says what comes next (the next stage, or wait for the developer).
-      const next = pipelines.engine.runFinished(run);
-      return { output: { runStatus: run.status, ...(next ? { esteira: next } : {}) } };
+      return { output: { runStatus: run.status, ...(reported.next ? { esteira: reported.next } : {}) } };
     },
   });
 }

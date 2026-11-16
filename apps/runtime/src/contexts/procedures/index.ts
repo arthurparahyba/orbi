@@ -20,6 +20,16 @@ export { findSimilarProcedures } from './use-cases/find-similar.ts';
 export type { SimilarProcedure } from './use-cases/find-similar.ts';
 export { startProcedure } from './use-cases/start-procedure.ts';
 export type { Started, Refused } from './use-cases/start-procedure.ts';
+export { resolveStepInput } from './use-cases/resolve-step-input.ts';
+export type { Resolved, NotResolved, Discovery } from './use-cases/resolve-step-input.ts';
+export { findScriptOfRun } from './use-cases/find-script.ts';
+export type { FoundScript, NoScript } from './use-cases/find-script.ts';
+export { startPipeline } from './use-cases/start-pipeline.ts';
+export { pipelineFixBrief } from './use-cases/pipeline-fix-brief.ts';
+export type { FixBrief, NothingToFix } from './use-cases/pipeline-fix-brief.ts';
+export type { PipelineStarted, PipelineNotStarted } from './use-cases/start-pipeline.ts';
+export { reportStep } from './use-cases/report-step.ts';
+export type { Reported, NotReported } from './use-cases/report-step.ts';
 
 export { Procedures } from './definition/src/service.ts';
 export type { ProceduresDeps } from './definition/src/service.ts';

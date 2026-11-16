@@ -172,8 +172,10 @@ cofre ou ponte MCP, `npm run e2e`.
 - **A funcionalidade mora em `use-cases/`** (documento 27): `contexts/<contexto>/use-cases/<nome>.ts`, uma
   função no nome do domínio, só chamadas — sem SQL, sem `valibot`, sem prompt, sem `ctx.`, sem
   tela. Quem chama (a ferramenta, a rota) faz o schema, a moldagem e o falar com o mundo.
-  `test/use-cases.test.ts` acusa. Orquestração de três chamadas ou mais é caso de uso; menos que isso fica
-  no handler.
+  `test/use-cases.test.ts` acusa. Orquestração de três chamadas ou mais é caso de uso; menos que
+  isso fica no handler — **salvo quando atravessa dois módulos do contexto e é pedida de fora**,
+  que aí mora no contexto de qualquer jeito (`findScriptOfRun`, duas chamadas). E chamar a mesma
+  coisa quatro vezes num handler não são quatro chamadas: é uma.
 - **Fronteira de contexto** (documento 26, mapa em `docs/modulos.md`): dentro de um contexto os
   módulos se conhecem; entre contextos só passa id em coluna solta, e o acesso é pelo `index.ts`
   do contexto — nunca um arquivo de dentro, nunca chave estrangeira, nunca JOIN. Cada contexto é

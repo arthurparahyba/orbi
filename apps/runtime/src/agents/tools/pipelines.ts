@@ -1,6 +1,7 @@
 import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
+import { startPipeline } from '../../contexts/procedures/index.ts';
 import type { AgentContext } from '../context.ts';
 
 /**
@@ -26,18 +27,14 @@ function usePipelines(ctx: AgentContext, { procedures, pipelines }: Deps<'proced
       destination: v.optional(v.string()),
     }),
     async run({ data }) {
-      try {
-        const { run, instruction } = pipelines.engine.start(data.name, data.inputs, { conversationId: ctx.conversationId, destination: data.destination ?? null });
-        return { output: { started: run.id, next: instruction } };
-      } catch (error) {
-        const p = procedures.pipelineDefs.pipeline(data.name);
-        return {
-          output: {
-            error: error instanceof Error ? error.message : String(error),
-            ...(p ? { inputs: p.inputs.map((i) => ({ name: i.name, description: i.description, options: i.options ?? [], ...(i.default ? { default: i.default } : {}) })), stages: p.stages.map((s) => s.id) } : { available: procedures.pipelineDefs.pipelines().map((x) => x.name) }),
-          },
-        };
+      const started = startPipeline(
+        { procedures, pipelines },
+        { name: data.name, inputs: data.inputs, conversationId: ctx.conversationId, destination: data.destination },
+      );
+      if ('refused' in started) {
+        return { output: { error: started.refused, ...(started.inputs ? { inputs: started.inputs } : {}) } };
       }
+      return { output: { started: started.runId, next: started.next } };
     },
   });
 
