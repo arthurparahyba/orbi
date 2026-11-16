@@ -65,6 +65,7 @@ pertencem: `decideAction` é de `confiança`, não da linguagem.
 
 | Módulo | O que faz |
 |---|---|
+| `domains` | o assunto em que cada coisa foi aprendida, e as pontes entre domínios (documento 28) |
 | `ontology` | os tipos que o desenvolvedor ensinou e o que cada um pode se ligar a quê |
 | `facts` | entidades e ligações; decide se um fato novo já existe (veredictos `known`/`update`/`same`/`new`) |
 | `search` | índice FTS5 sobre entidades e procedimentos; o mínimo é travado por `eval:search` |
@@ -87,12 +88,17 @@ lote atravessa `conhecimento` e `procedimentos` numa transação só.
 | Caso de uso | O que faz |
 |---|---|
 | `entityPanel` | o painel de uma entidade: ela, com quem se liga, o que está a dois passos, e quem depende dela |
+| `suggestDomain` | para qual domínio vai o que está sendo aprendido, e por quê: o tipo ganha da execução, tipo espalhado é comum, empate não decide |
+| `domainOverview` | a primeira tela do Cérebro: os domínios, o tamanho de cada um, quem empresta para quem, e o que ficou sem domínio |
+| `domainDetail` | um domínio aberto: vocabulário, fatos, playbooks que nasceram nele, e as pontes |
 
 O resto da tela do Cérebro é uma checagem e uma chamada (editar, apagar, buscar). As quatro
 funcionalidades de procedimento que a tela usa moram em `procedures` e `trust`, não aqui: a rota
 `brainRoutes` é só quem atende por HTTP.
 
-Tabelas: `types`, `entities`, `edges`.
+Tabelas: `types`, `entities`, `edges`, `domains`. As colunas `domain` de `entities` e de
+`types` são deste contexto; a de `playbooks` é de `procedures`, e `knowledge` só a alcança pela
+porta `ProceduresByDomain` (documento 28).
 
 ### `procedures` — o que ele sabe fazer, e o que está fazendo
 

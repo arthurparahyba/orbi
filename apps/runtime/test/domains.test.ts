@@ -1,0 +1,117 @@
+/**
+ * Domínios: o assunto em que cada coisa foi aprendida (documento 28). Aqui estão as duas coisas
+ * que não dá para conferir lendo o código: a cadeia que decide o domínio de um aprendizado, e o
+ * que conta como ponte entre domínios.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { openDatabase } from '../src/db/database.ts';
+import { Domains, suggestDomain } from '../src/contexts/knowledge/index.ts';
+import { GraphRepo, OntologyRepo } from '../src/contexts/knowledge/index.ts';
+import type { Entity } from '../src/language/index.ts';
+
+const fresh = () => {
+  const db = openDatabase(join(mkdtempSync(join(tmpdir(), 'orbi-dom-')), 'orbi.db'));
+  const graph = new GraphRepo(db);
+  const ontology = new OntologyRepo(db);
+  const domains = new Domains(db, { countByDomain: () => new Map(), inDomain: () => [], rename: () => {} });
+  const type = (name: string, domain: string | null = null) =>
+    ontology.upsert({ name, description: name, relations: {}, requires: [], domain });
+  const fact = (id: string, typeName: string, domain: string | null) =>
+    graph.upsertEntity({ id, type: typeName, props: {}, body: '', domain });
+  return { db, graph, ontology, domains, type, fact };
+};
+
+const entity = (id: string, domain: string | null): Entity => ({ id, type: 'X', props: {}, body: '', domain, updatedAt: '' });
+
+test('o tipo ganha da execução: um fato de tipo de outro domínio não é do domínio de quem o achou', () => {
+  const { domains, type } = fresh();
+  domains.create({ name: 'aws' });
+  domains.create({ name: 'comum-ish' });
+  type('Maquina', 'comum-ish');
+
+  const s = suggestDomain({ domains }, { type: 'Maquina', runDomain: 'aws' });
+  assert.equal(s.domain, 'comum-ish');
+  assert.match(s.because, /tipo Maquina/);
+});
+
+test('tipo espalhado por dois domínios é comum, mesmo rodando dentro de um deles', () => {
+  const { domains, type, fact } = fresh();
+  domains.create({ name: 'aws' });
+  domains.create({ name: 'front-end' });
+  type('Ambiente');
+  fact('ambiente-prod', 'Ambiente', 'aws');
+  fact('ambiente-dev', 'Ambiente', 'front-end');
+
+  const s = suggestDomain({ domains }, { type: 'Ambiente', runDomain: 'aws' });
+  assert.equal(s.domain, null, 'espalhado por dois domínios: é de todos, ou seja, comum');
+  assert.match(s.because, /2 domínios/);
+});
+
+test('sem tipo decidindo, o domínio é o da execução', () => {
+  const { domains, type } = fresh();
+  domains.create({ name: 'aws' });
+  type('Stack');
+
+  const s = suggestDomain({ domains }, { type: 'Stack', runDomain: 'aws' });
+  assert.equal(s.domain, 'aws');
+  assert.match(s.because, /execução/);
+});
+
+test('sem execução, o domínio é o que a conversa mais olhou — e empate não decide', () => {
+  const { domains } = fresh();
+  const dois = suggestDomain({ domains }, { nearby: [entity('a', 'aws'), entity('b', 'aws'), entity('c', 'front-end')] });
+  assert.equal(dois.domain, 'aws');
+
+  const empate = suggestDomain({ domains }, { nearby: [entity('a', 'aws'), entity('b', 'front-end')] });
+  assert.equal(empate.domain, null, 'empate cai na regra seguinte, não escolhe por ordem alfabética');
+});
+
+test('nada aponta para domínio existente: propõe criar, e o nome proposto não pode já existir', () => {
+  const { domains } = fresh();
+  const novo = suggestDomain({ domains }, { proposed: 'servicenow' });
+  assert.equal(novo.domain, 'servicenow');
+  assert.equal(novo.isNew, true);
+
+  domains.create({ name: 'servicenow' });
+  const jaExiste = suggestDomain({ domains }, { proposed: 'servicenow' });
+  assert.equal(jaExiste.isNew, undefined);
+  assert.equal(jaExiste.domain, null);
+});
+
+test('ponte é entre dois domínios: relação com comum não é ponte', () => {
+  const { domains, graph, type, fact } = fresh();
+  domains.create({ name: 'aws' });
+  domains.create({ name: 'servicenow' });
+  type('Conta');
+  fact('conta-aws-prod', 'Conta', 'aws');
+  fact('gmud-123', 'Conta', 'servicenow');
+  fact('arthur', 'Conta', null);
+  graph.insertEdge({ from: 'gmud-123', rel: 'usa', to: 'conta-aws-prod', attrs: {}, validFrom: '2026-01-01', validTo: null });
+  graph.insertEdge({ from: 'gmud-123', rel: 'pedidoPor', to: 'arthur', attrs: {}, validFrom: '2026-01-01', validTo: null });
+
+  const bridges = domains.bridges();
+  assert.equal(bridges.length, 1, 'só a que atravessa dois domínios de verdade');
+  assert.deepEqual(
+    { from: bridges[0]!.from, to: bridges[0]!.to },
+    { from: 'gmud-123', to: 'conta-aws-prod' },
+  );
+  assert.equal(domains.bridgesOf('aws').length, 1);
+  assert.equal(domains.bridgesOf(null).length, 0, 'comum não tem ponte: já está no alcance de todos');
+});
+
+test('apagar um domínio devolve o que era dele para comum, sem apagar conhecimento', () => {
+  const { domains, graph, type, fact } = fresh();
+  domains.create({ name: 'cozinha' });
+  type('Receita', 'cozinha');
+  fact('bolo-de-cenoura', 'Receita', 'cozinha');
+
+  domains.remove('cozinha');
+  assert.equal(domains.get('cozinha'), undefined);
+  assert.ok(graph.entity('bolo-de-cenoura'), 'o fato continua lá');
+  assert.equal(graph.entity('bolo-de-cenoura')?.domain, null, 'e virou comum');
+  assert.deepEqual(domains.typesIn(null), ['Receita']);
+});

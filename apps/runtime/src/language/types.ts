@@ -12,6 +12,8 @@ export interface OntologyType {
   relations: Record<string, string>;
   /** relations every entity of this type should have */
   requires: string[];
+  /** The subject this type belongs to (documento 28). None = `comum`. */
+  domain?: string | null;
   /** Declared properties (name → what it is): what a procedure may cite as {{entrada.propriedade}}. */
   props?: Record<string, string>;
   /** What is known for every entity of the type (name → how): "de pé", "conectar", "achar". */
@@ -27,6 +29,8 @@ export interface Entity {
   aliases?: string[];
   /** Where the fact came from: "cartao:<conversa>", "execucao:<run>", "tela". */
   source?: string;
+  /** The subject it was learned in (documento 28). None = `comum`: it holds in every domain. */
+  domain?: string | null;
   updatedAt: string;
 }
 

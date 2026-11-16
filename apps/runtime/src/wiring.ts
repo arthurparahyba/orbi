@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { Facts, GraphRepo, OntologyRepo, factsForRun, mergeEntity } from './contexts/knowledge/index.ts';
+import { Domains, Facts, GraphRepo, OntologyRepo, factsForRun, mergeEntity } from './contexts/knowledge/index.ts';
 import { Execution, PipelineDefs, PipelineRepo, PlaybookRepo, Procedures, ProofRepo, RunCallRepo, StepLearningRepo } from './contexts/procedures/index.ts';
 import { Autonomy, LevelRepo } from './contexts/trust/index.ts';
 import { Learning, ProposalRepo } from './contexts/learning/index.ts';
@@ -16,7 +16,7 @@ import type { OrbiServices } from './services.ts';
  * `needs: ['brain']` when they wanted one context. Now a call names the context it asks.
  */
 /** The contexts that share the database, as the composition and the tests hold them. */
-export type Contexts = Pick<OrbiServices, 'knowledge' | 'procedures' | 'trust' | 'learning' | 'notes'>;
+export type Contexts = Pick<OrbiServices, 'knowledge' | 'domains' | 'procedures' | 'trust' | 'learning' | 'notes'>;
 
 export function wireContexts(db: DatabaseSync): Contexts {
   const ontology = new OntologyRepo(db);
@@ -30,6 +30,14 @@ export function wireContexts(db: DatabaseSync): Contexts {
   const calls = new RunCallRepo(db);
 
   const knowledge = new Facts(db, ontology, graph);
+
+  // Os domínios são de `knowledge`, mas o playbook de um domínio é de `procedures`: a porta
+  // `ProceduresByDomain` é essa pergunta, e só ela (documento 28).
+  const domains = new Domains(db, {
+    countByDomain: () => playbooks.countByDomain(),
+    inDomain: (domain) => playbooks.inDomain(domain),
+    rename: (from, to) => playbooks.renameDomain(from, to),
+  });
 
   // `trust` decides a procedure's level; `procedures` stores it. The port keeps the dependency
   // one-way (documento 26, fase 4a): the context never reaches back into procedures.
@@ -68,5 +76,5 @@ export function wireContexts(db: DatabaseSync): Contexts {
     },
   });
 
-  return { knowledge, procedures: { definition, execution, pipelineDefs, proofs, learnings, calls }, trust, learning, notes };
+  return { knowledge, domains, procedures: { definition, execution, pipelineDefs, proofs, learnings, calls }, trust, learning, notes };
 }

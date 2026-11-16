@@ -2,8 +2,9 @@
  * The `knowledge` context — what the Orbi knows (documento 26, map in `docs/modulos.md`).
  *
  * This is the context's only door (test/boundary.test.ts checks it). It owns the `types`,
- * `entities` and `edges` tables, and it imports no other context.
+ * `entities`, `edges` and `domains` tables, and it imports no other context.
  *
+ * domains   o assunto em que cada coisa foi aprendida, e as pontes entre eles (documento 28)
  * ontology  the types the developer taught, and what each may link to
  * facts     entities and links, and whether a new fact already exists
  * search    the FTS5 index over facts and procedures
@@ -11,6 +12,13 @@
  */
 
 export { entityPanel, type EntityPanel, type NoEntity } from './use-cases/entity-panel.ts';
+export { suggestDomain, type About, type Suggestion } from './use-cases/suggest-domain.ts';
+export { domainOverview, type DomainOverview } from './use-cases/domain-overview.ts';
+export { domainDetail, type DomainDetail, type NoDomain } from './use-cases/domain-detail.ts';
+
+export { Domains } from './domains/src/domains.ts';
+export { DomainRepo } from './domains/src/repo.ts';
+export type { Bridge, Domain, DomainSize, ProceduresByDomain } from './domains/src/domains.ts';
 
 export { Facts } from './facts/src/facts.ts';
 export { GraphRepo } from './facts/src/repo.ts';

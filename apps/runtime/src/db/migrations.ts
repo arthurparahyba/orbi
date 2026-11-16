@@ -317,6 +317,18 @@ CREATE INDEX diagnoses_run ON diagnoses (run_id);
 CREATE INDEX diagnoses_fingerprint ON diagnoses (fingerprint);`,
   },
   {
+    name: 'domínios: o assunto em que cada coisa foi aprendida (documento 28). Nulo = comum, que vale em todo domínio',
+    sql: `
+CREATE TABLE domains (
+  name TEXT PRIMARY KEY, description TEXT NOT NULL DEFAULT '',
+  born_from TEXT, created_at TEXT NOT NULL);
+ALTER TABLE entities ADD COLUMN domain TEXT;
+ALTER TABLE types ADD COLUMN domain TEXT;
+ALTER TABLE playbooks ADD COLUMN domain TEXT;
+CREATE INDEX entities_domain ON entities (domain);
+CREATE INDEX types_domain ON types (domain);`,
+  },
+  {
     name: 'relatório do diagnóstico: o que o modelo ou o agente de código escreveu sobre uma execução',
     sql: `
 CREATE TABLE diagnosis_reports (

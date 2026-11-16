@@ -9,6 +9,7 @@ const toEntity = (r: Row): Entity => ({
   body: String(r.body),
   aliases: parse(r.aliases, []),
   source: String(r.source ?? ''),
+  domain: (r.domain as string | null) ?? null,
   updatedAt: String(r.updated_at),
 });
 
@@ -31,11 +32,12 @@ export class GraphRepo {
     const updatedAt = now();
     this.db
       .prepare(
-        `INSERT INTO entities (id, type, props, body, aliases, source, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO entities (id, type, props, body, aliases, source, domain, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET type = excluded.type, props = excluded.props,
-           body = excluded.body, aliases = excluded.aliases, source = excluded.source, updated_at = excluded.updated_at`,
+           body = excluded.body, aliases = excluded.aliases, source = excluded.source,
+           domain = COALESCE(excluded.domain, entities.domain), updated_at = excluded.updated_at`,
       )
-      .run(entity.id, entity.type, json(entity.props), entity.body, json(entity.aliases ?? []), entity.source ?? '', updatedAt);
+      .run(entity.id, entity.type, json(entity.props), entity.body, json(entity.aliases ?? []), entity.source ?? '', entity.domain ?? null, updatedAt);
     return { ...entity, updatedAt };
   }
 
@@ -60,6 +62,15 @@ export class GraphRepo {
   entity(id: string): Entity | undefined {
     const r = this.db.prepare('SELECT * FROM entities WHERE id = ?').get(id) as Row | undefined;
     return r ? toEntity(r) : undefined;
+  }
+
+  /** Os fatos de um domínio; nulo é comum (documento 28). */
+  inDomain(domain: string | null): Entity[] {
+    const sql = domain
+      ? 'SELECT * FROM entities WHERE domain = ? ORDER BY updated_at DESC'
+      : 'SELECT * FROM entities WHERE domain IS NULL ORDER BY updated_at DESC';
+    const rows = (domain ? this.db.prepare(sql).all(domain) : this.db.prepare(sql).all()) as Row[];
+    return rows.map(toEntity);
   }
 
   byType(type: string): Entity[] {

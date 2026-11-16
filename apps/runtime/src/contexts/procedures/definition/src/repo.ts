@@ -131,6 +131,30 @@ export class PlaybookRepo {
     return r ? toPlaybook(r) : undefined;
   }
 
+  /** Quantos playbooks cada domínio tem; chave vazia é comum (documento 28). */
+  countByDomain(): Map<string, number> {
+    const rows = this.db.prepare("SELECT COALESCE(domain, '') AS d, COUNT(*) AS n FROM playbooks GROUP BY d").all() as Row[];
+    return new Map(rows.map((r) => [String(r.d), Number(r.n)]));
+  }
+
+  /** Os playbooks de um domínio, com o nível e quanto já foram usados. Nulo é comum. */
+  inDomain(domain: string | null): Array<{ name: string; level: 1 | 2 | 3; uses: number }> {
+    const sql = domain
+      ? 'SELECT name, level, uses FROM playbooks WHERE domain = ? ORDER BY uses DESC, name'
+      : 'SELECT name, level, uses FROM playbooks WHERE domain IS NULL ORDER BY uses DESC, name';
+    const rows = (domain ? this.db.prepare(sql).all(domain) : this.db.prepare(sql).all()) as Row[];
+    return rows.map((r) => ({ name: String(r.name), level: Number(r.level) as 1 | 2 | 3, uses: Number(r.uses) }));
+  }
+
+  /** Um domínio renomeado, ou apagado (destino vazio = comum). */
+  renameDomain(from: string, to: string): void {
+    this.db.prepare('UPDATE playbooks SET domain = ? WHERE domain = ?').run(to || null, from);
+  }
+
+  setDomain(name: string, domain: string | null): void {
+    this.db.prepare('UPDATE playbooks SET domain = ? WHERE name = ?').run(domain, name);
+  }
+
   all(): Playbook[] {
     return (this.db.prepare('SELECT * FROM playbooks ORDER BY name').all() as Row[]).map(toPlaybook);
   }

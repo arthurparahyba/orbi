@@ -143,7 +143,7 @@ const TABELAS = `types entities edges playbooks playbook_runs proposals followup
   conversations settings usage agent_clients agent_requests agent_suggestions
   deleted_conversations pipelines pipeline_runs playbook_known_actions autonomy_events
   code_agents code_agent_tasks review_notes mcp_servers mcp_tools playbook_learnings run_calls
-  playbook_proofs diagnoses diagnosis_reports`.split(/\s+/);
+  playbook_proofs diagnoses diagnosis_reports domains`.split(/\s+/);
 
 test('cada tabela tem um dono só', () => {
   const owners = new Map<string, Set<string>>();

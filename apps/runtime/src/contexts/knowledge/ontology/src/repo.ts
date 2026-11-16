@@ -8,11 +8,12 @@ export class OntologyRepo {
   upsert(type: OntologyType): void {
     this.db
       .prepare(
-        `INSERT INTO types (name, description, relations, requires, props, knows) VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO types (name, description, relations, requires, props, knows, domain) VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(name) DO UPDATE SET description = excluded.description,
-           relations = excluded.relations, requires = excluded.requires, props = excluded.props, knows = excluded.knows`,
+           relations = excluded.relations, requires = excluded.requires, props = excluded.props,
+           knows = excluded.knows, domain = COALESCE(excluded.domain, types.domain)`,
       )
-      .run(type.name, type.description, json(type.relations), json(type.requires), json(type.props ?? {}), json(type.knows ?? {}));
+      .run(type.name, type.description, json(type.relations), json(type.requires), json(type.props ?? {}), json(type.knows ?? {}), type.domain ?? null);
   }
 
   all(): OntologyType[] {
@@ -23,6 +24,7 @@ export class OntologyRepo {
       requires: parse(r.requires, []),
       props: parse(r.props, {}),
       knows: parse(r.knows, {}),
+      domain: (r.domain as string | null) ?? null,
     }));
   }
 

@@ -17,6 +17,7 @@ import type { BrowserMcp } from './contexts/tools/index.ts';
 import type { Recorder } from './contexts/tools/index.ts';
 import type { CodeAgents, CodeFixer } from './contexts/tools/index.ts';
 import type { AgentClients, AgentRequests, AgentSuggestions } from './contexts/agents/index.ts';
+import type { Domains } from './contexts/knowledge/index.ts';
 import type { ActiveLlm } from './contexts/models/index.ts';
 import type { ModelTiers } from './contexts/models/index.ts';
 import type { ModelRoles } from './contexts/models/index.ts';
@@ -48,6 +49,8 @@ export interface OrbiServices {
   db: DatabaseSync;
   /** `knowledge`: the ontology, the facts and their search (documento 26). */
   knowledge: Facts;
+  /** Os domínios do cérebro e as pontes entre eles (documento 28). */
+  domains: Domains;
   /**
    * `procedures`: what the Orbi knows how to do and what it is doing. One key per module of the
    * context, so a call says where it goes: `procedures.execution.startRun(…)`.

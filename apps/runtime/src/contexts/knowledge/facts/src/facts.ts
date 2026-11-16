@@ -98,6 +98,11 @@ export class Facts {
     return this.graphRepo.entity(id);
   }
 
+  /** Os fatos de um domínio; nulo é comum (documento 28). */
+  inDomain(domain: string | null): Entity[] {
+    return this.graphRepo.inDomain(domain);
+  }
+
   byType(type: string): Entity[] {
     return this.graphRepo.byType(type);
   }

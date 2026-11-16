@@ -42,7 +42,7 @@ const { Configurador } = await import('../src/agents/configurador.ts');
 const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
 const services = (await import('../src/services.ts')).services();
-const { knowledge, procedures, trust, learning, notes, inbox, llm, config, followups } = services;
+const { knowledge, domains, procedures, trust, learning, notes, inbox, llm, config, followups } = services;
 
 type Reply = { text: string; data: Record<string, unknown[]> };
 type Snapshot = import('./eval/core.ts').Snapshot;
@@ -79,7 +79,7 @@ async function runScenario(id: string) {
   const portal = await startFakePortal();
   const panel = await startFakePanel();
   const sites = () => ({ store: store.url, portal: `${portal.url}/login`, panel: panel.url });
-  await scenario.seed?.({ brain: { knowledge, procedures, trust, learning, notes }, workspace: config.workspace, sites: sites() });
+  await scenario.seed?.({ brain: { knowledge, domains, procedures, trust, learning, notes }, workspace: config.workspace, sites: sites() });
   const system = core.personaPrompt(scenario, sites());
   const shown = new Map<string, Record<string, any>>();
   const snap: Snapshot = { turns: [], brain: { types: [], entities: [], playbooks: [], runs: [] }, asked: [], secretValues: [] };
