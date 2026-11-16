@@ -11,7 +11,7 @@ módulo faz, a interface pública de cada contexto e quem é dono de cada tabela
 `docs/modulos.md`, e é o mapa que o combinado abaixo usa.
 A visão geral está em `docs/arquitetura.md`, e o mapa visual
 (o que o Orbi recebe em cada turno e o que chama em cada ponto de ensinar, executar e revisar) em
-`docs/mapa-visual/`: mudou um fluxo, atualize o quadro dele; as
+`docs/mapa-visual/`: mudou um caso de uso, atualize o quadro dele; as
 tabelas, migrações e gatilhos, em `docs/banco.md`.
 
 ## Combinado antes de cada funcionalidade
@@ -22,9 +22,9 @@ qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Cinc
 
 1. **Onde entra** — os contextos e módulos afetados, marcados na árvore de `docs/modulos.md`:
    `~` alterado, `+` novo. Só os ramos que mudam, não a árvore inteira.
-2. **O fluxo** — a função de `contexts/<contexto>/flows/` que é a funcionalidade: assinatura e
+2. **O caso de uso** — a função de `contexts/<contexto>/use-cases/` que é a funcionalidade: assinatura e
    corpo, em chamadas, sem implementação (documento 27). É este o código que o desenvolvedor quer
-   revisar antes de existir. Funcionalidade de uma ou duas chamadas não ganha fluxo: diga isso.
+   revisar antes de existir. Funcionalidade de uma ou duas chamadas não ganha caso de uso: diga isso.
 3. **Interface pública** — o que entra ou muda no `index.ts` de cada contexto afetado, por nome
    e assinatura. Se nada muda na interface, diga isso com essas palavras: é sinal de que a
    funcionalidade é interna a um módulo, e isso é uma boa notícia.
@@ -38,7 +38,7 @@ qualquer funcionalidade nova, apresente o combinado e espere ele concordar. Cinc
 
 Como apresentar: texto é suficiente, e a árvore de diretórios marcada costuma ser o mais claro.
 Diagrama de sequência ou de contexto quando a funcionalidade atravessa três contextos ou mais.
-O código da implementação não entra — mas **o fluxo entra**: ele não é implementação, é a
+O código da implementação não entra — mas **o caso de uso entra**: ele não é implementação, é a
 funcionalidade em chamadas, e é o que o desenvolvedor quer ler.
 
 Não implemente antes do ok. Se ele pedir para seguir direto, mostre o combinado junto da
@@ -48,6 +48,42 @@ mesmo commit e diga em uma linha o que mudou na interface pública.
 Fora do combinado também: ao falar de uma parte da aplicação, use o nome do módulo em português
 (*fatos*, *portão*, *papéis*), não o caminho do arquivo. O caminho é em inglês, como manda a
 convenção, e `docs/modulos.md` traz os dois lados. É esse vocabulário que mantém os dois alinhados.
+
+## Quando o desenvolvedor pergunta como algo funciona
+
+Ele quer ler a orquestração, não a implementação. Responda em quatro partes, nesta ordem:
+
+1. **Onde mora** — o contexto e o caso de uso, com o caminho
+   (`procedures`, `use-cases/start-procedure.ts`). O índice de cada contexto está em
+   `docs/modulos.md`; é por ele que se acha o nome.
+2. **Um diagrama de sequência simplificado.** Ele serve para dizer **onde aquele código roda** —
+   quem dispara, por onde passa, de que módulo é cada um — e não o que acontece por dentro.
+   - **Cada raia leva o módulo embaixo do nome**: `composição`, `em procedures`, `fora do
+     runtime`. Sem isso o desenho não responde a pergunta que o desenvolvedor faz.
+   - **Uma raia por salto de módulo, não por arquivo.** Dois arquivos do mesmo módulo
+     conversando são uma raia só (o router do Flue e o agente, por exemplo).
+   - **A exceção é o ponto de decisão**: quando entre dois participantes não há código e sim o
+     modelo escolhendo, eles ficam em raias separadas mesmo sendo do mesmo módulo. É o salto
+     mais importante do desenho.
+   - **Teto de cinco raias.** Os módulos que o caso de uso chama por dentro vão numa caixa
+     abaixo do diagrama, na ordem, não em raias.
+   - **Monte o diagrama das declarações, não do código.** As raias saem de
+     `agents/capabilities.ts` (a lista do turno), do `needs` de cada capability (de que contexto
+     ela é e quais ela toca), do índice de casos de uso em `docs/modulos.md` e das linhas de
+     `http/app.ts` (a entrada). Nenhuma implementação precisa ser lida para isso. O único arquivo
+     que se abre é o caso de uso que a resposta vai mostrar — e dele sai a caixa de baixo.
+     Se montar um diagrama exigiu ler implementação, uma declaração está mentindo: conserte a
+     declaração, não o diagrama.
+3. **O código do caso de uso, inteiro.** Ele cabe: o teste garante no máximo 25 linhas de corpo.
+4. **As chamadas que ele faz**, uma linha cada, e só quando o nome não disser sozinho.
+
+O diagrama é desenhado na hora, lendo o código, e **não é guardado em documento**: diagrama
+guardado apodrece em três funcionalidades e nenhum teste pega. O que fica guardado é o índice
+(`docs/modulos.md`) e esta regra.
+
+Se a pergunta for sobre uma funcionalidade que ainda não tem caso de uso — porque é de uma ou
+duas chamadas, ou porque o contexto dela ainda não ganhou a camada — diga isso e mostre o
+handler. Não invente um caso de uso que não existe para a resposta ficar bonita.
 
 ## Estrutura
 
@@ -66,7 +102,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
   src/contexts/       toda a funcionalidade, em onze contextos (documento 26); de fora, só pelo index.ts
-                      cada contexto com orquestração tem flows/: a funcionalidade em chamadas (doc 27)
+                      cada contexto com orquestração tem use-cases/: a funcionalidade em chamadas (doc 27)
     models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
     platform/           onde ele roda: os, env, preferences; dono da tabela settings
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)
@@ -111,7 +147,7 @@ npm run build             # instalador da plataforma atual (gere na plataforma d
 ```
 
 Um teste só: `cd apps/runtime && node --import tsx --import ./scripts/register-raw.mjs --test test/<arquivo>.test.ts`
-Testes de fluxo (o Flue real com o modelo roteirizado): `test/flow-*.test.ts`, um processo por arquivo,
+Testes de caso de uso (o Flue real com o modelo roteirizado): `test/flow-*.test.ts`, um processo por arquivo,
 com a montagem em `test/support/flow.ts`. Cenário novo = arquivo novo; um cenário que deixa revisão
 em segundo plano reserva uma resposta para ela e espera (`waitFor`) que a fila esvazie
 (`faux.getPendingResponseCount() === 0`) antes de terminar, senão o cenário seguinte do arquivo
@@ -133,10 +169,10 @@ cofre ou ponte MCP, `npm run e2e`.
   Única exceção: `playbook_resolve` (passo 0) guarda, sem cartão, o fato que uma entrada virou
   numa execução, só de um conceito que já existe e do tipo da entrada, com origem e Desfazer
   (documento 18). Não amplie a exceção: conceito, propriedade e procedimento passam pelo cartão.
-- **A funcionalidade mora em `flows/`** (documento 27): `contexts/<contexto>/flows/<nome>.ts`, uma
+- **A funcionalidade mora em `use-cases/`** (documento 27): `contexts/<contexto>/use-cases/<nome>.ts`, uma
   função no nome do domínio, só chamadas — sem SQL, sem `valibot`, sem prompt, sem `ctx.`, sem
   tela. Quem chama (a ferramenta, a rota) faz o schema, a moldagem e o falar com o mundo.
-  `test/flows.test.ts` acusa. Orquestração de três chamadas ou mais é fluxo; menos que isso fica
+  `test/use-cases.test.ts` acusa. Orquestração de três chamadas ou mais é caso de uso; menos que isso fica
   no handler.
 - **Fronteira de contexto** (documento 26, mapa em `docs/modulos.md`): dentro de um contexto os
   módulos se conhecem; entre contextos só passa id em coluna solta, e o acesso é pelo `index.ts`
@@ -242,7 +278,7 @@ cofre ou ponte MCP, `npm run e2e`.
   `@durable-streams/client` reconecta sem fechar a conexão velha e o app trava ao esgotar as 6
   conexões do navegador. Não volte para SSE sem rodar o e2e da tela (ele acusa conexão presa).
 - **Pi fixado em 1.1.0** (`overrides` na raiz): o Flue 2.3 quebra com o Pi 1.2+. Não atualize
-  `@earendil-works/pi-ai` nem `pi-agent-core` sem testar o fluxo inteiro.
+  `@earendil-works/pi-ai` nem `pi-agent-core` sem testar o caso de uso inteiro.
 - **`@orbi/contracts` e `@orbi/plugin-sdk` não podem estar nas dependências do runtime**: o
   `@flue/vite` externaliza toda dependência declarada, e o Node não roda `.ts` de
   `node_modules`. Sem declarar, eles entram no bundle.

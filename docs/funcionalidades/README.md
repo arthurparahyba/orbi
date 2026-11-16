@@ -38,7 +38,7 @@ e [plugins](../plugins.md).
 | 24 | [Registro e diagnóstico](24-registro-e-diagnostico.md) | Cada chamada da execução guardada, tela de detalhes, leitura cara marcada e o diagnóstico que separa defeito do Orbi, do procedimento e do modelo; proposta: relatório pelo agente e issue |
 | 25 | [Procedimento provado](25-procedimento-provado.md) | Rascunho até rodar como está escrito, prova por passo que cai quando o passo muda, retrospectiva da execução, aprendizados do procedimento e mudança a pedido |
 | 26 | [Monolito modular](26-monolito-modular.md) | Contextos com `index.ts` e `migrations.ts` próprios, id entre contextos em vez de chave estrangeira, teste de fronteira, mapa vivo em `docs/modulos.md` e o combinado antes de cada funcionalidade |
-| 27 | [Camada de fluxos](27-camada-de-fluxos.md) | A funcionalidade escrita em chamadas, em `contexts/<contexto>/flows/`: recebe o pedido, chama os vizinhos pela porta deles, devolve o que aconteceu. Não importa implementação nem fala com a conversa; `test/flows.test.ts` guarda |
+| 27 | [Camada de casos de uso](27-camada-de-casos de uso.md) | A funcionalidade escrita em chamadas, em `contexts/<contexto>/use-cases/`: recebe o pedido, chama os vizinhos pela porta deles, devolve o que aconteceu. Não importa implementação nem fala com a conversa; `test/use-cases.test.ts` guarda |
 
 ## Como as funcionalidades se ligam
 

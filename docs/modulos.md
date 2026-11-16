@@ -9,9 +9,8 @@ A decisão que gerou este mapa, com as medições e o que cada fase ensinou, est
 `src/contexts/` é toda a funcionalidade, e a lista de exceções do teste de fronteira está vazia.
 
 **Nome e caminho.** A convenção do projeto é código e nomes em inglês, documentação em
-português. Então cada contexto e cada módulo aparecem aqui com o termo que a gente fala e o
-caminho real: *papéis* (`roles`). Na conversa vale o termo em português; no código, o caminho.
-O que ainda não virou contexto está marcado com "hoje em".
+português — e **toda referência a código aqui usa o nome como ele está escrito no código**:
+`procedures`, `roles`, `startProcedure`. A explicação em volta é em português; o nome, não.
 
 ## A regra
 
@@ -42,13 +41,13 @@ quem é dono. As que existem hoje: `FactsForRun` (`knowledge` → quem executa, 
 problemas conhecidos), `EngineStore` (o motor da esteira), `DeleteHook` (`talk` → quem referencia
 uma conversa), `TitleOf` (`telemetry` → `talk`) e `NotesDeps` (`improvement`).
 
-**A funcionalidade de cada contexto está escrita em chamadas** em `contexts/<contexto>/flows/`
-(documento 27): um arquivo por funcionalidade, uma função no nome do domínio, que recebe o pedido,
-chama os vizinhos pela porta deles e devolve o que aconteceu — sem SQL, sem schema de ferramenta,
-sem texto de prompt, e sem falar com a conversa ou com a tela. É esse o código para ler quando a
-pergunta é "como funciona X": o índice de cada contexto está na sua seção, abaixo.
-`test/flows.test.ts` guarda as regras. Contexto cuja funcionalidade *é* uma chamada não tem a
-camada: a regra é "existe fluxo onde existe orquestração".
+**A funcionalidade de cada contexto está escrita em chamadas** em
+`contexts/<contexto>/use-cases/` (documento 27): um arquivo por funcionalidade, uma função que
+recebe o pedido, chama os vizinhos pela porta deles e devolve o que aconteceu — sem SQL, sem
+schema de ferramenta, sem texto de prompt, e sem falar com a conversa ou com a tela. É esse o
+código para ler quando a pergunta é "como funciona X": o índice de cada contexto está na sua
+seção, abaixo. `test/use-cases.test.ts` guarda as regras. Contexto cuja funcionalidade *é* uma
+chamada não tem a camada: a regra é "existe caso de uso onde existe orquestração".
 
 **A linguagem compartilhada** fica em `src/language/` (fase 4a): as palavras que todo contexto
 usa para falar das mesmas coisas — `Entity`, `Playbook`, `PlaybookRun`, `StepStatus`, `Level`,
@@ -58,17 +57,17 @@ pertencem: `decideAction` é de `confiança`, não da linguagem.
 
 ## Contextos
 
-### conhecimento (`knowledge`) — o que o Orbi sabe
+### `knowledge` — o que o Orbi sabe
 
 **Migrado** (fase 4b): `src/contexts/knowledge/`, com `index.ts` e a rota em `http.ts`.
 É o contexto folha: **não importa contexto nenhum.**
 
 | Módulo | O que faz |
 |---|---|
-| `ontologia` (`ontology`) | os tipos que o desenvolvedor ensinou e o que cada um pode se ligar a quê |
-| `fatos` (`facts`) | entidades e ligações; decide se um fato novo já existe (veredictos `known`/`update`/`same`/`new`) |
-| `busca` (`search`) | índice FTS5 sobre entidades e procedimentos; o mínimo é travado por `eval:search` |
-| `problemas` (`problems`) | fatos do tipo problema, casados com o texto de um erro |
+| `ontology` | os tipos que o desenvolvedor ensinou e o que cada um pode se ligar a quê |
+| `facts` | entidades e ligações; decide se um fato novo já existe (veredictos `known`/`update`/`same`/`new`) |
+| `search` | índice FTS5 sobre entidades e procedimentos; o mínimo é travado por `eval:search` |
+| `problems` | fatos do tipo problema, casados com o texto de um erro |
 
 Interface pública: `Facts`, `GraphRepo`, `OntologyRepo`, `factsForRun`, `entityProblems`,
 `edgeProblems`, `findGaps`, `isTypeName`, `EXAMPLE_TYPES`, `classifyEntity`, `mergeEntity`,
@@ -84,19 +83,19 @@ lote atravessa `conhecimento` e `procedimentos` numa transação só.
 
 Tabelas: `types`, `entities`, `edges`.
 
-### procedimentos (`procedures`) — o que ele sabe fazer, e o que está fazendo
+### `procedures` — o que ele sabe fazer, e o que está fazendo
 
 **Migrado** (fase 4b): `src/contexts/procedures/`, com `index.ts` e as rotas em
 `pipelines-http.ts` e `learnings-http.ts`. É o maior contexto, e o único com seis módulos.
 
 | Módulo | O que faz |
 |---|---|
-| `definição` (`definition`) | o procedimento, seus passos, scripts, entradas, saídas e variações |
-| `ensaio` (`rehearsal`) | a execução de teste que prova o procedimento antes de valer |
-| `execução` (`execution`) | a execução de verdade: passos, passo 0 (resolver entradas), registro das chamadas, desvios |
-| `provas` (`proofs`) | qual passo já rodou como está escrito; a prova cai quando o texto do passo muda |
-| `aprendizados` (`learnings`) | o que cada passo já tentou, e como foi |
-| `esteiras` (`pipelines`) | procedimentos em sequência e o motor que decide a próxima etapa |
+| `definition` | o procedimento, seus passos, scripts, entradas, saídas e variações |
+| `rehearsal` | a execução de teste que prova o procedimento antes de valer |
+| `execution` | a execução de verdade: passos, passo 0 (resolver entradas), registro das chamadas, desvios |
+| `proofs` | qual passo já rodou como está escrito; a prova cai quando o texto do passo muda |
+| `learnings` | o que cada passo já tentou, e como foi |
+| `pipelines` | procedimentos em sequência e o motor que decide a próxima etapa |
 
 Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `ProofRepo`,
 `StepLearningRepo`, `PipelineDefs`, `PipelineRepo`, mais as regras puras de cada módulo
@@ -104,12 +103,12 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 `pipelines`, `config`, `engine`, `runs`) e as rotas `pipelineRoutes`, `pipelineRunRoutes`,
 `stepLearningRoutes`.
 
-**Fluxos** (`flows/`, documento 27) — é aqui que se lê como cada funcionalidade funciona:
+**Casos de uso** (`use-cases/`, documento 27) — é aqui que se lê como cada funcionalidade funciona:
 
-| Fluxo | O que faz |
+| Caso de uso | O que faz |
 |---|---|
-| achar parecido (`findSimilarProcedures`) | "já sei algo parecido?": os candidatos ao pedido, com as variações de cada um e o porquê de ele ter vindo |
-| iniciar procedimento (`startProcedure`) | acha o procedimento, confere a ordem na esteira, abre a execução, e devolve o passo 0, o que já se tentou e o estado da prova — ou a recusa |
+| `findSimilarProcedures` | "já sei algo parecido?": os candidatos ao pedido, com as variações de cada um e o porquê de ele ter vindo |
+| `startProcedure` | acha o procedimento, confere a ordem na esteira, abre a execução, e devolve o passo 0, o que já se tentou e o estado da prova — ou a recusa |
 
 Lê `knowledge` pela porta `FactsForRun` e pede o nível a `trust`; nenhum dos dois alcança aqui.
 O motor da esteira recebe a porta `EngineStore`, com as seis operações que usa.
@@ -117,14 +116,14 @@ O motor da esteira recebe a porta `EngineStore`, com as seis operações que usa
 Tabelas: `playbooks`, `playbook_runs`, `run_calls`, `playbook_proofs`, `playbook_learnings`,
 `pipelines`, `pipeline_runs`.
 
-### confiança (`trust`) — o que ele pode fazer sozinho
+### `trust` — o que ele pode fazer sozinho
 
 **Migrado** (fase 4a): `src/contexts/trust/`, com `index.ts` e a rota em `http.ts`.
 
 | Módulo | O que faz |
 |---|---|
-| `níveis` (`levels`) | o nível em que o procedimento está, como ele sobe e desce, e as ações que ele já conhece |
-| `política` (`policy`) | o que o desenvolvedor permite por assunto, e o efeito que cada ação tem |
+| `levels` | o nível em que o procedimento está, como ele sobe e desce, e as ações que ele já conhece |
+| `policy` | o que o desenvolvedor permite por assunto, e o efeito que cada ação tem |
 
 Interface pública: `Autonomy`, `LevelRepo`, `levelState`, `decideAction`, `askReason`,
 `settleLevel`, `levelAfterEdit`, `runDeviations`, `activeDeviations`, `workedAround`, `stepUses`,
@@ -143,16 +142,16 @@ O `portão` **não** é módulo deste contexto: `agents/gate.ts` é capability d
 composição, aplicando estas regras a cada chamada de ferramenta. E `aprovação`
 (`inbox/approval.ts`, 23 linhas) é um handler da caixa de entrada: vai para `conversa`.
 
-### melhoria (`improvement`) — como ele fica melhor
+### `improvement` — como ele fica melhor
 
 **Migrado** (fase 3): `src/contexts/improvement/`, com `index.ts` e a rota em `http.ts`.
 
 | Módulo | O que faz |
 |---|---|
-| `revisão` (`review`) | olha a execução que acabou, propõe ajuste no procedimento e escreve a retrospectiva |
-| `juiz` (`judge`) | separa o que é defeito do procedimento do que é chamada errada do modelo, e o que a execução sugere |
-| `diagnóstico` (`diagnosis`) | detectores do que deu errado por culpa do Orbi ou do modelo, em categorias |
-| `relatório` (`report`) | o relatório do diagnóstico e a issue no repositório do Orbi |
+| `review` | olha a execução que acabou, propõe ajuste no procedimento e escreve a retrospectiva |
+| `judge` | separa o que é defeito do procedimento do que é chamada errada do modelo, e o que a execução sugere |
+| `diagnosis` | detectores do que deu errado por culpa do Orbi ou do modelo, em categorias |
+| `report` | o relatório do diagnóstico e a issue no repositório do Orbi |
 
 Interface pública: `sendReview`, `reviewInstruction`, `KnowledgeCandidates`, `deliverKnowledge`,
 `matchFacts`, `KNOWLEDGE_PREFIX`, `retrospective`, `judge`, `outOfScope`, `CHANGE_SCOPE_MS`,
@@ -169,7 +168,7 @@ procedimento de que a nota fala e o fato que ela cita.
 é um arquivo dentro dela. E os agentes `revisor` e `diagnosticador` ficam na composição
 (`agents/`): são adaptadores finos que registram o agente no Flue e chamam este contexto.
 
-### aprendizado (`learning`) — o que ainda espera aprovação
+### `learning` — o que ainda espera aprovação
 
 **Migrado** (fase 4b): `src/contexts/learning/`, um módulo só, código plano em `src/`.
 
@@ -184,16 +183,16 @@ Interface pública: `Learning`, `ProposalRepo`, `changeFromProposal`, `proposalP
 
 Tabelas: `proposals`.
 
-### conversa (`talk`) — por onde o desenvolvedor fala
+### `talk` — por onde o desenvolvedor fala
 
 **Migrado** (fase 5): `src/contexts/talk/`, com `index.ts` e cinco rotas.
 
 | Módulo | O que faz |
 |---|---|
-| `conversas` (`conversations`) | as conversas, seus títulos, o estado, o apagar e a limpeza |
-| `caixa` (`inbox`) | os cartões que o desenvolvedor responde: aprovação, pergunta, aviso, segredo |
-| `followups` (`followups`) | o Orbi se acordando depois: agendado, entregue, falhou, cancelado |
-| `voz` (`voice`) | transcrição local: o modelo, onde ficam os arquivos, o aquecimento |
+| `conversations` | as conversas, seus títulos, o estado, o apagar e a limpeza |
+| `inbox` | os cartões que o desenvolvedor responde: aprovação, pergunta, aviso, segredo |
+| `followups` | o Orbi se acordando depois: agendado, entregue, falhou, cancelado |
+| `voice` | transcrição local: o modelo, onde ficam os arquivos, o aquecimento |
 
 Interface pública: `Conversations`, `Inbox`, `Followups`, `startFollowups`, `VoiceModel`,
 `createStt`, `warmVoice`, `buildNotebook`, `nextLevel`, `conversationState`,
@@ -207,17 +206,17 @@ dono da tabela registra um gancho no início, e ele roda na mesma transação.
 
 Tabelas: `conversations`, `deleted_conversations`, `inbox_items`, `followups`.
 
-### ferramentas (`tools`) — com o que ele age no mundo
+### `tools` — com o que ele age no mundo
 
 **Migrado** (fase 5): `src/contexts/tools/`, com `index.ts` e quatro rotas. É o segundo maior.
 
 | Módulo | O que faz |
 |---|---|
-| `terminal` (`terminal`) | comandos na máquina, os programas permitidos, a limpeza da saída e o caminho do shell |
-| `navegador` (`browser`) | o Chrome compartilhado, a gravação da tela e a ponte MCP do devtools |
-| `mcp-cliente` (`mcp-client`) | servidores MCP que o desenvolvedor cadastrou e as conexões com eles |
-| `agentes-de-código` (`code-agents`) | os agentes de código da máquina, suas tarefas e a cópia descartável |
-| `comandos` (`commands`) | o que cada programa conhecido faz (git, gh, aws, build) |
+| `terminal` | comandos na máquina, os programas permitidos, a limpeza da saída e o caminho do shell |
+| `browser` | o Chrome compartilhado, a gravação da tela e a ponte MCP do devtools |
+| `mcp-client` | servidores MCP que o desenvolvedor cadastrou e as conexões com eles |
+| `code-agents` | os agentes de código da máquina, suas tarefas e a cópia descartável |
+| `commands` | o que cada programa conhecido faz (git, gh, aws, build) |
 
 Interface pública: o que cada módulo exporta, mais as rotas `browserRoutes`, `recordingRoutes`,
 `codeAgentRoutes` e `mcpServerRoutes`. Rodar um comando recebe a porta `CommandMemory`
@@ -225,17 +224,17 @@ Interface pública: o que cada módulo exporta, mais as rotas `browserRoutes`, `
 
 Tabelas: `code_agents`, `code_agent_tasks`, `mcp_servers`, `mcp_tools`.
 
-### modelos (`models`) — com o que ele pensa
+### `models` — com o que ele pensa
 
 **Migrado** (fase 1): `src/contexts/models/`, com `index.ts` e a rota em `http.ts`.
 
 | Módulo | O que faz |
 |---|---|
-| `provedor` (`provider`) | qual provedor está ativo, o adaptador que fala com ele e a ponte com o Flue |
-| `plugins` (`plugins`) | adaptadores achados no disco e o teste de que respondem |
-| `papéis` (`roles`) | os quatro papéis (conversa, executar, aprender, conhecimento) e o modelo de cada turno |
-| `custo` (`cost`) | quão caro é cada modelo, o que o desenvolvedor classificou e o que já vem sabido |
-| `configuração` (`setup`) | como o desenvolvedor escolhe, testa e aplica um provedor |
+| `provider` | qual provedor está ativo, o adaptador que fala com ele e a ponte com o Flue |
+| `plugins` | adaptadores achados no disco e o teste de que respondem |
+| `roles` | os quatro papéis (conversa, executar, aprender, conhecimento) e o modelo de cada turno |
+| `cost` | quão caro é cada modelo, o que o desenvolvedor classificou e o que já vem sabido |
+| `setup` | como o desenvolvedor escolhe, testa e aplica um provedor |
 
 Interface pública: `configureLlm`, `llmChoice`, `llmSettings`, `ADAPTERS`, `ModelRoles`,
 `resolveRoles`, `turnRole`, `modelForTurn`, `ModelTiers`, `modelChoices`, `knownTier`,
@@ -251,7 +250,7 @@ Tabelas: nenhuma própria; usa o namespace `models` em `settings`.
 Ainda alcança a estrutura antiga em `terminal/orbi-env.ts` e `observability/` (fase 5); a lista
 está em `test/boundary.test.ts`, em `AINDA_FORA`, e só pode encurtar.
 
-### segredos (`secrets`) — o que nunca pode sair
+### `secrets` — o que nunca pode sair
 
 **Migrado** (fase 2): `src/contexts/secrets/`, com `index.ts`, a rota em `http.ts` e, por ser um
 módulo só, o código plano em `src/`.
@@ -265,7 +264,7 @@ e os tipos `SecretInfo` e `VaultBackend`.
 
 Tabelas: nenhuma; arquivo próprio cifrado.
 
-### telemetria (`telemetry`) — o que aconteceu
+### `telemetry` — o que aconteceu
 
 **Migrado** (fase 5): `src/contexts/telemetry/`, um módulo só, código plano em `src/`.
 
@@ -281,15 +280,15 @@ Interface pública: `log`, `createLogger`, `logOptionsFromEnv`, `setLogger`, `Us
 
 Tabelas: `usage`.
 
-### plataforma (`platform`) — onde ele está rodando
+### `platform` — onde ele está rodando
 
 **Migrado** (fase 2): `src/contexts/platform/`.
 
 | Módulo | O que faz |
 |---|---|
-| `so` (`os`) | diferenças de sistema operacional, uma implementação por sistema, e a pasta de dados do app |
-| `ambiente` (`env`) | o arquivo `.env` da instalação |
-| `preferências` (`preferences`) | o que o desenvolvedor escolheu e fica entre execuções |
+| `os` | diferenças de sistema operacional, uma implementação por sistema, e a pasta de dados do app |
+| `env` | o arquivo `.env` da instalação |
+| `preferences` | o que o desenvolvedor escolheu e fica entre execuções |
 
 Interface pública: `platform`, `platformFor`, `appDataHome`, `setEnvValue`, `withEnvValue`,
 `Preferences`, e os tipos `Platform` e `PlatformId`.
