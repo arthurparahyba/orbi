@@ -38,7 +38,7 @@ export interface Edge { from: string; rel: string; to: string; attrs: Record<str
 export interface Gap { entity: string; type: string; missing: string }
 
 export interface BrainSnapshot {
-  stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number };
+  stats: { entities: number; edges: number; playbooks: number; openProposals: number; types: number; domains: number };
   gaps: Gap[]; types: OntologyType[]; entities: Entity[]; edges: Edge[];
 }
 

@@ -99,6 +99,21 @@ describe('abertura do app', () => {
   });
 });
 
+import { brainLine } from '../src/components/Splash';
+describe('o cérebro na tela de abertura', () => {
+  const health = (brain: Record<string, number>) => ({ brain } as never);
+
+  it('vazio não é falta: ele começa assim e aprende com o desenvolvedor', () => {
+    expect(brainLine(health({ entities: 0, domains: 0 }))).toBe('vazio, aprende com você');
+  });
+
+  it('conta o que tem, no singular e no plural, e só cita domínio quando existe algum', () => {
+    expect(brainLine(health({ entities: 1, domains: 0 }))).toBe('1 fato');
+    expect(brainLine(health({ entities: 94, domains: 1 }))).toBe('94 fatos em 1 domínio');
+    expect(brainLine(health({ entities: 94, domains: 5 }))).toBe('94 fatos em 5 domínios');
+  });
+});
+
 import { checkStep, nextDelay } from '../src/components/chat/catchUp';
 describe('acompanhar o turno depois de responder ou aprovar', () => {
   it('não recarrega se a tela já está mudando; recarrega se nada chegou; termina quando chegou e parou', () => {

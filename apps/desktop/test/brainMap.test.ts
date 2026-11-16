@@ -5,7 +5,7 @@ import { conceptMap, factsOf, frontier, mapAsSnapshot, neighborhood } from '../s
 const entity = (id: string, type: string, extra: Partial<BrainSnapshot['entities'][number]> = {}) => ({ id, type, props: {}, body: '', updatedAt: '2026-11-10T00:00:00Z', ...extra });
 const edge = (from: string, rel: string, to: string) => ({ from, rel, to, attrs: {}, validFrom: '', validTo: null });
 const snapshot: BrainSnapshot = {
-  stats: { entities: 0, edges: 0, playbooks: 0, openProposals: 0, types: 0 },
+  stats: { entities: 0, edges: 0, playbooks: 0, openProposals: 0, types: 0, domains: 0 },
   gaps: [{ entity: 'car-hml', type: 'Ambiente', missing: 'dono' }],
   types: [
     { name: 'Ambiente', description: '', relations: { recurso: '*' }, requires: [] },

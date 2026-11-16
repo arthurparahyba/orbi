@@ -58,7 +58,7 @@ export function App() {
   const chromeOk = health.data && 'tools' in health.data.chrome;
 
   // Until the runtime answers and the first data arrives: a loading screen, not empty screens.
-  if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} />;
+  if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} health={health.data} inbox={inbox.data} />;
   const noModel = health.data?.llmReady === false;
   if (noModel && !later) return <ModelSetup onDone={() => void health.reload()} onLater={() => setLater(true)} />;
 

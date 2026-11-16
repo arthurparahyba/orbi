@@ -6,17 +6,20 @@ import { exportMarkdown } from './brain-export.ts';
  * to any one of them (documento 26): the line of the Orbi's situation that goes into every turn,
  * and the export of the whole brain as Markdown. Each context counts what is its own.
  */
-export function stats(s: Pick<OrbiServices, 'knowledge' | 'procedures' | 'learning'>): {
+export function stats(s: Pick<OrbiServices, 'knowledge' | 'domains' | 'procedures' | 'learning'>): {
   types: number;
   entities: number;
   edges: number;
   playbooks: number;
   openProposals: number;
+  domains: number;
 } {
   return {
     ...s.knowledge.counts(),
     playbooks: s.procedures.definition.count(),
     openProposals: s.learning.countOpen(),
+    // Cada contexto conta o seu: os domínios são de `knowledge`, pelo serviço deles (documento 28).
+    domains: s.domains.list().length,
   };
 }
 

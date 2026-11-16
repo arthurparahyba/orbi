@@ -39,7 +39,7 @@ export function mapAsSnapshot(map: ReturnType<typeof conceptMap>): BrainSnapshot
   const entities: Entity[] = map.nodes.map((n) => ({ id: n.name, type: n.name, props: { nome: `${n.name} (${n.facts})` }, body: '', updatedAt: '' }));
   const edges: Edge[] = map.edges.map((e) => ({ from: e.from, rel: e.rel, to: e.to, attrs: {}, validFrom: '', validTo: null }));
   const gaps = map.nodes.filter((n) => n.gaps > 0).map((n) => ({ entity: n.name, type: n.name, missing: `${n.gaps} lacunas` }));
-  return { stats: { entities: entities.length, edges: edges.length, playbooks: 0, openProposals: 0, types: entities.length }, gaps, types: [], entities, edges };
+  return { stats: { entities: entities.length, edges: edges.length, playbooks: 0, openProposals: 0, types: entities.length, domains: 0 }, gaps, types: [], entities, edges };
 }
 
 /** Only what is around one fact, `depth` relations away (current relations, either direction). */
