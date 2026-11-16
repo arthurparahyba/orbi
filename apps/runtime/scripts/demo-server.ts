@@ -34,7 +34,7 @@ const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
 const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
-const { brain, conversations, stt, agents } = (await import('../src/services.ts')).services();
+const { knowledge, procedures, conversations, stt, agents } = (await import('../src/services.ts')).services();
 const { EXAMPLE_TYPES } = await import('../src/contexts/knowledge/ontology/src/ontology.ts');
 if (process.env.DEMO_FAKE_STT) {
   const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
@@ -44,10 +44,10 @@ if (process.env.DEMO_FAKE_STT) {
 
 // ── seed: what the prototype showed Orbi knowing ──────────────────────────
 function seed() {
-  if (brain.stats().entities > 0) return;
+  if (knowledge.counts().entities > 0) return;
   // The real brain starts empty; the demo starts with an example ontology and graph.
-  for (const type of EXAMPLE_TYPES) brain.upsertType(type);
-  const e = (id: string, type: string, props: Record<string, unknown> = {}, body = '') => brain.upsertEntity({ id, type, props, body });
+  for (const type of EXAMPLE_TYPES) knowledge.upsertType(type);
+  const e = (id: string, type: string, props: Record<string, unknown> = {}, body = '') => knowledge.upsertEntity({ id, type, props, body });
   e('ServicoJava', 'Classe', { detectadaPor: 'pom.xml' });
   e('FrontEnd', 'Classe', { detectadaPor: 'package.json + Vite', requires: ['registradoEm'] });
   e('api-pagamentos', 'Repositorio', { github: 'acme/api-pagamentos' }, 'Serviço de pagamentos (PIX e boletos).');
@@ -65,7 +65,7 @@ function seed() {
   e('marina', 'Pessoa', { papel: 'aprovadora de GMUD' });
   e('rafael', 'Pessoa', { papel: 'aprovador de GMUD' });
   e('teste-valor-fixo', 'Playbook');
-  const r = (from: string, rel: string, to: string, extra: { validFrom?: string; validTo?: string } = {}) => brain.addEdge({ from, rel, to, ...extra });
+  const r = (from: string, rel: string, to: string, extra: { validFrom?: string; validTo?: string } = {}) => knowledge.addEdge({ from, rel, to, ...extra });
   r('api-pagamentos', 'eUm', 'ServicoJava');
   r('api-pagamentos', 'temWorkflow', 'ci.yml');
   r('ci.yml', 'publicaEm', 'dev');
@@ -85,7 +85,7 @@ function seed() {
   r('chg0041', 'referente', 'portal-clientes-front');
   r('chg0041', 'aprovadaPor', 'marina', { validTo: '2026-12-31T23:59:59Z' });
   r('chg0041', 'aprovadaPor', 'rafael', { validFrom: '2027-01-01T00:00:00Z' });
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'criar-repositorio',
     description: 'Cria um repositório na organização com o template do time.',
     appliesTo: null,
@@ -102,10 +102,10 @@ function seed() {
     variationOf: null,
   });
   for (let i = 0; i < 4; i++) {
-    const run = brain.startRun('criar-repositorio', 'chat:seed');
-    for (const step of ['conferir', 'criar', 'proteger', 'avisar']) brain.updateRunStep(run.id, step, 'done');
+    const run = procedures.execution.startRun('criar-repositorio', 'chat:seed');
+    for (const step of ['conferir', 'criar', 'proteger', 'avisar']) procedures.execution.updateRunStep(run.id, step, 'done');
   }
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'teste-valor-fixo',
     description: 'Corrigir teste unitário que compara com valor literal quando só a configuração mudou.',
     appliesTo: 'ServicoJava',
@@ -122,8 +122,8 @@ function seed() {
     variationOf: null,
   });
   for (let i = 0; i < 2; i++) {
-    const run = brain.startRun('teste-valor-fixo', 'chat:seed');
-    for (const s of ['log', 'diff', 'fix', 'ci']) brain.updateRunStep(run.id, s, 'done');
+    const run = procedures.execution.startRun('teste-valor-fixo', 'chat:seed');
+    for (const s of ['log', 'diff', 'fix', 'ci']) procedures.execution.updateRunStep(run.id, s, 'done');
   }
 }
 seed();
@@ -132,9 +132,9 @@ seedPipeline();
 
 /** Procedures that hand data to each other, and an esteira linking them (with a branch). */
 function seedPipeline() {
-  if (brain.pipeline('entrega-do-portal')) return;
+  if (procedures.pipelineDefs.pipeline('entrega-do-portal')) return;
   const pb = (name: string, description: string, steps: Array<[string, string, string]>, outputs: Array<[string, string]>) =>
-    brain.savePlaybook({
+    procedures.definition.savePlaybook({
       name, description, trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
       steps: steps.map(([id, label, how]) => ({ id, label, how })),
       outputs: outputs.map(([n, d]) => ({ name: n, description: d })),
@@ -157,7 +157,7 @@ function seedPipeline() {
   pb('preencher-gmud', 'Preenche a GMUD aberta.', [
     ['preencher', 'Preencher a GMUD {{numero}}', 'browser_act no formulário'],
   ], []);
-  brain.savePipeline({
+  procedures.pipelineDefs.savePipeline({
     name: 'entrega-do-portal',
     description: 'Leva uma mudança do workflow de dev até a GMUD preenchida.',
     inputs: [{ name: 'repo', description: 'repositório' }, { name: 'tipo', description: 'front ou backend', options: ['front', 'backend'] }],
@@ -273,8 +273,8 @@ const respond = async (context: { messages: Msg[] }) => {
   if (said.includes('atualiz') || said.includes('sobe') || said.includes('versão') || said.includes('versao')) {
     const steps = ['abrir', 'achar', 'salvar', 'validar'];
     const notes = ['portal aberto', 'Novo Atendimento no menu', 'versão 0.1.0 salva', 'menu mostra 0.1.0'];
-    if (brain.playbook('versao-do-mfe') && (said.includes('mfe') || said.includes('micro'))) return runMfe(said, toolsSince);
-    if (!brain.playbook('versao-no-portal')) {
+    if (procedures.definition.playbook('versao-do-mfe') && (said.includes('mfe') || said.includes('micro'))) return runMfe(said, toolsSince);
+    if (!procedures.definition.playbook('versao-no-portal')) {
       return call('ask_developer', { question: 'Ainda não sei atualizar versão no portal. Quer me ensinar agora?', options: ['Sim, vou te ensinar', 'Agora não'] });
     }
     if (toolsSince === 0) return call('playbook_start', { name: 'versao-no-portal', target: 'novo-front' }, 'Tenho um playbook para isso. Começando.');
@@ -365,7 +365,7 @@ console.log(`[demo] portal de exemplo em ${portal.url}/login (usuário arthur, s
 /** "Já sei algo parecido?": deleting a repo looks like creating one, which Orbi knows. */
 function similarScenario(said: string, toolsSince: number) {
   if (said.includes('criar versão a partir deste')) {
-    const base = brain.playbook('criar-repositorio')!;
+    const base = procedures.definition.playbook('criar-repositorio')!;
     return call('brain_learn', {
       reason: 'versão de criar-repositorio para apagar',
       items: [{ kind: 'playbook', payload: {

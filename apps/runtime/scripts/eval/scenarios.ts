@@ -153,7 +153,7 @@ export const SCENARIOS: Scenario[] = [
     ],
     seed: ({ brain, workspace }) => {
       const repo = seedRepository(workspace);
-      brain.learn([
+      brain.learning.learn([
         { kind: 'type', payload: { name: 'Repositorio', description: 'Repositório de código', props: { pasta: 'onde está na máquina' } } },
         { kind: 'entity', payload: { id: 'app-exemplo', type: 'Repositorio', props: { pasta: repo } } },
         { kind: 'playbook', payload: {
@@ -217,7 +217,7 @@ export const SCENARIOS: Scenario[] = [
     seed: ({ brain, workspace, sites }) => {
       mkdirSync(join(workspace, 'catalogo'), { recursive: true });
       writeFileSync(join(workspace, 'catalogo', 'registrar.mjs'), registerScript(sites.panel));
-      brain.learn([
+      brain.learning.learn([
         { kind: 'type', payload: { name: 'Aplicacao', description: 'Aplicação do time', props: { sigla_time: 'sigla do time dono' } } },
         { kind: 'entity', payload: { id: 'pagamentos-api', type: 'Aplicacao' } },
         { kind: 'playbook', payload: {

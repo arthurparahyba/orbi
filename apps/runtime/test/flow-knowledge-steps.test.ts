@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, knowledge, procedures, inbox, waitFor } from './support/flow.ts';
 
 /**
  * Facts without repeating, and the step that found one looking in the brain first
@@ -18,7 +18,7 @@ const lastText = (context: any) => {
   return { role: String(last?.role ?? ''), text: JSON.stringify(last?.content ?? '') };
 };
 const { services } = await import('../src/services.ts');
-const knowledge: string[] = [];
+const candidates: string[] = [];
 const learnings: unknown[] = [];
 
 const STEPS = [
@@ -38,10 +38,10 @@ const router = (context: any) => {
   }
   if (last.role === 'toolResult') return fauxAssistantMessage(fauxText('Ok.'));
   if (last.text.includes('Revisão de conhecimento da execução')) {
-    knowledge.push(all);
+    candidates.push(all);
     const items = [
       { kind: 'entity', payload: { id: 'pagamentos-api', type: 'Aplicacao', props: { banco: 'pag-db' } } },
-      { kind: 'playbook', payload: { ...brain.playbook('fazer-deploy')!, steps: [{ ...STEPS[0], how: 'Consultar no Cérebro (brain_query) o repositório da aplicação; se não houver, consultar no GitHub (run_command cat repo.txt)' }, STEPS[1]] } },
+      { kind: 'playbook', payload: { ...procedures.definition.playbook('fazer-deploy')!, steps: [{ ...STEPS[0], how: 'Consultar no Cérebro (brain_query) o repositório da aplicação; se não houver, consultar no GitHub (run_command cat repo.txt)' }, STEPS[1]] } },
     ];
     learnings.push(items);
     return fauxAssistantMessage(fauxToolCall('brain_learn', { reason: 'guardar o repositório e consultar o Cérebro antes', why: 'o repositório não muda a cada deploy', items } as never), { stopReason: 'toolUse' });
@@ -64,16 +64,16 @@ function run(mark: string) {
 
 test('revisão de conhecimento: o mesmo fato com outro nome vira acréscimo, e o passo de onde veio passa a consultar o Cérebro, no mesmo cartão', async () => {
   services().config.knowledgeReview = true;
-  brain.upsertType({ name: 'Aplicacao', description: 'Aplicação com repositório', relations: {}, requires: [], props: { repositorio: 'repositório no GitHub', banco: 'banco de dados' } });
-  brain.upsertEntity({ id: 'pagamentos-api', type: 'Aplicacao', props: { repositorio: 'org/pagamentos-api', time: 'pag' }, body: '', aliases: ['pagamentos'] });
-  brain.savePlaybook({ name: 'fazer-deploy', description: 'Deploy de uma aplicação', trigger: 'deploy', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null, steps: STEPS });
+  knowledge.upsertType({ name: 'Aplicacao', description: 'Aplicação com repositório', relations: {}, requires: [], props: { repositorio: 'repositório no GitHub', banco: 'banco de dados' } });
+  knowledge.upsertEntity({ id: 'pagamentos-api', type: 'Aplicacao', props: { repositorio: 'org/pagamentos-api', time: 'pag' }, body: '', aliases: ['pagamentos'] });
+  procedures.definition.savePlaybook({ name: 'fazer-deploy', description: 'Deploy de uma aplicação', trigger: 'deploy', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null, steps: STEPS });
 
   faux.setResponses(run('primeira'));
   const one = init(Orbi, { id: 'chat:deploy-1' });
   await one.read(await one.dispatch('faz o deploy do pagamentos'));
-  await waitFor(() => knowledge.length === 1, 'os fatos chegarem à conversa', 8000);
+  await waitFor(() => candidates.length === 1, 'os fatos chegarem à conversa', 8000);
 
-  const sent = knowledge[0]!;
+  const sent = candidates[0]!;
   assert.match(sent, /pagamentos-api \(Aplicacao\)[^\]]*\[pagamentos é o mesmo que pagamentos-api[^\]]*acrescenta banco = pag-db/, 'outro nome do mesmo fato: vira acréscimo nele');
   assert.match(sent, /No MESMO brain_learn, inclua o procedimento fazer-deploy/);
   assert.match(sent, /- repo: Achar o repositório · hoje: Consultar no GitHub/);
@@ -86,20 +86,20 @@ test('revisão de conhecimento: o mesmo fato com outro nome vira acréscimo, e o
   assert.match(card.detail, /Consultar no Cérebro/);
   faux.setResponses([fauxAssistantMessage(fauxText('Guardado.')), ...Array.from({ length: 5 }, () => router)]);
   await one.read(await (await app.request(`/api/inbox/${card.id}/decision`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve' }) })).json());
-  const fact = brain.get('pagamentos-api')!;
+  const fact = knowledge.get('pagamentos-api')!;
   assert.deepEqual(fact.props, { repositorio: 'org/pagamentos-api', time: 'pag', banco: 'pag-db' }, 'acrescentou sem apagar');
   assert.deepEqual(fact.aliases, ['pagamentos'], 'o outro nome continua');
-  assert.equal(brain.get('pagamentos'), undefined, 'nenhum fato duplicado');
-  assert.match(brain.playbook('fazer-deploy')!.steps.find((st) => st.id === 'repo')!.how, /Consultar no Cérebro/);
-  assert.equal(brain.playbook('fazer-deploy')!.steps.find((st) => st.id === 'pipeline')!.how, STEPS[1]!.how);
+  assert.equal(knowledge.get('pagamentos'), undefined, 'nenhum fato duplicado');
+  assert.match(procedures.definition.playbook('fazer-deploy')!.steps.find((st) => st.id === 'repo')!.how, /Consultar no Cérebro/);
+  assert.equal(procedures.definition.playbook('fazer-deploy')!.steps.find((st) => st.id === 'pipeline')!.how, STEPS[1]!.how);
 
   // Next run: the same fact is known and the step already looks in the brain: nothing to propose.
   faux.setResponses(run('segunda'));
   const two = init(Orbi, { id: 'chat:deploy-2' });
   await two.read(await two.dispatch('faz o deploy do pagamentos'));
-  await waitFor(() => !!brain.lastRunIn('chat:deploy-2')?.finishedAt, 'a segunda execução terminar', 8000);
+  await waitFor(() => !!procedures.execution.lastRunIn('chat:deploy-2')?.finishedAt, 'a segunda execução terminar', 8000);
   await new Promise((r) => setTimeout(r, 1500));
-  assert.equal(knowledge.length, 1, 'a revisão não propõe de novo');
+  assert.equal(candidates.length, 1, 'a revisão não propõe de novo');
 });
 
 test('brain_learn do Orbi: fato que é o mesmo que um existente volta antes do cartão', async () => {

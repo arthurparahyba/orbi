@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { citations, inputProblems, leakedSpecifics } from '../src/contexts/procedures/definition/src/concepts.ts';
 import type { OntologyType } from '../src/language/index.ts';
 
@@ -47,13 +47,13 @@ test('conceitos: nome específico escrito no procedimento volta como "é fato ou
   assert.deepEqual(leakedSpecifics({ steps: [{ id: 'a', label: 'Abrir {{mfe}}', how: 'checkout-mfe-novo' }], instructions: '', inputs, appliesTo: null }, entitiesOf), []);
 });
 
-function brainWithFacts(): BrainStore {
-  const brain = new BrainStore(':memory:');
-  for (const t of TYPES) brain.upsertType(t);
-  brain.upsertEntity({ id: 'portal-deploy', type: 'Portal', props: { endereco: 'http://portal.local/apps', credencial: 'portal-deploy' }, body: '' });
-  brain.upsertEntity({ id: 'checkout-mfe', type: 'MicroFrontend', props: {}, body: '' });
-  brain.addEdge({ from: 'checkout-mfe', rel: 'publicadoPor', to: 'portal-deploy' });
-  brain.savePlaybook({
+function brainWithFacts(): Contexts {
+  const brain = wireContexts(openDatabase(':memory:'));
+  for (const t of TYPES) brain.knowledge.upsertType(t);
+  brain.knowledge.upsertEntity({ id: 'portal-deploy', type: 'Portal', props: { endereco: 'http://portal.local/apps', credencial: 'portal-deploy' }, body: '' });
+  brain.knowledge.upsertEntity({ id: 'checkout-mfe', type: 'MicroFrontend', props: {}, body: '' });
+  brain.knowledge.addEdge({ from: 'checkout-mfe', rel: 'publicadoPor', to: 'portal-deploy' });
+  brain.procedures.definition.savePlaybook({
     name: 'atualizar-versao-mfe', description: 'Publica uma versão de um MFE', appliesTo: 'MicroFrontend', trigger: 'subir versão de MFE',
     autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, intent: 'Publicar uma Versao de um MicroFrontend', inputs,
   });
@@ -62,90 +62,91 @@ function brainWithFacts(): BrainStore {
 
 test('aprender: o procedimento com nome específico é recusado; com a entrada, passa', () => {
   const brain = brainWithFacts();
-  const problems = brain.learnProblems([
+  const problems = brain.learning.learnProblems([
     { kind: 'playbook', payload: { name: 'outro', description: 'x', trigger: 'x', instructions: '', inputs, steps: [{ id: 'a', label: 'Abrir checkout-mfe', how: 'x' }] } },
   ]);
   assert.match(problems.join('\n'), /checkout-mfe.*fato ou entrada/);
-  assert.deepEqual(brain.learnProblems([{ kind: 'playbook', payload: { name: 'outro', description: 'x', trigger: 'x', instructions: '', inputs, steps } }]), []);
+  assert.deepEqual(brain.learning.learnProblems([{ kind: 'playbook', payload: { name: 'outro', description: 'x', trigger: 'x', instructions: '', inputs, steps } }]), []);
 });
 
 test('aprender: tipo de novo sem ligações mantém as que tinha; propriedades somam', () => {
   const brain = brainWithFacts();
-  brain.learn([{ kind: 'type', payload: { name: 'MicroFrontend', description: '', props: { time: 'dono' } } }], 'x', 'chat:x');
-  const t = brain.type('MicroFrontend')!;
+  brain.learning.learn([{ kind: 'type', payload: { name: 'MicroFrontend', description: '', props: { time: 'dono' } } }], 'x', 'chat:x');
+  const t = brain.knowledge.type('MicroFrontend')!;
   assert.deepEqual(t.relations, { publicadoPor: 'Portal' });
   assert.deepEqual(t.props, { repositorio: 'onde está o código', time: 'dono' });
   assert.equal(t.description, 'Front publicado por um portal');
   // A fact learned through the card says where it came from.
-  brain.learn([{ kind: 'entity', payload: { id: 'perfil-mfe', type: 'MicroFrontend', aliases: ['perfil'] } }], 'x', 'chat:x');
-  assert.equal(brain.get('perfil-mfe')?.source, 'cartao:chat:x');
-  assert.deepEqual(brain.get('perfil-mfe')?.aliases, ['perfil']);
+  brain.learning.learn([{ kind: 'entity', payload: { id: 'perfil-mfe', type: 'MicroFrontend', aliases: ['perfil'] } }], 'x', 'chat:x');
+  assert.equal(brain.knowledge.get('perfil-mfe')?.source, 'cartao:chat:x');
+  assert.deepEqual(brain.knowledge.get('perfil-mfe')?.aliases, ['perfil']);
 });
 
 test('passo 0: o que o cérebro sabe preenche os passos; o resto é para resolver', () => {
   const brain = brainWithFacts();
-  const known = brain.startRun('atualizar-versao-mfe', 'chat:a', { mfe: 'checkout-mfe', versao: '2.14.0' });
+  const known = brain.procedures.execution.startRun('atualizar-versao-mfe', 'chat:a', { mfe: 'checkout-mfe', versao: '2.14.0' });
   assert.equal(known.steps[0].how, 'navegador em http://portal.local/apps');
   assert.equal(known.steps[1].how, '{{segredo:portal-deploy}}', 'a credencial continua referência do cofre');
   assert.equal(known.steps[2].label, 'Criar o release 2.14.0');
-  assert.deepEqual(brain.execution.inputState(known.id), { toResolve: [], unknown: [] });
+  assert.deepEqual(brain.procedures.execution.inputState(known.id), { toResolve: [], unknown: [] });
 
-  const unknown = brain.startRun('atualizar-versao-mfe', 'chat:b', { mfe: 'xpto', versao: '1.3.0' });
-  const state = brain.execution.inputState(unknown.id);
+  const unknown = brain.procedures.execution.startRun('atualizar-versao-mfe', 'chat:b', { mfe: 'xpto', versao: '1.3.0' });
+  const state = brain.procedures.execution.inputState(unknown.id);
   assert.deepEqual(state.toResolve, [{ input: 'mfe', value: 'xpto', concept: 'MicroFrontend', candidates: [] }]);
   assert.equal(unknown.steps[0].how, 'navegador em {{mfe.publicadoPor.endereco}}');
 });
 
 test('passo 0: achou investigando vira fato com outro nome; da próxima vez vai direto; desfazer tira', () => {
   const brain = brainWithFacts();
-  const run = brain.startRun('atualizar-versao-mfe', 'chat:c', { mfe: 'xpto', versao: '1.3.0' });
-  const { run: after, learned } = brain.execution.resolveInput(run.id, 'mfe', { entity: 'xpto-mfe', relations: [{ rel: 'publicadoPor', to: 'portal-deploy' }] });
+  const run = brain.procedures.execution.startRun('atualizar-versao-mfe', 'chat:c', { mfe: 'xpto', versao: '1.3.0' });
+  const { run: after, learned } = brain.procedures.execution.resolveInput(run.id, 'mfe', { entity: 'xpto-mfe', relations: [{ rel: 'publicadoPor', to: 'portal-deploy' }] });
   assert.equal(learned.learned, 'created');
   assert.equal(after.steps[0].how, 'navegador em http://portal.local/apps');
-  const fact = brain.get('xpto-mfe')!;
+  const fact = brain.knowledge.get('xpto-mfe')!;
   assert.deepEqual(fact.aliases, ['xpto']);
   assert.equal(fact.source, `execucao:${run.id}`);
 
   // Next time "xpto" is known: nothing to resolve.
-  const again = brain.startRun('atualizar-versao-mfe', 'chat:d', { mfe: 'xpto', versao: '1.4.0' });
+  const again = brain.procedures.execution.startRun('atualizar-versao-mfe', 'chat:d', { mfe: 'xpto', versao: '1.4.0' });
   assert.equal(again.resolved?.mfe.entity, 'xpto-mfe');
-  assert.deepEqual(brain.execution.inputState(again.id).toResolve, []);
+  assert.deepEqual(brain.procedures.execution.inputState(again.id).toResolve, []);
 
   // An existing fact by another name: the name becomes an alias, and undo takes only that back.
-  const third = brain.startRun('atualizar-versao-mfe', 'chat:e', { mfe: 'checkout', versao: '2.0.0' });
-  assert.equal(brain.execution.resolveInput(third.id, 'mfe', { entity: 'checkout-mfe' }).learned.learned, 'alias');
-  assert.deepEqual(brain.get('checkout-mfe')?.aliases, ['checkout']);
-  brain.execution.undoResolved(third.id, 'mfe');
-  assert.deepEqual(brain.get('checkout-mfe')?.aliases, []);
-  assert.ok(brain.get('checkout-mfe'), 'desfazer um outro nome não apaga o fato');
+  const third = brain.procedures.execution.startRun('atualizar-versao-mfe', 'chat:e', { mfe: 'checkout', versao: '2.0.0' });
+  assert.equal(brain.procedures.execution.resolveInput(third.id, 'mfe', { entity: 'checkout-mfe' }).learned.learned, 'alias');
+  assert.deepEqual(brain.knowledge.get('checkout-mfe')?.aliases, ['checkout']);
+  brain.procedures.execution.undoResolved(third.id, 'mfe');
+  assert.deepEqual(brain.knowledge.get('checkout-mfe')?.aliases, []);
+  assert.ok(brain.knowledge.get('checkout-mfe'), 'desfazer um outro nome não apaga o fato');
 
-  brain.execution.undoResolved(run.id, 'mfe');
-  assert.equal(brain.get('xpto-mfe'), undefined, 'o fato criado na execução sai');
-  assert.equal(brain.run(run.id)?.resolved?.mfe.undone, true);
+  brain.procedures.execution.undoResolved(run.id, 'mfe');
+  assert.equal(brain.knowledge.get('xpto-mfe'), undefined, 'o fato criado na execução sai');
+  assert.equal(brain.procedures.execution.run(run.id)?.resolved?.mfe.undone, true);
 });
 
 test('passo 0: só fatos de um conceito que existe, do tipo da entrada', () => {
   const brain = brainWithFacts();
-  const run = brain.startRun('atualizar-versao-mfe', 'chat:f', { mfe: 'portal', versao: '1' });
-  assert.throws(() => brain.execution.resolveInput(run.id, 'mfe', { entity: 'portal-deploy' }), /é Portal, não MicroFrontend/);
-  assert.throws(() => brain.execution.resolveInput(run.id, 'versao', { entity: '1.0.0' }), /não tem a entrada versao com conceito/);
+  const run = brain.procedures.execution.startRun('atualizar-versao-mfe', 'chat:f', { mfe: 'portal', versao: '1' });
+  assert.throws(() => brain.procedures.execution.resolveInput(run.id, 'mfe', { entity: 'portal-deploy' }), /é Portal, não MicroFrontend/);
+  assert.throws(() => brain.procedures.execution.resolveInput(run.id, 'versao', { entity: '1.0.0' }), /não tem a entrada versao com conceito/);
 });
 
 // ── fase 4: sei / não sei ──
 import { afterCommand } from '../src/contexts/tools/terminal/src/runner.ts';
+import { openDatabase } from '../src/db/database.ts';
 
-function environmentBrain(): BrainStore {
-  const brain = new BrainStore(':memory:');
-  brain.upsertType({ name: 'Ambiente', description: 'onde roda', relations: { recurso: '*' }, requires: [], props: { profile: 'profile da AWS CLI' } });
-  brain.upsertType({ name: 'ServicoECS', description: 'serviço', relations: {}, requires: [], knows: { de_pe: 'running = desired' } });
-  brain.upsertType({ name: 'NLB', description: 'balanceador', relations: {}, requires: [], knows: { de_pe: 'targets healthy' } });
-  brain.upsertType({ name: 'FilaSQS', description: 'fila', relations: {}, requires: [] });
-  brain.upsertEntity({ id: 'pag-hml', type: 'Ambiente', props: { profile: 'pag-hml' }, body: '' });
+function environmentBrain(): Contexts {
+  const brain = wireContexts(openDatabase(':memory:'));
+  brain.knowledge.upsertType({ name: 'Ambiente', description: 'onde roda', relations: { recurso: '*' }, requires: [], props: { profile: 'profile da AWS CLI' } });
+  brain.knowledge.upsertType({ name: 'ServicoECS', description: 'serviço', relations: {}, requires: [], knows: { de_pe: 'running = desired' } });
+  brain.knowledge.upsertType({ name: 'NLB', description: 'balanceador', relations: {}, requires: [], knows: { de_pe: 'targets healthy' } });
+  brain.knowledge.upsertType({ name: 'FilaSQS', description: 'fila', relations: {}, requires: [] });
+  brain.knowledge.upsertEntity({ id: 'pag-hml', type: 'Ambiente', props: { profile: 'pag-hml' }, body: '' });
   for (const [id, type] of [['pag-api-svc', 'ServicoECS'], ['pag-nlb', 'NLB'], ['pag-eventos', 'FilaSQS']]) {
-    brain.upsertEntity({ id, type, props: {}, body: '' });
-    brain.addEdge({ from: 'pag-hml', rel: 'recurso', to: id });
+    brain.knowledge.upsertEntity({ id, type, props: {}, body: '' });
+    brain.knowledge.addEdge({ from: 'pag-hml', rel: 'recurso', to: id });
   }
-  brain.savePlaybook({
+  brain.procedures.definition.savePlaybook({
     name: 'validar-ambiente', description: 'Confere se um ambiente está de pé', appliesTo: 'Ambiente', trigger: 'validar ambiente',
     autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null, inputs: [{ name: 'ambiente', concept: 'Ambiente' }],
     steps: [
@@ -162,26 +163,26 @@ test('sei / não sei: [] percorre a ligação e usa o saber do conceito de cada 
   assert.match(inputProblems({ steps: [{ id: 'a', label: 'x', how: '{{mfe.publicadoPor[].a.b}}' }], instructions: '', inputs }, typeOf)[0], /vem só o nome do saber/);
 
   const brain = environmentBrain();
-  const run = brain.startRun('validar-ambiente', 'chat:amb', { ambiente: 'pag-hml' });
+  const run = brain.procedures.execution.startRun('validar-ambiente', 'chat:amb', { ambiente: 'pag-hml' });
   assert.equal(run.steps[0].how, 'AWS CLI com --profile pag-hml');
   assert.equal(run.steps[1].how, '{{ambiente.recurso[].de_pe}}', 'com um recurso sem saber, o passo não é preenchido pela metade');
-  const items = brain.execution.readiness(run.id);
+  const items = brain.procedures.execution.readiness(run.id);
   assert.deepEqual(items.filter((i) => !i.known).map((i) => [i.label, i.detail]), [['pag-eventos (FilaSQS)', 'não sei "de_pe"']]);
   assert.ok(items.some((i) => i.known && i.label === 'pag-api-svc (ServicoECS)' && i.detail === 'running = desired'));
-  assert.deepEqual(brain.execution.inputState(run.id).unknown, ['pag-eventos (FilaSQS): não sei "de_pe"']);
+  assert.deepEqual(brain.procedures.execution.inputState(run.id).unknown, ['pag-eventos (FilaSQS): não sei "de_pe"']);
 
   // Taught what "de pé" is for a queue (a saber of the concept), every environment with a queue knows it.
-  brain.learn([{ kind: 'type', payload: { name: 'FilaSQS', description: '', knows: { de_pe: 'DLQ vazia' } } }], 'x', 'chat:amb');
-  const again = brain.startRun('validar-ambiente', 'chat:amb2', { ambiente: 'pag-hml' });
+  brain.learning.learn([{ kind: 'type', payload: { name: 'FilaSQS', description: '', knows: { de_pe: 'DLQ vazia' } } }], 'x', 'chat:amb');
+  const again = brain.procedures.execution.startRun('validar-ambiente', 'chat:amb2', { ambiente: 'pag-hml' });
   assert.match(again.steps[1].how, /pag-eventos \(FilaSQS\): DLQ vazia/);
-  assert.deepEqual(brain.execution.readiness(again.id).filter((i) => !i.known), []);
+  assert.deepEqual(brain.procedures.execution.readiness(again.id).filter((i) => !i.known), []);
 });
 
 test('sei / não sei: erro que o cérebro nunca viu, dentro de um procedimento, é dito como tal', () => {
   const brain = environmentBrain();
-  brain.startRun('validar-ambiente', 'chat:erro', { ambiente: 'pag-hml' });
+  brain.procedures.execution.startRun('validar-ambiente', 'chat:erro', { ambiente: 'pag-hml' });
   const failed = { exitCode: 1, stdout: '', stderr: 'HTTP 500 do catálogo de serviços' };
-  assert.equal((afterCommand(brain, 'chat:erro', 'node registrar.mjs', failed) as { nuncaVi?: boolean }).nuncaVi, true);
-  assert.deepEqual(afterCommand(brain, 'chat:fora', 'node registrar.mjs', failed), {}, 'fora de um procedimento, não');
-  assert.deepEqual(afterCommand(brain, 'chat:erro', 'node registrar.mjs', { ...failed, exitCode: 0 }), {});
+  assert.equal((afterCommand(brain.procedures.execution, 'chat:erro', 'node registrar.mjs', failed) as { nuncaVi?: boolean }).nuncaVi, true);
+  assert.deepEqual(afterCommand(brain.procedures.execution, 'chat:fora', 'node registrar.mjs', failed), {}, 'fora de um procedimento, não');
+  assert.deepEqual(afterCommand(brain.procedures.execution, 'chat:erro', 'node registrar.mjs', { ...failed, exitCode: 0 }), {});
 });

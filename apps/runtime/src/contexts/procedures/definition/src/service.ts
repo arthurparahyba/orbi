@@ -96,6 +96,11 @@ export class Procedures {
     return this.d.playbooks.get(name);
   }
 
+  /** How many procedures the Orbi knows, for the situation line of every turn. */
+  count(): number {
+    return this.d.playbooks.count();
+  }
+
   playbooks(): Playbook[] {
     return this.d.playbooks.all();
   }

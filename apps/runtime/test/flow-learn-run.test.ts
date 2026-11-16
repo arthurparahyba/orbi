@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components, playbook, conversation, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, knowledge, learning, procedures, inbox, components, playbook, conversation, waitFor } from './support/flow.ts';
 
 test('aprender: brain_learn fica pendente até o desenvolvedor aprovar', async () => {
   faux.setResponses([
@@ -26,7 +26,7 @@ test('aprender: brain_learn fica pendente até o desenvolvedor aprovar', async (
   const orbi = init(Orbi, { id: conversation });
   const reply = await orbi.read(await orbi.dispatch('Vou te ensinar a atualizar a versão do front no portal.'));
 
-  assert.equal(brain.playbook('versao-no-portal'), undefined, 'nada é gravado antes da aprovação');
+  assert.equal(procedures.definition.playbook('versao-no-portal'), undefined, 'nada é gravado antes da aprovação');
   const card = components(reply).find((p: any) => p.component === 'approval') as any;
   assert.ok(card, 'a conversa recebeu um card de aprovação');
   const item = inbox.list({ status: 'open' }).find((i) => i.kind === 'learning');
@@ -45,9 +45,9 @@ test('aprender: brain_learn fica pendente até o desenvolvedor aprovar', async (
   const after = await orbi.read(receipt);
   assert.match(after.text, /Guardei/);
 
-  assert.ok(brain.playbook('versao-no-portal'), 'playbook gravado no cérebro');
-  assert.equal(brain.get('novo-front')?.type, 'Repositorio');
-  assert.deepEqual(brain.gaps(), [{ entity: 'novo-front', type: 'Repositorio', missing: 'registradoEm' }],
+  assert.ok(procedures.definition.playbook('versao-no-portal'), 'playbook gravado no cérebro');
+  assert.equal(knowledge.get('novo-front')?.type, 'Repositorio');
+  assert.deepEqual(knowledge.gaps(), [{ entity: 'novo-front', type: 'Repositorio', missing: 'registradoEm' }],
     'a regra da classe FrontEnd aponta a lacuna: em qual portal o novo-front aparece?');
 });
 
@@ -68,7 +68,7 @@ test('executar: o playbook aprendido aparece como skill e vira um passo a passo'
   const orbi = init(Orbi, { id: 'chat:teste-execucao' });
   const reply = await orbi.read(await orbi.dispatch('Atualiza a versão do novo-front no portal.'));
 
-  const run = brain.runs()[0];
+  const run = procedures.execution.runs()[0];
   assert.equal(run.playbook, 'versao-no-portal');
   assert.equal(run.status, 'done');
   const steppers = components(reply).filter((p: any) => p.component === 'stepper') as any[];
@@ -77,7 +77,7 @@ test('executar: o playbook aprendido aparece como skill e vira um passo a passo'
   const last = steppers[0];
   assert.equal(last.status, 'done', 'o passo a passo chegou ao fim');
   assert.deepEqual(last.steps.map((s: any) => s.status), ['done', 'done']);
-  assert.equal(brain.playbook('versao-no-portal')?.successes, 1);
+  assert.equal(procedures.definition.playbook('versao-no-portal')?.successes, 1);
 
   // O modelo fechou os dois passos sem chamar nada: é problema do modelo, nunca do procedimento.
   const { services } = await import('../src/services.ts');
@@ -157,8 +157,8 @@ test('já sei algo parecido: igual não interrompe; parecido mostra o cartão e 
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve' }),
   });
   await conv.read(await approved.json());
-  assert.equal(brain.playbook('versao-no-portal-parceiros')?.variationOf, 'versao-no-portal');
-  assert.equal(brain.playbook('versao-no-portal')?.steps[1].label, 'Trocar a versão e salvar', 'a base não muda');
+  assert.equal(procedures.definition.playbook('versao-no-portal-parceiros')?.variationOf, 'versao-no-portal');
+  assert.equal(procedures.definition.playbook('versao-no-portal')?.steps[1].label, 'Trocar a versão e salvar', 'a base não muda');
 });
 
 test('agendar retorno: o Orbi encerra o turno e é acordado depois', async () => {
@@ -222,6 +222,6 @@ test('pedido de agente (MCP): delega, o Orbi roda o procedimento e devolve o res
   const conv = list.find((c) => c.origin?.agent === 'Claude Code');
   assert.ok(conv, 'a conversa aparece marcada com quem pediu');
   assert.equal(conv.origin?.repo, 'acme/novo-front');
-  assert.equal(brain.lastRunIn(conv.id)?.status, 'done');
+  assert.equal(procedures.execution.lastRunIn(conv.id)?.status, 'done');
   await client.close();
 });

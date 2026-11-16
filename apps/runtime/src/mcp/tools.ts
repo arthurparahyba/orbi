@@ -65,8 +65,8 @@ export const MCP_TOOLS: McpTool[] = [
       // An agent acts on what it finds: one shared word in a longer request is noise, not a match.
       const needed = query ? Math.min(2, new Set(words(query).map(stem)).size) : 0;
       const found = query?.trim()
-        ? s.brain.searchPlaybooks(query, limit).filter((r) => r.shared.length >= needed).map((r) => r.playbook)
-        : [...s.brain.playbooks()].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, limit);
+        ? s.procedures.definition.searchPlaybooks(query, limit).filter((r) => r.shared.length >= needed).map((r) => r.playbook)
+        : [...s.procedures.definition.playbooks()].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, limit);
       return {
         procedures: found.map((p) => ({ name: p.name, description: p.description, trigger: p.trigger, autonomy: p.autonomy, steps: p.steps.length, uses: p.uses, successes: p.successes })),
         hint: found.length
@@ -83,7 +83,7 @@ export const MCP_TOOLS: McpTool[] = [
     input: v.object({ name: Name }),
     inputSchema: { type: 'object', properties: { name: str('Procedure name, from orbi_search.') }, required: ['name'] },
     run({ name }, { s }) {
-      const p = s.brain.playbook(name);
+      const p = s.procedures.definition.playbook(name);
       if (!p) throw new ToolError(`procedimento não encontrado: ${name}. Use orbi_search.`);
       return {
         name: p.name,
@@ -126,7 +126,7 @@ export const MCP_TOOLS: McpTool[] = [
       required: ['task'],
     },
     async run({ procedure, task, params, context }, { s, agent, client }) {
-      if (procedure && !s.brain.playbook(procedure)) throw new ToolError(`procedimento não encontrado: ${procedure}. Use orbi_search.`);
+      if (procedure && !s.procedures.definition.playbook(procedure)) throw new ToolError(`procedimento não encontrado: ${procedure}. Use orbi_search.`);
       const conversation = s.conversations.create((procedure ? `${procedure}: ${task}` : task).slice(0, 80));
       const req = s.agents.requests.add({ clientId: client.id, conversationId: conversation.id, task, procedure: procedure ?? null, context: context ?? {} });
       await tellAgent(s.events, agent, {
@@ -151,7 +151,7 @@ export const MCP_TOOLS: McpTool[] = [
     run({ request_id }, { s, client }) {
       const req = s.agents.requests.get(request_id);
       if (!req || req.clientId !== client.id) throw new ToolError(`pedido não encontrado: ${request_id}`);
-      return requestStatus(req, s.brain.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }).filter((i) => i.kind !== 'level'), s.pipelines.runs.inConversation(req.conversationId));
+      return requestStatus(req, s.procedures.execution.lastRunIn(req.conversationId), s.inbox.list({ status: 'open' }).filter((i) => i.kind !== 'level'), s.pipelines.runs.inConversation(req.conversationId));
     },
   }),
 
@@ -163,7 +163,7 @@ export const MCP_TOOLS: McpTool[] = [
     input: v.object({ query: v.optional(v.pipe(v.string(), v.maxLength(300))) }),
     inputSchema: { type: 'object', properties: { query: str('What you want delivered, in a few words. Leave out to list all.') } },
     run({ query }, { s, client }) {
-      const found = searchPipelines(s.brain.pipelines(), query);
+      const found = searchPipelines(s.procedures.pipelineDefs.pipelines(), query);
       return {
         esteiras: found.map((p) => pipelineSummary(p)),
         hint: found.length
@@ -183,9 +183,9 @@ export const MCP_TOOLS: McpTool[] = [
     input: v.object({ name: Name }),
     inputSchema: { type: 'object', properties: { name: str('Esteira name, from orbi_pipelines.') }, required: ['name'] },
     run({ name }, { s, client }) {
-      const p = s.brain.pipeline(name);
+      const p = s.procedures.pipelineDefs.pipeline(name);
       if (!p) throw new ToolError(`esteira não encontrada: ${name}. Use orbi_pipelines.`);
-      return pipelineDetail(p, s.brain, client);
+      return pipelineDetail(p, s.procedures, client);
     },
   }),
 
@@ -214,7 +214,7 @@ export const MCP_TOOLS: McpTool[] = [
       required: ['name', 'inputs'],
     },
     async run({ name, inputs, destination, context }, { s, agent, client }) {
-      const p = s.brain.pipeline(name);
+      const p = s.procedures.pipelineDefs.pipeline(name);
       if (!p) throw new ToolError(`esteira não encontrada: ${name}. Use orbi_pipelines.`);
       const summary = Object.values(inputs).filter(Boolean).join(' · ');
       const conversation = s.conversations.create(`${p.name}${summary ? `: ${summary}` : ''}`.slice(0, 80));
@@ -290,7 +290,7 @@ export const MCP_TOOLS: McpTool[] = [
         taken.push(id);
         return { id, label: st.label, how: st.how };
       });
-      const similarTo = s.brain
+      const similarTo = s.procedures.definition
         .searchPlaybooks(`${name.replace(/-/g, ' ')} ${args.description}`, 3)
         .filter((r) => r.playbook.name === name || r.shared.length >= 2)
         .map((r) => r.playbook.name);

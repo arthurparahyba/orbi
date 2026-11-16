@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { stepClaimProblems } from '../src/contexts/improvement/judge/src/suggestions.ts';
 import { pipelineConfigProblems } from '../src/contexts/procedures/pipelines/src/config.ts';
 import { commandCategory } from '../src/contexts/trust/index.ts';
@@ -12,6 +12,7 @@ import { Inbox } from '../src/contexts/talk/conversations/src/inbox.ts';
 import { PipelineRuns } from '../src/contexts/procedures/pipelines/src/runs.ts';
 import { PipelineEngine } from '../src/contexts/procedures/pipelines/src/engine.ts';
 import { Diagnoses } from '../src/contexts/improvement/index.ts';
+import { openDatabase } from '../src/db/database.ts';
 
 const pb = (name: string, steps: Array<[string, string]>, outputs: string[] = []) => ({
   name, description: name, trigger: '', appliesTo: null, autonomy: 'ask' as const, instructions: '', learnedFrom: null, variationOf: null,
@@ -19,11 +20,11 @@ const pb = (name: string, steps: Array<[string, string]>, outputs: string[] = []
 });
 
 /** The esteira as it was on the developer's machine (top-repos-github-para-gitstars). */
-function gitstars(b: BrainStore) {
-  b.savePlaybook(pb('consultar', [['buscar', 'run_command gh api … --jq'], ['entregar', 'show_ui table']], ['lista_tsv']));
-  b.savePlaybook(pb('gerar', [['obter-lista', 'Usar a saída do playbook consultar'], ['definir-destino', 'ask_developer pedindo o caminho da pasta. Não assumir.'], ['gerar-html', 'run_command python3 que escreve index.html']], ['html_path']));
-  b.savePlaybook(pb('publicar', [['copiar-html', 'run_command cp /Users/arthur/projetos/top-100-github/index.html /Users/arthur/projetos/gitstars/index.html']], ['pages_url']));
-  return b.savePipeline({
+function gitstars(b: Contexts) {
+  b.procedures.definition.savePlaybook(pb('consultar', [['buscar', 'run_command gh api … --jq'], ['entregar', 'show_ui table']], ['lista_tsv']));
+  b.procedures.definition.savePlaybook(pb('gerar', [['obter-lista', 'Usar a saída do playbook consultar'], ['definir-destino', 'ask_developer pedindo o caminho da pasta. Não assumir.'], ['gerar-html', 'run_command python3 que escreve index.html']], ['html_path']));
+  b.procedures.definition.savePlaybook(pb('publicar', [['copiar-html', 'run_command cp /Users/arthur/projetos/top-100-github/index.html /Users/arthur/projetos/gitstars/index.html']], ['pages_url']));
+  return b.procedures.pipelineDefs.savePipeline({
     name: 'top-repos', description: '',
     inputs: [{ name: 'destino', description: 'pasta' }],
     stages: [
@@ -35,9 +36,9 @@ function gitstars(b: BrainStore) {
 }
 
 test('configuração: dado que não chega, passo que pergunta e caminho fixo', () => {
-  const b = new BrainStore(':memory:');
+  const b = wireContexts(openDatabase(':memory:'));
   const p = gitstars(b);
-  const problems = pipelineConfigProblems(p, (n) => b.playbook(n), { gerar: { html_path: '/Users/arthur/projetos/top-100-github/index.html' } }).map((x) => `${x.stage}: ${x.text}`);
+  const problems = pipelineConfigProblems(p, (n) => b.procedures.definition.playbook(n), { gerar: { html_path: '/Users/arthur/projetos/top-100-github/index.html' } }).map((x) => `${x.stage}: ${x.text}`);
   assert.deepEqual(problems, [
     'gerar: gerar não recebe {{lista}}: o dado coletar.lista_tsv não chega. Use {{lista}} nos passos.',
     'gerar: gerar não recebe {{destino}}: o dado entrada.destino não chega. Use {{destino}} nos passos.',
@@ -46,9 +47,9 @@ test('configuração: dado que não chega, passo que pergunta e caminho fixo', (
     'publicar: passo copiar-html de publicar usa o valor fixo "/Users/arthur/projetos/top-100-github/index.html", que é o html_path entregue pela etapa gerar: use {{html_path}}.',
   ]);
   // Fixed: parameters in the steps, no asking.
-  b.savePlaybook(pb('gerar', [['gerar-html', 'run_command python3 que lê {{lista}} e escreve {{destino}}/index.html']], ['html_path']));
-  b.savePlaybook(pb('publicar', [['copiar-html', 'run_command cp {{html_path}} /Users/arthur/projetos/gitstars/index.html']], ['pages_url']));
-  assert.deepEqual(b.pipelineWarnings(b.pipeline('top-repos')!), []);
+  b.procedures.definition.savePlaybook(pb('gerar', [['gerar-html', 'run_command python3 que lê {{lista}} e escreve {{destino}}/index.html']], ['html_path']));
+  b.procedures.definition.savePlaybook(pb('publicar', [['copiar-html', 'run_command cp {{html_path}} /Users/arthur/projetos/gitstars/index.html']], ['pages_url']));
+  assert.deepEqual(b.procedures.pipelineDefs.pipelineWarnings(b.procedures.pipelineDefs.pipeline('top-repos')!), []);
 });
 
 test('passo dado como feito com a ferramenta falhada', () => {
@@ -60,21 +61,32 @@ test('passo dado como feito com a ferramenta falhada', () => {
 });
 
 test('revisão: execuções terminadas, uma vez só, com problemas e configuração da esteira', () => {
-  const b = new BrainStore(':memory:');
+  const db = openDatabase(':memory:');
+  const b = wireContexts(db);
   gitstars(b);
-  const db = (b as unknown as { db: never }).db;
   const inbox = new Inbox(db);
   const runs = new PipelineRuns(db);
-  const engine = new PipelineEngine({ brain: b, runs, inbox });
+  const engine = new PipelineEngine({
+    store: {
+      pipeline: (name) => b.procedures.pipelineDefs.pipeline(name),
+      countPipelineUse: (name) => b.procedures.pipelineDefs.countPipelineUse(name),
+      keepPassageAsking: (p2, stage, c) => b.procedures.pipelineDefs.keepPassageAsking(p2, stage, c),
+      notePassage: (p2, s2, cont, c) => b.procedures.pipelineDefs.notePassage(p2, s2, cont, c),
+      run: (runId) => b.procedures.execution.run(runId),
+      playbook: (name) => b.procedures.definition.playbook(name),
+    },
+    runs,
+    inbox,
+  });
   const { run: delivery } = engine.start('top-repos', { destino: '/x' }, { conversationId: 'c1' });
-  const run = b.startRun('consultar', 'c1');
+  const run = b.procedures.execution.startRun('consultar', 'c1');
   engine.runStarted(run);
-  b.updateRunStep(run.id, 'buscar', 'done');
-  b.updateRunStep(run.id, 'entregar', 'done', 'Tabela exibida');
+  b.procedures.execution.updateRunStep(run.id, 'buscar', 'done');
+  b.procedures.execution.updateRunStep(run.id, 'entregar', 'done', 'Tabela exibida');
   // The failure of a call made alongside the step that closed the run arrives later.
-  assert.equal(b.runForFailureIn('c1')?.id, run.id);
-  b.addRunDeviation(run.id, { kind: 'falha', detail: 'show_ui falhou: Validation failed', tool: 'show_ui', step: 'entregar' });
-  const s = { brain: b, inbox, pipelines: { runs, engine }, diagnoses: new Diagnoses(b.db) };
+  assert.equal(b.procedures.execution.runForFailureIn('c1')?.id, run.id);
+  b.procedures.execution.addRunDeviation(run.id, { kind: 'falha', detail: 'show_ui falhou: Validation failed', tool: 'show_ui', step: 'entregar' });
+  const s = { ...b, inbox, pipelines: { runs, engine }, diagnoses: new Diagnoses(db) };
   assert.equal(reviewConversation(s, 'c1'), null, 'a entrega ainda roda: a revisão espera');
   engine.cancel(delivery.id);
   const review = reviewConversation(s, 'c1')!;
@@ -97,10 +109,10 @@ test('gh api -X GET é leitura; saveTo resolve o caminho', () => {
 });
 
 test('passo que já recebe o valor não é alarme; padrão sugerido; título da correção', async () => {
-  const b = new BrainStore(':memory:');
+  const b = wireContexts(openDatabase(':memory:'));
   gitstars(b);
-  b.savePlaybook(pb('gerar', [['definir-destino', 'Usar {{destino}}. Só perguntar ao desenvolvedor se vier vazio.'], ['gerar-html', 'lê {{lista}}']], ['html_path']));
-  assert.equal(b.pipelineWarnings(b.pipeline('top-repos')!).filter((w) => w.stage === 'gerar').length, 0);
+  b.procedures.definition.savePlaybook(pb('gerar', [['definir-destino', 'Usar {{destino}}. Só perguntar ao desenvolvedor se vier vazio.'], ['gerar-html', 'lê {{lista}}']], ['html_path']));
+  assert.equal(b.procedures.pipelineDefs.pipelineWarnings(b.procedures.pipelineDefs.pipeline('top-repos')!).filter((w) => w.stage === 'gerar').length, 0);
   const { defaultSuggestions } = await import('../src/contexts/improvement/judge/src/suggestions.ts');
   assert.deepEqual(defaultSuggestions([{ name: 'destino' }], [{ destino: '/x' }, { destino: '/x' }]), [{ input: 'destino', value: '/x', times: 2 }]);
   assert.deepEqual(defaultSuggestions([{ name: 'destino' }], [{ destino: '/x' }, { destino: '/y' }]), []);
@@ -113,20 +125,31 @@ test('passo que já recebe o valor não é alarme; padrão sugerido; título da 
 });
 
 test('esteira: etapa fora de ordem é recusada; revisão só no fim; procedimento aberto é apontado; encerrar', () => {
-  const b = new BrainStore(':memory:');
+  const db = openDatabase(':memory:');
+  const b = wireContexts(db);
   gitstars(b);
-  const db = (b as unknown as { db: never }).db;
   const inbox = new Inbox(db);
   const runs = new PipelineRuns(db);
-  const engine = new PipelineEngine({ brain: b, runs, inbox });
+  const engine = new PipelineEngine({
+    store: {
+      pipeline: (name) => b.procedures.pipelineDefs.pipeline(name),
+      countPipelineUse: (name) => b.procedures.pipelineDefs.countPipelineUse(name),
+      keepPassageAsking: (p2, stage, c) => b.procedures.pipelineDefs.keepPassageAsking(p2, stage, c),
+      notePassage: (p2, s2, cont, c) => b.procedures.pipelineDefs.notePassage(p2, s2, cont, c),
+      run: (runId) => b.procedures.execution.run(runId),
+      playbook: (name) => b.procedures.definition.playbook(name),
+    },
+    runs,
+    inbox,
+  });
   const { run: delivery } = engine.start('top-repos', { destino: '/x' }, { conversationId: 'c2' });
-  const first = b.startRun('consultar', 'c2');
+  const first = b.procedures.execution.startRun('consultar', 'c2');
   engine.runStarted(first);
-  b.updateRunStep(first.id, 'buscar', 'running');
+  b.procedures.execution.updateRunStep(first.id, 'buscar', 'running');
   assert.match(engine.startProblem('c2', 'gerar') ?? '', /etapa 1 \(Coletar.*faltam os passos buscar/);
   assert.equal(engine.startProblem('c2', 'consultar'), null);
   assert.equal(engine.startProblem('outra', 'gerar'), null);
-  const s = { brain: b, inbox, pipelines: { runs, engine }, diagnoses: new Diagnoses(b.db) };
+  const s = { ...b, inbox, pipelines: { runs, engine }, diagnoses: new Diagnoses(db) };
   assert.equal(reviewConversation(s, 'c2'), null, 'entrega rodando: revisão espera');
   engine.cancel(delivery.id);
   assert.throws(() => engine.cancel(delivery.id), /encerrada/);
@@ -153,17 +176,17 @@ test('scripts do procedimento: validados, guardados, mantidos quando a mudança 
   ]);
   assert.notEqual(scriptVersion('a'), scriptVersion('b'));
 
-  const b = new BrainStore(':memory:');
+  const b = wireContexts(openDatabase(':memory:'));
   const learned = changeFromProposal('playbook', { name: 'gerar', steps: [{ id: 'gerar', label: 'G', how: 'run_script gerar_html.py' }], scripts: [{ name: 'gerar_html.py', description: 'html', code: 'print(1)', effect: 'publica' }] }, 'chat:1');
   assert.ok(learned.kind === 'playbook');
-  b.savePlaybook(learned.playbook);
-  assert.deepEqual(b.playbook('gerar')!.scripts, [{ name: 'gerar_html.py', description: 'html', code: 'print(1)', effect: 'publica' }]);
+  b.procedures.definition.savePlaybook(learned.playbook);
+  assert.deepEqual(b.procedures.definition.playbook('gerar')!.scripts, [{ name: 'gerar_html.py', description: 'html', code: 'print(1)', effect: 'publica' }]);
   // A fix that only touches the steps keeps the scripts.
   const fix = changeFromProposal('playbook', { name: 'gerar', steps: [{ id: 'gerar', label: 'Gerar', how: 'run_script gerar_html.py {{pasta}}' }] }, 'chat:2');
   assert.ok(fix.kind === 'playbook');
-  b.savePlaybook(fix.playbook);
-  assert.equal(b.playbook('gerar')!.scripts.length, 1);
-  assert.throws(() => b.editPlaybook('gerar', { steps: [{ id: 'x', label: 'X', how: 'run_script nao_tem.py' }] }), /nao_tem\.py/);
+  b.procedures.definition.savePlaybook(fix.playbook);
+  assert.equal(b.procedures.definition.playbook('gerar')!.scripts.length, 1);
+  assert.throws(() => b.procedures.definition.editPlaybook('gerar', { steps: [{ id: 'x', label: 'X', how: 'run_script nao_tem.py' }] }), /nao_tem\.py/);
 
   assert.deepEqual(inlineScriptSuggestions({ actions: [
     { fingerprint: 'run_command python3 -c import json…', tool: 'run_command', effect: 'local', summary: '', step: 'gerar' },
@@ -215,18 +238,18 @@ test('revisão: cada analisador registrado vira achados do seu tipo, e só os qu
 });
 
 test('corrigir só os passos mantém o que o procedimento entrega', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('promo', [['extrair', 'ler a página']], ['html_path']));
-  b.learn([{ kind: 'playbook', payload: { name: 'promo', description: 'promo', trigger: 'promo', steps: [{ id: 'extrair', label: 'extrair', how: 'ler a página filtrada' }] } }], 'correção', 'c');
-  assert.deepEqual(b.playbook('promo')!.outputs.map((o) => o.name), ['html_path']);
-  assert.equal(b.playbook('promo')!.steps[0].how, 'ler a página filtrada');
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('promo', [['extrair', 'ler a página']], ['html_path']));
+  b.learning.learn([{ kind: 'playbook', payload: { name: 'promo', description: 'promo', trigger: 'promo', steps: [{ id: 'extrair', label: 'extrair', how: 'ler a página filtrada' }] } }], 'correção', 'c');
+  assert.deepEqual(b.procedures.definition.playbook('promo')!.outputs.map((o) => o.name), ['html_path']);
+  assert.equal(b.procedures.definition.playbook('promo')!.steps[0].how, 'ler a página filtrada');
 });
 
 test('variação nasce com os scripts, as entradas e as entregas da base; a prova da base não vem junto', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook({ ...pb('promo-info', [['html', 'run_script gerar_html.py']], ['html_path']), scripts: [{ name: 'gerar_html.py', description: 'gera o HTML', code: 'print(1)\n' }] } as never);
-  b.learn([{ kind: 'playbook', payload: { name: 'promo-livros', description: 'promo de livros', trigger: 'livros', variationOf: 'promo-info', steps: [{ id: 'html', label: 'html', how: 'run_script gerar_html.py' }] } }], 'versão', 'c');
-  const v = b.playbook('promo-livros')!;
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook({ ...pb('promo-info', [['html', 'run_script gerar_html.py']], ['html_path']), scripts: [{ name: 'gerar_html.py', description: 'gera o HTML', code: 'print(1)\n' }] } as never);
+  b.learning.learn([{ kind: 'playbook', payload: { name: 'promo-livros', description: 'promo de livros', trigger: 'livros', variationOf: 'promo-info', steps: [{ id: 'html', label: 'html', how: 'run_script gerar_html.py' }] } }], 'versão', 'c');
+  const v = b.procedures.definition.playbook('promo-livros')!;
   assert.deepEqual(v.scripts.map((s) => s.name), ['gerar_html.py']);
   assert.deepEqual(v.outputs.map((o) => o.name), ['html_path']);
   assert.equal(v.testedRun ?? null, null);

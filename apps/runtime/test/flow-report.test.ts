@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, brain, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, procedures, trust, waitFor } from './support/flow.ts';
 import { services } from '../src/services.ts';
 import { reportBrief } from '../src/contexts/improvement/index.ts';
 
@@ -29,11 +29,11 @@ test('o que o diagnosticador recebe: os achados e só o que chama atenção no r
 
 test('"Analisar esta execução": o diagnosticador escreve, e o relatório fica na execução', async () => {
   const id = 'chat:relatorio';
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'listar', description: 'Lista', appliesTo: null, trigger: 'pedirem', autonomy: 'ask',
     steps: [{ id: 'listar', label: 'Listar', how: 'mostrar a lista' }], instructions: '', learnedFrom: null, variationOf: null, outputs: [],
   });
-  brain.setPlaybookLevel('listar', { level: 3 });
+  trust.setPlaybookLevel('listar', { level: 3 });
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'listar' }), { stopReason: 'toolUse' }),
     fauxAssistantMessage(fauxToolCall('playbook_step', { stepId: 'listar', status: 'done' }), { stopReason: 'toolUse' }),
@@ -41,7 +41,7 @@ test('"Analisar esta execução": o diagnosticador escreve, e o relatório fica 
   ]);
   const orbi = init(Orbi, { id });
   await orbi.read(await orbi.dispatch('lista'));
-  const run = brain.lastRunIn(id)!;
+  const run = procedures.execution.lastRunIn(id)!;
 
   // O padrão não gasta nada: só as regras, nenhum relatório.
   assert.deepEqual(await (await app.request('/api/diagnoses/setup')).json(), { who: 'regras', when: 'quando-houver' });

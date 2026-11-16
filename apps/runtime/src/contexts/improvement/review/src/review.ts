@@ -24,39 +24,39 @@ import type { Agent } from '../../../../agents/runtime-port.ts';
  * steps given as done whose tool failed), the level settled on that basis, and, in an esteira,
  * the configuration problems. Returns null when there was nothing to review.
  */
-export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pipelines' | 'diagnoses'>, conversationId: string): ExecutionReview | null {
+export function reviewConversation(s: Pick<OrbiServices, 'knowledge' | 'notes' | 'procedures' | 'trust' | 'inbox' | 'pipelines' | 'diagnoses'>, conversationId: string): ExecutionReview | null {
   // A delivery is reviewed once, when it ends or stops for a decision, not at every approval on the way.
   const delivery = s.pipelines.runs.inConversation(conversationId);
   if (delivery?.status === 'running') return null;
   const ended = delivery && (delivery.status === 'done' || delivery.status === 'cancelled');
-  let runs = s.brain.unreviewedRunsIn(conversationId);
+  let runs = s.procedures.execution.unreviewedRunsIn(conversationId);
   // Procedures left open when the delivery ended (a step never closed): they never finished.
-  let open = ended ? s.brain.openUnreviewedRunsIn(conversationId) : [];
+  let open = ended ? s.procedures.execution.openUnreviewedRunsIn(conversationId) : [];
   if (runs.length === 0 && open.length === 0) return null;
   const out: ExecutionReview = { runs: [], config: [] };
   // What each run shows comes from the registered analyzers (review/analyzers/).
   // A rehearsal has no procedure yet: nothing to settle; what it found goes to the learning card.
-  for (const run of [...open, ...runs].filter((r) => r.kind === 'rehearsal')) s.brain.markReviewed(run.id);
+  for (const run of [...open, ...runs].filter((r) => r.kind === 'rehearsal')) s.procedures.execution.markReviewed(run.id);
   open = open.filter((r) => r.kind !== 'rehearsal');
   runs = runs.filter((r) => r.kind !== 'rehearsal');
   if (runs.length === 0 && open.length === 0) return null;
   const judged = (run: PlaybookRun, findings: Finding[]) => applyVerdicts(s, out, run, findings, conversationId);
   for (const run of open) {
-    const findings = judged(run, analyzeRun(run, { open: true, calls: s.brain.calls.list(run.id) }));
+    const findings = judged(run, analyzeRun(run, { open: true, calls: s.procedures.calls.list(run.id) }));
     out.runs.push({ runId: run.id, playbook: run.playbook, status: 'open', findings });
-    s.brain.markReviewed(run.id);
+    s.procedures.execution.markReviewed(run.id);
   }
   for (const run of runs) {
-    const settled = s.brain.settleRun(run.id);
-    s.brain.markReviewed(run.id);
-    const after = s.brain.run(run.id) ?? run;
+    const settled = s.trust.settleRun(run.id);
+    s.procedures.execution.markReviewed(run.id);
+    const after = s.procedures.execution.run(run.id) ?? run;
     // What this run tried that did not work stays with the procedure (docs/funcionalidades/25).
-    for (const l of failedAttempts(after)) s.brain.learnings.add(l);
-    const calls = s.brain.calls.list(after.id);
+    for (const l of failedAttempts(after)) s.procedures.learnings.add(l);
+    const calls = s.procedures.calls.list(after.id);
     const findings = judged(after, analyzeRun(after, { open: false, calls }));
     const retro = retrospective(after, calls);
     // What is the Orbi's own fault, or a wrong call of the model: apart from the procedure's review.
-    for (const f of worthTelling(s.diagnoses.record({ run: after, calls, playbook: s.brain.playbook(after.playbook) }))) {
+    for (const f of worthTelling(s.diagnoses.record({ run: after, calls, playbook: s.procedures.definition.playbook(after.playbook) }))) {
       (out.orbi ??= []).push({ id: f.id, runId: f.runId, category: f.category, title: f.title, detail: f.detail, times: f.times });
     }
     const entry: ExecutionReview['runs'][number] = { runId: run.id, playbook: run.playbook, status: run.status === 'failed' ? 'failed' : 'done', findings, ...(retro.length ? { retro } : {}) };
@@ -76,10 +76,10 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
     out.runs.push(entry);
   }
   // The esteira this conversation delivers: what its configuration keeps from flowing.
-  const def = delivery && s.brain.pipeline(delivery.pipeline);
+  const def = delivery && s.procedures.pipelineDefs.pipeline(delivery.pipeline);
   if (delivery && def) {
     out.pipeline = def.name;
-    out.config = delivery.waiting?.kind === 'passage' ? [] : pipelineConfigProblems(def, (name) => s.brain.playbook(name), collected(delivery).stages);
+    out.config = delivery.waiting?.kind === 'passage' ? [] : pipelineConfigProblems(def, (name) => s.procedures.definition.playbook(name), collected(delivery).stages);
     // The same answer in the last deliveries: keep it as the input's default.
     const recent = s.pipelines.runs.list({ limit: 50 }).filter((r) => r.pipeline === def.name).slice(0, 3).map((r) => r.inputs);
     for (const d of ended ? defaultSuggestions(def.inputs, recent) : []) {
@@ -98,12 +98,12 @@ export function reviewConversation(s: Pick<OrbiServices, 'brain' | 'inbox' | 'pi
  * root, the ideas kept quietly. Returns the findings the card shows for the run: improvements
  * kept as ideas leave the run's list and appear as "ideia guardada".
  */
-function applyVerdicts(s: Pick<OrbiServices, 'brain'>, out: ExecutionReview, run: PlaybookRun, findings: Finding[], conversationId: string): Finding[] {
+function applyVerdicts(s: Pick<OrbiServices, 'knowledge' | 'notes' | 'procedures' | 'trust'>, out: ExecutionReview, run: PlaybookRun, findings: Finding[], conversationId: string): Finding[] {
   const verdicts = judge({
     run,
     findings,
-    recurring: s.brain.review.recurringIn(run),
-    environmentAsked: (id) => s.brain.review.environmentAsked(run.playbook, id),
+    recurring: s.notes.recurringIn(run),
+    environmentAsked: (id) => s.notes.environmentAsked(run.playbook, id),
   });
   const kept = new Set<string>();
   for (const v of verdicts) {
@@ -114,20 +114,20 @@ function applyVerdicts(s: Pick<OrbiServices, 'brain'>, out: ExecutionReview, run
         same.why = `${same.why}; ${v.why}`;
       } else out.change.push({ playbook: run.playbook, why: v.why, steps: v.steps });
     } else if (v.kind === 'fixEnvironment') {
-      const note = s.brain.review.askEnvironment(run.playbook, v.problem, v.runs, run.id, conversationId);
+      const note = s.notes.askEnvironment(run.playbook, v.problem, v.runs, run.id, conversationId);
       const p = v.problem;
       (out.environment ??= []).push({
         noteId: note.id, playbook: run.playbook, problem: p.id, sintoma: p.sintoma, solucao: p.solucao, runs: v.runs,
         ...(p.causa ? { causa: p.causa } : {}), ...(p.raiz ? { raiz: p.raiz } : {}), ...(p.quemCorrige ? { quemCorrige: p.quemCorrige } : {}),
       });
     } else if (v.kind === 'keepIdea') {
-      const note = s.brain.review.keepIdea(run.playbook, v.analyzer, v.text, run.id, conversationId);
+      const note = s.notes.keepIdea(run.playbook, v.analyzer, v.text, run.id, conversationId);
       (out.ideas ??= []).push({ noteId: note.id, playbook: run.playbook, text: v.text, why: v.why });
       kept.add(v.text);
     }
   }
   // The steps the Orbi may touch when it proposes the fix (the learning card refuses the rest).
-  for (const c of out.change ?? []) if (c.playbook === run.playbook) s.brain.review.scopeChange(run.playbook, c.steps, run.id, conversationId);
+  for (const c of out.change ?? []) if (c.playbook === run.playbook) s.notes.scopeChange(run.playbook, c.steps, run.id, conversationId);
   return findings.filter((f) => !kept.has(f.text));
 }
 
@@ -218,7 +218,7 @@ export async function sendReview(s: OrbiServices, agent: Agent, conversationId: 
     if (!review || (!hasProblems(review) && !review.runs.some((r) => r.level))) return;
     await tellAgent(s.events, agent, {
       id: conversationId,
-      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review, machineLine(s), (playbook) => learningLines(s.brain.learnings.list(playbook), 8)), attributes: { review: JSON.stringify(review) } },
+      message: { kind: 'signal', type: 'review', tagName: 'review', body: reviewInstruction(review, machineLine(s), (playbook) => learningLines(s.procedures.learnings.list(playbook), 8)), attributes: { review: JSON.stringify(review) } },
     });
   } catch (error) {
     log.error('revisão da execução falhou', { conversation: conversationId, error: error instanceof Error ? error.message : String(error) });

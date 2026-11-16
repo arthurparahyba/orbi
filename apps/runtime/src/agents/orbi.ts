@@ -8,6 +8,7 @@ import { composePrompt } from './prompt.ts';
 import { situationLine } from '../contexts/talk/index.ts';
 import { modelForTurn, resolveRoles, turnRole } from '../contexts/models/index.ts';
 import { corrigirProcedimento } from '../skills/corrigir-procedimento.ts';
+import { stats } from '../overview.ts';
 
 /**
  * Orbi — one conversation per piece of work (the id names it: `chat:<ulid>`,
@@ -19,12 +20,12 @@ import { corrigirProcedimento } from '../skills/corrigir-procedimento.ts';
 export function Orbi({ id }: { id: string }) {
   // The edge: the conversation reads the Orbi's parts once and hands each capability what it declared.
   const all = services();
-  const { config, brain, vault, pipelines, agents, toolOutcomes, codeAgents, followups } = all;
+  const { config, procedures, vault, pipelines, agents, toolOutcomes, codeAgents, followups } = all;
   // The model of this turn's kind of work: learning and correcting use the better one set for it;
   // talking and running use the conversation's own choice, if any (llm/roles.ts).
   const message = useDelivery();
   const reviewAsksChange = message?.kind === 'signal' && message.type === 'review' && /Proponha tudo com UM brain_learn/.test(message.body);
-  const role = turnRole({ openRun: brain.execution.openRunIn(id), reviewAsksChange });
+  const role = turnRole({ openRun: procedures.execution.openRunIn(id), reviewAsksChange });
   const model = modelForTurn(all.llm, resolveRoles(all.llm, all.modelRoles.all(), all.modelTiers.all()), role, all.conversations.get(id)?.model);
   useModel(model, { thinkingLevel: 'low' });
   useMcpConnection(all.browser.connection);
@@ -33,8 +34,8 @@ export function Orbi({ id }: { id: string }) {
   useSkill(corrigirProcedimento);
   const { activeRun } = useOrbi(id, all);
 
-  const stats = brain.stats();
-  const defs = brain.pipelines();
+  const counts = stats(all);
+  const defs = procedures.pipelineDefs.pipelines();
   const delivery = pipelines.runs.inConversation(id);
   const instructions = composePrompt({
     activeRun: !!activeRun,
@@ -49,7 +50,7 @@ export function Orbi({ id }: { id: string }) {
   const secrets = vault.list().map((x) => `{{segredo:${x.name}}}${x.description ? ` (${x.description})` : ''}`);
   return [
     instructions,
-    `Cérebro agora: ${stats.types} tipos, ${stats.entities} entidades, ${stats.edges} ligações, ${stats.playbooks} playbooks, ${stats.openProposals} aprendizados aguardando aprovação.`,
+    `Cérebro agora: ${counts.types} tipos, ${counts.entities} entidades, ${counts.edges} ligações, ${counts.playbooks} playbooks, ${counts.openProposals} aprendizados aguardando aprovação.`,
     activeRun ? `Playbook em execução: ${activeRun.playbook} (run ${activeRun.runId}, autonomia ${activeRun.autonomy}).` : 'Nenhum playbook em execução.',
     // From the database, every turn: the model never has to remember whether it scheduled one.
     situationLine(followups.active(id)),

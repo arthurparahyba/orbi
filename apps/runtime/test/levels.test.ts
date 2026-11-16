@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { type LevelState } from '../src/language/index.ts';
 import { decideAction, fingerprintWith, settleLevel } from '../src/contexts/trust/index.ts';
 import { commandCategory, commandEffect, decide, parsePolicy } from '../src/contexts/trust/index.ts';
 import { withDefaults, pipelineInputProblems } from '../src/contexts/procedures/pipelines/src/pipelines.ts';
 import { shortCommand } from '../src/agents/tools/terminal.ts';
+import { openDatabase } from '../src/db/database.ts';
 
 const pb = (name: string, steps: string[], autonomy: 'ask' | 'auto' = 'ask') => ({
   name, description: name, trigger: '', appliesTo: null, autonomy, instructions: '', learnedFrom: null, variationOf: null,
@@ -77,57 +78,57 @@ test('impressão digital: o mesmo comando com outra versão é a mesma ação', 
 });
 
 test('cérebro: ações conhecidas, execução limpa sobe, falha registrada não conta', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('publicar', ['Copiar', 'Push']));
-  assert.equal(b.playbook('publicar')!.level, 1);
-  const run = b.startRun('publicar', 'c1', { destino: '/x/site' });
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('publicar', ['Copiar', 'Push']));
+  assert.equal(b.procedures.definition.playbook('publicar')!.level, 1);
+  const run = b.procedures.execution.startRun('publicar', 'c1', { destino: '/x/site' });
   const copy = { fingerprint: 'run_command cp a {{destino}}', tool: 'run_command', effect: 'local' as const, summary: 'Copiar', step: 'p0' };
   const push = { fingerprint: 'run_command git push origin main', tool: 'run_command', effect: 'publica' as const, summary: 'Publicar', step: 'p1' };
-  b.recordRunAction(run.id, copy);
-  b.recordRunAction(run.id, push);
-  b.updateRunStep(run.id, 'p0', 'done');
-  b.updateRunStep(run.id, 'p1', 'done');
-  const settled = b.settleRun(run.id);
+  b.procedures.execution.recordRunAction(run.id, copy);
+  b.procedures.execution.recordRunAction(run.id, push);
+  b.procedures.execution.updateRunStep(run.id, 'p0', 'done');
+  b.procedures.execution.updateRunStep(run.id, 'p1', 'done');
+  const settled = b.trust.settleRun(run.id);
   assert.deepEqual(settled.change, { from: 1, to: 2, reason: 'rodou de ponta a ponta sem correção' });
   assert.deepEqual([settled.alone, settled.asks], [['Copiar'], ['Publicar']]);
-  assert.equal(b.isKnownAction('publicar', copy.fingerprint), true);
-  assert.equal(b.playbook('publicar')!.autonomy, 'ask', 'autonomia acompanha: N2 ainda pede');
+  assert.equal(b.trust.isKnownAction('publicar', copy.fingerprint), true);
+  assert.equal(b.procedures.definition.playbook('publicar')!.autonomy, 'ask', 'autonomia acompanha: N2 ainda pede');
 
-  const second = b.startRun('publicar', 'c2');
-  b.addRunDeviation(second.id, { kind: 'falha', detail: 'show_ui falhou', tool: 'show_ui', step: 'p0' });
-  b.updateRunStep(second.id, 'p0', 'done');
-  b.updateRunStep(second.id, 'p1', 'done');
-  const r2 = b.settleRun(second.id);
+  const second = b.procedures.execution.startRun('publicar', 'c2');
+  b.procedures.execution.addRunDeviation(second.id, { kind: 'falha', detail: 'show_ui falhou', tool: 'show_ui', step: 'p0' });
+  b.procedures.execution.updateRunStep(second.id, 'p0', 'done');
+  b.procedures.execution.updateRunStep(second.id, 'p1', 'done');
+  const r2 = b.trust.settleRun(second.id);
   assert.equal(r2.change, null);
   assert.deepEqual(r2.deviations, ['show_ui falhou']);
-  assert.equal(b.playbook('publicar')!.cleanStreak, 0);
+  assert.equal(b.procedures.definition.playbook('publicar')!.cleanStreak, 0);
 
   // Editing the steps (a fix from the review) keeps the level: new actions ask anyway.
-  b.editPlaybook('publicar', { steps: [{ id: 'p0', label: 'Copiar com python3', how: '' }, { id: 'p1', label: 'Push', how: '' }] });
-  assert.equal(b.playbook('publicar')!.level, 2);
-  b.setPlaybookLevel('publicar', { level: 3 });
-  assert.deepEqual([b.playbook('publicar')!.levelBy, b.playbook('publicar')!.autonomy], ['user', 'auto']);
-  b.editPlaybook('publicar', { steps: [{ id: 'p0', label: 'Copiar', how: '' }] });
-  assert.equal(b.playbook('publicar')!.level, 3);
-  b.setPlaybookLevel('publicar', { levelMax: 2 });
-  assert.equal(b.playbook('publicar')!.level, 2, 'o teto puxa o nível');
-  assert.deepEqual(b.autonomyEvents('playbook', 'publicar').map((e) => `${e.from}>${e.to}`), ['teto N3>teto N2', 'N3>N2', 'N2>N3', 'N1>N2']);
+  b.procedures.definition.editPlaybook('publicar', { steps: [{ id: 'p0', label: 'Copiar com python3', how: '' }, { id: 'p1', label: 'Push', how: '' }] });
+  assert.equal(b.procedures.definition.playbook('publicar')!.level, 2);
+  b.trust.setPlaybookLevel('publicar', { level: 3 });
+  assert.deepEqual([b.procedures.definition.playbook('publicar')!.levelBy, b.procedures.definition.playbook('publicar')!.autonomy], ['user', 'auto']);
+  b.procedures.definition.editPlaybook('publicar', { steps: [{ id: 'p0', label: 'Copiar', how: '' }] });
+  assert.equal(b.procedures.definition.playbook('publicar')!.level, 3);
+  b.trust.setPlaybookLevel('publicar', { levelMax: 2 });
+  assert.equal(b.procedures.definition.playbook('publicar')!.level, 2, 'o teto puxa o nível');
+  assert.deepEqual(b.trust.autonomyEvents('playbook', 'publicar').map((e) => `${e.from}>${e.to}`), ['teto N3>teto N2', 'N3>N2', 'N2>N3', 'N1>N2']);
 });
 
 test('cérebro: autonomia auto continua valendo como N3 seu', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('confiavel', ['Fazer'], 'auto'));
-  assert.deepEqual([b.playbook('confiavel')!.level, b.playbook('confiavel')!.levelBy], [3, 'user']);
-  b.setPlaybookAutonomy('confiavel', 'ask');
-  assert.equal(b.playbook('confiavel')!.level, 1);
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('confiavel', ['Fazer'], 'auto'));
+  assert.deepEqual([b.procedures.definition.playbook('confiavel')!.level, b.procedures.definition.playbook('confiavel')!.levelBy], [3, 'user']);
+  b.procedures.definition.setPlaybookAutonomy('confiavel', 'ask');
+  assert.equal(b.procedures.definition.playbook('confiavel')!.level, 1);
 });
 
 test('esteira: padrão nas entradas e passagem que vira automática', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('gerar', ['Gerar']));
-  b.savePlaybook(pb('publicar', ['Publicar']));
-  assert.throws(() => b.savePipeline({ name: 'x', description: '', inputs: [{ name: 'tipo', description: '', options: ['a', 'b'], default: 'c' }], stages: [{ id: 'g', label: 'G', passage: 'auto', options: [{ playbook: 'gerar' }] }] }), /padrão de tipo/);
-  const p = b.savePipeline({
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('gerar', ['Gerar']));
+  b.procedures.definition.savePlaybook(pb('publicar', ['Publicar']));
+  assert.throws(() => b.procedures.pipelineDefs.savePipeline({ name: 'x', description: '', inputs: [{ name: 'tipo', description: '', options: ['a', 'b'], default: 'c' }], stages: [{ id: 'g', label: 'G', passage: 'auto', options: [{ playbook: 'gerar' }] }] }), /padrão de tipo/);
+  const p = b.procedures.pipelineDefs.savePipeline({
     name: 'site', description: '',
     inputs: [{ name: 'destino', description: 'pasta', default: '~/site' }],
     stages: [
@@ -137,12 +138,12 @@ test('esteira: padrão nas entradas e passagem que vira automática', () => {
   });
   assert.deepEqual(withDefaults(p, {}), { destino: '~/site' });
   assert.deepEqual(pipelineInputProblems(p, withDefaults(p, {})), []);
-  assert.equal(b.notePassage('site', 'publicar', true, null), null);
-  assert.equal(b.notePassage('site', 'publicar', false, null), null, 'parar zera');
-  b.notePassage('site', 'publicar', true, null);
-  b.notePassage('site', 'publicar', true, null);
-  assert.deepEqual(b.notePassage('site', 'publicar', true, 'c1'), { from: 'pergunta', to: 'segue', reason: 'você seguiu 3 vezes seguidas' });
-  assert.equal(b.pipeline('site')!.stages[1].passage, 'auto');
-  b.keepPassageAsking('site', 'publicar', null);
-  assert.equal(b.pipeline('site')!.stages[1].passage, 'ask');
+  assert.equal(b.procedures.pipelineDefs.notePassage('site', 'publicar', true, null), null);
+  assert.equal(b.procedures.pipelineDefs.notePassage('site', 'publicar', false, null), null, 'parar zera');
+  b.procedures.pipelineDefs.notePassage('site', 'publicar', true, null);
+  b.procedures.pipelineDefs.notePassage('site', 'publicar', true, null);
+  assert.deepEqual(b.procedures.pipelineDefs.notePassage('site', 'publicar', true, 'c1'), { from: 'pergunta', to: 'segue', reason: 'você seguiu 3 vezes seguidas' });
+  assert.equal(b.procedures.pipelineDefs.pipeline('site')!.stages[1].passage, 'auto');
+  b.procedures.pipelineDefs.keepPassageAsking('site', 'publicar', null);
+  assert.equal(b.procedures.pipelineDefs.pipeline('site')!.stages[1].passage, 'ask');
 });

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, stepClaimProblemsOf, components, playbook, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, notes, procedures, trust, inbox, stepClaimProblemsOf, components, playbook, waitFor } from './support/flow.ts';
 
 test('revisão no fim: falha em paralelo com o passo é pega, pede correção e não sobe; execução limpa sobe; Manter desfaz', async () => {
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'mostrar-top', description: 'Mostra o top', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'mostrar', label: 'Mostrar no chat', how: 'show_ui table' }],
   });
@@ -30,10 +30,10 @@ test('revisão no fim: falha em paralelo com o passo é pega, pede correção e 
   assert.match(review, /Revisão da execução, feita pelo runtime/);
   assert.match(review, /passo mostrar foi dado como feito.*mas show_ui falhou/);
   assert.match(review, /UM brain_learn/);
-  const run1 = brain.lastRunIn('chat:teste-revisao-1')!;
+  const run1 = procedures.execution.lastRunIn('chat:teste-revisao-1')!;
   assert.deepEqual(run1.deviations.map((d) => [d.kind, d.tool, d.step]), [['falha', 'show_ui', 'mostrar']]);
-  assert.equal(brain.playbook('mostrar-top')!.level, 1, 'com problema não sobe');
-  assert.equal(brain.unreviewedRunsIn('chat:teste-revisao-1').length, 0);
+  assert.equal(procedures.definition.playbook('mostrar-top')!.level, 1, 'com problema não sobe');
+  assert.equal(procedures.execution.unreviewedRunsIn('chat:teste-revisao-1').length, 0);
 
   // A clean run: the review brings the level change (card data in the signal) and a note in Pendências.
   let clean = '';
@@ -52,17 +52,17 @@ test('revisão no fim: falha em paralelo com o passo é pega, pede correção e 
   await until(() => clean !== '', 'a revisão da execução limpa chega');
   assert.match(clean, /mostrar-top sem nada para mudar/);
   assert.match(clean, /Não proponha melhorias/);
-  assert.equal(brain.playbook('mostrar-top')!.level, 2);
+  assert.equal(procedures.definition.playbook('mostrar-top')!.level, 2);
   const note = inbox.list({ status: 'open' }).find((i) => i.kind === 'level' && i.routine === 'playbook:mostrar-top')!;
   assert.equal(note.title, 'mostrar-top subiu para N2 · Assistido');
   const kept = await app.request(`/api/inbox/${note.id}/keep`, { method: 'POST' });
   assert.equal(kept.status, 200);
-  assert.deepEqual([brain.playbook('mostrar-top')!.level, brain.playbook('mostrar-top')!.levelBy], [1, 'user']);
+  assert.deepEqual([procedures.definition.playbook('mostrar-top')!.level, procedures.definition.playbook('mostrar-top')!.levelBy], [1, 'user']);
   assert.equal((await app.request(`/api/inbox/${note.id}/decision`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve' }) })).status, 409);
 });
 
 test('passo fora de ordem: fechar um passo com outro aberto antes é recusado na hora, e o procedimento só termina fechando', async () => {
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'coletar-teste', description: 'Coleta', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'buscar', label: 'Buscar', how: '' }, { id: 'montar', label: 'Montar', how: '' }, { id: 'entregar', label: 'Entregar', how: '' }],
   });
@@ -84,18 +84,18 @@ test('passo fora de ordem: fechar um passo com outro aberto antes é recusado na
   let reviewed = false;
   const orbi = init(Orbi, { id: 'chat:teste-passo-esquecido' });
   await orbi.read(await orbi.dispatch('coleta'));
-  assert.equal(brain.lastRunIn('chat:teste-passo-esquecido')!.status, 'done');
+  assert.equal(procedures.execution.lastRunIn('chat:teste-passo-esquecido')!.status, 'done');
   for (let i = 0; i < 100 && !reviewed; i++) await new Promise((r) => setTimeout(r, 50));
   assert.ok(reviewed, 'a revisão (subiu de nível) chega');
 });
 
 test('esperar só o que existe; falha corrigida na hora não é problema; tabela do script vai direto para a conversa', async () => {
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'mostrar-lista', description: 'Mostra a lista', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'mostrar', label: 'Mostrar', how: 'run_script tabela.py show: true' }, { id: 'publicar', label: 'Publicar', how: 'run_command git push' }],
     scripts: [{ name: 'tabela.py', description: 'imprime a tabela', code: 'import json\nprint(json.dumps({"component": "table", "id": "t1", "title": "Lista", "columns": ["a"], "rows": [["1"], ["2"]]}))\n' }],
   });
-  brain.setPlaybookLevel('mostrar-lista', { level: 3 }); // set by the developer: new actions run alone
+  trust.setPlaybookLevel('mostrar-lista', { level: 3 }); // set by the developer: new actions run alone
   const card = { component: { component: 'status', id: 's1', title: 'Lista', state: 'info', text: 'ok' } };
   let refused = '';
   let shownResult = '';
@@ -117,12 +117,12 @@ test('esperar só o que existe; falha corrigida na hora não é problema; tabela
   const table = components(reply).find((c: any) => c.component === 'table');
   assert.deepEqual(table?.rows, [['1'], ['2']], 'a tabela veio do script, sem o modelo copiar');
   assert.match(refused, /nada está esperando nesta conversa/);
-  const run = brain.lastRunIn('chat:teste-esperar')!;
+  const run = procedures.execution.lastRunIn('chat:teste-esperar')!;
   assert.equal(run.status, 'done');
   // The slip is not a problem; copying the table by hand is a good idea but changes nothing in the
   // result or the autonomy: the judge keeps it in the Cérebro, quietly, without asking for a rewrite.
-  await waitFor(() => brain.review.notes({ playbook: 'mostrar-lista', kind: 'idea' }).length > 0, 'a ideia guardada');
-  const [idea] = brain.review.notes({ playbook: 'mostrar-lista', kind: 'idea' });
+  await waitFor(() => notes.notes({ playbook: 'mostrar-lista', kind: 'idea' }).length > 0, 'a ideia guardada');
+  const [idea] = notes.notes({ playbook: 'mostrar-lista', kind: 'idea' });
   assert.match(idea.text, /o passo mostrar mostrou a tabela copiando/);
   assert.equal(idea.status, 'kept');
   assert.deepEqual(run.deviations.map((d) => [d.kind, d.tool]), [['chamada', 'show_ui']], 'chamada errada do modelo: não é falha do passo');

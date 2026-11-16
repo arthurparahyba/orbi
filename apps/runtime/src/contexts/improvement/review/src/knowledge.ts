@@ -22,7 +22,7 @@ export type FactCandidate = (
 ) & {
   /** The step of the procedure whose output showed it (docs/funcionalidades/22). */
   step?: string;
-  /** Against the brain: 'já sei', or the line saying what it adds, changes or is the same as. */
+  /** Against the knowledge: 'já sei', or the line saying what it adds, changes or is the same as. */
   verdict?: string;
 };
 
@@ -31,12 +31,12 @@ export type FactCandidate = (
  * "já sei"; one that is an existing fact under another name becomes that fact (its name as another
  * name, relations rewritten); the others carry what they add or change.
  */
-export function matchFacts(facts: FactCandidate[], brain: Pick<OrbiServices['brain'], 'byType' | 'neighbors'>): FactCandidate[] {
+export function matchFacts(facts: FactCandidate[], knowledge: OrbiServices['knowledge']): FactCandidate[] {
   const renamed = new Map<string, string>();
   const out: FactCandidate[] = [];
   for (const f of facts) {
     if (f.kind !== 'entity') continue;
-    const v = classifyEntity({ id: f.id, type: f.type, props: f.props, aliases: f.aliases }, (t) => brain.byType(t));
+    const v = classifyEntity({ id: f.id, type: f.type, props: f.props, aliases: f.aliases }, (t) => knowledge.byType(t));
     if (v.kind === 'known') { out.push({ ...f, verdict: 'já sei' }); continue; }
     if (v.kind === 'same') {
       renamed.set(f.id, v.id);
@@ -48,7 +48,7 @@ export function matchFacts(facts: FactCandidate[], brain: Pick<OrbiServices['bra
   for (const f of facts) {
     if (f.kind !== 'edge') continue;
     const e = { ...f, from: renamed.get(f.from) ?? f.from, to: renamed.get(f.to) ?? f.to };
-    const exists = brain.neighbors(e.from).out.some((x) => x.rel === e.rel && x.to === e.to);
+    const exists = knowledge.neighbors(e.from).out.some((x) => x.rel === e.rel && x.to === e.to);
     out.push({ ...e, verdict: exists ? 'já sei' : 'nova ligação' });
   }
   return out;
@@ -89,22 +89,22 @@ export function scrub(text: string, secrets: string[]): string {
 }
 
 /** What the Revisor reads: the procedure, the concepts and facts it touches, and what the run read. */
-export function knowledgeBrief(s: Pick<OrbiServices, 'brain'>, run: PlaybookRun, observations: Observation[]): string {
-  const pb = s.brain.playbook(run.playbook);
+export function knowledgeBrief(s: Pick<OrbiServices, 'knowledge' | 'notes' | 'procedures'>, run: PlaybookRun, observations: Observation[]): string {
+  const pb = s.procedures.definition.playbook(run.playbook);
   // What the brain already has of its concepts, so a fact it knows is not proposed again (doc 22).
-  const known = s.brain.types().slice(0, 30).flatMap((t) => s.brain.byType(t.name).slice(0, 15).map((e) =>
+  const known = s.knowledge.types().slice(0, 30).flatMap((t) => s.knowledge.byType(t.name).slice(0, 15).map((e) =>
     `- ${e.id} (${e.type}) ${JSON.stringify(e.props)}${e.aliases?.length ? ` · também ${e.aliases.join(', ')}` : ''}`)).slice(0, 120);
   const steps = (pb?.steps ?? []).map((st) => `- ${st.id}: ${st.label}${st.how ? ` · ${st.how}` : ''}`);
-  const types = s.brain.types().slice(0, 30).map((t) => {
+  const types = s.knowledge.types().slice(0, 30).map((t) => {
     const props = Object.keys(t.props ?? {});
     const rels = Object.entries(t.relations).map(([r, to]) => `${r} → ${to}`);
     return `- ${t.name}: ${t.description}${props.length ? ` · propriedades: ${props.join(', ')}` : ''}${rels.length ? ` · relações: ${rels.join(', ')}` : ''}`;
   });
   const touched = Object.values(run.resolved ?? {}).filter((r) => !r.undone).map((r) => r.entity);
   const facts = [...new Set(touched)].flatMap((id) => {
-    const e = s.brain.get(id);
+    const e = s.knowledge.get(id);
     if (!e) return [];
-    const out = s.brain.neighbors(id).out.map((ed) => `${ed.rel} → ${ed.to}`);
+    const out = s.knowledge.neighbors(id).out.map((ed) => `${ed.rel} → ${ed.to}`);
     return [`- ${e.id} (${e.type}) ${JSON.stringify(e.props)}${out.length ? ` · ${out.join(', ')}` : ''}`];
   });
   return [
@@ -129,11 +129,11 @@ export function knowledgeBrief(s: Pick<OrbiServices, 'brain'>, run: PlaybookRun,
 
 /** After the review of a run: hand what it read to the Revisor, if it read anything. */
 export async function startKnowledgeReview(s: OrbiServices, agent: Agent, runId: string): Promise<void> {
-  const run = s.brain.run(runId);
+  const run = s.procedures.execution.run(runId);
   const observations = s.observations.take(runId);
   if (!s.config.knowledgeReview || !run || run.kind === 'rehearsal' || observations.length === 0) return;
   // Facts are about concepts the brain already has: with none, there is nothing to attach them to.
-  if (s.brain.types().length === 0) return;
+  if (s.knowledge.types().length === 0) return;
   try {
     const secrets: string[] = [];
     for (const x of s.vault.list()) {
@@ -162,18 +162,18 @@ export function stepsToConsultBrain(steps: ReadonlyArray<{ id: string; label: st
 /** The Revisor finished: the facts it found go to the run's conversation, for the Orbi to propose. */
 export async function deliverKnowledge(s: OrbiServices, agent: Agent, reviewerConversation: string): Promise<void> {
   const runId = reviewerConversation.slice(KNOWLEDGE_PREFIX.length);
-  const facts = s.knowledge.take(runId);
-  const run = s.brain.run(runId);
+  const facts = s.candidates.take(runId);
+  const run = s.procedures.execution.run(runId);
   if (!run || facts.length === 0) return;
   const fresh = facts.filter((f) => f.verdict !== 'já sei');
-  const pb = s.brain.playbook(run.playbook);
+  const pb = s.procedures.definition.playbook(run.playbook);
   const steps = pb ? stepsToConsultBrain(pb.steps, facts) : [];
   if (fresh.length === 0 && steps.length === 0) return;
   // Only those steps may change in that card (brain_learn refuses others), on top of what the
   // end-of-run review already let change; an open scope with no limit stays so.
   if (pb && steps.length) {
-    const open = s.brain.review.changeScope(pb.name, run.conversationId);
-    if (!open || open.length) s.brain.review.scopeChange(pb.name, [...new Set([...(open ?? []), ...steps.map((st) => st.id)])], runId, run.conversationId);
+    const open = s.notes.changeScope(pb.name, run.conversationId);
+    if (!open || open.length) s.notes.scopeChange(pb.name, [...new Set([...(open ?? []), ...steps.map((st) => st.id)])], runId, run.conversationId);
   }
   try {
     await tellAgent(s.events, agent, {

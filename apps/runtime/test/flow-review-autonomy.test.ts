@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, brain, inbox, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, knowledge, notes, procedures, inbox, waitFor } from './support/flow.ts';
 
 /**
  * The end-of-run review, autonomy before perfection (docs/funcionalidades/19): a procedure that
@@ -55,12 +55,12 @@ const router = (context: any) => {
 };
 
 function setup() {
-  brain.upsertType({ name: 'Problema', description: 'Problema conhecido', relations: {}, requires: [] });
-  brain.upsertType({ name: 'BancoDeDados', description: 'Banco de dados de uma aplicação', relations: {}, requires: [], props: { endereco: 'host do banco' } });
-  brain.upsertType({ name: 'Aplicacao', description: 'Aplicação no ECS', relations: { usaBanco: 'BancoDeDados' }, requires: [] });
-  brain.upsertEntity({ id: 'app-x', type: 'Aplicacao', props: {}, body: '' });
-  brain.upsertEntity({ id: 'cert-rds', type: 'Problema', props: { sintoma: 'SSL certificate verify failed', solucao: 'usar o bundle rds-ca-2019 no --ssl-ca', causa: 'o Python do ambiente não tem o bundle da AWS' }, body: '' });
-  brain.savePlaybook({
+  knowledge.upsertType({ name: 'Problema', description: 'Problema conhecido', relations: {}, requires: [] });
+  knowledge.upsertType({ name: 'BancoDeDados', description: 'Banco de dados de uma aplicação', relations: {}, requires: [], props: { endereco: 'host do banco' } });
+  knowledge.upsertType({ name: 'Aplicacao', description: 'Aplicação no ECS', relations: { usaBanco: 'BancoDeDados' }, requires: [] });
+  knowledge.upsertEntity({ id: 'app-x', type: 'Aplicacao', props: {}, body: '' });
+  knowledge.upsertEntity({ id: 'cert-rds', type: 'Problema', props: { sintoma: 'SSL certificate verify failed', solucao: 'usar o bundle rds-ca-2019 no --ssl-ca', causa: 'o Python do ambiente não tem o bundle da AWS' }, body: '' });
+  procedures.definition.savePlaybook({
     name: 'validar-ambiente', description: 'Valida tasks do ECS e o banco da aplicação', trigger: 'validar ambiente', appliesTo: null, autonomy: 'ask',
     instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'tasks', label: 'Ver as tasks', how: 'aws ecs' }, { id: 'banco', label: 'Ver o banco', how: 'conectar no banco da task definition' }],
@@ -93,10 +93,10 @@ test('revisão: problema conhecido contornado não segura o nível; repetido, vi
     faux.setResponses(runScript('primeira'));
     const one = init(Orbi, { id: 'chat:validar-1' });
     await one.read(await one.dispatch('Valida o ambiente do app-x em develop.'));
-    const run1 = brain.lastRunIn('chat:validar-1')!;
-    await waitFor(() => brain.playbook('validar-ambiente')!.level === 2, 'subir para N2 mesmo com o certificado', 8000);
-    assert.equal(brain.run(run1.id)!.deviations.find((d) => d.kind === 'comando')?.problem, 'cert-rds', 'o desvio guarda qual problema conhecido foi');
-    assert.equal(brain.review.notes({ playbook: 'validar-ambiente', kind: 'environment' }).length, 0, 'uma vez só: ainda não pergunta');
+    const run1 = procedures.execution.lastRunIn('chat:validar-1')!;
+    await waitFor(() => procedures.definition.playbook('validar-ambiente')!.level === 2, 'subir para N2 mesmo com o certificado', 8000);
+    assert.equal(procedures.execution.run(run1.id)!.deviations.find((d) => d.kind === 'comando')?.problem, 'cert-rds', 'o desvio guarda qual problema conhecido foi');
+    assert.equal(notes.notes({ playbook: 'validar-ambiente', kind: 'environment' }).length, 0, 'uma vez só: ainda não pergunta');
 
     // The knowledge reviewer read the outputs (cleaned) and proposed facts; the credential was refused.
     await waitFor(() => knowledgeSaw !== '', 'os fatos chegarem à conversa', 8000);
@@ -110,14 +110,14 @@ test('revisão: problema conhecido contornado não segura o nível; repetido, vi
     faux.setResponses(runScript('segunda'));
     const two = init(Orbi, { id: 'chat:validar-2' });
     await two.read(await two.dispatch('Valida o ambiente do app-x de novo.'));
-    await waitFor(() => brain.review.notes({ playbook: 'validar-ambiente', kind: 'environment' }).length === 1, 'perguntar para corrigir o ambiente', 8000);
-    const [env] = brain.review.notes({ playbook: 'validar-ambiente', kind: 'environment' });
+    await waitFor(() => notes.notes({ playbook: 'validar-ambiente', kind: 'environment' }).length === 1, 'perguntar para corrigir o ambiente', 8000);
+    const [env] = notes.notes({ playbook: 'validar-ambiente', kind: 'environment' });
     assert.equal(env.subject, 'cert-rds');
     assert.equal(env.status, 'open');
     await waitFor(() => reviews.some((r) => /voltou em 2 execuções seguidas/.test(r)), 'o Orbi recebe o pedido de explicar a correção de vez', 8000);
     const review = reviews.find((r) => /voltou em 2 execuções seguidas/.test(r))!;
     assert.match(review, /Ainda não há correção de vez \(raiz\) guardada/);
     assert.doesNotMatch(review, /mudar validar-ambiente/, 'a execução chegou ao fim: nada de mudar o procedimento');
-    assert.equal(brain.playbook('validar-ambiente')!.level, 2, 'continua em N2');
+    assert.equal(procedures.definition.playbook('validar-ambiente')!.level, 2, 'continua em N2');
   }
 });

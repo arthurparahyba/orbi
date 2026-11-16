@@ -60,9 +60,9 @@ test('createOrbi monta as peças e aceita substitutas', async () => {
   assert.equal(orbi.config.model, 'anthropic/claude-haiku-5-5');
   assert.equal(orbi.codeAgents.available(), false, 'sem ORBI_CODE_AGENT nem cadastro, nenhum agente de código');
   assert.ok(existsSync(join(cwd, 'data')), 'pastas criadas só por createOrbi');
-  orbi.brain.upsertType({ name: 'Classe', description: '', relations: {}, requires: [] });
-  orbi.brain.upsertEntity({ id: 'x', type: 'Classe', props: {}, body: '' });
-  assert.equal(orbi.brain.get('x')?.type, 'Classe');
+  orbi.knowledge.upsertType({ name: 'Classe', description: '', relations: {}, requires: [] });
+  orbi.knowledge.upsertEntity({ id: 'x', type: 'Classe', props: {}, body: '' });
+  assert.equal(orbi.knowledge.get('x')?.type, 'Classe');
   // The recorder got the substitute transcriber, not a global one.
   assert.equal(orbi.recorder.active(), undefined);
 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, brain } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, knowledge, procedures, trust } from './support/flow.ts';
 
 test('problema conhecido: o que falhou e depois passou vira conhecimento; da próxima vez, a falha já vem com a solução', async () => {
   const { mkdtempSync } = await import('node:fs');
@@ -16,12 +16,12 @@ test('problema conhecido: o que falhou e depois passou vira conhecimento; da pr�
     '    sys.exit(1)',
     'print("Quality Gate passed")',
   ].join('\n');
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'subir-dev', description: 'Sobe para dev', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'acompanhar', label: 'Acompanhar o workflow', how: 'run_script gate.py {{pasta}}' }],
     scripts: [{ name: 'gate.py', description: 'confere o quality gate', code }],
   });
-  brain.setPlaybookLevel('subir-dev', { level: 3 });
+  trust.setPlaybookLevel('subir-dev', { level: 3 });
   const pasta = `${dir}/a`;
   (await import('node:fs')).mkdirSync(pasta);
   let firstResult = '';
@@ -41,13 +41,13 @@ test('problema conhecido: o que falhou e depois passou vira conhecimento; da pr�
   for (let i = 0; i < 100 && !review; i++) await new Promise((r) => setTimeout(r, 50));
   assert.match(review, /aprender com subir-dev: o passo acompanhar \(Acompanhar o workflow\) esbarrou em/);
   assert.match(review, /Coverage on New Code 62/);
-  const run = brain.lastRunIn('chat:teste-sonar-1')!;
+  const run = procedures.execution.lastRunIn('chat:teste-sonar-1')!;
   assert.equal(run.status, 'done');
   assert.deepEqual(run.deviations.map((d) => [d.kind, d.recovered]), [['comando', true]], 'a falha do comando ficou no histórico, marcada como contornada');
 
   // The developer approves what the Orbi proposed: a problem the brain now knows.
-  brain.upsertType({ name: 'Problema', description: 'Problema conhecido', relations: {}, requires: [] });
-  brain.upsertEntity({ id: 'sonar-cobertura-codigo-novo', type: 'Problema', body: '', props: {
+  knowledge.upsertType({ name: 'Problema', description: 'Problema conhecido', relations: {}, requires: [] });
+  knowledge.upsertEntity({ id: 'sonar-cobertura-codigo-novo', type: 'Problema', body: '', props: {
     sintoma: 'Quality Gate failed. Coverage on New Code', causa: 'cobertura de código novo abaixo de 80%', solucao: 'o agente de código adiciona testes nos arquivos alterados e delega de novo', onde: 'subir-dev, acompanhar',
   } });
 
@@ -68,6 +68,6 @@ test('problema conhecido: o que falhou e depois passou vira conhecimento; da pr�
   assert.match(secondResult, /knownProblems.*sonar-cobertura-codigo-novo.*o agente de código adiciona testes/);
   for (let i = 0; i < 100 && !review2; i++) await new Promise((r) => setTimeout(r, 50));
   assert.doesNotMatch(review2, /aprender com subir-dev/, 'já conhecido: nada novo a aprender');
-  const again = brain.lastRunIn('chat:teste-sonar-2')!;
+  const again = procedures.execution.lastRunIn('chat:teste-sonar-2')!;
   assert.deepEqual(again.deviations.map((d) => [d.kind, d.known]), [['comando', true]], 'já era conhecido: não pede para aprender de novo');
 });

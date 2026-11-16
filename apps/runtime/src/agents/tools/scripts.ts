@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import * as v from 'valibot';
 import { UiComponent } from '@orbi/contracts';
-import type { BrainStore } from '../../brain.ts';
 import { defineCapability, type Deps } from '../capability.ts';
+import type { OrbiServices } from '../../services.ts';
 import { runCommand } from '../../contexts/tools/index.ts';
 import { scriptVersion, type PlaybookScript } from '../../contexts/procedures/index.ts';
 import { savePath, shortCommand } from './terminal.ts';
@@ -19,10 +19,10 @@ import type { AgentContext } from '../context.ts';
 const SECRET = /\{\{\s*segredo:/i;
 
 /** The script of the procedure running in this conversation, or why there is none. */
-export function findScript(brain: Pick<BrainStore, 'openRunIn' | 'playbook'>, conversationId: string, name: string): { playbook: string; script: PlaybookScript } | { problem: string } {
-  const run = brain.openRunIn(conversationId);
+export function findScript(procedures: OrbiServices['procedures'], conversationId: string, name: string): { playbook: string; script: PlaybookScript } | { problem: string } {
+  const run = procedures.execution.openRunIn(conversationId);
   if (!run) return { problem: 'run_script só roda dentro de um procedimento em andamento (playbook_start antes).' };
-  const pb = brain.playbook(run.playbook);
+  const pb = procedures.definition.playbook(run.playbook);
   const script = pb?.scripts.find((s) => s.name === name);
   if (!script) {
     const names = pb?.scripts.map((s) => s.name).join(', ') || 'nenhum';
@@ -40,11 +40,11 @@ const input = v.object({
   timeoutSeconds: v.optional(v.number()),
 });
 
-export const scripts = defineCapability({ name: 'scripts', needs: ['brain', 'config'], register: useScripts });
+export const scripts = defineCapability({ name: 'scripts', needs: ['procedures', 'config'], register: useScripts });
 
-function useScripts(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>) {
+function useScripts(ctx: AgentContext, { procedures, config }: Deps<'procedures' | 'config'>) {
   const version = (name: string) => {
-    const found = findScript(brain, ctx.conversationId, name);
+    const found = findScript(procedures, ctx.conversationId, name);
     return 'script' in found ? `${found.playbook}/${name}@${scriptVersion(found.script.code).slice(0, 8)}` : name;
   };
   ctx.gated({
@@ -55,14 +55,14 @@ function useScripts(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config
     input,
     precheck: (a) => {
       const problems: string[] = [];
-      const found = findScript(brain, ctx.conversationId, a.script);
+      const found = findScript(procedures, ctx.conversationId, a.script);
       if ('problem' in found) problems.push(found.problem);
       if (a.args.some((x) => SECRET.test(x))) problems.push('Credenciais não vão em argumentos de script.');
       return problems;
     },
     category: () => 'comandos-escrita',
     effect: (a) => {
-      const found = findScript(brain, ctx.conversationId, a.script);
+      const found = findScript(procedures, ctx.conversationId, a.script);
       return 'script' in found && found.script.effect === 'publica' ? 'publica' : 'local';
     },
     summary: (a) => `${a.purpose}: ${a.script} ${a.args.join(' ')}`,
@@ -71,7 +71,7 @@ function useScripts(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config
     // The version is in the fingerprint: an edited script is a new action, approved again.
     fingerprint: (a) => `run_script ${version(a.script)} ${a.args.join(' ')}${a.saveTo ? ` > ${a.saveTo}` : ''}`,
     execute: async (a) => {
-      const found = findScript(brain, ctx.conversationId, a.script);
+      const found = findScript(procedures, ctx.conversationId, a.script);
       if ('problem' in found) return JSON.stringify({ error: found.problem });
       const file = join(config.scratchDir, 'scripts', found.playbook, `${scriptVersion(found.script.code)}-${found.script.name}`);
       if (!existsSync(file)) {
@@ -80,7 +80,7 @@ function useScripts(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config
       }
       const shown = shortCommand(a.script, a.args);
       const { result, report, extra } = await runAndReport({
-        brain,
+        memory: procedures.execution,
         conversationId: ctx.conversationId,
         shown,
         // show: the output is the component itself, not a file.

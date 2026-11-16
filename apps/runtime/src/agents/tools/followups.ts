@@ -9,9 +9,9 @@ import { whenLabel } from '../../contexts/talk/index.ts';
  * a new one replaces the one waiting, and the answer says so. The scheduler delivers it
  * (followups/scheduler.ts); the prompt says every turn whether one is waiting.
  */
-export const followupTools = defineCapability({ name: 'followups', needs: ['followups', 'brain'], register: useFollowupTools });
+export const followupTools = defineCapability({ name: 'followups', needs: ['followups', 'procedures'], register: useFollowupTools });
 
-function useFollowupTools(ctx: AgentContext, { followups, brain }: Deps<'followups' | 'brain'>) {
+function useFollowupTools(ctx: AgentContext, { followups, procedures }: Deps<'followups' | 'procedures'>) {
   useTool({
     name: 'schedule_followup',
     description:
@@ -24,7 +24,7 @@ function useFollowupTools(ctx: AgentContext, { followups, brain }: Deps<'followu
     async run({ data }) {
       try {
         // Inside a procedure, it wakes up the step that waits (the one running, or the next).
-        const run = ctx.activeRun ? brain.run(ctx.activeRun.runId) : undefined;
+        const run = ctx.activeRun ? procedures.execution.run(ctx.activeRun.runId) : undefined;
         const step = run?.steps.find((x) => x.status === 'waiting' || x.status === 'running') ?? run?.steps.find((x) => x.status === 'pending');
         const { followup, replaced } = followups.schedule({ conversationId: ctx.conversationId, minutes: data.minutes, note: data.note, runId: run?.id ?? null, stepId: step?.id ?? null });
         return {

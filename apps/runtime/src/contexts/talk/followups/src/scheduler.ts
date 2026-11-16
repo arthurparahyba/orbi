@@ -15,7 +15,7 @@ import type { Followups } from './service.ts';
  * `followup` signal. Marked delivered only after the conversation accepted it; a failed delivery is
  * tried again at the next tick, and after MAX_ATTEMPTS it becomes a Pendência instead of vanishing.
  */
-type SchedulerDeps = { followups: Followups; inbox: Pick<Inbox, 'add'>; brain: RunLookup };
+type SchedulerDeps = { followups: Followups; inbox: Pick<Inbox, 'add'>; procedures: { execution: RunLookup } };
 /** Hands the wake-up signal to the conversation; throws when it did not get there. */
 export type Wake = (conversationId: string, body: string, followupId: string) => Promise<unknown>;
 
@@ -33,7 +33,7 @@ export function startFollowups(s: SchedulerDeps & { events: Pick<Events, 'emit'>
 
 export async function deliverDue(s: SchedulerDeps, wake: Wake, at = new Date().toISOString()): Promise<void> {
   for (const f of s.followups.claimDue(at)) {
-    const playbook = f.runId ? s.brain.run(f.runId)?.playbook : undefined;
+    const playbook = f.runId ? s.procedures.execution.run(f.runId)?.playbook : undefined;
     try {
       await wake(f.conversationId, wakeMessage(f, playbook), f.id);
       s.followups.delivered(f);

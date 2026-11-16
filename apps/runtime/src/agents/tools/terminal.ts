@@ -30,9 +30,9 @@ export function savePath(saveTo: string, workspace: string, home = homedir()): s
 
 export { afterCommand } from '../../contexts/tools/index.ts';
 
-async function execCommand({ config, brain }: Deps<'config' | 'brain'>, args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
+async function execCommand({ config, procedures }: Deps<'config' | 'procedures'>, args: { binary: string; args: string[]; cwd?: string; timeoutSeconds?: number; saveTo?: string }, conversationId: string, signal?: AbortSignal) {
   const { report } = await runAndReport({
-    brain,
+    memory: procedures.execution,
     conversationId,
     shown: shortCommand(args.binary, args.args),
     saveTo: args.saveTo ? savePath(args.saveTo, config.workspace) : undefined,
@@ -59,7 +59,7 @@ const commandInput = v.object({
 });
 
 /** Read-only command runner for subagents (they cannot hold approvals). */
-export const runReadOnlyCommand = (deps: Deps<'config' | 'brain'>) => defineTool({
+export const runReadOnlyCommand = (deps: Deps<'config' | 'procedures'>) => defineTool({
   name: 'run_readonly_command',
   description: 'Run a read-only CLI command (git log/diff/status, gh run view/list, aws logs tail, describe/get/list…). No shell. Write commands are refused.',
   input: commandInput,
@@ -119,9 +119,9 @@ export function notAllowed(binary: string, allowed: readonly string[]): string[]
   return [`${binary} não está entre os comandos permitidos nesta máquina (${allowed.join(', ')}): use um deles${allowed.includes('cat') ? ' (cat para ler um arquivo)' : ''}, ou run_shell para uma linha de shell. Nada foi pedido ao desenvolvedor.`];
 }
 
-export const terminal = defineCapability({ name: 'terminal', needs: ['config', 'brain', 'inbox'], register: useTerminal });
+export const terminal = defineCapability({ name: 'terminal', needs: ['config', 'procedures', 'inbox'], register: useTerminal });
 
-function useTerminal(ctx: AgentContext, deps: Deps<'config' | 'brain' | 'inbox'>) {
+function useTerminal(ctx: AgentContext, deps: Deps<'config' | 'procedures' | 'inbox'>) {
   const { allowedBinaries } = deps.config;
   ctx.gated({
     name: 'run_command',
@@ -167,7 +167,7 @@ const shellInput = v.object({
  * the Orbi cannot tell a read from a write: a new line always asks, and what it may do is judged
  * from the text (deleting is `apaga`; anything else may publish).
  */
-function useShell(ctx: AgentContext, { config, brain, inbox }: Deps<'config' | 'brain' | 'inbox'>) {
+function useShell(ctx: AgentContext, { config, procedures, inbox }: Deps<'config' | 'procedures' | 'inbox'>) {
   ctx.gated({
     name: 'run_shell',
     description: "Run one line in the developer's shell (Git Bash on Windows, bash elsewhere): pipes, &&, redirects, scripts. Prefer run_command for a single program: it can become a known action that runs alone.",
@@ -184,7 +184,7 @@ function useShell(ctx: AgentContext, { config, brain, inbox }: Deps<'config' | '
       const shell = config.shell;
       if (!shell) throw new Error(askShellPath(inbox, ctx.conversationId, ctx.ui));
       const { report } = await runAndReport({
-        brain,
+        memory: procedures.execution,
         conversationId: ctx.conversationId,
         shown: a.line,
         saveTo: a.saveTo ? savePath(a.saveTo, config.workspace) : undefined,

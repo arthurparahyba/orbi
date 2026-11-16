@@ -8,13 +8,13 @@ import type { AgentContext } from '../context.ts';
  * at the end may change that step, and only that one. It does not count against the level: it may
  * have been just a confirmation. An answer given on a question card is not an intervention.
  */
-export const interventions = defineCapability({ name: 'interventions', needs: ['brain', 'inbox'], register: useInterventions });
+export const interventions = defineCapability({ name: 'interventions', needs: ['procedures', 'inbox'], register: useInterventions });
 
-function useInterventions(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>) {
+function useInterventions(ctx: AgentContext, { procedures, inbox }: Deps<'procedures' | 'inbox'>) {
   const delivery = useDelivery();
   useAgentStart(() => {
     if (delivery?.kind !== 'user' || !delivery.body.trim()) return;
     const answeredOnCard = inbox.list({ status: 'answered' }).some((i) => i.conversationId === ctx.conversationId && i.answer === delivery.body);
-    if (!answeredOnCard) brain.execution.noteIntervention(ctx.conversationId, delivery.body);
+    if (!answeredOnCard) procedures.execution.noteIntervention(ctx.conversationId, delivery.body);
   });
 }

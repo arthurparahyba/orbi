@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, brain, inbox } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, procedures, inbox } from './support/flow.ts';
 
 /**
  * The registry of the execution (docs/funcionalidades/24), with the real Flue and a scripted model:
@@ -11,7 +11,7 @@ const json = (b: unknown) => ({ method: 'POST', headers: { 'content-type': 'appl
 
 test('registro: cada chamada da execução, com passo, aprovação e o que foi lido', async () => {
   const id = 'chat:registro';
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'promo', description: 'Consulta promoções', appliesTo: null, trigger: 'pedirem promoções', autonomy: 'ask',
     steps: [{ id: 'abrir', label: 'Abrir', how: 'abrir o site' }, { id: 'extrair', label: 'Extrair', how: 'extrair os produtos' }],
     instructions: '', learnedFrom: null, variationOf: null, outputs: [],
@@ -25,8 +25,8 @@ test('registro: cada chamada da execução, com passo, aprovação e o que foi l
   const orbi = init(Orbi, { id });
   await orbi.read(await orbi.dispatch('consulta as promoções'));
 
-  const run = brain.runs().find((r) => r.conversationId === id)!;
-  const asked = brain.calls.list(run.id).find((c) => c.tool === 'run_command')!;
+  const run = procedures.execution.runs().find((r) => r.conversationId === id)!;
+  const asked = procedures.calls.list(run.id).find((c) => c.tool === 'run_command')!;
   assert.equal(asked.status, 'pediu', 'enquanto espera você, fica como pediu');
   assert.equal(asked.approval, 'pedida');
   assert.equal(asked.step, 'extrair', 'contou no passo aberto quando a chamada começou');
@@ -35,7 +35,7 @@ test('registro: cada chamada da execução, com passo, aprovação e o que foi l
   const card = inbox.list({ status: 'open' }).find((i) => i.conversationId === id)!;
   await orbi.read(await (await app.request(`/api/inbox/${card.id}/decision`, json({ decision: 'approve' }))).json());
 
-  const calls = brain.calls.list(run.id);
+  const calls = procedures.calls.list(run.id);
   assert.deepEqual(
     calls.map((c) => [c.tool, c.step, c.status, c.approval]),
     [['playbook_start', 'abrir', 'ok', null], ['playbook_step', 'abrir', 'ok', null], ['run_command', 'extrair', 'ok', 'aprovada']],
@@ -55,7 +55,7 @@ test('registro: cada chamada da execução, com passo, aprovação e o que foi l
 
 test('registro: chamada errada do modelo e leitura cara ficam marcadas', async () => {
   const id = 'chat:registro-marcas';
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'ler', description: 'Lê uma saída grande', appliesTo: null, trigger: 'pedirem a saída', autonomy: 'ask',
     steps: [{ id: 'ler', label: 'Ler', how: 'rodar o programa' }], instructions: '', learnedFrom: null, variationOf: null, outputs: [],
   });
@@ -68,11 +68,11 @@ test('registro: chamada errada do modelo e leitura cara ficam marcadas', async (
   ]);
   const orbi = init(Orbi, { id });
   await orbi.read(await orbi.dispatch('roda o programa'));
-  const run = brain.runs().find((r) => r.conversationId === id)!;
+  const run = procedures.execution.runs().find((r) => r.conversationId === id)!;
   const card = inbox.list({ status: 'open' }).find((i) => i.conversationId === id)!;
   await orbi.read(await (await app.request(`/api/inbox/${card.id}/decision`, json({ decision: 'approve' }))).json());
 
-  const calls = brain.calls.list(run.id);
+  const calls = procedures.calls.list(run.id);
   const wrong = calls.find((c) => c.status === 'erro')!;
   assert.deepEqual(wrong.marks, ['chamada'], 'argumento que não valida é chamada errada');
   assert.match(wrong.error, /purpose/);
@@ -80,5 +80,5 @@ test('registro: chamada errada do modelo e leitura cara ficam marcadas', async (
   assert.ok(big.chars >= 20_000, `o que voltou ao modelo foi contado: ${big.chars}`);
   assert.ok(big.marks.includes('caro'), `leitura cara: ${JSON.stringify(big.marks)}`);
   // The wrong call does not blame the step (docs/funcionalidades/23).
-  assert.deepEqual(brain.run(run.id)!.deviations.map((d) => d.kind), ['chamada']);
+  assert.deepEqual(procedures.execution.run(run.id)!.deviations.map((d) => d.kind), ['chamada']);
 });

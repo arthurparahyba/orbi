@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Vault, redact, secretName } from '../src/contexts/secrets/index.ts';
 import { wavToFloat32 } from '../src/contexts/talk/voice/src/stt.ts';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
+import { openDatabase } from '../src/db/database.ts';
 
 const dir = () => mkdtempSync(join(tmpdir(), 'orbi-test-'));
 
@@ -47,8 +48,8 @@ test('transcrição: WAV PCM16 vira float 16 kHz (com reamostragem)', () => {
 });
 
 test('playbook: parâmetros {{x}} preenchidos na execução, segredos continuam referência', () => {
-  const brain = new BrainStore(join(dir(), 'brain.db'));
-  brain.savePlaybook({
+  const brain = wireContexts(openDatabase(join(dir(), 'brain.db')));
+  brain.procedures.definition.savePlaybook({
     name: 'versao-do-mfe', description: 'Atualizar versão de MFE', appliesTo: null, trigger: 'deploy de MFE', autonomy: 'ask',
     steps: [
       { id: 'entrar', label: 'Entrar', how: 'fill Senha com {{segredo:portal/senha}}' },
@@ -56,7 +57,7 @@ test('playbook: parâmetros {{x}} preenchidos na execução, segredos continuam 
     ],
     instructions: '', learnedFrom: null,
   } as never);
-  const run = brain.startRun('versao-do-mfe', 'chat:x', { mfe: 'novo-front', versao: '2.5.0' });
+  const run = brain.procedures.execution.startRun('versao-do-mfe', 'chat:x', { mfe: 'novo-front', versao: '2.5.0' });
   assert.equal(run.steps[1].label, 'Trocar novo-front para 2.5.0');
   assert.equal(run.steps[1].how, 'fill Versão com 2.5.0');
   assert.equal(run.steps[0].how, 'fill Senha com {{segredo:portal/senha}}');

@@ -5,13 +5,12 @@ import { classifyEntity } from '../../contexts/knowledge/index.ts';
 import type { Entity } from '../../language/index.ts';
 import { defineTool, useDelivery, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import type { BrainStore } from '../../brain.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 
 /** Memory: query the brain freely; learning goes through the gate (the developer approves). */
 
-export const brainQuery = (brain: BrainStore) => defineTool({
+export const brainQuery = ({ knowledge, procedures }: Deps<'knowledge' | 'procedures'>) => defineTool({
   name: 'brain_query',
   description:
     'Look up the brain (knowledge graph). Give `id` to get one entity with its current relations and neighborhood (or, with a procedure\'s name, the whole procedure with its scripts), `type` to list entities of a type, or `text` to search. Use before acting: what you were taught is here.',
@@ -24,16 +23,16 @@ export const brainQuery = (brain: BrainStore) => defineTool({
   async run({ data }) {
     const json = (value: unknown) => JSON.parse(JSON.stringify(value));
     if (data.id) {
-      const entity = brain.get(data.id);
+      const entity = knowledge.get(data.id);
       // A procedure by its name: all of it, with its scripts (to read before changing or making a version).
-      const playbook = entity ? undefined : brain.playbook(data.id);
+      const playbook = entity ? undefined : procedures.definition.playbook(data.id);
       if (playbook) return { output: json({ playbook }) };
-      if (!entity) return { output: { notFound: data.id, similar: brain.search(data.id, 5).map((e) => e.id) } };
-      return { output: json({ entity, relations: brain.neighbors(data.id), nearby: brain.reachable(data.id, data.depth ?? 2) }) };
+      if (!entity) return { output: { notFound: data.id, similar: knowledge.search(data.id, 5).map((e) => e.id) } };
+      return { output: json({ entity, relations: knowledge.neighbors(data.id), nearby: knowledge.reachable(data.id, data.depth ?? 2) }) };
     }
-    if (data.type) return { output: json(brain.byType(data.type)) };
-    if (data.text) return { output: json(brain.search(data.text)) };
-    return { output: json({ ontology: brain.types(), gaps: brain.gaps(), playbooks: brain.playbooks().map((p) => p.name) }) };
+    if (data.type) return { output: json(knowledge.byType(data.type)) };
+    if (data.text) return { output: json(knowledge.search(data.text)) };
+    return { output: json({ ontology: knowledge.types(), gaps: knowledge.gaps(), playbooks: procedures.definition.playbooks().map((p) => p.name) }) };
   },
 });
 
@@ -153,11 +152,11 @@ export function learnTitle(items: Array<{ kind: string; payload: { name?: string
   return `Aprender: ${reason}`;
 }
 
-export const memory = defineCapability({ name: 'brain', needs: ['brain', 'config'], register: useBrain });
+export const memory = defineCapability({ name: 'memory', needs: ['knowledge', 'learning', 'notes', 'procedures', 'config'], register: useBrain });
 
-function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>) {
+function useBrain(ctx: AgentContext, { knowledge, learning, notes, procedures, config }: Deps<'knowledge' | 'learning' | 'notes' | 'procedures' | 'config'>) {
   const delivery = useDelivery();
-  useTool(brainQuery(brain));
+  useTool(brainQuery({ knowledge, procedures }));
   ctx.gated({
     name: 'brain_learn',
     description:
@@ -179,31 +178,31 @@ function useBrain(ctx: AgentContext, { brain, config }: Deps<'brain' | 'config'>
     }),
     category: () => 'aprender',
     why: (a) => a.why?.trim() || undefined,
-    summary: (a) => learnTitle(a.items as Array<{ kind: string; payload: { name?: string } }>, a.reason, (name) => !!brain.playbook(name)),
+    summary: (a) => learnTitle(a.items as Array<{ kind: string; payload: { name?: string } }>, a.reason, (name) => !!procedures.definition.playbook(name)),
     precheck: (a) => {
-      const problems = brain.learnProblems(inLearningOrder(a.items) as never);
+      const problems = learning.learnProblems(inLearningOrder(a.items) as never);
       if (problems.length) return [...problems, 'Se falta um tipo, inclua o item `type` no mesmo lote; não tire a entidade.'];
       // The developer's own request, in this very message, is not held to the steps a review named.
       const theirs = delivery?.kind === 'user' || (delivery?.kind === 'signal' && delivery.type === 'card');
       if (a.asked?.trim() && !theirs) return ['`asked` só vale na mensagem em que o desenvolvedor pediu a mudança: tire-o e proponha só o que a revisão pediu.'];
-      const scope = a.asked?.trim() ? [] : scopeProblems(brain, a.items as LearnItems, ctx.conversationId);
+      const scope = a.asked?.trim() ? [] : scopeProblems({ knowledge, learning, notes, procedures }, a.items as LearnItems, ctx.conversationId);
       if (scope.length && theirs) scope.push('Se foi o desenvolvedor que pediu esta mudança agora, passe o pedido dele em `asked`.');
-      return [...scope, ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => brain.byType(t))];
+      return [...scope, ...commandProblems(a.items as LearnItems, config.allowedBinaries), ...sameFactProblems(a.items as LearnItems, (t) => knowledge.byType(t))];
     },
     // A denied change to a procedure is remembered with it, so it is not proposed again.
     denied: (a) => {
       for (const item of a.items as LearnItems) {
-        const before = item.kind === 'playbook' ? brain.playbook(String(item.payload.name ?? '')) : undefined;
+        const before = item.kind === 'playbook' ? procedures.definition.playbook(String(item.payload.name ?? '')) : undefined;
         if (!before || !Array.isArray(item.payload.steps)) continue;
-        for (const l of deniedAttempts(before.name, before.steps, stepsOf(item), ctx.conversationId)) brain.learnings.add(l);
+        for (const l of deniedAttempts(before.name, before.steps, stepsOf(item), ctx.conversationId)) procedures.learnings.add(l);
       }
     },
     execute: async (a) => {
-      const applied = brain.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
-      for (const item of a.items as LearnItems) if (item.kind === 'playbook' && item.payload.name) brain.review.changeApplied(String(item.payload.name));
-      saveLearnings(brain, a.items as LearnItems, ctx.conversationId, a.asked?.trim() ? 'pedido' : 'revisao');
+      const applied = learning.learn(inLearningOrder(a.items) as never, a.reason, ctx.conversationId);
+      for (const item of a.items as LearnItems) if (item.kind === 'playbook' && item.payload.name) notes.changeApplied(String(item.payload.name));
+      saveLearnings({ knowledge, learning, notes, procedures }, a.items as LearnItems, ctx.conversationId, a.asked?.trim() ? 'pedido' : 'revisao');
       // A procedure whose steps never ran as they are written is not finished (documento 25).
-      const prove = toProve(brain, a.items as LearnItems);
+      const prove = toProve({ knowledge, learning, notes, procedures }, a.items as LearnItems);
       return `Guardado no cérebro: ${applied.join('; ')}${prove.length ? `\n\n${prove.join('\n')}` : ''}`;
     },
   });
@@ -214,26 +213,26 @@ type LearnItems = Array<{ kind: string; payload: Record<string, unknown> }>;
 const stepsOf = (item: LearnItems[number]) => (item.payload.steps as Array<Record<string, unknown>>).map((st) => ({ id: String(st.id ?? ''), how: String(st.how ?? '') }));
 
 /** What is still to prove in each procedure of the batch, and how (docs/funcionalidades/25). */
-function toProve(brain: Deps<'brain'>['brain'], items: LearnItems): string[] {
+function toProve(d: Deps<'knowledge' | 'learning' | 'notes' | 'procedures'>, items: LearnItems): string[] {
   const out: string[] = [];
   for (const item of items) {
     if (item.kind !== 'playbook') continue;
-    const pb = brain.playbook(String(item.payload.name ?? ''));
+    const pb = d.procedures.definition.playbook(String(item.payload.name ?? ''));
     if (!pb) continue;
-    const line = howToProve(pb.name, proofOf(pb.steps, brain.proofs.list(pb.name)), pb.steps);
+    const line = howToProve(pb.name, proofOf(pb.steps, d.procedures.proofs.list(pb.name)), pb.steps);
     if (line) out.push(line);
   }
   return out;
 }
 
 /** What the batch says the run taught about each procedure: kept with it once the card is approved. */
-function saveLearnings(brain: Deps<'brain'>['brain'], items: LearnItems, conversationId: string, source: 'pedido' | 'revisao'): void {
+function saveLearnings(d: Deps<'knowledge' | 'learning' | 'notes' | 'procedures'>, items: LearnItems, conversationId: string, source: 'pedido' | 'revisao'): void {
   for (const item of items) {
     if (item.kind !== 'playbook' || !Array.isArray(item.payload.learnings)) continue;
     const playbook = String(item.payload.name ?? '');
-    const steps = new Set(brain.playbook(playbook)?.steps.map((s) => s.id));
+    const steps = new Set(d.procedures.definition.playbook(playbook)?.steps.map((s) => s.id));
     for (const l of item.payload.learnings as Array<{ step?: string; tried: string; outcome: 'falhou' | 'funcionou'; why?: string }>) {
-      brain.learnings.add({ playbook, step: l.step && steps.has(l.step) ? l.step : null, tried: l.tried, outcome: l.outcome, why: l.why ?? '', source, runId: null, conversationId });
+      d.procedures.learnings.add({ playbook, step: l.step && steps.has(l.step) ? l.step : null, tried: l.tried, outcome: l.outcome, why: l.why ?? '', source, runId: null, conversationId });
     }
   }
 }
@@ -242,13 +241,13 @@ function saveLearnings(brain: Deps<'brain'>['brain'], items: LearnItems, convers
  * When the end-of-run review asked to change only some steps of a procedure (docs/funcionalidades/19),
  * a new version that touches others is refused before any card: autonomy before perfection.
  */
-function scopeProblems(brain: Deps<'brain'>['brain'], items: LearnItems, conversationId: string): string[] {
+function scopeProblems(d: Deps<'knowledge' | 'learning' | 'notes' | 'procedures'>, items: LearnItems, conversationId: string): string[] {
   const out: string[] = [];
   for (const item of items) {
     if (item.kind !== 'playbook' || !Array.isArray(item.payload.steps)) continue;
     const name = String(item.payload.name ?? '');
-    const before = brain.playbook(name);
-    const scope = before && brain.review.changeScope(name, conversationId);
+    const before = d.procedures.definition.playbook(name);
+    const scope = before && d.notes.changeScope(name, conversationId);
     if (!before || !scope) continue;
     const after = (item.payload.steps as Array<Record<string, unknown>>).map((st) => ({ id: String(st.id ?? ''), label: String(st.label ?? ''), how: String(st.how ?? '') }));
     const outside = outOfScope(before.steps, after, scope);

@@ -9,7 +9,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
+import { openDatabase } from '../src/db/database.ts';
 
 interface EvalCase { text: string; expect: string; semantic?: boolean }
 interface EvalSet { playbooks: Array<{ name: string; description: string; trigger: string; appliesTo: string | null; steps: Array<{ id: string; label: string; how: string }> }>; queries: EvalCase[] }
@@ -27,10 +28,10 @@ export function loadEvalSet(): EvalSet {
 }
 
 /** A brain with the eval playbooks, for whatever search is being measured. */
-export function evalBrain(set = loadEvalSet()): BrainStore {
-  const brain = new BrainStore(':memory:');
+export function evalBrain(set = loadEvalSet()): Contexts {
+  const brain = wireContexts(openDatabase(':memory:'));
   for (const p of set.playbooks) {
-    brain.savePlaybook({ ...p, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null });
+    brain.procedures.definition.savePlaybook({ ...p, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null });
   }
   return brain;
 }
@@ -62,6 +63,6 @@ export function formatResults(results: EvalResult[]): string {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const brain = evalBrain();
-  console.log(formatResults(evaluateSearch((text) => brain.searchPlaybooks(text, 3).map((c) => c.playbook.name))));
+  const contexts = evalBrain();
+  console.log(formatResults(evaluateSearch((text) => contexts.procedures.definition.searchPlaybooks(text, 3).map((c) => c.playbook.name))));
 }

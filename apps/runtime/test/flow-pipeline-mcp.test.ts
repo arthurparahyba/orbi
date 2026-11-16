@@ -1,19 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, playbook } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, procedures, playbook } from './support/flow.ts';
 
 test('esteira pedida por agente (MCP): roda a etapa, para na passagem que pergunta, segue com o desenvolvedor e responde', async () => {
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
   const { agents, pipelines } = (await import('../src/services.ts')).services();
   const pb = (name: string, label: string, outputs: string[]) =>
-    brain.savePlaybook({
+    procedures.definition.savePlaybook({
       name, description: name, trigger: '', appliesTo: null, autonomy: 'auto', instructions: '', learnedFrom: null, variationOf: null,
       steps: [{ id: 'p0', label, how: '' }], outputs: outputs.map((o) => ({ name: o, description: o })),
     });
   pb('workflow-dev-teste', 'Acompanhar o workflow de {{repo}}', ['versao']);
   pb('promover-hml-teste', 'Promover {{versao}} para homologação', ['url_hml']);
-  brain.savePipeline({
+  procedures.pipelineDefs.savePipeline({
     name: 'entrega-teste',
     description: 'Do workflow de dev até homologação',
     inputs: [{ name: 'repo', description: 'repositório' }],

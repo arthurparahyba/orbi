@@ -10,11 +10,11 @@ import { REHEARSAL } from '../../contexts/procedures/index.ts';
  * learning card. The actions themselves go through their own tools and the gate (in a rehearsal,
  * what publishes always asks); these tools only keep the checklist and the agreement.
  */
-export const rehearsal = defineCapability({ name: 'rehearsal', needs: ['brain', 'inbox'], register: useRehearsal });
+export const rehearsal = defineCapability({ name: 'rehearsal', needs: ['procedures', 'inbox'], register: useRehearsal });
 
-function useRehearsal(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>) {
+function useRehearsal(ctx: AgentContext, { procedures, inbox }: Deps<'procedures' | 'inbox'>) {
   const show = (runId: string) => {
-    const run = brain.run(runId);
+    const run = procedures.execution.run(runId);
     if (!run) return;
     ctx.ui({
       component: 'stepper',
@@ -34,7 +34,7 @@ function useRehearsal(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox
     input: v.object({ goal: v.pipe(v.string(), v.description('What the explained procedure is for, in a few words')) }),
     async run({ data }) {
       if (ctx.activeRun) return { output: { error: `já há algo em execução nesta conversa (${ctx.activeRun.playbook}); termine antes de ensaiar` } };
-      const run = brain.execution.startRehearsal(ctx.conversationId, data.goal);
+      const run = procedures.execution.startRehearsal(ctx.conversationId, data.goal);
       ctx.setActiveRun({ runId: run.id, playbook: REHEARSAL, autonomy: 'ask' });
       show(run.id);
       return { output: { runId: run.id, note: 'Ensaio começou. O que publica sempre pede aprovação. Relate cada parte com rehearsal_step.' } };
@@ -55,7 +55,7 @@ function useRehearsal(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox
       const runId = current();
       if (!runId) return { output: { error: 'nenhum ensaio em andamento; comece com rehearsal_start' } };
       try {
-        const run = brain.execution.rehearsalStep(runId, data);
+        const run = procedures.execution.rehearsalStep(runId, data);
         show(run.id);
         return { output: { steps: run.steps.map((s) => ({ id: s.id, label: s.label, status: s.status })) } };
       } catch (error) {
@@ -82,7 +82,7 @@ function useRehearsal(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox
       const agreement = { start: data.start, receives: data.receives, end: data.end, outside: data.outside ?? [], corrections: data.corrections ?? [] };
       let run;
       try {
-        run = brain.execution.finishRehearsal(runId, agreement);
+        run = procedures.execution.finishRehearsal(runId, agreement);
       } catch (error) {
         return { output: { error: error instanceof Error ? error.message : String(error) } };
       }

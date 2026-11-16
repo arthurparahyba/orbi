@@ -8,6 +8,7 @@ import { type Deviation } from '../src/language/index.ts';
 import { runDeviations, workedAround } from '../src/contexts/trust/index.ts';
 import { asKnownProblem, recurrence } from '../src/contexts/knowledge/problems/src/problems.ts';
 import { credentialProblems } from '../src/contexts/learning/src/changes.ts';
+import { openDatabase } from '../src/db/database.ts';
 
 /** The end-of-run review: autonomy before perfection (docs/funcionalidades/19). */
 
@@ -94,13 +95,13 @@ test('fatos: credencial nunca vira fato; referência ao cofre e endereço do ban
 });
 
 test('intervenção: o que o desenvolvedor digita durante a execução fica no passo, não conta no nível e abre a mudança só nele', async () => {
-  const { BrainStore } = await import('../src/brain.ts');
-  const b = new BrainStore(':memory:');
-  b.savePlaybook({ name: 'publicar', description: 'Publica', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
+  const { wireContexts } = await import('../src/wiring.ts');
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook({ name: 'publicar', description: 'Publica', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'abrir', label: 'Abrir', how: '' }, { id: 'criar', label: 'Criar', how: '' }] });
-  const run = b.startRun('publicar', 'c1');
-  b.execution.noteIntervention('c1', 'não, é por Releases › Criar release');
-  const after = b.run(run.id)!;
+  const run = b.procedures.execution.startRun('publicar', 'c1');
+  b.procedures.execution.noteIntervention('c1', 'não, é por Releases › Criar release');
+  const after = b.procedures.execution.run(run.id)!;
   const d = after.deviations.find((x) => x.kind === 'intervencao')!;
   assert.match(d.detail, /você escreveu no passo abrir: "não, é por Releases › Criar release"/);
   assert.deepEqual(runDeviations({ ...after, status: 'done', steps: after.steps.map((s) => ({ ...s, status: 'done' })) }), [], 'não segura o nível');
@@ -109,8 +110,8 @@ test('intervenção: o que o desenvolvedor digita durante a execução fica no p
   assert.deepEqual((v[0] as any).steps, ['abrir']);
   assert.match((v[0] as any).why, /se foi só uma confirmação, não mude nada/);
   // Outside a run, or in a rehearsal, typing is just the conversation.
-  b.execution.noteIntervention('c2', 'oi');
-  assert.equal(b.runs().filter((r) => r.conversationId === 'c2').length, 0);
+  b.procedures.execution.noteIntervention('c2', 'oi');
+  assert.equal(b.procedures.execution.runs().filter((r) => r.conversationId === 'c2').length, 0);
 });
 
 test('chamada errada do modelo (argumento inválido, ferramenta que não existe) não acusa o passo nem segura o nível', () => {

@@ -29,7 +29,7 @@ type Executor = (args: unknown, approvalId: string, how: 'auto' | 'approved', si
  *   ask     → recorded, shown as an approval card, turn ends; it runs when the
  *             developer approves (signal `tool-approval`, sent by the HTTP inbox route)
  */
-export function useGate(conversationId: string, ui: (c: UiComponent) => void, activeRun: () => ActiveRun, { inbox, policy, brain }: Deps<'inbox' | 'policy' | 'brain'>) {
+export function useGate(conversationId: string, ui: (c: UiComponent) => void, activeRun: () => ActiveRun, { inbox, policy, procedures, trust }: Deps<'inbox' | 'policy' | 'procedures' | 'trust'>) {
   const [pending, setPending] = usePersistentState<Record<string, Pending>>('pending', {});
   const delivery = useDelivery();
   const executors = new Map<string, Executor>();
@@ -63,9 +63,9 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         const category = def.category(data);
         // Inside a playbook: its level, and whether this exact action already worked before.
         const active = activeRun();
-        const pb = active ? brain.playbook(active.playbook) : undefined;
+        const pb = active ? procedures.definition.playbook(active.playbook) : undefined;
         // Learning is about the brain, not a step of the running procedure: it stays out of its trail.
-        const run = active && def.category(data) !== 'aprender' ? brain.run(active.runId) : undefined;
+        const run = active && def.category(data) !== 'aprender' ? procedures.execution.run(active.runId) : undefined;
         const effect = def.effect?.(data) ?? effectOfCategory(category);
         const step = currentStep(run);
         const action: RunAction = {
@@ -75,7 +75,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           summary: def.title?.(data) ?? def.summary(data),
           step: step?.id ?? null,
         };
-        const known = pb ? brain.isKnownAction(pb.name, action.fingerprint) : false;
+        const known = pb ? trust.isKnownAction(pb.name, action.fingerprint) : false;
         const byRule = decide(policy.get(), category, pb ?? null, { known, effect });
         const alone = def.alone?.();
         const decided = byRule === 'ask' && alone?.set && effect !== 'apaga' ? 'auto' : byRule;
@@ -84,7 +84,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
         const level = decided === 'auto' && (def.alwaysAsk?.(data) || rehearsing) ? 'ask' : decided;
         if (level === 'auto') {
           const result = await def.execute(data, toolCallId, 'auto', signal);
-          if (run) brain.recordRunAction(run.id, action);
+          if (run) procedures.execution.recordRunAction(run.id, action);
           // How the call reads in the conversation travels with it: the app needs no list of tools.
           const shown = { ...(def.title ? { title: def.title(data) } : {}), ...(def.command ? { command: def.command(data) } : {}) };
           return { output: { status: 'executed', category, ...shown, result } };
@@ -108,7 +108,7 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
           };
         }
         // Counted in the run: the review weighs a change by the approvals it would save.
-        if (run) brain.execution.countAsk(conversationId);
+        if (run) procedures.execution.countAsk(conversationId);
         setPending((prev) => ({ ...prev, [toolCallId]: { tool: def.name, args: data, category, requestedAt: new Date().toISOString(), ...(run ? { runId: run.id, action } : {}) } }));
         const detail = JSON.stringify(data, null, 2);
         const title = def.title?.(data) ?? def.summary(data);
@@ -135,8 +135,8 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
     if (!call) return;
     setPending(({ [approvalId]: _done, ...rest }) => rest);
     if (decision !== 'approve') {
-      brain.calls.decided(approvalId, { approval: 'negada', status: 'negado' });
-      if (call.runId) brain.addRunDeviation(call.runId, { kind: 'negado', detail: `você negou: ${call.action?.summary ?? call.tool}`, tool: call.tool, step: call.action?.step ?? null });
+      procedures.calls.decided(approvalId, { approval: 'negada', status: 'negado' });
+      if (call.runId) procedures.execution.addRunDeviation(call.runId, { kind: 'negado', detail: `você negou: ${call.action?.summary ?? call.tool}`, tool: call.tool, step: call.action?.step ?? null });
       onDenied.get(call.tool)?.(call.args as Record<string, unknown>);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} negou ${call.tool} (${approvalId}). Não tente de novo; pergunte como seguir.` });
       return;
@@ -144,14 +144,14 @@ export function useGate(conversationId: string, ui: (c: UiComponent) => void, ac
     try {
       const result = await executors.get(call.tool)!(call.args, approvalId, 'approved');
       // What the approved call read goes back to the model in this signal: counted and marked here.
-      brain.calls.decided(approvalId, { approval: 'aprovada', status: 'ok', chars: result.length, marks: marksOf({ chars: result.length, status: 'ok', error: '' }, result, isCallError) });
-      if (call.runId && call.action) brain.recordRunAction(call.runId, call.action);
+      procedures.calls.decided(approvalId, { approval: 'aprovada', status: 'ok', chars: result.length, marks: marksOf({ chars: result.length, status: 'ok', error: '' }, result, isCallError) });
+      if (call.runId && call.action) procedures.execution.recordRunAction(call.runId, call.action);
       append({ kind: 'signal', type: 'tool-approval-result', body: `${approver} aprovou ${call.tool} (${approvalId}). Resultado: ${result}` });
     } catch (error) {
       // Approved and then refused anyway (a program this machine does not allow): the Orbi's own fault.
       const refused = /não está entre os comandos permitidos|não é permitido/i.test(String(error));
-      brain.calls.decided(approvalId, { approval: 'aprovada', status: 'erro', error: String(error), ...(refused ? { marks: ['recusado-depois' as const] } : {}) });
-      if (call.runId) brain.addRunDeviation(call.runId, { kind: 'falha', detail: `${call.tool} falhou: ${String(error).slice(0, 200)}`, tool: call.tool, step: call.action?.step ?? null });
+      procedures.calls.decided(approvalId, { approval: 'aprovada', status: 'erro', error: String(error), ...(refused ? { marks: ['recusado-depois' as const] } : {}) });
+      if (call.runId) procedures.execution.addRunDeviation(call.runId, { kind: 'falha', detail: `${call.tool} falhou: ${String(error).slice(0, 200)}`, tool: call.tool, step: call.action?.step ?? null });
       append({ kind: 'signal', type: 'tool-approval-result', body: `${call.tool} (${approvalId}) foi aprovado mas falhou: ${String(error)}` });
     }
   });

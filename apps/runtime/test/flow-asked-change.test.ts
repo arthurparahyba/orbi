@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, init, Orbi, brain, inbox, components } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, init, Orbi, notes, procedures, inbox, components } from './support/flow.ts';
 
 /**
  * A change the developer asks for (docs/funcionalidades/25): it is not held to the steps a review
@@ -10,13 +10,13 @@ const steps = (b: string) => [{ id: 'a', label: 'Abrir', how: 'abrir o site' }, 
 const learn = (b: string, asked?: string) => ({
   reason: 'pedido do desenvolvedor',
   ...(asked ? { asked } : {}),
-  items: [{ kind: 'playbook', payload: { ...brain.playbook('promo')!, steps: steps(b) } }],
+  items: [{ kind: 'playbook', payload: { ...procedures.definition.playbook('promo')!, steps: steps(b) } }],
 });
 
 test('mudança pedida pelo desenvolvedor: passa pelo escopo da revisão e o cartão mostra o pedido', async () => {
   const id = 'chat:pedido-mudanca';
-  brain.savePlaybook({ name: 'promo', description: 'Consulta promoções', appliesTo: null, trigger: 'pedirem promoções', autonomy: 'ask', steps: steps('gravar em promo.html'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
-  brain.review.scopeChange('promo', ['a'], null, id);
+  procedures.definition.savePlaybook({ name: 'promo', description: 'Consulta promoções', appliesTo: null, trigger: 'pedirem promoções', autonomy: 'ask', steps: steps('gravar em promo.html'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
+  notes.scopeChange('promo', ['a'], null, id);
 
   let refusal = '';
   faux.setResponses([
@@ -34,5 +34,5 @@ test('mudança pedida pelo desenvolvedor: passa pelo escopo da revisão e o cart
   assert.ok(card, 'com asked, vira cartão');
   const item = inbox.list({ status: 'open' }).find((i) => i.conversationId === id)!;
   assert.match(item.detail, /"asked": "muda o passo b/);
-  assert.equal(brain.playbook('promo')!.steps[1].how, 'gravar em promo.html', 'nada muda antes de aprovar');
+  assert.equal(procedures.definition.playbook('promo')!.steps[1].how, 'gravar em promo.html', 'nada muda antes de aprovar');
 });

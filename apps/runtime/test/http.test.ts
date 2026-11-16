@@ -153,9 +153,9 @@ test('cérebro e autonomia: leitura, 404 e validação', async () => {
 
 test('cérebro: editar e apagar entidades e procedimentos', async () => {
   const { orbi, call } = await setup();
-  orbi.brain.upsertType({ name: 'Portal', description: '', relations: {}, requires: [] });
-  orbi.brain.upsertEntity({ id: 'portal', type: 'Portal', props: { url: 'a' }, body: '' });
-  orbi.brain.savePlaybook({ name: 'abrir-portal', description: 'Abre', trigger: '', appliesTo: null, autonomy: 'ask', steps: [{ id: 'a', label: 'Abrir', how: '' }], instructions: '', learnedFrom: null, variationOf: null });
+  orbi.knowledge.upsertType({ name: 'Portal', description: '', relations: {}, requires: [] });
+  orbi.knowledge.upsertEntity({ id: 'portal', type: 'Portal', props: { url: 'a' }, body: '' });
+  orbi.procedures.definition.savePlaybook({ name: 'abrir-portal', description: 'Abre', trigger: '', appliesTo: null, autonomy: 'ask', steps: [{ id: 'a', label: 'Abrir', how: '' }], instructions: '', learnedFrom: null, variationOf: null });
 
   assert.equal((await call('GET', '/api/brain/entities/portal')).json.dependents.relations, 0);
   assert.equal((await call('PATCH', '/api/brain/entities/portal', { props: { url: 'b' } })).json.props.url, 'b');

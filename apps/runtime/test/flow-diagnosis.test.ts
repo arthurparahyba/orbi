@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, brain, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, procedures, trust, waitFor } from './support/flow.ts';
 import { services } from '../src/services.ts';
 
 /**
@@ -10,12 +10,12 @@ import { services } from '../src/services.ts';
  */
 test('diagnóstico: problema do modelo não vira mudança no procedimento, e a revisão manda dizer numa linha', async () => {
   const id = 'chat:diagnostico';
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'listar', description: 'Lista os itens', appliesTo: null, trigger: 'pedirem a lista', autonomy: 'ask',
     steps: [{ id: 'listar', label: 'Listar', how: 'mostrar a lista para o desenvolvedor' }],
     instructions: '', learnedFrom: null, variationOf: null, outputs: [],
   });
-  brain.setPlaybookLevel('listar', { level: 3 }); // sem cartão: o que interessa é o diagnóstico
+  trust.setPlaybookLevel('listar', { level: 3 }); // sem cartão: o que interessa é o diagnóstico
   let review = '';
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('playbook_start', { name: 'listar' }), { stopReason: 'toolUse' }),
@@ -28,7 +28,7 @@ test('diagnóstico: problema do modelo não vira mudança no procedimento, e a r
   ]);
   const orbi = init(Orbi, { id });
   await orbi.read(await orbi.dispatch('lista os itens'));
-  const run = brain.lastRunIn(id)!;
+  const run = procedures.execution.lastRunIn(id)!;
 
   await waitFor(() => services().diagnoses.forRun(run.id).length > 0, 'o diagnóstico da execução');
   const found = services().diagnoses.forRun(run.id);

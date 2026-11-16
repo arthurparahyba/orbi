@@ -1,6 +1,11 @@
 import type { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.ts';
 import type { OrbiConfig } from './config.ts';
-import type { BrainStore } from './brain.ts';
+import type { DatabaseSync } from 'node:sqlite';
+import type { Facts } from './contexts/knowledge/index.ts';
+import type { Execution, PipelineDefs, Procedures, ProofRepo, RunCallRepo, StepLearningRepo } from './contexts/procedures/index.ts';
+import type { Autonomy } from './contexts/trust/index.ts';
+import type { Learning } from './contexts/learning/index.ts';
+import type { Review } from './contexts/improvement/index.ts';
 import type { Inbox } from './contexts/talk/index.ts';
 import type { PolicyStore } from './contexts/trust/index.ts';
 import type { Conversations } from './contexts/talk/index.ts';
@@ -41,7 +46,34 @@ import type { AgentSuggestions } from './mcp/suggestions.ts';
  */
 export interface OrbiServices {
   config: OrbiConfig;
-  brain: BrainStore;
+  /** The database every context shares; only the composition and a migration touch it directly. */
+  db: DatabaseSync;
+  /** `knowledge`: the ontology, the facts and their search (documento 26). */
+  knowledge: Facts;
+  /**
+   * `procedures`: what the Orbi knows how to do and what it is doing. One key per module of the
+   * context, so a call says where it goes: `procedures.execution.startRun(…)`.
+   */
+  procedures: {
+    /** The procedure itself: save, edit, find; the scripts travel with it. */
+    definition: Procedures;
+    /** A run: steps, step 0, deviations, the attempts of a command. */
+    execution: Execution;
+    /** The esteiras as defined, and the passages each one asks about. */
+    pipelineDefs: PipelineDefs;
+    /** Which steps already ran as they are written (documento 25). */
+    proofs: ProofRepo;
+    /** What each step already tried, and how it went (documento 25). */
+    learnings: StepLearningRepo;
+    /** What each tool call of a run did (documento 24). */
+    calls: RunCallRepo;
+  };
+  /** `trust`: the level a procedure sits at, how it rises and falls, the actions it knows. */
+  trust: Autonomy;
+  /** `learning`: what waits for the developer, and the batch that lands whole or not at all. */
+  learning: Learning;
+  /** `improvement`: what the end-of-run review keeps — ideas, environments, the scope of a change. */
+  notes: Review;
   inbox: Inbox;
   policy: PolicyStore;
   conversations: Conversations;
@@ -64,7 +96,7 @@ export interface OrbiServices {
   /** What running procedures read, until the end-of-run review looks for facts in it. */
   observations: RunObservations;
   /** Facts the knowledge reviewer found, per run, until the Orbi proposes them. */
-  knowledge: KnowledgeCandidates;
+  candidates: KnowledgeCandidates;
   /** MCP servers the developer added (Configurações › Ferramentas MCP) and the clients that reach them. */
   mcpServers: McpServers;
   mcpHub: McpHub;

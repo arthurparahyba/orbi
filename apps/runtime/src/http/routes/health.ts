@@ -6,10 +6,11 @@ import type { Background } from '../../compose.ts';
 import { binaryStatus } from '../../contexts/tools/index.ts';
 import { describePlugins } from '../../contexts/models/index.ts';
 import { BUILD } from '../../build.ts';
+import { stats } from '../../overview.ts';
 
 /** What is connected and configured: the Autonomia screen's "Capacidades" and the offline banner. */
 export function healthRoutes(s: OrbiServices, background: Background) {
-  const { config, brain, vault } = s;
+  const { config, vault } = s;
   let vaultBackend = 'desconhecido';
   void vault.backend().then((b) => (vaultBackend = b), () => {});
 
@@ -25,7 +26,7 @@ export function healthRoutes(s: OrbiServices, background: Background) {
       envFile: resolve(config.cwd, '.env'),
       dataDir: config.dataDir,
       chrome: bridge ? { url: bridge.url, tools: bridge.toolNames.length } : { error: background.bridgeError() ?? 'iniciando' },
-      brain: brain.stats(),
+      brain: stats(s),
       vault: vaultBackend,
       demoPortal: process.env.ORBI_DEMO_PORTAL,
       workspace: config.workspace,

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, knowledge, inbox, components } from './support/flow.ts';
 
 /**
  * Conversation inside a card (docs/funcionalidades/21), with the real Flue and a scripted model:
@@ -67,7 +67,7 @@ test('cartão: o porquê aparece nele, a conversa chega com o contexto e o ajust
   // Approving applies the version on screen.
   faux.setResponses([fauxAssistantMessage(fauxText('Guardado.'))]);
   await orbi.read(await (await app.request(`/api/inbox/${item.id}/decision`, json({ decision: 'approve', approver: 'Arthur' }))).json());
-  assert.equal(brain.type('Loja')?.description, 'Site de compras com promoções semanais');
+  assert.equal(knowledge.type('Loja')?.description, 'Site de compras com promoções semanais');
 
   // Decided: a change asked in the card no longer updates it (a new learning, with its card).
   faux.setResponses([

@@ -8,7 +8,7 @@ import { HttpError, body, notFound, query } from '../errors.ts';
  * delegated and the procedures they suggested. Accepting a suggestion is the
  * developer's decision, so it happens here and never through MCP.
  */
-export function agentRoutes({ agents, brain }: OrbiServices) {
+export function agentRoutes({ agents, procedures }: OrbiServices) {
   const decide = <T>(fn: () => T): T => {
     try {
       return fn();
@@ -45,7 +45,7 @@ export function agentRoutes({ agents, brain }: OrbiServices) {
     })
     .post('/suggestions/:id/accept', async (c) => {
       const { variationOf } = await body(c, AcceptSuggestion);
-      return c.json(decide(() => agents.suggestions.accept(c.req.param('id'), brain, { variationOf })));
+      return c.json(decide(() => agents.suggestions.accept(c.req.param('id'), procedures, { variationOf })));
     })
     .post('/suggestions/:id/reject', (c) => c.json(decide(() => agents.suggestions.reject(c.req.param('id')))));
 }

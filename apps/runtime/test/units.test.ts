@@ -4,12 +4,13 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { BrainStore, EXAMPLE_TYPES } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { openDatabase } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
 import { inLearningOrder } from '../src/agents/tools/brain.ts';
 import { purgeDeletedTranscripts } from '../src/contexts/talk/conversations/src/purge.ts';
 import { runCommand, CommandNotAllowedError } from '../src/contexts/tools/terminal/src/exec.ts';
+import { EXAMPLE_TYPES } from '../src/contexts/knowledge/index.ts';
 import {
   DEFAULT_POLICY,
   browserCategory,
@@ -62,16 +63,16 @@ test('autonomia: playbook em auto libera escrita, mas nunca código de produçã
 
 /** A brain with the example ontology (the real one starts empty). */
 function exampleBrain() {
-  const b = new BrainStore(':memory:');
-  for (const t of EXAMPLE_TYPES) b.upsertType(t);
+  const b = wireContexts(openDatabase(':memory:'));
+  for (const t of EXAMPLE_TYPES) b.knowledge.upsertType(t);
   return b;
 }
 
 test('cérebro: começa vazio, sem tipos nem conhecimento', () => {
-  const b = new BrainStore(':memory:');
-  assert.deepEqual(b.types(), []);
-  assert.deepEqual(b.stats().entities, 0);
-  assert.throws(() => b.upsertEntity({ id: 'x', type: 'Repositorio', props: {}, body: '' }), /tipo desconhecido/);
+  const b = wireContexts(openDatabase(':memory:'));
+  assert.deepEqual(b.knowledge.types(), []);
+  assert.deepEqual(b.knowledge.counts().entities, 0);
+  assert.throws(() => b.knowledge.upsertEntity({ id: 'x', type: 'Repositorio', props: {}, body: '' }), /tipo desconhecido/);
 });
 
 test('cérebro: num lote de aprendizado, os tipos vêm antes de quem os usa', () => {
@@ -82,23 +83,23 @@ test('cérebro: num lote de aprendizado, os tipos vêm antes de quem os usa', ()
 });
 
 test('cérebro: lote checado antes de pedir aprovação e gravado tudo ou nada', () => {
-  const b = new BrainStore(':memory:');
+  const b = wireContexts(openDatabase(':memory:'));
   const host = { kind: 'entity' as const, payload: { id: 'github-pessoal', type: 'Conta' } };
-  const problems = b.learnProblems([host]);
+  const problems = b.learning.learnProblems([host]);
   assert.equal(problems.length, 1);
   assert.match(problems[0], /entity github-pessoal: .*tipo desconhecido/);
 
   const batch = inLearningOrder([host, { kind: 'type' as const, payload: { name: 'Conta', description: 'Conta num serviço' } }]);
-  assert.deepEqual(b.learnProblems(batch), [], 'com o tipo no mesmo lote está certo');
-  assert.deepEqual(b.types(), [], 'a verificação não guarda nada');
-  assert.equal(b.proposals('open').length + b.proposals('applied').length, 0);
+  assert.deepEqual(b.learning.learnProblems(batch), [], 'com o tipo no mesmo lote está certo');
+  assert.deepEqual(b.knowledge.types(), [], 'a verificação não guarda nada');
+  assert.equal(b.learning.proposals('open').length + b.learning.proposals('applied').length, 0);
 
   // One bad item: nothing of the batch lands.
-  assert.throws(() => b.learn([...batch, { kind: 'edge', payload: { from: 'github-pessoal', rel: 'naoExiste', to: 'x' } }], 'r', 'chat:1'));
-  assert.deepEqual(b.types(), []);
-  assert.equal(b.get('github-pessoal'), undefined);
-  b.learn(batch, 'r', 'chat:1');
-  assert.equal(b.get('github-pessoal')?.type, 'Conta');
+  assert.throws(() => b.learning.learn([...batch, { kind: 'edge', payload: { from: 'github-pessoal', rel: 'naoExiste', to: 'x' } }], 'r', 'chat:1'));
+  assert.deepEqual(b.knowledge.types(), []);
+  assert.equal(b.knowledge.get('github-pessoal'), undefined);
+  b.learning.learn(batch, 'r', 'chat:1');
+  assert.equal(b.knowledge.get('github-pessoal')?.type, 'Conta');
 });
 
 test('migração: tira os tipos de fábrica que ninguém usou e mantém os usados ou editados', () => {
@@ -114,46 +115,46 @@ test('migração: tira os tipos de fábrica que ninguém usou e mantém os usado
   old.prepare("INSERT INTO entities (id, type, updated_at) VALUES ('marina', 'Pessoa', '2026-11-01')").run();
   old.close();
 
-  const b = new BrainStore(openDatabase(file));
-  assert.deepEqual(b.types().map((t) => t.name).sort(), ['Pessoa', 'Repositorio']);
-  assert.equal(b.get('marina')?.type, 'Pessoa');
+  const b = wireContexts(openDatabase(file));
+  assert.deepEqual(b.knowledge.types().map((t) => t.name).sort(), ['Pessoa', 'Repositorio']);
+  assert.equal(b.knowledge.get('marina')?.type, 'Pessoa');
 });
 
 test('cérebro: ontologia valida entidades e ligações', () => {
   const b = exampleBrain();
-  b.upsertEntity({ id: 'api-pagamentos', type: 'Repositorio', props: {}, body: '' });
-  b.upsertEntity({ id: 'dev', type: 'Ambiente', props: {}, body: '' });
-  assert.throws(() => b.upsertEntity({ id: 'x', type: 'Inexistente', props: {}, body: '' }), /tipo desconhecido/);
-  assert.throws(() => b.addEdge({ from: 'api-pagamentos', rel: 'voaPara', to: 'dev' }), /não existe/);
-  assert.throws(() => b.addEdge({ from: 'dev', rel: 'publicaEm', to: 'api-pagamentos' }), /não existe para Ambiente/);
-  b.addEdge({ from: 'api-pagamentos', rel: 'publicaEm', to: 'dev' });
-  assert.equal(b.neighbors('api-pagamentos').out.length, 1);
-  assert.deepEqual(b.reachable('dev').map((r) => r.id), ['api-pagamentos']);
+  b.knowledge.upsertEntity({ id: 'api-pagamentos', type: 'Repositorio', props: {}, body: '' });
+  b.knowledge.upsertEntity({ id: 'dev', type: 'Ambiente', props: {}, body: '' });
+  assert.throws(() => b.knowledge.upsertEntity({ id: 'x', type: 'Inexistente', props: {}, body: '' }), /tipo desconhecido/);
+  assert.throws(() => b.knowledge.addEdge({ from: 'api-pagamentos', rel: 'voaPara', to: 'dev' }), /não existe/);
+  assert.throws(() => b.knowledge.addEdge({ from: 'dev', rel: 'publicaEm', to: 'api-pagamentos' }), /não existe para Ambiente/);
+  b.knowledge.addEdge({ from: 'api-pagamentos', rel: 'publicaEm', to: 'dev' });
+  assert.equal(b.knowledge.neighbors('api-pagamentos').out.length, 1);
+  assert.deepEqual(b.knowledge.reachable('dev').map((r) => r.id), ['api-pagamentos']);
 });
 
 test('cérebro: fatos com validade expiram sozinhos', () => {
   const b = exampleBrain();
   for (const [id, type] of [['marina', 'Pessoa'], ['rafael', 'Pessoa'], ['chg0041', 'Mudanca']]) {
-    b.upsertEntity({ id, type, props: {}, body: '' });
+    b.knowledge.upsertEntity({ id, type, props: {}, body: '' });
   }
-  b.addEdge({ from: 'chg0041', rel: 'aprovadaPor', to: 'marina', validFrom: '2026-11-05T00:00:00Z', validTo: '2026-12-31T23:59:59Z' });
-  b.addEdge({ from: 'chg0041', rel: 'aprovadaPor', to: 'rafael', validFrom: '2027-01-01T00:00:00Z' });
-  const who = (at: string) => b.neighbors('chg0041', { rel: 'aprovadaPor', at }).out.map((e) => e.to);
+  b.knowledge.addEdge({ from: 'chg0041', rel: 'aprovadaPor', to: 'marina', validFrom: '2026-11-05T00:00:00Z', validTo: '2026-12-31T23:59:59Z' });
+  b.knowledge.addEdge({ from: 'chg0041', rel: 'aprovadaPor', to: 'rafael', validFrom: '2027-01-01T00:00:00Z' });
+  const who = (at: string) => b.knowledge.neighbors('chg0041', { rel: 'aprovadaPor', at }).out.map((e) => e.to);
   assert.deepEqual(who('2026-12-10T12:00:00Z'), ['marina']);
   assert.deepEqual(who('2027-01-15T12:00:00Z'), ['rafael']);
 });
 
 test('cérebro: proposta só vale depois de aplicada; playbook conta usos e sucessos', () => {
-  const b = new BrainStore(':memory:');
-  assert.throws(() => b.propose('entity', { id: 'x', type: 'Nada' }, 'teste', 'c1'), /proposta inválida/);
-  const p = b.propose('playbook', { name: 'subir-dev', description: 'Subir para dev', trigger: 'pedido', steps: [{ id: 'a', label: 'Push', how: 'git push' }] }, 'ensinado', 'c1');
-  assert.equal(b.playbook('subir-dev'), undefined);
-  b.apply(p.id);
-  assert.equal(b.playbook('subir-dev')?.autonomy, 'ask');
-  assert.throws(() => b.apply(p.id), /já decidida/);
-  const run = b.startRun('subir-dev', 'c1');
-  assert.equal(b.updateRunStep(run.id, 'a', 'done').status, 'done');
-  assert.deepEqual([b.playbook('subir-dev')?.uses, b.playbook('subir-dev')?.successes], [1, 1]);
+  const b = wireContexts(openDatabase(':memory:'));
+  assert.throws(() => b.learning.propose('entity', { id: 'x', type: 'Nada' }, 'teste', 'c1'), /proposta inválida/);
+  const p = b.learning.propose('playbook', { name: 'subir-dev', description: 'Subir para dev', trigger: 'pedido', steps: [{ id: 'a', label: 'Push', how: 'git push' }] }, 'ensinado', 'c1');
+  assert.equal(b.procedures.definition.playbook('subir-dev'), undefined);
+  b.learning.apply(p.id);
+  assert.equal(b.procedures.definition.playbook('subir-dev')?.autonomy, 'ask');
+  assert.throws(() => b.learning.apply(p.id), /já decidida/);
+  const run = b.procedures.execution.startRun('subir-dev', 'c1');
+  assert.equal(b.procedures.execution.updateRunStep(run.id, 'a', 'done').status, 'done');
+  assert.deepEqual([b.procedures.definition.playbook('subir-dev')?.uses, b.procedures.definition.playbook('subir-dev')?.successes], [1, 1]);
 });
 
 test('catálogo de skills: só os mais usados, em ordem estável', async () => {
@@ -195,23 +196,23 @@ test('conversa apagada: o histórico sai do arquivo do Flue na partida seguinte,
 });
 
 test('procedimento: declara o que entrega e a execução guarda o que recebeu e entregou', () => {
-  const b = new BrainStore(':memory:');
+  const b = wireContexts(openDatabase(':memory:'));
   const steps = [{ id: 'run', label: 'Rodar o workflow de {{repo}}', how: 'gh run watch' }, { id: 'fim', label: 'Conferir', how: '' }];
-  assert.throws(() => b.savePlaybook({ name: 'workflow-dev', description: 'd', trigger: '', appliesTo: null, autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, outputs: [{ name: 'PR URL', description: '' }] }), /dado de entrega inválido/);
-  b.savePlaybook({ name: 'workflow-dev', description: 'd', trigger: '', appliesTo: null, autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, outputs: [{ name: 'versao', description: 'tag' }, { name: 'pr_url', description: 'PR' }] });
-  assert.deepEqual(b.playbook('workflow-dev')?.outputs.map((o) => o.name), ['versao', 'pr_url']);
+  assert.throws(() => b.procedures.definition.savePlaybook({ name: 'workflow-dev', description: 'd', trigger: '', appliesTo: null, autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, outputs: [{ name: 'PR URL', description: '' }] }), /dado de entrega inválido/);
+  b.procedures.definition.savePlaybook({ name: 'workflow-dev', description: 'd', trigger: '', appliesTo: null, autonomy: 'ask', steps, instructions: '', learnedFrom: null, variationOf: null, outputs: [{ name: 'versao', description: 'tag' }, { name: 'pr_url', description: 'PR' }] });
+  assert.deepEqual(b.procedures.definition.playbook('workflow-dev')?.outputs.map((o) => o.name), ['versao', 'pr_url']);
 
-  const run = b.startRun('workflow-dev', 'chat:1', { repo: 'acme/portal' });
-  assert.deepEqual(b.run(run.id)?.params, { repo: 'acme/portal' });
-  b.updateRunStep(run.id, 'run', 'done', undefined, { versao: '2.5.0' });
-  assert.throws(() => b.updateRunStep(run.id, 'fim', 'done', undefined, { senha: 'x' }), /não entrega senha; entrega: versao, pr_url/);
-  const done = b.updateRunStep(run.id, 'fim', 'done', undefined, { pr_url: 'https://github.com/acme/portal/pull/412' });
+  const run = b.procedures.execution.startRun('workflow-dev', 'chat:1', { repo: 'acme/portal' });
+  assert.deepEqual(b.procedures.execution.run(run.id)?.params, { repo: 'acme/portal' });
+  b.procedures.execution.updateRunStep(run.id, 'run', 'done', undefined, { versao: '2.5.0' });
+  assert.throws(() => b.procedures.execution.updateRunStep(run.id, 'fim', 'done', undefined, { senha: 'x' }), /não entrega senha; entrega: versao, pr_url/);
+  const done = b.procedures.execution.updateRunStep(run.id, 'fim', 'done', undefined, { pr_url: 'https://github.com/acme/portal/pull/412' });
   assert.equal(done.status, 'done');
-  assert.deepEqual(b.run(run.id)?.outputs, { versao: '2.5.0', pr_url: 'https://github.com/acme/portal/pull/412' }, 'os valores se somam entre os passos');
+  assert.deepEqual(b.procedures.execution.run(run.id)?.outputs, { versao: '2.5.0', pr_url: 'https://github.com/acme/portal/pull/412' }, 'os valores se somam entre os passos');
 
   // Learned with outputs; edited keeps them unless changed.
-  b.learn([{ kind: 'playbook', payload: { name: 'abrir-gmud', description: 'd', steps: [{ id: 'a', label: 'Abrir', how: '' }], outputs: [{ name: 'numero_gmud', description: 'número' }] } }], 'r', 'chat:1');
-  assert.equal(b.playbook('abrir-gmud')?.outputs[0].name, 'numero_gmud');
-  b.editPlaybook('abrir-gmud', { description: 'outra' });
-  assert.equal(b.playbook('abrir-gmud')?.outputs.length, 1);
+  b.learning.learn([{ kind: 'playbook', payload: { name: 'abrir-gmud', description: 'd', steps: [{ id: 'a', label: 'Abrir', how: '' }], outputs: [{ name: 'numero_gmud', description: 'número' }] } }], 'r', 'chat:1');
+  assert.equal(b.procedures.definition.playbook('abrir-gmud')?.outputs[0].name, 'numero_gmud');
+  b.procedures.definition.editPlaybook('abrir-gmud', { description: 'outra' });
+  assert.equal(b.procedures.definition.playbook('abrir-gmud')?.outputs.length, 1);
 });

@@ -85,7 +85,7 @@ test('primeira partida depois da atualização: brain.db antigo e JSON entram no
   const { loadConfig } = await import('../src/config.ts');
   const { createOrbi } = await import('../src/compose.ts');
   const orbi = await createOrbi(loadConfig({ ORBI_VAULT: 'file' }, dir), {}, {});
-  assert.equal(orbi.brain.get('FrontEnd')?.type, 'Classe', 'cérebro antigo preservado');
+  assert.equal(orbi.knowledge.get('FrontEnd')?.type, 'Classe', 'cérebro antigo preservado');
   assert.ok(existsSync(join(data, 'orbi.db')) && !existsSync(join(data, 'brain.db')));
   assert.equal(orbi.inbox.get('i1')?.title, 'Qual branch?');
   assert.equal(orbi.conversations.list()[0].title, 'Antiga');
@@ -94,7 +94,7 @@ test('primeira partida depois da atualização: brain.db antigo e JSON entram no
 });
 
 import { ftsQuery, sharedStems, stem, words } from '../src/contexts/knowledge/search/src/similarity.ts';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { evalBrain, evaluateSearch, formatResults } from '../scripts/eval-search.ts';
 
 const pb = (name: string, description: string, trigger = '', steps: string[] = []) => ({
@@ -113,92 +113,92 @@ test('busca: palavras sem acento nem palavrinhas, cortadas no radical', () => {
 });
 
 test('busca: o índice acompanha cada escrita e ordena pelo que mais combina', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('criar-repositorio', 'Cria um repositório na organização', 'pedirem um repositório novo', ['Criar']));
-  b.savePlaybook(pb('subir-para-dev', 'Sobe o serviço para dev', '', ['Conferir repositório verde']));
-  const found = b.searchPlaybooks('deletar o repositório teste-orbi');
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('criar-repositorio', 'Cria um repositório na organização', 'pedirem um repositório novo', ['Criar']));
+  b.procedures.definition.savePlaybook(pb('subir-para-dev', 'Sobe o serviço para dev', '', ['Conferir repositório verde']));
+  const found = b.procedures.definition.searchPlaybooks('deletar o repositório teste-orbi');
   assert.deepEqual(found.map((c) => c.playbook.name), ['criar-repositorio', 'subir-para-dev'], 'no nome pesa mais que nos passos');
-  b.savePlaybook(pb('deletar-repositorio', 'Apaga um repositório', 'pedirem para apagar', ['Apagar']));
-  assert.equal(b.searchPlaybooks('Deleta o repositório teste-orbi')[0].playbook.name, 'deletar-repositorio', 'gravou, já está no índice');
-  assert.deepEqual(b.searchPlaybooks('pagar boleto'), []);
+  b.procedures.definition.savePlaybook(pb('deletar-repositorio', 'Apaga um repositório', 'pedirem para apagar', ['Apagar']));
+  assert.equal(b.procedures.definition.searchPlaybooks('Deleta o repositório teste-orbi')[0].playbook.name, 'deletar-repositorio', 'gravou, já está no índice');
+  assert.deepEqual(b.procedures.definition.searchPlaybooks('pagar boleto'), []);
 
-  b.upsertType({ name: 'Repositorio', description: '', relations: {}, requires: [] });
-  b.upsertEntity({ id: 'portal-clientes-front', type: 'Repositorio', props: { github: 'acme/portal-clientes-front' }, body: 'Front do portal de clientes.' });
-  assert.equal(b.search('clientes')[0]?.id, 'portal-clientes-front');
+  b.knowledge.upsertType({ name: 'Repositorio', description: '', relations: {}, requires: [] });
+  b.knowledge.upsertEntity({ id: 'portal-clientes-front', type: 'Repositorio', props: { github: 'acme/portal-clientes-front' }, body: 'Front do portal de clientes.' });
+  assert.equal(b.knowledge.search('clientes')[0]?.id, 'portal-clientes-front');
 });
 
 test('busca: acerto medido no conjunto de pedidos (test/fixtures/search-eval.json)', () => {
-  const brain = evalBrain();
-  const [lexical, semantic] = evaluateSearch((text) => brain.searchPlaybooks(text, 3).map((c) => c.playbook.name));
+  const b = evalBrain();
+  const [lexical, semantic] = evaluateSearch((text) => b.procedures.definition.searchPlaybooks(text, 3).map((c) => c.playbook.name));
   // Floors, not goals: raising them is the point of each search change. Synonyms wait for search by meaning.
   assert.ok(lexical.at3 / lexical.total >= 0.95, formatResults([lexical, semantic]));
   assert.ok(lexical.at1 / lexical.total >= 0.9, formatResults([lexical, semantic]));
 });
 
 test('variação: precisa de uma base que existe e fica ligada a ela', () => {
-  const b = new BrainStore(':memory:');
+  const b = wireContexts(openDatabase(':memory:'));
   const base = pb('criar-repositorio', 'Cria', '', ['Conferir']);
-  b.savePlaybook(base);
-  assert.throws(() => b.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'nao-existe' }), /base não existe/);
-  assert.throws(() => b.savePlaybook({ ...base, variationOf: 'criar-repositorio' }), /base não existe/, 'não pode ser variação de si mesmo');
-  b.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'criar-repositorio' });
-  assert.equal(b.playbook('deletar-repositorio')?.variationOf, 'criar-repositorio');
+  b.procedures.definition.savePlaybook(base);
+  assert.throws(() => b.procedures.definition.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'nao-existe' }), /base não existe/);
+  assert.throws(() => b.procedures.definition.savePlaybook({ ...base, variationOf: 'criar-repositorio' }), /base não existe/, 'não pode ser variação de si mesmo');
+  b.procedures.definition.savePlaybook({ ...base, name: 'deletar-repositorio', variationOf: 'criar-repositorio' });
+  assert.equal(b.procedures.definition.playbook('deletar-repositorio')?.variationOf, 'criar-repositorio');
 });
 
 test('edição: entidade troca propriedades e texto, mantém tipo; o índice acompanha', () => {
-  const b = new BrainStore(':memory:');
-  b.upsertType({ name: 'Portal', description: '', relations: { usa: 'Portal' }, requires: [] });
-  b.upsertEntity({ id: 'portal-parceiros', type: 'Portal', props: { url: 'https://antigo' }, body: 'Portal de parceiros' });
-  const edited = b.editEntity('portal-parceiros', { props: { url: 'https://novo.parceiros' } });
+  const b = wireContexts(openDatabase(':memory:'));
+  b.knowledge.upsertType({ name: 'Portal', description: '', relations: { usa: 'Portal' }, requires: [] });
+  b.knowledge.upsertEntity({ id: 'portal-parceiros', type: 'Portal', props: { url: 'https://antigo' }, body: 'Portal de parceiros' });
+  const edited = b.knowledge.editEntity('portal-parceiros', { props: { url: 'https://novo.parceiros' } });
   assert.equal(edited.type, 'Portal');
   assert.equal(edited.body, 'Portal de parceiros', 'o que não veio fica como estava');
-  assert.equal(b.search('novo.parceiros')[0]?.id, 'portal-parceiros');
-  assert.equal(b.search('antigo').length, 0);
-  assert.throws(() => b.editEntity('nao-existe', {}), /não encontrada/);
+  assert.equal(b.knowledge.search('novo.parceiros')[0]?.id, 'portal-parceiros');
+  assert.equal(b.knowledge.search('antigo').length, 0);
+  assert.throws(() => b.knowledge.editEntity('nao-existe', {}), /não encontrada/);
 });
 
 test('exclusão: entidade leva as ligações junto, inclusive as passadas', () => {
-  const b = new BrainStore(':memory:');
-  b.upsertType({ name: 'Pessoa', description: '', relations: { substitutaDe: 'Pessoa' }, requires: [] });
-  for (const id of ['marina', 'rafael', 'ana']) b.upsertEntity({ id, type: 'Pessoa', props: {}, body: '' });
-  b.addEdge({ from: 'rafael', rel: 'substitutaDe', to: 'marina' });
-  b.addEdge({ from: 'ana', rel: 'substitutaDe', to: 'marina', validFrom: '2025-01-01T00:00:00Z', validTo: '2025-06-01T00:00:00Z' });
-  assert.deepEqual(b.entityDependents('marina'), { relations: 2 });
-  assert.deepEqual(b.deleteEntity('marina'), { relations: 2 });
-  assert.equal(b.get('marina'), undefined);
-  assert.equal(b.graph().edges.length, 0);
-  assert.equal(b.search('marina').length, 0, 'sai do índice');
+  const b = wireContexts(openDatabase(':memory:'));
+  b.knowledge.upsertType({ name: 'Pessoa', description: '', relations: { substitutaDe: 'Pessoa' }, requires: [] });
+  for (const id of ['marina', 'rafael', 'ana']) b.knowledge.upsertEntity({ id, type: 'Pessoa', props: {}, body: '' });
+  b.knowledge.addEdge({ from: 'rafael', rel: 'substitutaDe', to: 'marina' });
+  b.knowledge.addEdge({ from: 'ana', rel: 'substitutaDe', to: 'marina', validFrom: '2025-01-01T00:00:00Z', validTo: '2025-06-01T00:00:00Z' });
+  assert.deepEqual(b.knowledge.entityDependents('marina'), { relations: 2 });
+  assert.deepEqual(b.knowledge.deleteEntity('marina'), { relations: 2 });
+  assert.equal(b.knowledge.get('marina'), undefined);
+  assert.equal(b.knowledge.graph().edges.length, 0);
+  assert.equal(b.knowledge.search('marina').length, 0, 'sai do índice');
 });
 
 test('edição de procedimento: valida passos, mantém nome, autonomia, base e contadores', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('criar-repositorio', 'Cria', 'pedido', ['Conferir', 'Criar']));
-  b.savePlaybook({ ...pb('deletar-repositorio', 'Apaga', 'pedido', ['Apagar']), variationOf: 'criar-repositorio' });
-  b.setPlaybookAutonomy('criar-repositorio', 'auto');
-  b.startRun('criar-repositorio', 'c1');
-  const edited = b.editPlaybook('criar-repositorio', {
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('criar-repositorio', 'Cria', 'pedido', ['Conferir', 'Criar']));
+  b.procedures.definition.savePlaybook({ ...pb('deletar-repositorio', 'Apaga', 'pedido', ['Apagar']), variationOf: 'criar-repositorio' });
+  b.procedures.definition.setPlaybookAutonomy('criar-repositorio', 'auto');
+  b.procedures.execution.startRun('criar-repositorio', 'c1');
+  const edited = b.procedures.definition.editPlaybook('criar-repositorio', {
     description: 'Cria um repositório com o template do time',
     steps: [{ id: '1', label: 'Criar', how: 'gh repo create' }, { id: 'avisar', label: 'Avisar', how: 'link' }],
   });
   assert.equal(edited.autonomy, 'auto');
   assert.equal(edited.uses, 1, 'contadores ficam');
   assert.deepEqual(edited.steps.map((s) => s.id), ['1', 'avisar']);
-  assert.equal(b.searchPlaybooks('template')[0].playbook.name, 'criar-repositorio', 'o índice acompanha');
-  assert.throws(() => b.editPlaybook('criar-repositorio', { steps: [] }), /sem passos/);
-  assert.throws(() => b.editPlaybook('criar-repositorio', { steps: [{ id: 'a', label: 'A', how: '' }, { id: 'a', label: 'B', how: '' }] }), /repetido/);
-  assert.throws(() => b.editPlaybook('criar-repositorio', { steps: [{ id: 'a', label: ' ', how: '' }] }), /sem nome/);
+  assert.equal(b.procedures.definition.searchPlaybooks('template')[0].playbook.name, 'criar-repositorio', 'o índice acompanha');
+  assert.throws(() => b.procedures.definition.editPlaybook('criar-repositorio', { steps: [] }), /sem passos/);
+  assert.throws(() => b.procedures.definition.editPlaybook('criar-repositorio', { steps: [{ id: 'a', label: 'A', how: '' }, { id: 'a', label: 'B', how: '' }] }), /repetido/);
+  assert.throws(() => b.procedures.definition.editPlaybook('criar-repositorio', { steps: [{ id: 'a', label: ' ', how: '' }] }), /sem nome/);
 });
 
 test('exclusão de procedimento: variações ficam sem a ligação, histórico fica', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook(pb('criar-repositorio', 'Cria', 'pedido', ['Criar']));
-  b.savePlaybook({ ...pb('deletar-repositorio', 'Apaga', 'pedido', ['Apagar']), variationOf: 'criar-repositorio' });
-  b.startRun('criar-repositorio', 'c1');
-  assert.deepEqual(b.deletePlaybook('criar-repositorio'), { detachedVariations: ['deletar-repositorio'] });
-  assert.equal(b.playbook('criar-repositorio'), undefined);
-  assert.equal(b.playbook('deletar-repositorio')?.variationOf, null);
-  assert.equal(b.runs().length, 1, 'execuções passadas continuam em Execuções');
-  assert.equal(b.searchPlaybooks('cria').length, 0);
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook(pb('criar-repositorio', 'Cria', 'pedido', ['Criar']));
+  b.procedures.definition.savePlaybook({ ...pb('deletar-repositorio', 'Apaga', 'pedido', ['Apagar']), variationOf: 'criar-repositorio' });
+  b.procedures.execution.startRun('criar-repositorio', 'c1');
+  assert.deepEqual(b.procedures.definition.deletePlaybook('criar-repositorio'), { detachedVariations: ['deletar-repositorio'] });
+  assert.equal(b.procedures.definition.playbook('criar-repositorio'), undefined);
+  assert.equal(b.procedures.definition.playbook('deletar-repositorio')?.variationOf, null);
+  assert.equal(b.procedures.execution.runs().length, 1, 'execuções passadas continuam em Execuções');
+  assert.equal(b.procedures.definition.searchPlaybooks('cria').length, 0);
 });
 
 test('id de passo novo a partir do nome, sem repetir', async () => {

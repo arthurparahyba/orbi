@@ -41,8 +41,8 @@ test('escritas no banco viram eventos, sem as lojas saberem', async () => {
   const item = orbi.inbox.add({ kind: 'question', conversationId: 'chat:1', title: 'Qual branch?', detail: '' });
   const conv = orbi.conversations.create();
   orbi.policy.set('comandos-escrita', 'auto');
-  orbi.brain.upsertType({ name: 'Ferramenta', description: '', relations: {}, requires: [] });
-  orbi.brain.upsertEntity({ id: 'portal', type: 'Ferramenta', props: {}, body: '' });
+  orbi.knowledge.upsertType({ name: 'Ferramenta', description: '', relations: {}, requires: [] });
+  orbi.knowledge.upsertEntity({ id: 'portal', type: 'Ferramenta', props: {}, body: '' });
   await tick();
   assert.deepEqual(
     seen.map((e) => e.topic + (e.id ? `:${e.id}` : '')).sort(),

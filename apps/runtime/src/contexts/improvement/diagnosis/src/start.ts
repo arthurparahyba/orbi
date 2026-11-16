@@ -10,7 +10,7 @@ import { agentLine } from '../../../tools/index.ts';
 import { runAgent } from '../../../tools/index.ts';
 import { AGENT_PROMPT, REPORT_PREFIX, reportBrief } from '../../report/src/report.ts';
 
-type Deps = Pick<OrbiServices, 'brain' | 'diagnoses' | 'diagnosisSettings' | 'codeAgents' | 'config' | 'events'>;
+type Deps = Pick<OrbiServices, 'procedures' | 'diagnoses' | 'diagnosisSettings' | 'codeAgents' | 'config' | 'events'>;
 
 /**
  * Escreve o relatório do diagnóstico de uma execução (docs/funcionalidades/24), conforme o
@@ -22,11 +22,11 @@ export async function startReport(s: Deps, agent: Agent, runId: string, asked = 
   const setup = s.diagnosisSettings.get();
   if (setup.who === 'regras' && !asked) return;
   if (setup.when === 'so-pedindo' && !asked) return;
-  const run = s.brain.run(runId);
+  const run = s.procedures.execution.run(runId);
   if (!run || run.kind === 'rehearsal') return;
   const found = s.diagnoses.forRun(runId);
   if (found.length === 0 && setup.when !== 'sempre' && !asked) return;
-  const brief = reportBrief(run, s.brain.calls.list(runId), found);
+  const brief = reportBrief(run, s.procedures.calls.list(runId), found);
   if (setup.who === 'agente') {
     const written = await byCodeAgent(s, brief).catch((error) => {
       log.error('diagnóstico pelo agente não deu', { error: error instanceof Error ? error.message : String(error) });

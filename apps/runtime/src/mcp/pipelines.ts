@@ -1,4 +1,4 @@
-import type { BrainStore } from '../brain.ts';
+import type { OrbiServices } from '../services.ts';
 import type { Pipeline, PipelineStage } from '../contexts/procedures/index.ts';
 import { playbookParams } from '../contexts/procedures/index.ts';
 import { stem, words } from '../contexts/knowledge/index.ts';
@@ -45,8 +45,8 @@ function passageFor(stage: PipelineStage, client: AgentClient): string {
   return client.canSkipPassages ? 'pergunta ao desenvolvedor; você pode pular com um destino' : 'espera o desenvolvedor autorizar';
 }
 
-export function pipelineDetail(p: Pipeline, brain: BrainStore, client: AgentClient) {
-  const gaps = brain.pipelineGaps(p);
+export function pipelineDetail(p: Pipeline, procedures: OrbiServices['procedures'], client: AgentClient) {
+  const gaps = procedures.pipelineDefs.pipelineGaps(p);
   return {
     name: p.name,
     description: p.description,
@@ -56,7 +56,7 @@ export function pipelineDetail(p: Pipeline, brain: BrainStore, client: AgentClie
       label: s.label,
       ...(i > 0 ? { passage: passageFor(s, client) } : {}),
       runs: s.options.map((o) => {
-        const pb = brain.playbook(o.playbook);
+        const pb = procedures.definition.playbook(o.playbook);
         return {
           procedure: o.playbook,
           ...(o.when ? { when: `${o.when.field} = ${o.when.equals}` } : {}),

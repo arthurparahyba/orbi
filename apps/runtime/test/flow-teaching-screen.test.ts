@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, procedures, inbox, components, waitFor } from './support/flow.ts';
 
 /**
  * The Ensinar screen from start to end (docs/funcionalidades/01 and 18): one conversation goes
@@ -136,7 +136,7 @@ test('tela Ensinar: um procedimento do começo ao fim, com a lista, as etapas e 
 
   await waitFor(() => review.includes('review'), 'a revisão do fim da execução');
   // The review settled the level (N1 → N2 after a clean run): the list follows.
-  await waitFor(() => brain.playbook('atualizar-mfe')?.level === 2, 'subir para N2 depois de uma execução limpa');
+  await waitFor(() => procedures.definition.playbook('atualizar-mfe')?.level === 2, 'subir para N2 depois de uma execução limpa');
   assert.equal((await notebook(id)).procedure.level, 2);
 });
 

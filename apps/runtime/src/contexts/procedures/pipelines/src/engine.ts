@@ -26,7 +26,8 @@ import type { PipelineRun, PipelineRunStage, PipelineRuns } from './runs.ts';
  * waits for the developer.
  */
 export interface EngineDeps {
-  brain: EngineStore;
+  /** The two services of this context the engine drives (`procedures`). */
+  store: EngineStore;
   runs: PipelineRuns;
   inbox: Inbox;
 }
@@ -61,7 +62,7 @@ export class PipelineEngine {
       skipQuestions: opts.skipQuestions ?? false,
       waiting: null,
     });
-    this.d.brain.countPipelineUse(p.name);
+    this.d.store.countPipelineUse(p.name);
     const entered = this.enter(run, 0, {});
     return { run: entered.run, instruction: `${intro(p, entered.run)}\n${entered.instruction}` };
   }
@@ -87,9 +88,9 @@ export class PipelineEngine {
     const stage = run.stages[run.current];
     if (!stage || stage.playbook === playbook) return null;
     // Not part of this esteira (later stages have no procedure chosen yet: look at the definition).
-    const def = this.d.brain.pipeline(run.pipeline);
+    const def = this.d.store.pipeline(run.pipeline);
     if (!def?.stages.some((s) => s.options.some((o) => o.playbook === playbook))) return null;
-    const open = stage.runId ? this.d.brain.run(stage.runId) : undefined;
+    const open = stage.runId ? this.d.store.run(stage.runId) : undefined;
     const pending = open ? open.steps.filter((s) => s.status === 'pending' || s.status === 'running' || s.status === 'waiting').map((s) => s.id) : [];
     return (
       `A esteira ${run.pipeline} está na etapa ${run.current + 1} (${stage.label}, procedimento ${stage.playbook}), que ainda não terminou` +
@@ -163,14 +164,14 @@ export class PipelineEngine {
   /** "Manter perguntando" on the note of a passage that became automatic (subject `esteira/etapa`). */
   keepAsking(subject: string, conversationId: string | null): void {
     const cut = subject.lastIndexOf('/');
-    this.d.brain.keepPassageAsking(subject.slice(0, cut), subject.slice(cut + 1), conversationId);
+    this.d.store.keepPassageAsking(subject.slice(0, cut), subject.slice(cut + 1), conversationId);
   }
 
   // ── internals ──────────────────────────────────────────────────────────
 
   /** Counts the developer's decision; after enough "go on", the passage becomes automatic (with a note). */
   private notePassage(run: PipelineRun, stageId: string, continued: boolean): void {
-    const change = this.d.brain.notePassage(run.pipeline, stageId, continued, run.conversationId);
+    const change = this.d.store.notePassage(run.pipeline, stageId, continued, run.conversationId);
     if (!change) return;
     const label = run.stages.find((s) => s.id === stageId)?.label ?? stageId;
     this.d.inbox.add({
@@ -184,7 +185,7 @@ export class PipelineEngine {
   }
 
   private pipeline(name: string): Pipeline {
-    const p = this.d.brain.pipeline(name);
+    const p = this.d.store.pipeline(name);
     if (!p) throw new Error(`esteira não existe: ${name}`);
     return p;
   }
@@ -226,7 +227,7 @@ export class PipelineEngine {
         `A esteira parou antes de ${def.label}: ${message}. Avise o desenvolvedor e pare.`);
       return { run: this.d.runs.get(run.id)!, instruction: instruction ?? '' };
     }
-    const pb = this.d.brain.playbook(option.playbook);
+    const pb = this.d.store.playbook(option.playbook);
     if (!pb) throw new Error(`procedimento não existe: ${option.playbook}`);
     const resolved = resolveParams(option, playbookParams(pb), data);
     const params = { ...stage.params, ...resolved.params, ...given };

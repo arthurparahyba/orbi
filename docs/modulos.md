@@ -97,7 +97,7 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 `stepLearningRoutes`.
 
 Lê `knowledge` pela porta `FactsForRun` e pede o nível a `trust`; nenhum dos dois alcança aqui.
-O motor da esteira recebe a porta `EngineStore` em vez do agregado `brain.ts`.
+O motor da esteira recebe a porta `EngineStore`, com as seis operações que usa.
 
 Tabelas: `playbooks`, `playbook_runs`, `run_calls`, `playbook_proofs`, `playbook_learnings`,
 `pipelines`, `pipeline_runs`.
@@ -289,13 +289,23 @@ O `db/` **não** é deste contexto: ele roda as migrações de todos, e isso é 
 
 ## Composição
 
-A composição (`compose.ts`, `brain.ts`, `agents/`, `http/app.ts`, `mcp/`) pode usar qualquer
-contexto.
+A composição (`compose.ts`, `wiring.ts`, `overview.ts`, `agents/`, `http/app.ts`, `mcp/`) pode
+usar qualquer contexto.
 
-**`src/brain.ts` é dívida declarada.** Era o `BrainStore`, e desde a fase 4b é um agregado da
-composição: liga os contextos, guarda as duas leituras que atravessam contexto de propósito
-(`stats` e `exportMarkdown`) e oferece atalhos de uma linha para todos eles. Existem cerca de 400
-chamadas `brain.x` em 74 arquivos, e elas vão sendo trocadas pela chamada ao contexto conforme
-cada arquivo é tocado por outro motivo. **Código novo pede ao contexto, não a esta classe.** É onde vivem o agente Orbi (que monta o turno), a
+**O agregado `brain.ts` não existe mais** (a dívida da fase 4b foi paga). No lugar dele:
+
+- `src/wiring.ts` liga os contextos que compartilham o banco, e só isso: cada um recebe os
+  próprios repositórios e, do vizinho, a porta que o vizinho abriu. Nada ali decide nada.
+- `src/overview.ts` tem as duas leituras que atravessam contexto de propósito: `stats`, a linha
+  de situação que entra em cada turno, e `exportBrain`, a exportação do cérebro em Markdown.
+  Cada contexto conta o que é dele; a composição soma.
+- `services.ts` tem **uma entrada por contexto**. Uma chamada passou a dizer para onde vai:
+  `procedures.execution.startRun(…)` em vez de `brain.startRun(…)`.
+
+E as capabilities declaram a verdade. Antes, dez delas diziam `needs: ['brain']`; agora dizem o
+que usam — `['procedures', 'inbox']`, `['codeFixer', 'codeAgents', 'config', 'inbox', 'knowledge']`,
+e a mais sensível de todas, a que escreve conhecimento, diz
+`['knowledge', 'learning', 'notes', 'procedures', 'config']`. Lendo a declaração, dá para saber
+o que a capability toca sem abrir o arquivo. É onde vivem o agente Orbi (que monta o turno), a
 API HTTP (que só monta as rotas que cada contexto exporta), o servidor MCP e o `compose.ts`.
 Nenhum contexto importa a composição.

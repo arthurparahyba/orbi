@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, procedures, inbox } from './support/flow.ts';
 
 /**
  * Learnings of a procedure (docs/funcionalidades/25), with the real Flue and a scripted model:
@@ -11,12 +11,12 @@ const json = (b: unknown) => ({ method: 'POST', headers: { 'content-type': 'appl
 const steps = (extrair: string) => [{ id: 'abrir', label: 'Abrir', how: 'abrir o site' }, { id: 'extrair', label: 'Extrair', how: extrair }];
 const learn = (extrair: string, learnings?: unknown[]) => ({
   reason: 'corrigir a extração',
-  items: [{ kind: 'playbook', payload: { ...brain.playbook('promo')!, steps: steps(extrair), ...(learnings ? { learnings } : {}) } }],
+  items: [{ kind: 'playbook', payload: { ...procedures.definition.playbook('promo')!, steps: steps(extrair), ...(learnings ? { learnings } : {}) } }],
 }) as never;
 
 test('aprendizados: proposta negada fica guardada; o que a execução ensinou fica no procedimento e chega à próxima', async () => {
   const id = 'chat:aprendizados';
-  brain.savePlaybook({ name: 'promo', description: 'Consulta promoções', appliesTo: null, trigger: 'pedirem promoções', autonomy: 'ask', steps: steps('ler a página'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
+  procedures.definition.savePlaybook({ name: 'promo', description: 'Consulta promoções', appliesTo: null, trigger: 'pedirem promoções', autonomy: 'ask', steps: steps('ler a página'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
   const orbi = init(Orbi, { id });
 
   // Denied: remembered with the procedure.
@@ -25,7 +25,7 @@ test('aprendizados: proposta negada fica guardada; o que a execução ensinou fi
   const card = inbox.list({ status: 'open' }).find((i) => i.conversationId === id)!;
   faux.setResponses([fauxAssistantMessage(fauxText('Certo, não mudo.'))]);
   await orbi.read(await (await app.request(`/api/inbox/${card.id}/decision`, json({ decision: 'deny' }))).json());
-  assert.deepEqual(brain.learnings.list('promo').map((l) => [l.step, l.outcome]), [['extrair', 'negado']]);
+  assert.deepEqual(procedures.learnings.list('promo').map((l) => [l.step, l.outcome]), [['extrair', 'negado']]);
 
   // Another proposal, with what the run taught; nothing is refused because of the history.
   faux.setResponses([
@@ -38,7 +38,7 @@ test('aprendizados: proposta negada fica guardada; o que a execução ensinou fi
   const second = inbox.list({ status: 'open' }).find((i) => i.conversationId === id)!;
   faux.setResponses([fauxAssistantMessage(fauxText('Guardado.'))]);
   await orbi.read(await (await app.request(`/api/inbox/${second.id}/decision`, json({ decision: 'approve' }))).json());
-  assert.deepEqual(brain.learnings.list('promo').map((l) => l.outcome).sort(), ['falhou', 'funcionou', 'negado']);
+  assert.deepEqual(procedures.learnings.list('promo').map((l) => l.outcome).sort(), ['falhou', 'funcionou', 'negado']);
 
   // The next run starts with it.
   let started = '';
@@ -54,5 +54,5 @@ test('aprendizados: proposta negada fica guardada; o que a execução ensinou fi
   const list = await (await app.request('/api/step-learnings?playbook=promo')).json() as Array<{ id: string }>;
   assert.equal(list.length, 3);
   assert.equal((await app.request(`/api/step-learnings/${list[0].id}`, { method: 'DELETE' })).status, 200);
-  assert.equal(brain.learnings.list('promo').length, 2);
+  assert.equal(procedures.learnings.list('promo').length, 2);
 });

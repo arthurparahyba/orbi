@@ -9,9 +9,9 @@ import type { AgentContext } from '../context.ts';
  * in one line and goes on. Something similar: it stops and shows the card with
  * what it can reuse, what changes and a suggestion, and the developer chooses.
  */
-export const similar = defineCapability({ name: 'similar', needs: ['brain', 'inbox'], register: useSimilar });
+export const similar = defineCapability({ name: 'similar', needs: ['procedures', 'inbox'], register: useSimilar });
 
-function useSimilar(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>) {
+function useSimilar(ctx: AgentContext, { procedures, inbox }: Deps<'procedures' | 'inbox'>) {
 
   useTool({
     name: 'playbook_similar',
@@ -21,8 +21,8 @@ function useSimilar(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>
       'Also how you find any playbook not in your skill catalog: run it with playbook_start by name.',
     input: v.object({ text: v.string() }),
     async run({ data }) {
-      const all = brain.playbooks();
-      const candidates = brain.searchPlaybooks(data.text, 3).map(({ playbook: p, shared }) => ({
+      const all = procedures.definition.playbooks();
+      const candidates = procedures.definition.searchPlaybooks(data.text, 3).map(({ playbook: p, shared }) => ({
         name: p.name,
         description: p.description,
         trigger: p.trigger,
@@ -61,7 +61,7 @@ function useSimilar(ctx: AgentContext, { brain, inbox }: Deps<'brain' | 'inbox'>
       options: v.optional(v.array(v.object({ label: v.string(), hint: v.optional(v.string()) }))),
     }),
     async run({ data }) {
-      const pb = brain.playbook(data.playbook);
+      const pb = procedures.definition.playbook(data.playbook);
       if (!pb) return { output: `playbook não existe: ${data.playbook}. Use playbook_similar para ver os nomes.` };
       const base = { name: pb.name, description: pb.description, uses: pb.uses, successes: pb.successes, learnedAt: pb.updatedAt };
 

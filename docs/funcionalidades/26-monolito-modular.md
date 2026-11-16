@@ -288,8 +288,42 @@ schema deste documento em algo executável, em vez de uma combinação que algu�
 
 Onze contextos, cada um com `index.ts` e dono das suas tabelas. Fica aberto, de propósito:
 
-- **Os atalhos do `src/brain.ts`**: cerca de 400 chamadas `brain.x` em 74 arquivos, trocadas
-  conforme cada arquivo é tocado. Código novo pede ao contexto.
+## O telefonista, e por que ele caiu
+
+A fase 4b deixou `src/brain.ts` como agregado da composição, com 63 atalhos de uma linha, por um
+motivo que a medição depois desmentiu: eu contei as chamadas (~390 em 74 arquivos) e concluí que
+a troca era irrevisável. O que faltava olhar era a **forma** dos atalhos. Todos os 63 eram
+idênticos — `nome: Serviço['nome'] = (...a) => this.servico.nome(...a)` — e **nenhum renomeava
+nada**. Ou seja, o próprio arquivo era a tabela de tradução, completa e sem exceção: a troca não
+eram 390 decisões, era uma, aplicada 390 vezes, com o destino tirado do código.
+
+O que o agregado custava não era acoplamento estrutural — ele só repassava, e não dava acesso a
+nada que o contexto já não expusesse pela porta. Custava **informação**: lendo
+`brain.playbook(...)`, não se sabia de que contexto vinha; e dez capabilities declaravam
+`needs: ['brain']`, o que desliga a própria mecânica do `defineCapability`, cujo docblock diz que
+"as dependências estão na declaração, não escondidas numa busca global".
+
+Feito:
+
+- `services.ts` tem uma entrada por contexto (`knowledge`, `procedures`, `trust`, `learning`,
+  `notes`, `db`), e `procedures` é aninhado por módulo: a chamada diz para onde vai
+  (`procedures.execution.startRun(…)`).
+- `src/wiring.ts` liga os contextos que compartilham o banco, e só isso.
+- `src/overview.ts` tem `stats` e `exportBrain`, as duas leituras que atravessam contexto de
+  propósito. Cada contexto conta o que é dele (`knowledge.counts()`, `procedures.definition.count()`,
+  `learning.countOpen()`), e a composição soma.
+- `src/brain.ts` foi apagado.
+
+Três coisas que apareceram no caminho:
+
+- **Um nome de serviço estava ocupado.** `services.knowledge` já era o `KnowledgeCandidates` da
+  revisão de conhecimento. Virou `candidates`, que é como `docs/modulos.md` já o chamava.
+- **A rota do Cérebro importava a composição.** Ela mostra `stats`, que atravessa contextos.
+  Agora recebe `BrainOverview` como segundo argumento, no mesmo padrão de
+  `browserRoutes(s, background)` — o teste de fronteira pegou isso.
+- **O campo `brain` de uma porta enganava.** `RunSpec.brain` era um `CommandMemory`; virou
+  `memory`. Os `brain` que sobram no código são nomes de API que o app lê (o tópico `brain` do
+  feed de eventos, o campo `brain` da resposta do health) e ficam.
 - **A fase 6, o contrato com o desktop**, que continua sendo a escolha entre quebrar
   `packages/contracts/src/api.ts` por contexto e levar a fatia vertical até a tela. Agora há
   informação para decidir: a fronteira do runtime fechou sem precisar mexer no app.

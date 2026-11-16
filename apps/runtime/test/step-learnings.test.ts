@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { deniedAttempts, failedAttempts, learningLines, sameAttempt } from '../src/contexts/procedures/learnings/src/learnings.ts';
+import { openDatabase } from '../src/db/database.ts';
 
 /** What was already tried stays with the procedure (docs/funcionalidades/25). */
 const steps = (extrair: string) => [{ id: 'abrir', label: 'Abrir', how: 'abrir o site' }, { id: 'extrair', label: 'Extrair', how: extrair }];
@@ -12,20 +13,20 @@ test('a mesma tentativa, dita com outras palavras, é reconhecida; outra coisa n
 });
 
 test('proposta negada vira aprendizado; guardar a mesma de novo conta as repetições', () => {
-  const b = new BrainStore(':memory:');
-  b.savePlaybook({ name: 'promo', description: 'd', appliesTo: null, trigger: 't', autonomy: 'ask', steps: steps('ler a página'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
-  const before = b.playbook('promo')!.steps;
+  const b = wireContexts(openDatabase(':memory:'));
+  b.procedures.definition.savePlaybook({ name: 'promo', description: 'd', appliesTo: null, trigger: 't', autonomy: 'ask', steps: steps('ler a página'), instructions: '', learnedFrom: null, variationOf: null, outputs: [] });
+  const before = b.procedures.definition.playbook('promo')!.steps;
   const lotes = steps('Extrair em lotes de 20 itens e juntar com juntar_lotes.py');
   const denied = deniedAttempts('promo', before, lotes, 'c1');
   assert.deepEqual(denied.map((d) => [d.step, d.outcome]), [['extrair', 'negado']], 'só o passo que mudaria');
-  for (const d of denied) b.learnings.add(d);
-  for (const d of denied) b.learnings.add(d);
-  assert.deepEqual(b.learnings.list('promo').map((l) => l.times), [2]);
+  for (const d of denied) b.procedures.learnings.add(d);
+  for (const d of denied) b.procedures.learnings.add(d);
+  assert.deepEqual(b.procedures.learnings.list('promo').map((l) => l.times), [2]);
 
-  assert.match(learningLines(b.learnings.list('promo'))[0], /passo extrair · negado pelo desenvolvedor: Extrair em lotes/);
+  assert.match(learningLines(b.procedures.learnings.list('promo'))[0], /passo extrair · negado pelo desenvolvedor: Extrair em lotes/);
 
-  b.deletePlaybook('promo');
-  assert.deepEqual(b.learnings.list('promo'), [], 'apagar o procedimento leva os aprendizados');
+  b.procedures.definition.deletePlaybook('promo');
+  assert.deepEqual(b.procedures.learnings.list('promo'), [], 'apagar o procedimento leva os aprendizados');
 });
 
 test('execução: o que falhou num passo que terminou feito vira aprendizado; deslize corrigido e chamada errada não', () => {

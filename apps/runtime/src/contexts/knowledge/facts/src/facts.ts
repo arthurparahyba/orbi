@@ -120,6 +120,12 @@ export class Facts {
     return findGaps(this.graphRepo.entities(), (id) => this.graphRepo.neighbors(id, at).out, this.typeOf);
   }
 
+  /** How much this context knows, for the situation line of every turn. */
+  counts(): { types: number; entities: number; edges: number } {
+    const { entities, currentEdges } = this.graphRepo.counts();
+    return { types: this.ontology.count(), entities, edges: currentEdges };
+  }
+
   graph(): { types: OntologyType[]; entities: Entity[]; edges: Edge[] } {
     return { types: this.types(), entities: this.graphRepo.entities(), edges: this.graphRepo.edges() };
   }

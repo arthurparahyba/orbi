@@ -7,7 +7,7 @@
  * drop or reshape one the app uses.
  */
 import type * as C from '@orbi/contracts';
-import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun } from './brain.ts';
+import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun } from './language/index.ts';
 import type { DemoAction, NarrationSegment, Recording, Target } from './contexts/tools/index.ts';
 import type { ConversationInfo } from './contexts/talk/index.ts';
 import type { InboxItem } from './contexts/talk/index.ts';

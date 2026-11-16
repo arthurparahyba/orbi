@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, playbook } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, procedures, trust, inbox, playbook } from './support/flow.ts';
 
 test('script do procedimento: aprovado uma vez, a mesma ação com outros dados roda sozinha', async () => {
-  brain.savePlaybook({
+  procedures.definition.savePlaybook({
     name: 'gerar-relatorio', description: 'Gera o relatório', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'gerar', label: 'Gerar', how: 'run_script eco.py {{pasta}}' }],
     scripts: [{ name: 'eco.py', description: 'imprime os argumentos', code: 'import sys\nprint("ok", *sys.argv[1:])\n' }],
   });
-  brain.setPlaybookLevel('gerar-relatorio', { level: 2 });
-  assert.deepEqual(brain.playbook('gerar-relatorio')!.scripts.map((x) => x.name), ['eco.py']);
+  trust.setPlaybookLevel('gerar-relatorio', { level: 2 });
+  assert.deepEqual(procedures.definition.playbook('gerar-relatorio')!.scripts.map((x) => x.name), ['eco.py']);
   const until = async (ok: () => boolean, what: string) => {
     for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 50));
     assert.ok(ok(), what);
@@ -45,7 +45,7 @@ test('script do procedimento: aprovado uma vez, a mesma ação com outros dados 
   assert.match(ran, /ok relatorios\/jan/);
   // A clean run with no level change is reviewed quietly (no message): it leaves the known action.
   await until(
-    () => brain.knownActions('gerar-relatorio').some((k) => /^run_script gerar-relatorio\/eco\.py@\w{8} \{\{pasta\}\}$/.test(k.fingerprint)),
+    () => trust.knownActions('gerar-relatorio').some((k) => /^run_script gerar-relatorio\/eco\.py@\w{8} \{\{pasta\}\}$/.test(k.fingerprint)),
     'virou ação conhecida, com o dado como parâmetro',
   );
 

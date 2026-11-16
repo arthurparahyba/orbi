@@ -12,14 +12,14 @@ import { notFound } from '../../http/errors.ts';
  * apart from the review of the procedure. `?run=` traz os de uma execução (inclusive os já
  * dispensados); sem parâmetro, os que estão abertos. Mudanças viram evento `runs`.
  */
-export function diagnosisRoutes(s: Pick<OrbiServices, 'diagnoses' | 'brain' | 'config' | 'diagnosisSettings' | 'codeAgents' | 'events'>, agent: Agent) {
-  const { diagnoses, brain, config } = s;
+export function diagnosisRoutes(s: Pick<OrbiServices, 'diagnoses' | 'procedures' | 'config' | 'diagnosisSettings' | 'codeAgents' | 'events'>, agent: Agent) {
+  const { diagnoses, procedures, config } = s;
   /** O texto exato que sairia, já sem nada do trabalho do desenvolvedor. */
   const draft = (id: string) => {
     const found = diagnoses.get(id);
-    const run = found && brain.run(found.runId);
+    const run = found && procedures.execution.run(found.runId);
     if (!found || !run) throw notFound('diagnóstico');
-    return draftIssue(found, { run, calls: brain.calls.list(run.id), version: VERSION, platform: `${process.platform} ${process.arch}` });
+    return draftIssue(found, { run, calls: procedures.calls.list(run.id), version: VERSION, platform: `${process.platform} ${process.arch}` });
   };
   return new Hono()
     .get('/', (c) => {
@@ -40,7 +40,7 @@ export function diagnosisRoutes(s: Pick<OrbiServices, 'diagnoses' | 'brain' | 'c
     })
     .post('/report', async (c) => {
       const runId = c.req.query('run') ?? '';
-      if (!brain.run(runId)) throw notFound('execução');
+      if (!procedures.execution.run(runId)) throw notFound('execução');
       await startReport(s, agent, runId, true);
       return c.json(diagnoses.report(runId) ?? { pendente: true });
     })

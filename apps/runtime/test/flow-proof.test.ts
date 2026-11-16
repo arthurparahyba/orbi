@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, brain, inbox } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, procedures, inbox } from './support/flow.ts';
 
 /**
  * A procedure only leaves the draft by running as it is written (docs/funcionalidades/25), with the

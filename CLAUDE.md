@@ -76,7 +76,8 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
     tools/              com o que ele age: terminal, browser, mcp-client, code-agents, commands
     telemetry/          uso por conversa, log, resultado da última chamada
   src/language/         a linguagem compartilhada: só tipos e constantes, importa contexto nenhum
-  src/brain.ts          agregado da composição (era o BrainStore): dívida declarada, ver doc 26
+  src/wiring.ts         liga os contextos que compartilham o banco (e só isso)
+  src/overview.ts       as duas leituras que atravessam contexto: stats e exportBrain
   test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
 apps/desktop/       app: React 19 + Vite; src-tauri/ (Rust) sobe e para o runtime
@@ -139,7 +140,9 @@ cofre ou ponte MCP, `npm run e2e`.
   `EXAMPLE_TYPES` explicitamente.
 - **Dentro de um contexto, a mesma separação**: regras puras num arquivo do módulo, SQL num
   `repo.ts`, orquestração num `service.ts`. O `index.ts` do contexto é a única porta, e o
-  `src/brain.ts` é só um agregado da composição com atalhos — código novo pede ao contexto.
+  O `index.ts` do contexto é a única porta, e `services.ts` tem uma entrada por contexto: uma
+  chamada diz para onde vai (`procedures.execution.startRun(…)`), e a `needs` de uma capability
+  diz quais contextos ela toca.
 - **Capacidade declara o que usa.** `defineCapability({ name, needs: ['brain', …], register(ctx, deps) })`
   e uma linha em `agents/capabilities.ts`. Ferramentas não chamam `services()`; recebem `deps`.
 - **Regra nova no prompt vai na parte da situação** (`prompts/orbi/*.md` + `PROMPT_PARTS`), não na base;

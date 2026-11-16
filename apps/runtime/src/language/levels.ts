@@ -38,7 +38,7 @@ export interface Deviation {
   detail: string;
   /** For `comando`: the command as run, to tell when the same one worked later. */
   command?: string;
-  /** For `comando`: the error matched a known problem of the brain. */
+  /** For `comando`: the error matched a known problem of the knowledge. */
   known?: boolean;
   /** The known problem the error matched (its entity id): to count how often it comes back. */
   problem?: string;

@@ -29,7 +29,7 @@ test('retorno: entregue só depois que a conversa aceitou; cada um uma vez', asy
   const f = fresh();
   const { followup } = f.schedule({ conversationId: 'chat:a', minutes: 1, note: 'conferir', runId: 'r1', stepId: 'esperar-task' });
   const woke: string[] = [];
-  const deps = { followups: f, inbox: { add: () => { throw new Error('não deveria') } }, brain: { run: () => ({ playbook: 'atualizar-versao' }) } } as never;
+  const deps = { followups: f, inbox: { add: () => { throw new Error('não deveria') } }, procedures: { execution: { run: () => ({ playbook: 'atualizar-versao' }) } } } as never;
   await deliverDue(deps, async (id, body) => { woke.push(`${id}|${body}`); }, later(2));
   assert.deepEqual(woke, ['chat:a|Retorno agendado (passo esperar-task de atualizar-versao): conferir']);
   assert.equal(f.get(followup.id)?.status, 'delivered');
@@ -43,7 +43,7 @@ test('retorno: entrega que falha tenta de novo e, na última, vira Pendência em
   const f = fresh();
   const { followup } = f.schedule({ conversationId: 'chat:a', minutes: 1, note: 'conferir o deploy' });
   const added: Array<{ kind: string; title: string; detail: string }> = [];
-  const deps = { followups: f, inbox: { add: (x: { kind: string; title: string; detail: string }) => added.push(x) }, brain: { run: () => undefined } } as never;
+  const deps = { followups: f, inbox: { add: (x: { kind: string; title: string; detail: string }) => added.push(x) }, procedures: { execution: { run: () => undefined } } } as never;
   const failing = async () => { throw new Error('conversa ocupada'); };
   for (let i = 1; i <= MAX_ATTEMPTS; i++) {
     await deliverDue(deps, failing, later(2));

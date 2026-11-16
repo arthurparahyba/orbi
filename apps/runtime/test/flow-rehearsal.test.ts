@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, procedures, inbox, components } from './support/flow.ts';
 
 /** The rehearsal (docs/funcionalidades/18): try out what was explained, agree start and end, then the card. */
 
@@ -39,7 +39,7 @@ test('ensaio: tenta junto, relata cada parte, combina início e fim; o cartão l
   const reply = await orbi.read(await orbi.dispatch('Te ensino: entra na loja, categoria informática, filtra Promoção e monta uma página com os preços.'));
 
   assert.ok(runId, 'o ensaio começou');
-  const run = brain.run(runId)!;
+  const run = procedures.execution.run(runId)!;
   assert.equal(run.kind, 'rehearsal');
   assert.equal(run.status, 'done');
   assert.deepEqual(run.steps.map((s) => s.status), ['done', 'done']);
@@ -72,8 +72,8 @@ test('ensaio: tenta junto, relata cada parte, combina início e fim; o cartão l
   await orbi.read(await (await app.request(`/api/inbox/${item.id}/decision`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve', approver: 'Arthur' }),
   })).json());
-  assert.equal(brain.playbook('relatorio-precos')?.testedRun, runId);
-  assert.equal(brain.playbook('relatorio-precos')?.uses, 0, 'o ensaio não conta como uso do procedimento');
+  assert.equal(procedures.definition.playbook('relatorio-precos')?.testedRun, runId);
+  assert.equal(procedures.definition.playbook('relatorio-precos')?.uses, 0, 'o ensaio não conta como uso do procedimento');
 });
 
 test('ensaio: o que publica pede aprovação mesmo com a categoria em automático', async () => {

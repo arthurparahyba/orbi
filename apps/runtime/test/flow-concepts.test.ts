@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, brain, inbox, components, waitFor } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, knowledge, procedures, inbox, components, waitFor } from './support/flow.ts';
 
 /** Procedures over concepts (docs/funcionalidades/18): learned with inputs, passo 0 when running. */
 
@@ -51,8 +51,8 @@ test('aprender sobre conceitos: o cartão leva intenção, conceitos, fatos, pro
   await orbi.read(await (await app.request(`/api/inbox/${item.id}/decision`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ decision: 'approve', approver: 'Arthur' }),
   })).json());
-  assert.deepEqual(brain.playbook('atualizar-versao-mfe')?.inputs?.map((i) => i.name), ['mfe', 'versao', 'ambiente']);
-  assert.equal(brain.type('MicroFrontend')?.knows?.achar, 'buscar pelo nome na lista de aplicações');
+  assert.deepEqual(procedures.definition.playbook('atualizar-versao-mfe')?.inputs?.map((i) => i.name), ['mfe', 'versao', 'ambiente']);
+  assert.equal(knowledge.type('MicroFrontend')?.knows?.achar, 'buscar pelo nome na lista de aplicações');
 });
 
 test('passo 0: MFE desconhecido é investigado, vira fato, aparece em "Aprendi" e pode ser desfeito', async () => {
@@ -81,9 +81,9 @@ test('passo 0: MFE desconhecido é investigado, vira fato, aparece em "Aprendi" 
   assert.match(startOut, /"value":"xpto"/);
   assert.match(startOut, /buscar pelo nome na lista de aplicações/, 'com o jeito de achar do conceito');
 
-  const fact = brain.get('xpto-mfe')!;
+  const fact = knowledge.get('xpto-mfe')!;
   assert.deepEqual(fact.aliases, ['xpto']);
-  const run = brain.runs().find((r) => r.conversationId === 'chat:conceitos-xpto')!;
+  const run = procedures.execution.runs().find((r) => r.conversationId === 'chat:conceitos-xpto')!;
   assert.equal(run.status, 'done');
   assert.equal(run.steps[0].how, 'navegador em http://portal.local/apps', 'o passo foi preenchido depois de resolver');
 
@@ -95,7 +95,7 @@ test('passo 0: MFE desconhecido é investigado, vira fato, aparece em "Aprendi" 
   await waitFor(() => review.includes('review'), 'a revisão do fim');
   const res = await app.request(`/api/brain/runs/${run.id}/resolved/mfe/undo`, { method: 'POST' });
   assert.equal(res.status, 200);
-  assert.equal(brain.get('xpto-mfe'), undefined, 'desfazer tira o fato');
+  assert.equal(knowledge.get('xpto-mfe'), undefined, 'desfazer tira o fato');
 });
 
 test('passo 0: MFE conhecido pelo outro nome vai direto, sem nada para resolver', async () => {

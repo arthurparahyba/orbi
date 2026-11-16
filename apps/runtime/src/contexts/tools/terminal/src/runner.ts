@@ -23,7 +23,7 @@ import { errorTail } from '../../../knowledge/index.ts';
  */
 export interface RunSpec {
   /** Where the attempt is recorded and known problems are looked up. */
-  brain: CommandMemory;
+  memory: CommandMemory;
   conversationId: string;
   /** The command as the conversation shows it. */
   shown: string;
@@ -35,7 +35,7 @@ export interface RunSpec {
 
 export async function runAndReport(spec: RunSpec): Promise<{ result: RunResult; report: string; extra: Record<string, unknown> }> {
   const result = await spec.start(spec.saveTo ? { maxOutput: 50_000_000 } : {});
-  const extra = afterCommand(spec.brain, spec.conversationId, spec.shown, result);
+  const extra = afterCommand(spec.memory, spec.conversationId, spec.shown, result);
   if (!spec.saveTo) return { result, extra, report: JSON.stringify({ ...result, command: spec.shown, ...extra }) };
   const ok = result.exitCode === 0 && !result.timedOut;
   if (ok) {
@@ -65,14 +65,14 @@ export async function runAndReport(spec: RunSpec): Promise<{ result: RunResult; 
  * later passes becomes knowledge), and a failure brings the known problems it looks like, so
  * the Orbi knows what to do without remembering to look (domain/knowledge.ts).
  */
-export function afterCommand(brain: CommandMemory, conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
+export function afterCommand(memory: CommandMemory, conversationId: string, command: string, result: { exitCode: number | null; stdout: string; stderr: string; timedOut?: boolean }) {
   const failed = result.exitCode !== 0 || !!result.timedOut;
   const error = failed ? errorTail(result) : '';
-  const known = failed ? brain.knownProblems(`${command}\n${error}`) : [];
-  brain.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0, ...(known[0] ? { problem: known[0].id } : {}) });
+  const known = failed ? memory.knownProblems(`${command}\n${error}`) : [];
+  memory.noteCommand(conversationId, { command, exitCode: result.timedOut ? null : result.exitCode, error, known: known.length > 0, ...(known[0] ? { problem: known[0].id } : {}) });
   // Inside a procedure, an error the brain has never seen is outside what the Orbi knows: it says so
   // and brings the developer in, instead of improvising a fix (docs/funcionalidades/18, "sei / não sei").
-  if (failed && !known.length && brain.openRunIn(conversationId)?.kind !== 'rehearsal' && brain.openRunIn(conversationId)) {
+  if (failed && !known.length && memory.openRunIn(conversationId)?.kind !== 'rehearsal' && memory.openRunIn(conversationId)) {
     return { nuncaVi: true, hint: 'Nenhum problema conhecido parecido no cérebro: siga "Erro que nunca vi" (fora do que você conhece).' };
   }
   if (!known.length) return {};

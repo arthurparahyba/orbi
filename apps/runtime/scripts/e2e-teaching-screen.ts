@@ -43,7 +43,7 @@ const { Orbi } = await import('../src/agents/orbi.ts');
 const { Configurador } = await import('../src/agents/configurador.ts');
 const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
-const { brain, policy, config, vault } = (await import('../src/services.ts')).services();
+const { procedures, policy, config, vault } = (await import('../src/services.ts')).services();
 
 const runtime = await start({ agents: [Orbi, Configurador, Revisor] });
 const http = serve({ fetch: app.fetch, port: RUNTIME_PORT, hostname: '127.0.0.1' });
@@ -211,7 +211,7 @@ try {
   await shows('.convs', /Recentes[\s\S]*atualizar-mfe · feito/i);
   await shows('.messages', /A partir daqui: fazendo atualizar-mfe/);
   await until('a revisão do fim', async () => review.includes('review'));
-  await until('N2 depois de uma execução limpa', async () => brain.playbook('atualizar-mfe')?.level === 2);
+  await until('N2 depois de uma execução limpa', async () => procedures.definition.playbook('atualizar-mfe')?.level === 2);
   await shot('fazendo');
 
   // The "…" menu has copy and delete; Escape closes it.

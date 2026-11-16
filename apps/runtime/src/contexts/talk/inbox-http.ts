@@ -6,7 +6,7 @@ import { HttpError, body, notFound, query } from '../../http/errors.ts';
 import type { Agent } from '../../http/routes/types.ts';
 
 /** What waits for the developer. Decisions and answers go back into the conversation. */
-export function inboxRoutes({ inbox, events, vault, brain, pipelines, config }: OrbiServices, agent: Agent) {
+export function inboxRoutes({ inbox, events, vault, procedures, trust, pipelines, config }: OrbiServices, agent: Agent) {
   const open = (id: string) => {
     const item = inbox.get(id);
     if (!item) throw notFound('item');
@@ -14,7 +14,7 @@ export function inboxRoutes({ inbox, events, vault, brain, pipelines, config }: 
     return item;
   };
 
-  const deps = { inbox, events, vault, brain, pipelines, config, agent };
+  const deps = { inbox, events, vault, procedures, trust, pipelines, config, agent };
   /** The item's handler does the action (inbox/): the route knows no kind of item. */
   const act = async <A extends InboxAction>(id: string, action: A, input?: Parameters<NonNullable<InboxHandler[A]>>[1]) => {
     const item = open(id);

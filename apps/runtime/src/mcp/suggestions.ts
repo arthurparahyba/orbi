@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
-import type { BrainStore, Playbook, PlaybookStep } from '../brain.ts';
+import type { Playbook, PlaybookStep } from '../language/index.ts';
+import type { OrbiServices } from '../services.ts';
 import { transaction } from '../db/database.ts';
 
 /**
@@ -87,12 +88,12 @@ export class AgentSuggestions {
    * The developer accepts: the suggestion becomes a procedure that asks before
    * acting, whatever the agent proposed. As a variation, it points to its base.
    */
-  accept(id: string, brain: BrainStore, options: { variationOf?: string } = {}): Playbook {
+  accept(id: string, procedures: OrbiServices['procedures'], options: { variationOf?: string } = {}): Playbook {
     const s = this.open(id);
-    if (brain.playbook(s.name)) throw new Error(`já existe um procedimento chamado ${s.name}: rejeite a sugestão ou edite o que existe`);
+    if (procedures.definition.playbook(s.name)) throw new Error(`já existe um procedimento chamado ${s.name}: rejeite a sugestão ou edite o que existe`);
     let saved: Playbook | undefined;
     transaction(this.db, () => {
-      saved = brain.savePlaybook({
+      saved = procedures.definition.savePlaybook({
         name: s.name,
         description: s.description,
         trigger: s.trigger,

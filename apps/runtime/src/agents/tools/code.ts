@@ -17,12 +17,12 @@ import type { PreparedFix } from '../../contexts/tools/index.ts';
  *   code_agent_discard_fix  drops the copy
  * Off when no agent is registered: the Orbi then hands the diagnosis to whoever asked.
  */
-export const code = defineCapability({ name: 'code', needs: ['codeFixer', 'codeAgents', 'config', 'inbox', 'brain'], register: useCode });
+export const code = defineCapability({ name: 'code', needs: ['codeFixer', 'codeAgents', 'config', 'inbox', 'knowledge'], register: useCode });
 
 const DEFAULT_BRANCHES = /^(main|master|trunk|develop)$/;
 const who = (x: { agent: { name: string }; model: string | null } | null) => (x ? `${x.agent.name}${x.model ? ` · ${x.model}` : ''}` : '');
 
-function useCode(ctx: AgentContext, { codeFixer: fixer, codeAgents, config, inbox, brain }: Deps<'codeFixer' | 'codeAgents' | 'config' | 'inbox' | 'brain'>) {
+function useCode(ctx: AgentContext, { codeFixer: fixer, codeAgents, config, inbox, knowledge }: Deps<'codeFixer' | 'codeAgents' | 'config' | 'inbox' | 'knowledge'>) {
   const investigator = codeAgents.forTask('investigar');
   const fixerAgent = codeAgents.forTask('corrigir') ?? investigator;
   if (!investigator && !fixerAgent) return;
@@ -69,23 +69,23 @@ function useCode(ctx: AgentContext, { codeFixer: fixer, codeAgents, config, inbo
       description:
         `A known problem (it came in knownProblems, with quemCorrige the coding agent): ask the coding agent for fixes (${who(fixerAgent)}) to apply its solution in a throwaway copy of \`branch\`. ` +
         'Pass the problem id and the current error. The level of the procedure decides whether it asks. Returns fixId, files and diff for code_agent_push_fix.',
-      input: v.object({ ...repoInput, problem: v.pipe(v.string(), v.description('Id of the known problem in the brain')), diagnosis: v.string() }),
+      input: v.object({ ...repoInput, problem: v.pipe(v.string(), v.description('Id of the known problem in the knowledge')), diagnosis: v.string() }),
       category: () => 'comandos-escrita',
       effect: () => 'local',
-      title: (a) => `Corrigir com ${who(fixerAgent)}: ${asKnownProblem(brain.get(a.problem) ?? ({} as never))?.sintoma ?? a.problem}`,
+      title: (a) => `Corrigir com ${who(fixerAgent)}: ${asKnownProblem(knowledge.get(a.problem) ?? ({} as never))?.sintoma ?? a.problem}`,
       command: () => fixerAgent.agent.command,
       summary: (a) => `Aplicar a solução conhecida de ${a.problem} numa cópia de ${a.repo} (${a.branch})`,
       // The same known problem fixed again is the same action: it gains autonomy with the level.
       fingerprint: (a) => `code_agent_fix_known ${a.problem}`,
       precheck: (a) => {
-        const p = brain.get(a.problem);
+        const p = knowledge.get(a.problem);
         const known = p ? asKnownProblem(p) : undefined;
         if (!known) return [`${a.problem} não é um problema conhecido do cérebro (precisa de sintoma e solucao)`];
         if (!fixedByCodeAgent(known)) return [`${a.problem} não é corrigido pelo agente de código (quem_corrige): siga a solução dele`];
         return needShell();
       },
       execute: async (a) => {
-        const known = asKnownProblem(brain.get(a.problem)!)!;
+        const known = asKnownProblem(knowledge.get(a.problem)!)!;
         ctx.ui({ component: 'status', id: `fixknown-${a.problem}`, title: `${who(fixerAgent)} corrigindo`, state: 'running', text: known.sintoma });
         const fix = await fixer.prepare({ ...a, task: 'corrigir', problem: known });
         ctx.ui({ component: 'status', id: `fixknown-${a.problem}`, title: `${who(fixerAgent)} corrigiu na cópia`, state: fix.files.length ? 'success' : 'warning', text: known.sintoma });
@@ -134,7 +134,7 @@ function useCode(ctx: AgentContext, { codeFixer: fixer, codeAgents, config, inbo
       const fix = fixer.get(a.fixId)!;
       const result = await fixer.push(a.fixId, a.commitMessage);
       const commit = /commit (\S+)/.exec(result)?.[1] ?? '';
-      const known = fix.problem ? asKnownProblem(brain.get(fix.problem) ?? ({} as never)) : undefined;
+      const known = fix.problem ? asKnownProblem(knowledge.get(fix.problem) ?? ({} as never)) : undefined;
       const why = known ? `Problema conhecido: ${known.sintoma}` : 'Correção proposta na investigação e aprovada por você';
       const alone = how === 'auto';
       // Went alone: it stays in Pendências (Para você saber) until seen.

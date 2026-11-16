@@ -1,0 +1,31 @@
+import type { OrbiServices } from './services.ts';
+import { exportMarkdown } from './brain-export.ts';
+
+/**
+ * The two readings that cross contexts on purpose, and so belong to the composition rather than
+ * to any one of them (documento 26): the line of the Orbi's situation that goes into every turn,
+ * and the export of the whole brain as Markdown. Each context counts what is its own.
+ */
+export function stats(s: Pick<OrbiServices, 'knowledge' | 'procedures' | 'learning'>): {
+  types: number;
+  entities: number;
+  edges: number;
+  playbooks: number;
+  openProposals: number;
+} {
+  return {
+    ...s.knowledge.counts(),
+    playbooks: s.procedures.definition.count(),
+    openProposals: s.learning.countOpen(),
+  };
+}
+
+/** The brain as Markdown files, one per fact and per procedure, for the developer to read. */
+export function exportBrain(s: Pick<OrbiServices, 'knowledge' | 'procedures'>, dir: string): number {
+  const { entities } = s.knowledge.graph();
+  return exportMarkdown(dir, {
+    entities,
+    playbooks: s.procedures.definition.playbooks(),
+    outEdges: (id) => s.knowledge.neighbors(id).out,
+  });
+}

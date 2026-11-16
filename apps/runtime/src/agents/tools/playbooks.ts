@@ -2,7 +2,6 @@ import { learningLines } from '../../contexts/procedures/index.ts';
 import { proofLabel, proofOf } from '../../contexts/procedures/index.ts';
 import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import type { BrainStore } from '../../brain.ts';
 import type { Inbox } from '../../contexts/talk/index.ts';
 import type { Followups } from '../../contexts/talk/index.ts';
 import { defineCapability, type Deps } from '../capability.ts';
@@ -28,12 +27,12 @@ export function skillCatalog<T extends { name: string; uses: number }>(playbooks
   return [...playbooks].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)).slice(0, Math.max(0, size));
 }
 
-export const playbooks = defineCapability({ name: 'playbooks', needs: ['brain', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents', 'followups'], register: usePlaybooks });
+export const playbooks = defineCapability({ name: 'playbooks', needs: ['procedures', 'vault', 'pipelines', 'toolOutcomes', 'inbox', 'config', 'codeAgents', 'followups'], register: usePlaybooks });
 
-function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes, inbox, config, codeAgents, followups }: Deps<'brain' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents' | 'followups'>) {
+function usePlaybooks(ctx: AgentContext, { procedures, vault, pipelines, toolOutcomes, inbox, config, codeAgents, followups }: Deps<'procedures' | 'vault' | 'pipelines' | 'toolOutcomes' | 'inbox' | 'config' | 'codeAgents' | 'followups'>) {
 
   const showRun = (runId: string) => {
-    const run = brain.run(runId);
+    const run = procedures.execution.run(runId);
     if (!run) return;
     ctx.ui({
       component: 'stepper',
@@ -46,13 +45,13 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
 
   // "Sei / não sei": what a run over concepts needs, checked against the facts (domain/concepts.ts).
   const showReadiness = (runId: string) => {
-    const items = brain.execution.readiness(runId);
-    const run = brain.run(runId);
+    const items = procedures.execution.readiness(runId);
+    const run = procedures.execution.run(runId);
     if (!items.length || !run) return;
     ctx.ui({ component: 'readiness', id: `readiness-${runId}`, title: run.playbook, items });
   };
 
-  for (const pb of skillCatalog(brain.playbooks(), config.skillCatalogSize)) {
+  for (const pb of skillCatalog(procedures.definition.playbooks(), config.skillCatalogSize)) {
     useSkill(
       defineSkill({
         name: pb.name,
@@ -81,12 +80,12 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       'Start running a learned playbook. Shows its steps to the developer as a live checklist. Then report each step with playbook_step. Pass the values of its {{parameters}} (e.g. {"mfe": "novo-front", "versao": "2.5.0"}); credentials ({{segredo:…}}) are not parameters.',
     input: v.object({ name: v.string(), target: v.optional(v.string()), params: v.optional(v.record(v.string(), v.string())) }),
     async run({ data }) {
-      const pb = brain.playbook(data.name);
-      if (!pb) return { output: { error: `playbook não existe: ${data.name}`, available: brain.playbooks().map((p) => p.name) } };
+      const pb = procedures.definition.playbook(data.name);
+      if (!pb) return { output: { error: `playbook não existe: ${data.name}`, available: procedures.definition.playbooks().map((p) => p.name) } };
       // In an esteira, stages go in order: a later stage does not start while the current is open.
       const outOfOrder = pipelines.engine.startProblem(ctx.conversationId, pb.name);
       if (outOfOrder) return { output: { error: outOfOrder } };
-      const run = brain.startRun(pb.name, ctx.conversationId, data.params);
+      const run = procedures.execution.startRun(pb.name, ctx.conversationId, data.params);
       ctx.setActiveRun({ runId: run.id, playbook: pb.name, autonomy: pb.autonomy });
       pipelines.engine.runStarted(run);
       showReadiness(run.id);
@@ -96,14 +95,14 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       // This turn's prompt was built before the run existed: the rules for running come here.
       const rules = codeAgents.available() ? RUN_RULES_WITH_CODE : RUN_RULES;
       // Over concepts: what the brain already knows came filled in; the rest is passo 0.
-      const { toResolve, unknown } = brain.execution.inputState(run.id);
+      const { toResolve, unknown } = procedures.execution.inputState(run.id);
       const missing = (pb.inputs ?? []).filter((i) => !data.params?.[i.name]).map((i) => i.name);
       const passo0 = toResolve.length || unknown.length || missing.length
         ? { passo0: { toResolve, unknown, ...(missing.length ? { faltam: missing } : {}), regras: RESOLVE_RULES } }
         : {};
       const outputs = pb.outputs.map((o) => ({ name: o.name, description: o.description }));
-      const tried = learningLines(brain.learnings.list(pb.name));
-      const proof = proofOf(pb.steps, brain.proofs.list(pb.name));
+      const tried = learningLines(procedures.learnings.list(pb.name));
+      const proof = proofOf(pb.steps, procedures.proofs.list(pb.name));
       const prova = proof.state === 'provado'
         ? undefined
         : `${proofLabel(proof, pb.steps)}. Esta execução prova esses passos: rode do começo à entrega e, se um deles falhar, ache outro jeito e siga; no fim, proponha o passo corrigido com o que aprendeu.`;
@@ -140,10 +139,10 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
     async run({ data }) {
       if (!ctx.activeRun) return { output: { error: 'nenhum procedimento em execução' } };
       try {
-        const { run, learned } = brain.execution.resolveInput(ctx.activeRun.runId, data.input, { entity: data.entity, props: data.props, relations: data.relations });
+        const { run, learned } = procedures.execution.resolveInput(ctx.activeRun.runId, data.input, { entity: data.entity, props: data.props, relations: data.relations });
         showReadiness(run.id);
         showRun(run.id);
-        const { toResolve, unknown } = brain.execution.inputState(run.id);
+        const { toResolve, unknown } = procedures.execution.inputState(run.id);
         return {
           output: {
             learned: learned.learned === 'created' ? `fato novo: ${learned.entity}` : learned.learned === 'alias' ? `"${learned.value}" é outro nome de ${learned.entity}` : `${learned.entity} já era conhecido`,
@@ -199,7 +198,7 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       }
       let run;
       try {
-        run = brain.updateRunStep(ctx.activeRun.runId, data.stepId, data.status, data.note, outputs);
+        run = procedures.execution.updateRunStep(ctx.activeRun.runId, data.stepId, data.status, data.note, outputs);
       } catch (error) {
         return { output: { error: error instanceof Error ? error.message : String(error) } };
       }
@@ -209,7 +208,7 @@ function usePlaybooks(ctx: AgentContext, { brain, vault, pipelines, toolOutcomes
       }
       ctx.setActiveRun(null);
       // What the run learned by itself (passo 0) is shown at the end, each with Desfazer.
-      const learned = brain.execution.learnedIn(run);
+      const learned = procedures.execution.learnedIn(run);
       if (learned.length) {
         ctx.ui({
           component: 'learned_facts',

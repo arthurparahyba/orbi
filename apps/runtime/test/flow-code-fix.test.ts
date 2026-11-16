@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, inbox, brain, components } from './support/flow.ts';
+import { faux, fauxAssistantMessage, fauxToolCall, fauxText, init, Orbi, app, inbox, knowledge, components } from './support/flow.ts';
 
 const { codeAgents, config, policy } = (await import('../src/services.ts')).services();
 const root = config.workspace;
@@ -77,8 +77,8 @@ test('problema conhecido corrigido pelo agente: segue sozinho onde as regras dei
   policy.set('codigo-producao', 'auto');
   // Back to the bug, on another delivery branch.
   g(join(root, 'loja'), 'push', '-q', 'origin', 'HEAD:feature/frete');
-  brain.upsertType({ name: 'Problema', description: 'problemas conhecidos', relations: {}, requires: [] });
-  brain.upsertEntity({ id: 'problema:preco-locale', type: 'Problema', props: { sintoma: 'espera R$ 1.234,56 recebe R$ 1,234.56', causa: 'formatador sem idioma', solucao: "fixar 'pt-BR' no formatador", quem_corrige: 'agente de código', conferir: 'npm test com LANG=en_US' }, body: '' });
+  knowledge.upsertType({ name: 'Problema', description: 'problemas conhecidos', relations: {}, requires: [] });
+  knowledge.upsertEntity({ id: 'problema:preco-locale', type: 'Problema', props: { sintoma: 'espera R$ 1.234,56 recebe R$ 1,234.56', causa: 'formatador sem idioma', solucao: "fixar 'pt-BR' no formatador", quem_corrige: 'agente de código', conferir: 'npm test com LANG=en_US' }, body: '' });
 
   const id = 'chat:teste-conhecido';
   let prompt = '';

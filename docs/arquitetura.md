@@ -84,8 +84,10 @@ src/
                             chamada, observações da execução em curso e /api/usage
   language/                 a linguagem compartilhada: Entity, Playbook, PlaybookRun, Level,
                             Effect, Proposal — só tipos e constantes, importa contexto nenhum
-  brain.ts                  agregado da composição (era o BrainStore): liga os contextos, guarda
-                            stats e exportMarkdown, e tem atalhos que são dívida declarada
+  wiring.ts                 liga os contextos que compartilham o banco: cada um recebe os
+                            próprios repositórios e, do vizinho, a porta que ele abriu
+  overview.ts               as duas leituras que atravessam contexto de propósito: stats (a linha
+                            de situação de cada turno) e exportBrain (o cérebro em Markdown)
 
   http/                     a API: app.ts monta, errors.ts, routes/ (uma por recurso)
   db/                       banco único (orbi.db), migrações e changes.ts (escrita → evento)

@@ -114,7 +114,7 @@ test('mcp: permissões escolhem as ferramentas que o agente vê', async () => {
 
 test('mcp: buscar e ler um procedimento (divulgação aos poucos)', async () => {
   const { orbi, api, connect, call } = await setup();
-  orbi.brain.savePlaybook(playbook);
+  orbi.procedures.definition.savePlaybook(playbook);
   const { json } = await api('POST', '/api/agents/clients', { name: 'Claude Code' });
   const client = await connect(json.token);
 
@@ -140,7 +140,7 @@ test('mcp: buscar e ler um procedimento (divulgação aos poucos)', async () => 
 
 test('mcp: ensinar vira sugestão; repetir conta; aceitar grava pedindo aprovação', async () => {
   const { orbi, api, connect, call } = await setup();
-  orbi.brain.savePlaybook(playbook);
+  orbi.procedures.definition.savePlaybook(playbook);
   const a = await connect((await api('POST', '/api/agents/clients', { name: 'Claude Code' })).json.token);
   const b = await connect((await api('POST', '/api/agents/clients', { name: 'Cursor' })).json.token);
   const teach = {
@@ -154,7 +154,7 @@ test('mcp: ensinar vira sugestão; repetir conta; aceitar grava pedindo aprovaç
   const first = await call(a, 'orbi_teach', teach);
   assert.equal(first.json.status, 'nova');
   assert.deepEqual(first.json.similar_to, ['publicar-versao-no-portal'], 'aponta o que o Orbi já sabe parecido');
-  assert.equal(orbi.brain.playbook('publicar-versao-no-portal-de-homologacao'), undefined, 'nada vai direto para o cérebro');
+  assert.equal(orbi.procedures.definition.playbook('publicar-versao-no-portal-de-homologacao'), undefined, 'nada vai direto para o cérebro');
 
   const again = await call(b, 'orbi_teach', teach);
   assert.equal(again.json.status, 'repetida');
@@ -167,7 +167,7 @@ test('mcp: ensinar vira sugestão; repetir conta; aceitar grava pedindo aprovaç
 
   const accepted = await api('POST', `/api/agents/suggestions/${s.id}/accept`, { variationOf: 'publicar-versao-no-portal' });
   assert.equal(accepted.status, 200);
-  const pb = orbi.brain.playbook('publicar-versao-no-portal-de-homologacao')!;
+  const pb = orbi.procedures.definition.playbook('publicar-versao-no-portal-de-homologacao')!;
   assert.equal(pb.autonomy, 'ask', 'aceito, começa perguntando antes de agir');
   assert.equal(pb.variationOf, 'publicar-versao-no-portal');
   assert.equal(pb.learnedFrom, 'agente: Claude Code, Cursor');
@@ -205,13 +205,13 @@ test('status: rodando, esperando o desenvolvedor, concluído', () => {
 /** Two procedures chained: dev hands over versao; the passage into hml asks. */
 function seedPipeline(orbi: Awaited<ReturnType<typeof setup>>['orbi']) {
   const pb = (name: string, label: string, outputs: string[]) =>
-    orbi.brain.savePlaybook({
+    orbi.procedures.definition.savePlaybook({
       name, description: name, trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
       steps: [{ id: 'p0', label, how: '' }], outputs: outputs.map((o) => ({ name: o, description: o })),
     });
   pb('workflow-dev', 'Acompanhar o workflow de {{repo}}', ['versao']);
   pb('promover-hml', 'Promover {{versao}}', ['url_hml']);
-  orbi.brain.savePipeline({
+  orbi.procedures.pipelineDefs.savePipeline({
     name: 'entrega-do-portal',
     description: 'Leva o portal do workflow de dev até homologação',
     inputs: [{ name: 'repo', description: 'repositório' }],

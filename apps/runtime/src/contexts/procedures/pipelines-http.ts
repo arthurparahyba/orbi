@@ -11,7 +11,7 @@ import { reviewInstruction } from '../improvement/index.ts';
  * running (Em andamento). Starting and deciding tell the conversation's agent
  * what to do next, as a signal; the engine decides, not the model.
  */
-export function pipelineRoutes({ brain, pipelines, conversations, events }: OrbiServices, agent: Agent) {
+export function pipelineRoutes({ procedures, pipelines, conversations, events }: OrbiServices, agent: Agent) {
   const invalid = <T>(fn: () => T): T => {
     try {
       return fn();
@@ -23,25 +23,25 @@ export function pipelineRoutes({ brain, pipelines, conversations, events }: Orbi
     tellAgent(events, agent, { id: conversationId, message: { kind: 'signal', type: 'pipeline', tagName: 'pipeline', body: text } });
 
   // What the screen shows with each esteira: data nobody hands over, and configuration problems.
-  const withChecks = (p: NonNullable<ReturnType<typeof brain.pipeline>>) => ({ ...p, gaps: brain.pipelineGaps(p), warnings: brain.pipelineWarnings(p) });
+  const withChecks = (p: NonNullable<ReturnType<typeof procedures.pipelineDefs.pipeline>>) => ({ ...p, gaps: procedures.pipelineDefs.pipelineGaps(p), warnings: procedures.pipelineDefs.pipelineWarnings(p) });
 
   return new Hono()
-    .get('/', (c) => c.json(brain.pipelines().map(withChecks)))
+    .get('/', (c) => c.json(procedures.pipelineDefs.pipelines().map(withChecks)))
     .get('/:name', (c) => {
-      const p = brain.pipeline(c.req.param('name'));
+      const p = procedures.pipelineDefs.pipeline(c.req.param('name'));
       if (!p) throw notFound('esteira');
       return c.json(withChecks(p));
     })
     .put('/:name', async (c) => {
       const def = await body(c, SavePipeline);
-      const saved = invalid(() => brain.savePipeline({ name: c.req.param('name'), ...def }));
+      const saved = invalid(() => procedures.pipelineDefs.savePipeline({ name: c.req.param('name'), ...def }));
       return c.json(withChecks(saved));
     })
     // "Pedir correção ao Orbi": a conversation where he proposes the fixes (one learning card).
     .post('/:name/fix', async (c) => {
-      const p = brain.pipeline(c.req.param('name'));
+      const p = procedures.pipelineDefs.pipeline(c.req.param('name'));
       if (!p) throw notFound('esteira');
-      const config = brain.pipelineWarnings(p);
+      const config = procedures.pipelineDefs.pipelineWarnings(p);
       if (config.length === 0) throw new HttpError(409, 'conflict', 'esta esteira não tem problemas de configuração');
       const review = { runs: [], config, pipeline: p.name };
       const conversation = conversations.create(`Corrigir a esteira ${p.name}`);
@@ -52,12 +52,12 @@ export function pipelineRoutes({ brain, pipelines, conversations, events }: Orbi
       return c.json({ conversationId: conversation.id }, 201);
     })
     .delete('/:name', (c) => {
-      if (!brain.deletePipeline(c.req.param('name'))) throw notFound('esteira');
+      if (!procedures.pipelineDefs.deletePipeline(c.req.param('name'))) throw notFound('esteira');
       return c.json({ deleted: true });
     })
     .post('/:name/start', async (c) => {
       const { inputs, destination } = await body(c, StartPipeline);
-      const p = brain.pipeline(c.req.param('name'));
+      const p = procedures.pipelineDefs.pipeline(c.req.param('name'));
       if (!p) throw notFound('esteira');
       const summary = Object.values(inputs).filter(Boolean).join(' · ');
       const conversation = conversations.create(`${p.name}${summary ? `: ${summary}` : ''}`.slice(0, 80));

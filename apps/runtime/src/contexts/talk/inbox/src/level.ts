@@ -25,9 +25,9 @@ export const levelNote: InboxHandler = {
     const subject = noteSubject(item);
     if (!subject || !item.approvalId) throw new HttpError(409, 'conflict', 'este aviso não tem o que manter');
     if (subject.kind === 'playbook') {
-      if (!d.brain.playbook(subject.name)) throw notFound('playbook');
+      if (!d.procedures.definition.playbook(subject.name)) throw notFound('playbook');
       // approvalId keeps the level from before the change.
-      d.brain.setPlaybookLevel(subject.name, { level: Number(item.approvalId) as 1 | 2 | 3 }, item.conversationId);
+      d.trust.setPlaybookLevel(subject.name, { level: Number(item.approvalId) as 1 | 2 | 3 }, item.conversationId);
     } else {
       d.pipelines.engine.keepAsking(subject.key, item.conversationId);
     }

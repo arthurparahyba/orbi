@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../src/db/database.ts';
-import { BrainStore } from '../src/brain.ts';
+import { wireContexts, type Contexts } from '../src/wiring.ts';
 import { Inbox } from '../src/contexts/talk/conversations/src/inbox.ts';
 import { PipelineRuns } from '../src/contexts/procedures/pipelines/src/runs.ts';
 import { PipelineEngine } from '../src/contexts/procedures/pipelines/src/engine.ts';
@@ -15,12 +15,23 @@ import { pipelineInputProblems, resolveParams } from '../src/contexts/procedures
 
 function setup() {
   const db: DatabaseSync = openDatabase(':memory:');
-  const brain = new BrainStore(db);
+  const brain = wireContexts(db);
   const inbox = new Inbox(db);
   const runs = new PipelineRuns(db);
-  const engine = new PipelineEngine({ brain, runs, inbox });
+  const engine = new PipelineEngine({
+    store: {
+      pipeline: (name) => brain.procedures.pipelineDefs.pipeline(name),
+      countPipelineUse: (name) => brain.procedures.pipelineDefs.countPipelineUse(name),
+      keepPassageAsking: (p, stage, c) => brain.procedures.pipelineDefs.keepPassageAsking(p, stage, c),
+      notePassage: (p, s2, cont, c) => brain.procedures.pipelineDefs.notePassage(p, s2, cont, c),
+      run: (runId) => brain.procedures.execution.run(runId),
+      playbook: (name) => brain.procedures.definition.playbook(name),
+    },
+    runs,
+    inbox,
+  });
   const pb = (name: string, steps: string[], outputs: string[] = []) =>
-    brain.savePlaybook({
+    brain.procedures.definition.savePlaybook({
       name, description: name, trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
       steps: steps.map((label, i) => ({ id: `p${i}`, label, how: '' })),
       outputs: outputs.map((o) => ({ name: o, description: o })),
@@ -30,7 +41,7 @@ function setup() {
   pb('hml-api', ['Promover a imagem {{imagem}} da API'], ['url_hml']);
   pb('abrir-gmud', ['Abrir GMUD da {{versao}} com {{evidencia}}'], ['numero_gmud']);
   pb('preencher-gmud', ['Preencher a GMUD {{numero}}']);
-  brain.savePipeline({
+  brain.procedures.pipelineDefs.savePipeline({
     name: 'entrega-do-portal',
     description: 'do dev até a GMUD',
     inputs: [{ name: 'repo', description: 'repositório' }, { name: 'tipo', description: 'front ou backend', options: ['front', 'backend'] }],
@@ -45,9 +56,9 @@ function setup() {
   const play = (conversationId: string, outputs: Record<string, string> = {}, fail = false) => {
     const run = runs.inConversation(conversationId)!;
     const stage = run.stages[run.current];
-    const pbRun = brain.startRun(stage.playbook!, conversationId, stage.params);
+    const pbRun = brain.procedures.execution.startRun(stage.playbook!, conversationId, stage.params);
     engine.runStarted(pbRun);
-    const done = brain.updateRunStep(pbRun.id, 'p0', fail ? 'failed' : 'done', undefined, fail ? undefined : outputs);
+    const done = brain.procedures.execution.updateRunStep(pbRun.id, 'p0', fail ? 'failed' : 'done', undefined, fail ? undefined : outputs);
     return { next: engine.runFinished(done), params: stage.params, playbook: stage.playbook };
   };
   return { brain, inbox, runs, engine, play };
@@ -55,7 +66,7 @@ function setup() {
 
 test('esteira: validação diz o que está errado', () => {
   const { brain } = setup();
-  const bad = (stages: unknown[], inputs: unknown[] = []) => () => brain.savePipeline({ name: 'x-y', description: '', inputs: inputs as never, stages: stages as never });
+  const bad = (stages: unknown[], inputs: unknown[] = []) => () => brain.procedures.pipelineDefs.savePipeline({ name: 'x-y', description: '', inputs: inputs as never, stages: stages as never });
   assert.throws(bad([]), /pelo menos uma etapa/);
   assert.throws(bad([{ id: 'a', label: 'A', passage: 'auto', options: [{ playbook: 'nao-existe' }] }]), /procedimento não existe: nao-existe/);
   assert.throws(bad([{ id: 'a', label: 'A', passage: 'auto', options: [{ playbook: 'hml-front' }, { playbook: 'hml-api' }] }]), /cada um precisa de uma condição/);
@@ -66,7 +77,7 @@ test('esteira: validação diz o que está errado', () => {
     /a etapa dev não entrega url_hml/,
   );
   // The backend branch needs imagem, which nothing hands over: a gap, not an error.
-  assert.deepEqual(brain.pipelineGaps(brain.pipeline('entrega-do-portal')!), [{ stage: 'hml', playbook: 'hml-api', param: 'imagem' }]);
+  assert.deepEqual(brain.procedures.pipelineDefs.pipelineGaps(brain.procedures.pipelineDefs.pipeline('entrega-do-portal')!), [{ stage: 'hml', playbook: 'hml-api', param: 'imagem' }]);
 });
 
 test('esteira: dados por nome e por mapa, ramo pela entrada, para na passagem que pergunta', () => {
@@ -149,7 +160,7 @@ test('esteira: ramo backend pede o dado que ninguém entrega; não apaga procedi
   const dev = play('chat:6', { versao: '1', pr_url: 'p' });
   assert.match(dev.next!, /Homologação \(hml-api\) faltam: imagem/);
   assert.equal(runs.inConversation('chat:6')?.stages[1].playbook, 'hml-api');
-  assert.throws(() => brain.deletePlaybook('hml-api'), /está nas esteiras entrega-do-portal/);
+  assert.throws(() => brain.procedures.definition.deletePlaybook('hml-api'), /está nas esteiras entrega-do-portal/);
   assert.throws(() => engine.start('entrega-do-portal', { repo: 'r', tipo: 'front' }, { conversationId: 'chat:6' }), /já tem uma esteira em andamento/);
   assert.deepEqual(pipelineInputProblems({ inputs: [{ name: 'a', description: '' }] }, { a: 'x' }), []);
   assert.deepEqual(resolveParams({ playbook: 'x', map: { b: 'perguntar' } }, ['a', 'b'], { inputs: { a: '1', b: '2' }, stages: {} }).missing, ['b']);

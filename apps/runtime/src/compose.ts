@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { setProvider, type Agent } from './agents/runtime-port.ts';
 import { validateConfig, type OrbiConfig } from './config.ts';
-import { BrainStore } from './brain.ts';
+import { wireContexts } from './wiring.ts';
 import { Inbox } from './contexts/talk/index.ts';
 import { PolicyStore } from './contexts/trust/index.ts';
 import { Conversations } from './contexts/talk/index.ts';
@@ -88,7 +88,8 @@ export async function createOrbi(
   const followups = overrides.followups ?? new Followups(db);
   const policy = overrides.policy ?? new PolicyStore(preferences);
   importLegacyState(config, { inbox, conversations, policy });
-  const brain = overrides.brain ?? new BrainStore(db);
+  // The contexts that share the database, wired in one place (documento 26, wiring.ts).
+  const contexts = wireContexts(db);
   const pipelineRuns = new PipelineRuns(db);
   const codeAgents = overrides.codeAgents ?? new CodeAgents(db, config.codeAgent);
   const mcpServers = new McpServers(db);
@@ -101,14 +102,29 @@ export async function createOrbi(
     mcpServers,
     mcpHub: new McpHub(mcpServers, vault, join(config.dataDir, 'mcp')),
     observations: new RunObservations(),
-    knowledge: new KnowledgeCandidates(),
+    candidates: new KnowledgeCandidates(),
     events,
     // `telemetry` mostra o nome da conversa, mas a tabela é de `talk`: pede em vez de dar JOIN.
     usage: overrides.usage ?? new UsageStore(db, (id) => conversations.get(id)?.title),
     toolOutcomes: overrides.toolOutcomes ?? new ToolOutcomes(),
     agents: overrides.agents ?? { clients: new AgentClients(db), requests: new AgentRequests(db), suggestions: new AgentSuggestions(db) },
-    brain,
-    pipelines: overrides.pipelines ?? { runs: pipelineRuns, engine: new PipelineEngine({ brain, runs: pipelineRuns, inbox }) },
+    ...contexts,
+    db,
+    pipelines: overrides.pipelines ?? {
+      runs: pipelineRuns,
+      engine: new PipelineEngine({
+        store: {
+          pipeline: (name) => contexts.procedures.pipelineDefs.pipeline(name),
+          countPipelineUse: (name) => contexts.procedures.pipelineDefs.countPipelineUse(name),
+          keepPassageAsking: (p, stage, conversationId) => contexts.procedures.pipelineDefs.keepPassageAsking(p, stage, conversationId),
+          notePassage: (p, stageId, continued, conversationId) => contexts.procedures.pipelineDefs.notePassage(p, stageId, continued, conversationId),
+          run: (runId) => contexts.procedures.execution.run(runId),
+          playbook: (name) => contexts.procedures.definition.playbook(name),
+        },
+        runs: pipelineRuns,
+        inbox,
+      }),
+    },
     inbox,
     policy,
     conversations,
@@ -141,10 +157,10 @@ const openStep = (run: { steps: ReadonlyArray<{ id: string; status: string }> } 
  * leaves its trail (docs/funcionalidades/24). A call that opens the execution itself
  * (`playbook_start`) has none yet: it is kept until it ends, and lands in the run it created.
  */
-export function recordCallStart(s: Pick<OrbiServices, 'brain' | 'toolOutcomes'>, conversationId: string, call: { id: string; tool: string; args: unknown }): void {
+export function recordCallStart(s: Pick<OrbiServices, 'procedures' | 'toolOutcomes'>, conversationId: string, call: { id: string; tool: string; args: unknown }): void {
   const summary = callSummary(call.args);
-  const run = s.brain.openRunIn(conversationId);
-  if (run) s.brain.calls.begin({ id: call.id, runId: run.id, conversationId, step: openStep(run), tool: call.tool, summary });
+  const run = s.procedures.execution.openRunIn(conversationId);
+  if (run) s.procedures.calls.begin({ id: call.id, runId: run.id, conversationId, step: openStep(run), tool: call.tool, summary });
   else s.toolOutcomes.startCall(call.id, { tool: call.tool, summary });
 }
 
@@ -159,19 +175,19 @@ function gateOutcome(text: string | undefined): { status: CallStatus; approval: 
 }
 
 /** A call ended: the registry of the execution gets how it went, how long and how much it read. */
-export function recordCallEnd(s: Pick<OrbiServices, 'brain' | 'toolOutcomes'>, conversationId: string, outcome: ToolOutcome): void {
+export function recordCallEnd(s: Pick<OrbiServices, 'procedures' | 'toolOutcomes'>, conversationId: string, outcome: ToolOutcome): void {
   if (!outcome.id) return;
-  const run = s.brain.openRunIn(conversationId);
+  const run = s.procedures.execution.openRunIn(conversationId);
   const started = s.toolOutcomes.takeCall(outcome.id);
   // The call that opened this execution: its line is written now, in the run it created.
-  if (!s.brain.calls.get(outcome.id)) {
+  if (!s.procedures.calls.get(outcome.id)) {
     if (!run || !started) return;
-    s.brain.calls.begin({ id: outcome.id, runId: run.id, conversationId, step: openStep(run), tool: started.tool, summary: started.summary });
+    s.procedures.calls.begin({ id: outcome.id, runId: run.id, conversationId, step: openStep(run), tool: started.tool, summary: started.summary });
   }
   const chars = outcome.chars ?? 0;
   const gate = outcome.failed ? { status: 'erro' as CallStatus, approval: null } : gateOutcome(outcome.result);
   const call = { chars, status: gate.status, error: outcome.error ?? '' };
-  s.brain.calls.finish(outcome.id, {
+  s.procedures.calls.finish(outcome.id, {
     ...gate,
     error: outcome.error,
     durationMs: outcome.durationMs ?? 0,
@@ -185,31 +201,31 @@ export function recordCallEnd(s: Pick<OrbiServices, 'brain' | 'toolOutcomes'>, c
  * A tool call ended. A failure inside a running playbook is a deviation of that run: the run
  * does not count toward the next level, and the Orbi is asked to propose a fix at the end.
  */
-export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'brain'> & Partial<Pick<OrbiServices, 'observations'>>, conversationId: string, outcome: ToolOutcome): void {
+export function recordToolOutcome(s: Pick<OrbiServices, 'toolOutcomes' | 'procedures'> & Partial<Pick<OrbiServices, 'observations'>>, conversationId: string, outcome: ToolOutcome): void {
   s.toolOutcomes.record(conversationId, outcome);
   if (outcome.tool === 'playbook_step' || outcome.tool === 'playbook_start') return;
   // What a running procedure read: the knowledge reviewer looks for facts in it at the end.
   // A call that only waits for approval or was not run read nothing.
   if (!outcome.failed && outcome.result && s.observations && RunObservations.reads(outcome.tool) && !/^\{"status":"(pending_approval|not_executed|invalid)"/.test(outcome.result)) {
-    const open = s.brain.openRunIn(conversationId);
+    const open = s.procedures.execution.openRunIn(conversationId);
     if (open && open.kind !== 'rehearsal') {
       const step = open.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? open.steps.find((x) => x.status === 'pending');
       s.observations.add(open.id, { step: step?.id ?? null, tool: outcome.tool, text: outcome.result });
     }
   }
-  const run = s.brain.runForFailureIn(conversationId);
+  const run = s.procedures.execution.runForFailureIn(conversationId);
   if (!run) return;
   // A run that already ended (the failing call ran alongside the last step): the last step it closed.
   const step = run.steps.find((x) => x.status === 'running' || x.status === 'waiting') ?? run.steps.find((x) => x.status === 'pending') ?? run.steps.at(-1);
   // Worked this time: an earlier failure of the same tool in this step was fixed on the spot.
-  if (!outcome.failed) return s.brain.recoverRunDeviation(run.id, outcome.tool, step?.id ?? null);
+  if (!outcome.failed) return s.procedures.execution.recoverRunDeviation(run.id, outcome.tool, step?.id ?? null);
   // A failure the brain already knows: remembered with its problem, so getting past it with the
   // known solution does not hold the level back, and coming back every time is counted.
-  const known = outcome.error ? s.brain.knownProblems(`${outcome.tool}\n${outcome.error}`, 1)[0] : undefined;
-  s.brain.addRunDeviation(run.id, {
+  const known = outcome.error ? s.procedures.execution.knownProblems(`${outcome.tool}\n${outcome.error}`, 1)[0] : undefined;
+  s.procedures.execution.addRunDeviation(run.id, {
     // A wrong call (a tool that does not exist, arguments that do not validate) is the model's slip,
     // not the step's failure, unless the step is about that very tool (then it never did its work).
-    kind: isCallError(outcome.error) && !stepUses(s.brain.playbook(run.playbook)?.steps.find((x) => x.id === step?.id)?.how, outcome.tool) ? 'chamada' : 'falha',
+    kind: isCallError(outcome.error) && !stepUses(s.procedures.definition.playbook(run.playbook)?.steps.find((x) => x.id === step?.id)?.how, outcome.tool) ? 'chamada' : 'falha',
     detail: `${outcome.tool} falhou${outcome.error ? `: ${outcome.error.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,
     tool: outcome.tool,
     step: step?.id ?? null,
@@ -266,7 +282,7 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
       recordCallEnd(s, conversationId, outcome);
       recordToolOutcome(s, conversationId, outcome);
     },
-    onTurn: (conversationId, u) => s.brain.execution.addUsage(conversationId, u),
+    onTurn: (conversationId, u) => s.procedures.execution.addUsage(conversationId, u),
     // When a turn ends: review the runs that ended in it (problems, level, configuration).
     onSettled: (conversationId) => {
       // The knowledge reviewer finished: what it found goes to the run's conversation, as facts to propose.

@@ -8,10 +8,10 @@ import type { AgentContext } from '../context.ts';
  * o portal até a GMUD"), and hand over values the developer gave for a stage.
  * Creating or changing an esteira goes through brain_learn (approval card).
  */
-export const pipelines = defineCapability({ name: 'pipelines', needs: ['brain', 'pipelines'], register: usePipelines });
+export const pipelines = defineCapability({ name: 'pipelines', needs: ['procedures', 'pipelines'], register: usePipelines });
 
-function usePipelines(ctx: AgentContext, { brain, pipelines }: Deps<'brain' | 'pipelines'>) {
-  if (brain.pipelines().length === 0) return;
+function usePipelines(ctx: AgentContext, { procedures, pipelines }: Deps<'procedures' | 'pipelines'>) {
+  if (procedures.pipelineDefs.pipelines().length === 0) return;
 
   useTool({
     name: 'pipeline_start',
@@ -30,11 +30,11 @@ function usePipelines(ctx: AgentContext, { brain, pipelines }: Deps<'brain' | 'p
         const { run, instruction } = pipelines.engine.start(data.name, data.inputs, { conversationId: ctx.conversationId, destination: data.destination ?? null });
         return { output: { started: run.id, next: instruction } };
       } catch (error) {
-        const p = brain.pipeline(data.name);
+        const p = procedures.pipelineDefs.pipeline(data.name);
         return {
           output: {
             error: error instanceof Error ? error.message : String(error),
-            ...(p ? { inputs: p.inputs.map((i) => ({ name: i.name, description: i.description, options: i.options ?? [], ...(i.default ? { default: i.default } : {}) })), stages: p.stages.map((s) => s.id) } : { available: brain.pipelines().map((x) => x.name) }),
+            ...(p ? { inputs: p.inputs.map((i) => ({ name: i.name, description: i.description, options: i.options ?? [], ...(i.default ? { default: i.default } : {}) })), stages: p.stages.map((s) => s.id) } : { available: procedures.pipelineDefs.pipelines().map((x) => x.name) }),
           },
         };
       }

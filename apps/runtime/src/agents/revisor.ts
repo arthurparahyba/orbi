@@ -16,7 +16,7 @@ import instructions from '../prompts/revisor.md?raw';
 export function Revisor({ id }: { id: string }) {
   const all = services();
   useModel(modelForTurn(all.llm, resolveRoles(all.llm, all.modelRoles.all(), all.modelTiers.all()), 'conhecimento'), { thinkingLevel: 'low' });
-  useTool(brainQuery(all.brain));
+  useTool(brainQuery({ knowledge: all.knowledge, procedures: all.procedures }));
   useTool(proposeFacts(all, id.slice(KNOWLEDGE_PREFIX.length)));
   return instructions;
 }
@@ -29,7 +29,7 @@ const fact = v.variant('kind', [
 ]);
 
 /** The facts found, checked like any learning (types that exist, no credentials); the valid ones go to the runtime. */
-function proposeFacts(s: Pick<OrbiServices, 'brain' | 'knowledge'>, runId: string) {
+function proposeFacts(s: Pick<OrbiServices, 'knowledge' | 'learning' | 'candidates'>, runId: string) {
   return defineTool({
     name: 'propose_facts',
     description: 'Propose the facts found in what the run read (an empty list when there is none). Problems come back at once; fix and call again with only those.',
@@ -39,15 +39,15 @@ function proposeFacts(s: Pick<OrbiServices, 'brain' | 'knowledge'>, runId: strin
       const problems: string[] = [];
       for (const f of data.facts) {
         const issues = f.kind === 'entity'
-          ? [...(s.brain.type(f.type) ? [] : [`o tipo ${f.type} não existe no cérebro (não crie tipos)`]), ...s.brain.check('entity', { id: f.id, type: f.type, props: f.props })]
-          : s.brain.check('edge', { from: f.from, rel: f.rel, to: f.to });
+          ? [...(s.knowledge.type(f.type) ? [] : [`o tipo ${f.type} não existe no cérebro (não crie tipos)`]), ...s.learning.check('entity', { id: f.id, type: f.type, props: f.props })]
+          : s.learning.check('edge', { from: f.from, rel: f.rel, to: f.to });
         if (issues.length) problems.push(`${f.kind === 'entity' ? f.id : `${f.from} ${f.rel} ${f.to}`}: ${issues.join('; ')}`);
         else ok.push(f as FactCandidate);
       }
       // Against the brain (docs/funcionalidades/22): the same thing under another name becomes the
       // existing fact, and what is already known is marked so (it may still change its step).
-      const matched = matchFacts(ok, s.brain);
-      s.knowledge.offer(runId, matched);
+      const matched = matchFacts(ok, s.knowledge);
+      s.candidates.offer(runId, matched);
       return { output: { accepted: matched.filter((f) => f.verdict !== 'já sei').length, known: matched.filter((f) => f.verdict === 'já sei').length, ...(problems.length ? { problems } : {}) } };
     },
   });

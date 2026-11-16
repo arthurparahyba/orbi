@@ -9,17 +9,17 @@ import { body, notFound, query } from '../../http/errors.ts';
  * Cérebro, and environments to fix, answered on the review card ("Agora não", fixed). Changes
  * arrive as `brain` events.
  */
-export function reviewNoteRoutes({ brain }: Pick<OrbiServices, 'brain'>) {
+export function reviewNoteRoutes({ notes }: Pick<OrbiServices, 'notes'>) {
   return new Hono()
     .get('/', (c) => {
       const playbook = c.req.query('playbook') || undefined;
       const kind = query(c, 'kind', v.optional(v.picklist(['idea', 'environment', 'change'])));
       const status = query(c, 'status', v.optional(v.picklist(['kept', 'open', 'dismissed', 'done', 'applied'])));
-      return c.json(brain.review.notes({ playbook, kind, status }));
+      return c.json(notes.notes({ playbook, kind, status }));
     })
     .post('/:id/status', async (c) => {
       const { status } = await body(c, SetReviewNoteStatus);
-      if (!brain.review.note(c.req.param('id'))) throw notFound('anotação da revisão');
-      return c.json(brain.review.setStatus(c.req.param('id'), status));
+      if (!notes.note(c.req.param('id'))) throw notFound('anotação da revisão');
+      return c.json(notes.setStatus(c.req.param('id'), status));
     });
 }

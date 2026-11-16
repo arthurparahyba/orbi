@@ -10,11 +10,11 @@ import { browserRead } from '../agents/tools/browser.ts';
  * in this fresh context, and only the diagnosis returns. Read-only by design —
  * subagents cannot hold approvals, so anything that changes state goes back to Orbi.
  */
-export function investigadorFor(deps: Deps<'config' | 'brain' | 'browser'>) {
+export function investigadorFor(deps: Deps<'config' | 'knowledge' | 'procedures' | 'browser'>) {
   function Investigador() {
     useTool(runReadOnlyCommand(deps));
     useTool(runPython(deps.config));
-    useTool(brainQuery(deps.brain));
+    useTool(brainQuery({ knowledge: deps.knowledge, procedures: deps.procedures }));
     useTool(browserRead(deps.browser));
     return instructions;
   }

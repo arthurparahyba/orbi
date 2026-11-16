@@ -42,7 +42,7 @@ const { Configurador } = await import('../src/agents/configurador.ts');
 const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
 const services = (await import('../src/services.ts')).services();
-const { brain, inbox, llm, config, followups } = services;
+const { knowledge, procedures, trust, learning, notes, inbox, llm, config, followups } = services;
 
 type Reply = { text: string; data: Record<string, unknown[]> };
 type Snapshot = import('./eval/core.ts').Snapshot;
@@ -79,7 +79,7 @@ async function runScenario(id: string) {
   const portal = await startFakePortal();
   const panel = await startFakePanel();
   const sites = () => ({ store: store.url, portal: `${portal.url}/login`, panel: panel.url });
-  await scenario.seed?.({ brain, workspace: config.workspace, sites: sites() });
+  await scenario.seed?.({ brain: { knowledge, procedures, trust, learning, notes }, workspace: config.workspace, sites: sites() });
   const system = core.personaPrompt(scenario, sites());
   const shown = new Map<string, Record<string, any>>();
   const snap: Snapshot = { turns: [], brain: { types: [], entities: [], playbooks: [], runs: [] }, asked: [], secretValues: [] };
@@ -87,7 +87,7 @@ async function runScenario(id: string) {
     ...snap,
     turns: [...snap.turns],
     asked: [...snap.asked],
-    brain: { types: brain.types(), entities: brain.graph().entities, playbooks: brain.playbooks(), runs: brain.runs(200) },
+    brain: { types: knowledge.types(), entities: knowledge.graph().entities, playbooks: procedures.definition.playbooks(), runs: procedures.execution.runs(200) },
     sites: { catalogo: panel.registered.length },
   });
   const conversation = `chat:eval-${scenario.id}-${Date.now()}`;
@@ -97,7 +97,7 @@ async function runScenario(id: string) {
     for (const c of cards) if (c.inboxId) shown.set(c.inboxId, c);
     // Stopped half-way: a procedure still open and nothing waiting for the developer (no card, no follow-up).
     const waiting = inbox.list({ status: 'open' }).some((x) => x.conversationId === conversation && x.kind !== 'level');
-    const open = brain.runs(50).some((r) => r.conversationId === conversation && (r.status === 'running' || r.status === 'waiting'));
+    const open = procedures.execution.runs(50).some((r) => r.conversationId === conversation && (r.status === 'running' || r.status === 'waiting'));
     const followup = !!followups.active(conversation);
     snap.turns.push({ from: 'orbi', text: reply.text, cards: cards.map((c) => ({ component: String(c.component), summary: cardSummary(c) })), stalled: open && !waiting && !followup });
   };
