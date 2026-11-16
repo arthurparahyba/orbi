@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyEntity, mergeEntity, verdictLine } from '../src/brain/domain/fact-match.ts';
+import { classifyEntity, mergeEntity, verdictLine } from '../src/contexts/knowledge/facts/src/match.ts';
 import type { Entity } from '../src/language/index.ts';
 
 /** A proposed fact against the brain (docs/funcionalidades/22). */

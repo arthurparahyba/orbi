@@ -2,7 +2,7 @@ import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
 import { codeFixCategory } from '../../contexts/trust/index.ts';
-import { asKnownProblem, fixedByCodeAgent } from '../../brain/domain/knowledge.ts';
+import { asKnownProblem, fixedByCodeAgent } from '../../contexts/knowledge/index.ts';
 import { askShellPath } from './shell-setup.ts';
 import type { AgentContext } from '../context.ts';
 import type { PreparedFix } from '../../code-agents/index.ts';

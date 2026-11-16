@@ -3,7 +3,7 @@ import type { Events } from '../events.ts';
 import type { Agent } from '../agents/runtime-port.ts';
 import { tellAgent } from '../conversations/tell.ts';
 import { log } from '../observability/log.ts';
-import type { BrainStore } from '../brain/store.ts';
+import type { BrainStore } from '../brain.ts';
 import { wakeMessage, whenLabel, MAX_ATTEMPTS } from './domain.ts';
 import type { Followups } from './service.ts';
 

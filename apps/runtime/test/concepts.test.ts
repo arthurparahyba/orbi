@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain/store.ts';
-import { citations, inputProblems, leakedSpecifics } from '../src/brain/domain/concepts.ts';
+import { BrainStore } from '../src/brain.ts';
+import { citations, inputProblems, leakedSpecifics } from '../src/contexts/procedures/definition/src/concepts.ts';
 import type { OntologyType } from '../src/language/index.ts';
 
 /** Procedures over concepts (docs/funcionalidades/18): inputs, citations, specifics, passo 0. */

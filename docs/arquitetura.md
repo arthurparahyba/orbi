@@ -54,7 +54,6 @@ src/
   skills/                   a única skill de fábrica: como aprender
   prompts/*.md              os textos que o modelo lê (Orbi, investigador, skill)
 
-  brain/                    cérebro: services/ (por assunto), store.ts (aprendizado + atalhos), domain/ (regras puras), repo/ (SQL)
   conversations/            conversas, pendências e tellAgent (mensagem de fora da conversa)
   terminal/exec.ts          execução sem shell, com allowlist
   followups/                retornos agendados: estados, serviço, agendador (entrega com nova tentativa)
@@ -74,8 +73,17 @@ src/
     trust/                  o que ele pode fazer sozinho: levels (o nível do procedimento, como
                             sobe e desce, as ações conhecidas), policy (observar · perguntar ·
                             automático, por categoria e por playbook) e /api/autonomy
+    knowledge/              o que ele sabe: ontology (tipos), facts (entidades, ligações e se um
+                            fato novo já existe), search (FTS5), problems (fatos do tipo problema
+                            casados com o texto de um erro) e /api/brain. Contexto folha.
+    procedures/             o que sabe fazer e o que está fazendo: definition, rehearsal,
+                            execution (passos, passo 0, registro das chamadas), proofs,
+                            learnings, pipelines (motor incluído) e /api/pipelines
+    learning/               o que espera aprovação e a transação tudo-ou-nada do lote
   language/                 a linguagem compartilhada: Entity, Playbook, PlaybookRun, Level,
                             Effect, Proposal — só tipos e constantes, importa contexto nenhum
+  brain.ts                  agregado da composição (era o BrainStore): liga os contextos, guarda
+                            stats e exportMarkdown, e tem atalhos que são dívida declarada
   observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
                             usage.ts (uso por conversa e por dia)
 

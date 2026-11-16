@@ -1,5 +1,5 @@
 import type { PlaybookRun } from '../language/index.ts';
-import { agreementOf } from '../brain/domain/rehearsal.ts';
+import { agreementOf } from '../contexts/procedures/index.ts';
 
 /**
  * Where a conversation is, as the app shows it: teaching (and at which

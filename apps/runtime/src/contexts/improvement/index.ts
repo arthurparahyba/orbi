@@ -2,8 +2,8 @@
  * The `improvement` context — how the Orbi gets better (documento 26, map in `docs/modulos.md`).
  *
  * This is the context's only door: nothing outside imports a file inside `review/`, `judge/`,
- * `diagnosis/` or `report/` (test/boundary.test.ts checks it). It owns the `diagnoses` and
- * `diagnosis_reports` tables; `review_notes` is still the brain's until phase 4.
+ * `diagnosis/` or `report/` (test/boundary.test.ts checks it). It owns the `diagnoses`,
+ * `diagnosis_reports` and `review_notes` tables (the last one arrived in fase 4b).
  *
  * review     looks at the run that ended and proposes a change to the procedure
  * judge      tells a defect of the procedure from a wrong call by the model
@@ -15,6 +15,10 @@ export { sendReview, reviewInstruction } from './review/src/review.ts';
 export { KnowledgeCandidates, deliverKnowledge, matchFacts, KNOWLEDGE_PREFIX } from './review/src/knowledge.ts';
 export type { FactCandidate } from './review/src/knowledge.ts';
 export { retrospective } from './review/src/retrospective.ts';
+export { Review } from './review/src/notes.ts';
+export type { NotesDeps } from './review/src/notes.ts';
+export { ReviewNoteRepo } from './review/src/notes-repo.ts';
+export { reviewNoteRoutes } from './notes-http.ts';
 
 export { judge, outOfScope, CHANGE_SCOPE_MS } from './judge/src/judge.ts';
 export type { ReviewNote, ReviewNoteKind, ReviewNoteStatus } from './judge/src/judge.ts';

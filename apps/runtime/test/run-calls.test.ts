@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { callSummary, EXPENSIVE_CHARS, expensiveChars, marksOf, transcript, type RunCall } from '../src/brain/domain/run-calls.ts';
+import { callSummary, EXPENSIVE_CHARS, expensiveChars, marksOf, transcript, type RunCall } from '../src/contexts/procedures/execution/src/run-calls.ts';
 import { isCallError } from '../src/contexts/trust/index.ts';
 
 /** The registry of the execution (docs/funcionalidades/24). */

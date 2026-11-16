@@ -1,8 +1,8 @@
-import { learningLines } from '../../brain/domain/step-learnings.ts';
-import { proofLabel, proofOf } from '../../brain/domain/proofs.ts';
+import { learningLines } from '../../contexts/procedures/index.ts';
+import { proofLabel, proofOf } from '../../contexts/procedures/index.ts';
 import { defineSkill, usePersistentState, useSkill, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import type { BrainStore } from '../../brain/store.ts';
+import type { BrainStore } from '../../brain.ts';
 import type { Inbox } from '../../conversations/inbox.ts';
 import type { Followups } from '../../followups/service.ts';
 import { defineCapability, type Deps } from '../capability.ts';

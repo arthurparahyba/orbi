@@ -7,7 +7,7 @@
  * antes de qualquer coisa. A troca é por nome conhecido, nunca por adivinhação: o que não é
  * reconhecido não é mandado. Regras puras.
  */
-import type { RunCall } from '../../../../brain/domain/run-calls.ts';
+import type { RunCall } from '../../../procedures/index.ts';
 import type { Diagnosis } from '../../diagnosis/src/diagnoses.ts';
 
 export interface Swap {

@@ -1,0 +1,126 @@
+import { transaction } from '../../../../db/database.ts';
+import { edgeProblems, entityProblems, findGaps } from '../../ontology/src/ontology.ts';
+import { ftsQuery } from '../../search/src/similarity.ts';
+import type { Edge, Entity, Gap, OntologyType } from '../../../../language/index.ts';
+import { now } from '../../../../db/rows.ts';
+import type { DatabaseSync } from 'node:sqlite';
+import type { OntologyRepo } from '../../ontology/src/repo.ts';
+import type { GraphRepo } from './repo.ts';
+
+/** The facts: ontology (types), entities and the edges between them, and their search. */
+export class Facts {
+  constructor(
+    private readonly db: DatabaseSync,
+    private readonly ontology: OntologyRepo,
+    private readonly graphRepo: GraphRepo,
+  ) {}
+
+  // ── ontology ────────────────────────────────────────────────────────────
+  /**
+   * Saves a type. Left out, relations and requires stay as they were; properties and what is
+   * known add up (a new one joins, one with the same name is replaced).
+   */
+  upsertType(type: Pick<OntologyType, 'name' | 'description'> & Partial<OntologyType>): void {
+    const before = this.ontology.get(type.name);
+    this.ontology.upsert({
+      name: type.name,
+      description: type.description || before?.description || '',
+      relations: type.relations ?? before?.relations ?? {},
+      requires: type.requires ?? before?.requires ?? [],
+      props: { ...before?.props, ...type.props },
+      knows: { ...before?.knows, ...type.knows },
+    });
+  }
+
+  types(): OntologyType[] {
+    return this.ontology.all();
+  }
+
+  type(name: string): OntologyType | undefined {
+    return this.ontology.get(name);
+  }
+
+  readonly typeOf = (name: string) => this.ontology.get(name);
+
+  // ── graph ───────────────────────────────────────────────────────────────
+  validateEntity(entity: Pick<Entity, 'id' | 'type'>): string[] {
+    return entityProblems(entity, this.typeOf);
+  }
+
+  validateEdge(edge: Pick<Edge, 'from' | 'rel' | 'to'>): string[] {
+    return edgeProblems(edge, this.get(edge.from), this.get(edge.to), this.typeOf);
+  }
+
+  upsertEntity(entity: Omit<Entity, 'updatedAt'>): Entity {
+    const problems = this.validateEntity(entity);
+    if (problems.length) throw new Error(problems.join('; '));
+    // Left out, the other names and the origin stay.
+    const before = this.graphRepo.entity(entity.id);
+    return this.graphRepo.upsertEntity({ ...entity, aliases: entity.aliases ?? before?.aliases ?? [], source: entity.source ?? before?.source ?? '' });
+  }
+
+  /** Entities of a type known by this name: the id or another name, without accents or case. */
+  named(type: string, name: string): Entity[] {
+    return this.graphRepo.named(type, name);
+  }
+
+  /** The developer edits an entity on the Cérebro screen: properties and text (type and id stay). */
+  editEntity(id: string, change: { props?: Record<string, unknown>; body?: string }): Entity {
+    const current = this.get(id);
+    if (!current) throw new Error(`entidade não encontrada: ${id}`);
+    return this.upsertEntity({ id, type: current.type, props: change.props ?? current.props, body: change.body ?? current.body });
+  }
+
+  /** What deleting an entity takes along: its relations, current and past. */
+  entityDependents(id: string): { relations: number } {
+    return { relations: this.graphRepo.edgeCount(id) };
+  }
+
+  deleteEntity(id: string): { relations: number } {
+    if (!this.get(id)) throw new Error(`entidade não encontrada: ${id}`);
+    let relations = 0;
+    transaction(this.db, () => {
+      relations = this.graphRepo.deleteEntity(id);
+    });
+    return { relations };
+  }
+
+  /** Add a fact. Edges are temporal: `validTo` lets "Marina approves until 31/12" expire by itself. */
+  addEdge(edge: { from: string; rel: string; to: string; attrs?: Record<string, unknown>; validFrom?: string; validTo?: string | null }): Edge {
+    const problems = this.validateEdge(edge);
+    if (problems.length) throw new Error(problems.join('; '));
+    const row: Edge = { from: edge.from, rel: edge.rel, to: edge.to, attrs: edge.attrs ?? {}, validFrom: edge.validFrom ?? now(), validTo: edge.validTo ?? null };
+    this.graphRepo.insertEdge(row);
+    return row;
+  }
+
+  get(id: string): Entity | undefined {
+    return this.graphRepo.entity(id);
+  }
+
+  byType(type: string): Entity[] {
+    return this.graphRepo.byType(type);
+  }
+
+  neighbors(id: string, options: { rel?: string; at?: string } = {}): { out: Edge[]; in: Edge[] } {
+    return this.graphRepo.neighbors(id, options.at ?? now(), options.rel);
+  }
+
+  reachable(id: string, depth = 2): Array<{ id: string; depth: number }> {
+    return this.graphRepo.reachable(id, depth, now());
+  }
+
+  /** Entities for a text, best first (full-text index; see domain/similarity.ts). */
+  search(text: string, limit = 10): Entity[] {
+    return this.graphRepo.search(ftsQuery(text), limit);
+  }
+
+  gaps(): Gap[] {
+    const at = now();
+    return findGaps(this.graphRepo.entities(), (id) => this.graphRepo.neighbors(id, at).out, this.typeOf);
+  }
+
+  graph(): { types: OntologyType[]; entities: Entity[]; edges: Edge[] } {
+    return { types: this.types(), entities: this.graphRepo.entities(), edges: this.graphRepo.edges() };
+  }
+}

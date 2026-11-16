@@ -5,7 +5,7 @@ import type { Deps } from './capability.ts';
 import { decide, effectOfCategory, type Category } from '../contexts/trust/index.ts';
 import { type RunAction } from '../language/index.ts';
 import { askReason, defaultFingerprint, fingerprintWith, isCallError } from '../contexts/trust/index.ts';
-import { marksOf } from '../brain/domain/run-calls.ts';
+import { marksOf } from '../contexts/procedures/index.ts';
 import type { PlaybookRun } from '../language/index.ts';
 import type { ActiveRun, GatedTool } from './context.ts';
 import type { InboxItem } from '../conversations/inbox.ts';

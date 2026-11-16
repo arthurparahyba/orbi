@@ -59,7 +59,8 @@ Tabelas: `types`, `entities`, `edges`, `proposals`.
 
 ### procedimentos (`procedures`) — o que ele sabe fazer, e o que está fazendo
 
-Hoje em `brain/{domain,repo,services}` (playbooks, execução, provas, aprendizados) e `pipelines/`.
+**Migrado** (fase 4b): `src/contexts/procedures/`, com `index.ts` e as rotas em
+`pipelines-http.ts` e `learnings-http.ts`. É o maior contexto, e o único com seis módulos.
 
 | Módulo | O que faz |
 |---|---|
@@ -67,10 +68,17 @@ Hoje em `brain/{domain,repo,services}` (playbooks, execução, provas, aprendiza
 | `ensaio` (`rehearsal`) | a execução de teste que prova o procedimento antes de valer |
 | `execução` (`execution`) | a execução de verdade: passos, passo 0 (resolver entradas), registro das chamadas, desvios |
 | `provas` (`proofs`) | qual passo já rodou como está escrito; a prova cai quando o texto do passo muda |
+| `aprendizados` (`learnings`) | o que cada passo já tentou, e como foi |
 | `esteiras` (`pipelines`) | procedimentos em sequência e o motor que decide a próxima etapa |
 
-Interface pública: `obter`, `semelhantes`, `iniciar`, `passo`, `resolverEntrada`,
-`registrarChamada`, `provas`, `aprendizados`, `esteiras`.
+Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `ProofRepo`,
+`StepLearningRepo`, `PipelineDefs`, `PipelineRepo`, mais as regras puras de cada módulo
+(`playbooks`, `scripts`, `concepts`, `rehearsal`, `run-calls`, `proofs`, `learnings`,
+`pipelines`, `config`, `engine`, `runs`) e as rotas `pipelineRoutes`, `pipelineRunRoutes`,
+`stepLearningRoutes`.
+
+Lê `knowledge` pela porta `FactsForRun` e pede o nível a `trust`; nenhum dos dois alcança aqui.
+O motor da esteira recebe a porta `EngineStore` em vez do agregado `brain.ts`.
 
 Tabelas: `playbooks`, `playbook_runs`, `run_calls`, `playbook_proofs`, `playbook_learnings`,
 `pipelines`, `pipeline_runs`.
@@ -119,13 +127,28 @@ Interface pública: `sendReview`, `reviewInstruction`, `KnowledgeCandidates`, `d
 `DETECTORS`, `startReport`, `AGENT_PROMPT`, `REPORT_PREFIX`, `reportBrief`, `draftIssue`,
 `issueUrl`, `sendIssue`, `diagnosisRoutes`.
 
-Tabelas: `diagnoses`, `diagnosis_reports`. **`review_notes` ainda é do cérebro**: a classe
-`Review` recebe o próprio `BrainStore` e é exposta como `brain.review`; ela vem na fase 4, com a
-repartição do cérebro.
+Tabelas: `diagnoses`, `diagnosis_reports` e `review_notes` (esta chegou na fase 4b). A classe
+`Review` deixou de receber o `BrainStore`: recebe `NotesDeps`, com o seu próprio repositório, o
+procedimento de que a nota fala e o fato que ela cita.
 
 `retrospectiva` não virou módulo: são 33 linhas e respondem a mesma pergunta que `revisão`, então
 é um arquivo dentro dela. E os agentes `revisor` e `diagnosticador` ficam na composição
 (`agents/`): são adaptadores finos que registram o agente no Flue e chamam este contexto.
+
+### aprendizado (`learning`) — o que ainda espera aprovação
+
+**Migrado** (fase 4b): `src/contexts/learning/`, um módulo só, código plano em `src/`.
+
+Dono da tabela `proposals` e, mais importante, **dono da garantia de que um lote cai inteiro ou
+não cai** (documento 22). Um lote pode trazer um tipo, um fato, uma ligação, um procedimento e
+uma esteira de uma vez, então a transação atravessa `knowledge` e `procedures`: os contextos
+compartilham a mesma conexão SQLite, e é aqui que a transação tem nome e lugar.
+
+Interface pública: `Learning`, `ProposalRepo`, `changeFromProposal`, `proposalProblems`,
+`pipelineFromPayload`, `credentialProblems`, e os tipos `Change`, `ProposalContext`,
+`LearningDeps`.
+
+Tabelas: `proposals`.
 
 ### conversa (`talk`) — por onde o desenvolvedor fala
 
@@ -232,6 +255,13 @@ O `db/` **não** é deste contexto: ele roda as migrações de todos, e isso é 
 
 ## Composição
 
-A composição (`compose.ts`, `agents/`, `http/app.ts`, `mcp/`) pode usar qualquer contexto. É onde vivem o agente Orbi (que monta o turno), a
+A composição (`compose.ts`, `brain.ts`, `agents/`, `http/app.ts`, `mcp/`) pode usar qualquer
+contexto.
+
+**`src/brain.ts` é dívida declarada.** Era o `BrainStore`, e desde a fase 4b é um agregado da
+composição: liga os contextos, guarda as duas leituras que atravessam contexto de propósito
+(`stats` e `exportMarkdown`) e oferece atalhos de uma linha para todos eles. Existem cerca de 400
+chamadas `brain.x` em 74 arquivos, e elas vão sendo trocadas pela chamada ao contexto conforme
+cada arquivo é tocado por outro motivo. **Código novo pede ao contexto, não a esta classe.** É onde vivem o agente Orbi (que monta o turno), a
 API HTTP (que só monta as rotas que cada contexto exporta), o servidor MCP e o `compose.ts`.
 Nenhum contexto importa a composição.

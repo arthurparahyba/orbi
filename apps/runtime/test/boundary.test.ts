@@ -18,10 +18,11 @@ const CONTEXTS = join(SRC, 'contexts');
 /**
  * O que qualquer contexto pode alcançar sempre: a linguagem compartilhada (`language/`, só
  * tipos e constantes, que não importa contexto nenhum) e as peças da composição com que todo
- * contexto conversa — `services.ts`, o conjunto que a rota recebe, e `http/errors.ts`, o formato
- * de erro da API. Contrato, não funcionalidade de outro contexto. Não cresce sem discussão.
+ * contexto conversa: `services.ts`, o conjunto que a rota recebe, `http/errors.ts` e
+ * `http/routes/types.ts`, o formato da API, e `db/{database,rows}.ts`, a conexão e os ajudantes
+ * de linha. Contrato e encanamento, não funcionalidade de outro contexto. Não cresce sem discussão.
  */
-const SEMPRE_PERMITIDO = ['services.ts', 'http/errors.ts', 'language/'];
+const SEMPRE_PERMITIDO = ['services.ts', 'http/errors.ts', 'http/routes/types.ts', 'language/', 'db/database.ts', 'db/rows.ts'];
 
 /**
  * Pastas que ainda não viraram contexto e que um contexto pode alcançar por enquanto.
@@ -38,7 +39,13 @@ const AINDA_FORA: Record<string, string[]> = {
   improvement: ['brain/domain/', 'pipelines/', 'conversations/', 'terminal/', 'code-agents/', 'observability/', 'version.ts', 'agents/runtime-port.ts'],
   // `commands/` e `mcp-client/` viram o contexto `tools` na fase 5; `db/database.ts` é o
   // runner das migrações, que fica na composição, e `brain/repo/rows.ts` sai na fase 4b.
-  trust: ['commands/', 'mcp-client/', 'db/database.ts', 'brain/repo/rows.ts'],
+  trust: ['commands/', 'mcp-client/'],
+  // `knowledge` não alcança nada: é o contexto folha.
+  knowledge: [],
+  // `conversations/`, `terminal/`, `code-agents/` e `observability/` viram `talk`, `tools` e
+  // `telemetry` na fase 5; `agents/` é composição (o adaptador do Flue).
+  procedures: ['conversations/', 'terminal/', 'code-agents/', 'observability/', 'agents/'],
+  learning: [],
 };
 
 const files = (dir: string): string[] =>

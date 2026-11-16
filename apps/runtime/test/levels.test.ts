@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain/store.ts';
+import { BrainStore } from '../src/brain.ts';
 import { type LevelState } from '../src/language/index.ts';
 import { decideAction, fingerprintWith, settleLevel } from '../src/contexts/trust/index.ts';
 import { commandCategory, commandEffect, decide, parsePolicy } from '../src/contexts/trust/index.ts';
-import { withDefaults, inputProblems } from '../src/brain/domain/pipelines.ts';
+import { withDefaults, pipelineInputProblems } from '../src/contexts/procedures/pipelines/src/pipelines.ts';
 import { shortCommand } from '../src/agents/tools/terminal.ts';
 
 const pb = (name: string, steps: string[], autonomy: 'ask' | 'auto' = 'ask') => ({
@@ -136,7 +136,7 @@ test('esteira: padrão nas entradas e passagem que vira automática', () => {
     ],
   });
   assert.deepEqual(withDefaults(p, {}), { destino: '~/site' });
-  assert.deepEqual(inputProblems(p, withDefaults(p, {})), []);
+  assert.deepEqual(pipelineInputProblems(p, withDefaults(p, {})), []);
   assert.equal(b.notePassage('site', 'publicar', true, null), null);
   assert.equal(b.notePassage('site', 'publicar', false, null), null, 'parar zera');
   b.notePassage('site', 'publicar', true, null);

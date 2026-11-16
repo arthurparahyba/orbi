@@ -8,7 +8,7 @@
  */
 import type { Deviation, RunAction } from '../../../../language/index.ts';
 import { workedAround } from '../../../trust/index.ts';
-import type { KnownProblem } from '../../../../brain/domain/knowledge.ts';
+import type { KnownProblem } from '../../../knowledge/index.ts';
 
 /** A change that saves at least this share of the run's approvals (or time, or tokens) is worth it. */
 export const HIGH_GAIN = 0.3;

@@ -7,7 +7,7 @@
  * drop or reshape one the app uses.
  */
 import type * as C from '@orbi/contracts';
-import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun } from './brain/store.ts';
+import type { Autonomy, Edge, Entity, Gap, OntologyType, Playbook, PlaybookRun } from './brain.ts';
 import type { DemoAction, NarrationSegment, Recording, Target } from './browser/recorder.ts';
 import type { ConversationInfo } from './conversations/conversations.ts';
 import type { InboxItem } from './conversations/inbox.ts';
@@ -15,8 +15,8 @@ import type { AutonomyLevel, Category } from './contexts/trust/index.ts';
 import type { SecretInfo } from './contexts/secrets/index.ts';
 import type { AgentClient } from './mcp/clients.ts';
 import type { VoiceStatus } from './voice/model.ts';
-import type { PipelineRun } from './pipelines/runs.ts';
-import type { Pipeline } from './brain/domain/pipelines.ts';
+import type { PipelineRun } from './contexts/procedures/index.ts';
+import type { Pipeline } from './contexts/procedures/index.ts';
 import type { AgentRequest } from './mcp/requests.ts';
 import type { AgentSuggestion } from './mcp/suggestions.ts';
 import type { CatalogEntry, CodeAgent, TaskAssignment } from './code-agents/index.ts';
@@ -26,8 +26,8 @@ import type { ConversationState } from './conversations/state.ts';
 import type { ConversationNotebook } from './conversations/notebook.ts';
 import type { ModelChoices } from './contexts/models/index.ts';
 import type { ReviewNote } from './contexts/improvement/index.ts';
-import type { StepLearning } from './brain/domain/step-learnings.ts';
-import type { RunCall } from './brain/domain/run-calls.ts';
+import type { StepLearning } from './contexts/procedures/index.ts';
+import type { RunCall } from './contexts/procedures/index.ts';
 import type { Diagnosis, DiagnosisReport, DiagnosisSetup } from './contexts/improvement/index.ts';
 import type { IssueDraft } from './contexts/improvement/index.ts';
 import type { Sent } from './contexts/improvement/index.ts';

@@ -1,5 +1,5 @@
 import type { PlaybookRun } from '../../../../../language/index.ts';
-import type { RunCall } from '../../../../../brain/domain/run-calls.ts';
+import type { RunCall } from '../../../../procedures/index.ts';
 
 /**
  * One check of a finished (or abandoned) run. The review runs every analyzer registered in

@@ -8,9 +8,9 @@ import { mkdtempSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { EXAMPLE_TYPES, edgeProblems, entityProblems, findGaps } from '../src/brain/domain/ontology.ts';
-import { advanceRun, fillParams, newRun, playbookProblems } from '../src/brain/domain/playbooks.ts';
-import { changeFromProposal, proposalProblems } from '../src/brain/domain/learning.ts';
+import { EXAMPLE_TYPES, edgeProblems, entityProblems, findGaps } from '../src/contexts/knowledge/ontology/src/ontology.ts';
+import { advanceRun, fillParams, newRun, playbookProblems } from '../src/contexts/procedures/definition/src/playbooks.ts';
+import { changeFromProposal, proposalProblems } from '../src/contexts/learning/src/changes.ts';
 import type { Edge, Entity, Playbook } from '../src/language/index.ts';
 import { openDatabase, schemaVersion } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
@@ -93,8 +93,8 @@ test('primeira partida depois da atualização: brain.db antigo e JSON entram no
   assert.ok(existsSync(join(data, 'inbox.json.importado')) && !existsSync(join(data, 'inbox.json')), 'importado uma vez só');
 });
 
-import { ftsQuery, sharedStems, stem, words } from '../src/brain/domain/similarity.ts';
-import { BrainStore } from '../src/brain/store.ts';
+import { ftsQuery, sharedStems, stem, words } from '../src/contexts/knowledge/search/src/similarity.ts';
+import { BrainStore } from '../src/brain.ts';
 import { evalBrain, evaluateSearch, formatResults } from '../scripts/eval-search.ts';
 
 const pb = (name: string, description: string, trigger = '', steps: string[] = []) => ({
@@ -202,7 +202,7 @@ test('exclusão de procedimento: variações ficam sem a ligação, histórico f
 });
 
 test('id de passo novo a partir do nome, sem repetir', async () => {
-  const { stepId } = await import('../src/brain/domain/playbooks.ts');
+  const { stepId } = await import('../src/contexts/procedures/definition/src/playbooks.ts');
   assert.equal(stepId('Abrir o portal', []), 'abrir-o-portal');
   assert.equal(stepId('Abrir o portal', ['abrir-o-portal']), 'abrir-o-portal-2');
   assert.equal(stepId('✓', []), 'passo');

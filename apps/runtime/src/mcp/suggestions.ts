@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
-import type { BrainStore, Playbook, PlaybookStep } from '../brain/store.ts';
+import type { BrainStore, Playbook, PlaybookStep } from '../brain.ts';
 import { transaction } from '../db/database.ts';
 
 /**

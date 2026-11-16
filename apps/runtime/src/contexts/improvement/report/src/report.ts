@@ -5,7 +5,7 @@
  * confirma a causa. As regras continuam rodando sem custo: o relatório só explica o que elas viram.
  */
 import type { PlaybookRun } from '../../../../language/index.ts';
-import type { RunCall } from '../../../../brain/domain/run-calls.ts';
+import type { RunCall } from '../../../procedures/index.ts';
 import type { Diagnosis } from '../../diagnosis/src/diagnoses.ts';
 
 export const REPORT_PREFIX = 'diagnostico:';

@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { BrainStore, EXAMPLE_TYPES } from '../src/brain/store.ts';
+import { BrainStore, EXAMPLE_TYPES } from '../src/brain.ts';
 import { openDatabase } from '../src/db/database.ts';
 import { MIGRATIONS } from '../src/db/migrations.ts';
 import { inLearningOrder } from '../src/agents/tools/brain.ts';

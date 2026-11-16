@@ -2,7 +2,7 @@ import { useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
-import { REHEARSAL } from '../../brain/domain/rehearsal.ts';
+import { REHEARSAL } from '../../contexts/procedures/index.ts';
 
 /**
  * The rehearsal (docs/funcionalidades/18): taught a procedure, the Orbi first tries it out with

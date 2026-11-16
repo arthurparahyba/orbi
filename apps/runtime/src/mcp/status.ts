@@ -1,8 +1,8 @@
 import type { InboxItem } from '../conversations/inbox.ts';
-import type { PlaybookRun } from '../brain/store.ts';
+import type { PlaybookRun } from '../brain.ts';
 import type { AgentRequest, AgentRequestStatus } from './requests.ts';
-import type { PipelineRun } from '../pipelines/runs.ts';
-import { collected } from '../pipelines/engine.ts';
+import type { PipelineRun } from '../contexts/procedures/index.ts';
+import { collected } from '../contexts/procedures/index.ts';
 
 /** What orbi_status answers: short, no logs, no credentials. */
 export interface RequestStatus {

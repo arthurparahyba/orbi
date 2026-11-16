@@ -1,11 +1,11 @@
-import { deniedAttempts } from '../../brain/domain/step-learnings.ts';
-import { howToProve, proofOf } from '../../brain/domain/proofs.ts';
+import { deniedAttempts } from '../../contexts/procedures/index.ts';
+import { howToProve, proofOf } from '../../contexts/procedures/index.ts';
 import { outOfScope } from '../../contexts/improvement/index.ts';
-import { classifyEntity } from '../../brain/domain/fact-match.ts';
+import { classifyEntity } from '../../contexts/knowledge/index.ts';
 import type { Entity } from '../../language/index.ts';
 import { defineTool, useDelivery, useTool } from '../runtime-port.ts';
 import * as v from 'valibot';
-import type { BrainStore } from '../../brain/store.ts';
+import type { BrainStore } from '../../brain.ts';
 import { defineCapability, type Deps } from '../capability.ts';
 import type { AgentContext } from '../context.ts';
 

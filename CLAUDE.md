@@ -58,12 +58,10 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/agents/         um agente por contexto de chat (orbi.ts, configurador.ts, revisor.ts; directory.ts roteia por prefixo);
                       tools/ uma capacidade por arquivo (defineCapability); gate.ts é o portão;
                       runtime-port.ts é a única porta para o Flue
-  src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/mcp-client/     servidores MCP que o Orbi usa (documento 20): regras puras, esquema, cadastro, conexões (McpHub)
-  src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
   src/prompts/*.md    textos que o modelo lê; orbi/ em partes, escolhidas por agents/prompt.ts
   src/code-agents/    agentes de código da máquina: cadastro, catálogo (dado), tarefas, executor na cópia descartável
   src/followups/      retornos agendados: estados, um por conversa, agendador com nova tentativa
@@ -73,7 +71,12 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)
     improvement/        como ele fica melhor: review, judge, diagnosis, report; rota em http.ts
     trust/              o que ele pode fazer sozinho: levels, policy; rota em http.ts
+    knowledge/          o que ele sabe: ontology, facts, search, problems (contexto folha)
+    procedures/         o que sabe fazer e está fazendo: definition, rehearsal, execution,
+                        proofs, learnings, pipelines
+    learning/           o que espera aprovação, e a transação tudo-ou-nada do lote
   src/language/         a linguagem compartilhada: só tipos e constantes, importa contexto nenhum
+  src/brain.ts          agregado da composição (era o BrainStore): dívida declarada, ver doc 26
   src/{browser,conversations,observability,terminal,voice}/
   test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw
@@ -135,8 +138,9 @@ cofre ou ponte MCP, `npm run e2e`.
   código: isso é aprendido e guardado no cérebro. O código dá capacidades genéricas.
 - **O cérebro começa vazio**, sem tipos. Não reintroduza tipos de fábrica; a demo usa
   `EXAMPLE_TYPES` explicitamente.
-- **Regras puras em `brain/domain/`**, SQL em `brain/repo/`, orquestração por assunto em `brain/services/` (facts, procedures, autonomy, execution, pipelineDefs, agenda). Código novo usa `brain.execution.startRun(…)` etc.; os métodos diretos em `BrainStore` são atalhos de compatibilidade. Aprendizado (propose/apply/learn) fica no `store.ts`.
-  Validação vale igual para o que o Orbi aprende e para o que o usuário edita na tela.
+- **Dentro de um contexto, a mesma separação**: regras puras num arquivo do módulo, SQL num
+  `repo.ts`, orquestração num `service.ts`. O `index.ts` do contexto é a única porta, e o
+  `src/brain.ts` é só um agregado da composição com atalhos — código novo pede ao contexto.
 - **Capacidade declara o que usa.** `defineCapability({ name, needs: ['brain', …], register(ctx, deps) })`
   e uma linha em `agents/capabilities.ts`. Ferramentas não chamam `services()`; recebem `deps`.
 - **Regra nova no prompt vai na parte da situação** (`prompts/orbi/*.md` + `PROMPT_PARTS`), não na base;
@@ -194,7 +198,7 @@ cofre ou ponte MCP, `npm run e2e`.
   (`settleRun`), nunca do modelo, e sempre avisa (cartão e Pendências, com Manter).
 - **Revisão no fim da execução** (`review/review.ts`): o nível só muda quando o turno
   termina (todas as falhas já chegaram, inclusive de chamadas em paralelo). Autonomia antes de
-  perfeição: o juiz (`brain/domain/judge.ts`, regras puras) decide o que vira pedido ao modelo:
+  perfeição: o juiz (módulo `judge` de `improvement`, regras puras) decide o que vira pedido ao modelo:
   mudar só os passos com problema (o `brain_learn` recusa mexer fora do escopo), aprender um
   problema novo, ou propor corrigir o ambiente de um problema recorrente; melhoria que não muda
   resultado nem autonomia vira ideia guardada, sem cartão. O revisor de conhecimento
@@ -217,7 +221,7 @@ cofre ou ponte MCP, `npm run e2e`.
   que ela devolveu. Só tamanho, duração, passo, aprovação, marcas, a primeira linha do erro e um
   resumo curto dos argumentos, que são os que o modelo escreveu (credencial só aparece como
   `{{segredo:nome}}`). Não ponha conteúdo de resposta, de página nem de arquivo nessa tabela.
-- **Esteiras**: o motor (`pipelines/engine.ts`) decide ramo, dados e passagem, nunca o
+- **Esteiras**: o motor (módulo `pipelines` de `procedures`) decide ramo, dados e passagem, nunca o
   modelo. Passagem "perguntar" só segue sem o desenvolvedor com destino dado por ele
   ou com a permissão do agente.
 

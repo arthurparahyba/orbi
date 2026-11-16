@@ -1,6 +1,6 @@
 import type { Entity, Playbook, PlaybookRun, StepStatus } from '../language/index.ts';
-import type { ReadinessItem } from '../brain/domain/concepts.ts';
-import { agreementOf, type Agreement } from '../brain/domain/rehearsal.ts';
+import type { ReadinessItem } from '../contexts/procedures/index.ts';
+import { agreementOf, type Agreement } from '../contexts/procedures/index.ts';
 import { RUNS_FOR_N3, type Level } from '../language/index.ts';
 import type { ConversationState } from './state.ts';
 

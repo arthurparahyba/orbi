@@ -35,7 +35,7 @@ const { Configurador } = await import('../src/agents/configurador.ts');
 const { Revisor } = await import('../src/agents/revisor.ts');
 const { default: app } = await import('../src/app.ts');
 const { brain, conversations, stt, agents } = (await import('../src/services.ts')).services();
-const { EXAMPLE_TYPES } = await import('../src/brain/domain/ontology.ts');
+const { EXAMPLE_TYPES } = await import('../src/contexts/knowledge/ontology/src/ontology.ts');
 if (process.env.DEMO_FAKE_STT) {
   const lines = (process.env.DEMO_FAKE_STT_LINES ?? '').split('|').filter(Boolean);
   let n = 0;

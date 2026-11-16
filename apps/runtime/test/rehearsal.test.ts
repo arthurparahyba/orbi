@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agreementOf, agreementProblems, finishRehearsal, newRehearsal, rehearsalStep, testedRunProblem } from '../src/brain/domain/rehearsal.ts';
+import { agreementOf, agreementProblems, finishRehearsal, newRehearsal, rehearsalStep, testedRunProblem } from '../src/contexts/procedures/rehearsal/src/rehearsal.ts';
 
 const agreement = { start: 'pedido de preços', receives: ['categoria'], end: 'página gerada', outside: [], corrections: [] };
 

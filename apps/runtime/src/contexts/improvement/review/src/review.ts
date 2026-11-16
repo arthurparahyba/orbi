@@ -1,4 +1,4 @@
-import { failedAttempts, learningLines } from '../../../../brain/domain/step-learnings.ts';
+import { failedAttempts, learningLines } from '../../../procedures/index.ts';
 import { retrospective } from './retrospective.ts';
 import { countsLine, worthTelling } from '../../diagnosis/src/diagnoses.ts';
 import type { ExecutionReview, Finding } from '@orbi/contracts';
@@ -6,10 +6,10 @@ import type { PlaybookRun } from '../../../../language/index.ts';
 import { judge } from '../../judge/src/judge.ts';
 import type { OrbiServices } from '../../../../services.ts';
 import { LEVEL_NAMES } from '../../../../language/index.ts';
-import { pipelineConfigProblems, type ConfigProblem } from '../../../../brain/domain/review.ts';
+import { pipelineConfigProblems, type ConfigProblem } from '../../../procedures/index.ts';
 import { defaultSuggestions } from '../../judge/src/suggestions.ts';
 import { analyzeRun, howToFix } from './analyzers/index.ts';
-import { collected } from '../../../../pipelines/engine.ts';
+import { collected } from '../../../procedures/index.ts';
 import { tellAgent } from '../../../../conversations/tell.ts';
 import { startKnowledgeReview } from './knowledge.ts';
 import { startReport } from '../../diagnosis/src/start.ts';

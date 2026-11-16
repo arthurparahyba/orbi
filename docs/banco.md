@@ -23,7 +23,7 @@ no `flue.db` sai na próxima vez que o runtime iniciar (`conversations/purge.ts`
 
 As ligações são **lógicas**: só `entities.type → types.name` tem chave
 estrangeira declarada. As outras são mantidas pelo código (`brain/store.ts`,
-`pipelines/engine.ts`…), que valida antes de gravar. Colunas `json` são `TEXT`
+o motor das esteiras…), que valida antes de gravar. Colunas `json` são `TEXT`
 com JSON dentro.
 
 ```mermaid

@@ -5,7 +5,7 @@ import type { Observation } from '../../../../observability/run-observations.ts'
 import { tellAgent } from '../../../../conversations/tell.ts';
 import { redact } from '../../../secrets/index.ts';
 import { log } from '../../../../observability/log.ts';
-import { classifyEntity, verdictLine } from '../../../../brain/domain/fact-match.ts';
+import { classifyEntity, verdictLine } from '../../../knowledge/index.ts';
 
 /**
  * The knowledge review at the end of a run (docs/funcionalidades/19): what the run read (command

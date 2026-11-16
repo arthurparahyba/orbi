@@ -1,7 +1,7 @@
-import type { BrainStore } from '../brain/store.ts';
-import type { Pipeline, PipelineStage } from '../brain/domain/pipelines.ts';
-import { playbookParams } from '../brain/domain/playbooks.ts';
-import { stem, words } from '../brain/domain/similarity.ts';
+import type { BrainStore } from '../brain.ts';
+import type { Pipeline, PipelineStage } from '../contexts/procedures/index.ts';
+import { playbookParams } from '../contexts/procedures/index.ts';
+import { stem, words } from '../contexts/knowledge/index.ts';
 import type { AgentClient } from './clients.ts';
 
 /**

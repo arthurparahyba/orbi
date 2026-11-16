@@ -54,7 +54,7 @@ export interface Scenario {
 
 /** What a scenario's seed may prepare. */
 export interface SeedContext {
-  brain: import('../../src/brain/store.ts').BrainStore;
+  brain: import('../../src/brain.ts').BrainStore;
   workspace: string;
   sites: Record<string, string>;
 }

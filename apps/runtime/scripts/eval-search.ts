@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BrainStore } from '../src/brain/store.ts';
+import { BrainStore } from '../src/brain.ts';
 
 interface EvalCase { text: string; expect: string; semantic?: boolean }
 interface EvalSet { playbooks: Array<{ name: string; description: string; trigger: string; appliesTo: string | null; steps: Array<{ id: string; label: string; how: string }> }>; queries: EvalCase[] }

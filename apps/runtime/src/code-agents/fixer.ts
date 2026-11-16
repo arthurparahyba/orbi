@@ -6,7 +6,7 @@ import { agentLine } from './command.ts';
 import { runAgent } from './run.ts';
 import type { CodeAgents } from './registry.ts';
 import type { CodeAgentTask } from './types.ts';
-import type { KnownProblem } from '../brain/domain/knowledge.ts';
+import type { KnownProblem } from '../contexts/knowledge/index.ts';
 
 /**
  * Work by a coding agent installed on this machine (registered in code-agents/registry.ts), run

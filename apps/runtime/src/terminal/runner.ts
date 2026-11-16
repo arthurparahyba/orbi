@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { RunResult } from './exec.ts';
-import type { BrainStore } from '../brain/store.ts';
-import { errorTail } from '../brain/domain/knowledge.ts';
+import type { BrainStore } from '../brain.ts';
+import { errorTail } from '../contexts/knowledge/index.ts';
 
 /**
  * The one path every tool that runs something takes (run_command, run_script, run_shell…):

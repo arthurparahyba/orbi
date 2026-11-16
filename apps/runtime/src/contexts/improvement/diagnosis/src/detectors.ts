@@ -7,7 +7,7 @@
  * words, what happened and where. Pure rules: a new detector is a new entry here, with its test.
  */
 import type { PlaybookRun } from '../../../../language/index.ts';
-import type { RunCall } from '../../../../brain/domain/run-calls.ts';
+import type { RunCall } from '../../../procedures/index.ts';
 import type { Playbook } from '../../../../language/index.ts';
 
 /** `orbi`: a defect of the application. `modelo`: the model called something wrongly; no code is to blame. */

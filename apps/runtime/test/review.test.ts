@@ -1,16 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain/store.ts';
+import { BrainStore } from '../src/brain.ts';
 import { stepClaimProblems } from '../src/contexts/improvement/judge/src/suggestions.ts';
-import { pipelineConfigProblems } from '../src/brain/domain/review.ts';
+import { pipelineConfigProblems } from '../src/contexts/procedures/pipelines/src/config.ts';
 import { commandCategory } from '../src/contexts/trust/index.ts';
 import { savePath } from '../src/agents/tools/terminal.ts';
 import { join, resolve } from 'node:path';
 import { reviewInstruction } from '../src/contexts/improvement/index.ts';
 import { reviewConversation } from '../src/contexts/improvement/review/src/review.ts';
 import { Inbox } from '../src/conversations/inbox.ts';
-import { PipelineRuns } from '../src/pipelines/runs.ts';
-import { PipelineEngine } from '../src/pipelines/engine.ts';
+import { PipelineRuns } from '../src/contexts/procedures/pipelines/src/runs.ts';
+import { PipelineEngine } from '../src/contexts/procedures/pipelines/src/engine.ts';
 import { Diagnoses } from '../src/contexts/improvement/index.ts';
 
 const pb = (name: string, steps: Array<[string, string]>, outputs: string[] = []) => ({
@@ -137,8 +137,8 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
 });
 
 test('scripts do procedimento: validados, guardados, mantidos quando a mudança não fala deles; Python na hora vira sugestão', async () => {
-  const { scriptProblems, scriptVersion } = await import('../src/brain/domain/scripts.ts');
-  const { changeFromProposal } = await import('../src/brain/domain/learning.ts');
+  const { scriptProblems, scriptVersion } = await import('../src/contexts/procedures/definition/src/scripts.ts');
+  const { changeFromProposal } = await import('../src/contexts/learning/src/changes.ts');
   const { inlineScriptSuggestions } = await import('../src/contexts/improvement/judge/src/suggestions.ts');
   const steps = [{ id: 'gerar', how: 'run_script gerar_html.py {{pasta}}' }, { id: 'outro', how: 'run_script falta.py' }];
   assert.deepEqual(scriptProblems([
@@ -174,7 +174,7 @@ test('scripts do procedimento: validados, guardados, mantidos quando a mudança 
 });
 
 test('pergunta condicional ("se der problema, perguntar") não é passo que pergunta', async () => {
-  const { asksAlways } = await import('../src/brain/domain/review.ts');
+  const { asksAlways } = await import('../src/contexts/procedures/pipelines/src/config.ts');
   assert.equal(asksAlways("git add; commit; push origin main. Se index.lock aparecer, parar e perguntar; não remover o lock."), false);
   assert.equal(asksAlways('Caso o login peça MFA, ask_developer.'), false);
   assert.equal(asksAlways('Só perguntar ao desenvolvedor se vier vazio.'), true, 'esse pergunta sem condição antes do verbo; o {{parâmetro}} no passo é o que o libera');
@@ -182,7 +182,7 @@ test('pergunta condicional ("se der problema, perguntar") não é passo que perg
 });
 
 test('problemas conhecidos: forma, quando um erro bate, e o que vira conhecimento', async () => {
-  const { asKnownProblem, matchesProblem, knowledgeSuggestions } = await import('../src/brain/domain/knowledge.ts');
+  const { asKnownProblem, matchesProblem, knowledgeSuggestions } = await import('../src/contexts/knowledge/problems/src/problems.ts');
   const sonar = { id: 'sonar-cobertura', type: 'Problema', body: '', updatedAt: '', props: { sintoma: 'Quality Gate failed: coverage on new code', causa: 'cobertura de código novo abaixo de 80%', Solução: 'o agente de código adiciona testes nos arquivos alterados' } };
   const p = asKnownProblem(sonar)!;
   assert.equal(p.solucao, 'o agente de código adiciona testes nos arquivos alterados', 'chave com acento e maiúscula vale');

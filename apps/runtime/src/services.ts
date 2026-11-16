@@ -1,6 +1,6 @@
 import type { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.ts';
 import type { OrbiConfig } from './config.ts';
-import type { BrainStore } from './brain/store.ts';
+import type { BrainStore } from './brain.ts';
 import type { Inbox } from './conversations/inbox.ts';
 import type { PolicyStore } from './contexts/trust/index.ts';
 import type { Conversations } from './conversations/conversations.ts';
@@ -23,8 +23,8 @@ import type { UsageStore } from './observability/usage.ts';
 import type { ToolOutcomes } from './observability/tool-outcomes.ts';
 import type { AgentClients } from './mcp/clients.ts';
 import type { VoiceModel } from './voice/model.ts';
-import type { PipelineRuns } from './pipelines/runs.ts';
-import type { PipelineEngine } from './pipelines/engine.ts';
+import type { PipelineRuns } from './contexts/procedures/index.ts';
+import type { PipelineEngine } from './contexts/procedures/index.ts';
 import type { AgentRequests } from './mcp/requests.ts';
 import type { AgentSuggestions } from './mcp/suggestions.ts';
 

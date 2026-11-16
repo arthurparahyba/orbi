@@ -7,11 +7,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from '../src/db/database.ts';
-import { BrainStore } from '../src/brain/store.ts';
+import { BrainStore } from '../src/brain.ts';
 import { Inbox } from '../src/conversations/inbox.ts';
-import { PipelineRuns } from '../src/pipelines/runs.ts';
-import { PipelineEngine } from '../src/pipelines/engine.ts';
-import { inputProblems, resolveParams } from '../src/brain/domain/pipelines.ts';
+import { PipelineRuns } from '../src/contexts/procedures/pipelines/src/runs.ts';
+import { PipelineEngine } from '../src/contexts/procedures/pipelines/src/engine.ts';
+import { pipelineInputProblems, resolveParams } from '../src/contexts/procedures/pipelines/src/pipelines.ts';
 
 function setup() {
   const db: DatabaseSync = openDatabase(':memory:');
@@ -151,6 +151,6 @@ test('esteira: ramo backend pede o dado que ninguém entrega; não apaga procedi
   assert.equal(runs.inConversation('chat:6')?.stages[1].playbook, 'hml-api');
   assert.throws(() => brain.deletePlaybook('hml-api'), /está nas esteiras entrega-do-portal/);
   assert.throws(() => engine.start('entrega-do-portal', { repo: 'r', tipo: 'front' }, { conversationId: 'chat:6' }), /já tem uma esteira em andamento/);
-  assert.deepEqual(inputProblems({ inputs: [{ name: 'a', description: '' }] }, { a: 'x' }), []);
+  assert.deepEqual(pipelineInputProblems({ inputs: [{ name: 'a', description: '' }] }, { a: 'x' }), []);
   assert.deepEqual(resolveParams({ playbook: 'x', map: { b: 'perguntar' } }, ['a', 'b'], { inputs: { a: '1', b: '2' }, stages: {} }).missing, ['b']);
 });

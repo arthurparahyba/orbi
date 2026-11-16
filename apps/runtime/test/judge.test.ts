@@ -6,8 +6,8 @@ import { activeDeviations, isCallError } from '../src/contexts/trust/index.ts';
 import { stepClaimProblems } from '../src/contexts/improvement/judge/src/suggestions.ts';
 import { type Deviation } from '../src/language/index.ts';
 import { runDeviations, workedAround } from '../src/contexts/trust/index.ts';
-import { asKnownProblem, recurrence } from '../src/brain/domain/knowledge.ts';
-import { credentialProblems } from '../src/brain/domain/learning.ts';
+import { asKnownProblem, recurrence } from '../src/contexts/knowledge/problems/src/problems.ts';
+import { credentialProblems } from '../src/contexts/learning/src/changes.ts';
 
 /** The end-of-run review: autonomy before perfection (docs/funcionalidades/19). */
 
@@ -94,7 +94,7 @@ test('fatos: credencial nunca vira fato; referência ao cofre e endereço do ban
 });
 
 test('intervenção: o que o desenvolvedor digita durante a execução fica no passo, não conta no nível e abre a mudança só nele', async () => {
-  const { BrainStore } = await import('../src/brain/store.ts');
+  const { BrainStore } = await import('../src/brain.ts');
   const b = new BrainStore(':memory:');
   b.savePlaybook({ name: 'publicar', description: 'Publica', trigger: '', appliesTo: null, autonomy: 'ask', instructions: '', learnedFrom: null, variationOf: null,
     steps: [{ id: 'abrir', label: 'Abrir', how: '' }, { id: 'criar', label: 'Criar', how: '' }] });

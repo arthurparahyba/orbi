@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrainStore } from '../src/brain/store.ts';
-import { deniedAttempts, failedAttempts, learningLines, sameAttempt } from '../src/brain/domain/step-learnings.ts';
+import { BrainStore } from '../src/brain.ts';
+import { deniedAttempts, failedAttempts, learningLines, sameAttempt } from '../src/contexts/procedures/learnings/src/learnings.ts';
 
 /** What was already tried stays with the procedure (docs/funcionalidades/25). */
 const steps = (extrair: string) => [{ id: 'abrir', label: 'Abrir', how: 'abrir o site' }, { id: 'extrair', label: 'Extrair', how: extrair }];

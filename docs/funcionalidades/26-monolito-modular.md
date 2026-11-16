@@ -204,17 +204,48 @@ O que a fase 4a ensinou:
   `aprovação` (`inbox/approval.ts`, 23 linhas) é handler da caixa de entrada, e vai para
   `conversa` na fase 5. `trust` tem dois módulos, não quatro.
 
-**Fase 4b — `knowledge`, `procedures` e o dono da transação.** O que dói de verdade: repartir o
-`BrainStore`, dividir `brain/repo/playbooks.ts` (hoje dono de `playbooks` **e** `playbook_runs`)
-e trazer `review_notes` da fase 3.
+**Fase 4b — `knowledge`, `procedures` e `learning`. Feita.** A pasta `brain/` não existe mais.
 
-A decisão que ainda falta tomar: **`BrainStore.learn` grava tipo, entidade, ligação, esteira e
-procedimento numa transação só, tudo ou nada** (documento 22). Isso atravessa `knowledge` e
-`procedures`, e a garantia não pode ser partida. Os contextos compartilham a mesma conexão
-SQLite, então a transação é possível — só precisa de um dono explícito. Provavelmente um
-contexto `learning`, que não está no mapa: ele seria dono de `proposals` e envolveria as
-operações dos dois vizinhos numa transação só. `stats()` e `exportMarkdown()`, que também
-atravessam contextos, vão para a composição, que é quem já os consome.
+`knowledge` é o **contexto folha**: quatro módulos (`ontology`, `facts`, `search`, `problems`),
+dono de `types`, `entities` e `edges`, e **não importa contexto nenhum**. `procedures` é o maior,
+com seis módulos (`definition`, `rehearsal`, `execution`, `proofs`, `learnings`, `pipelines`) e
+sete tabelas. `learning` é o contexto 11, aprovado fora do mapa original: dono de `proposals` e
+da garantia do lote. `improvement` ganhou `review_notes`, a dívida que a fase 3 deixou.
+
+**O dono da transação.** `learn()` grava tipo, fato, ligação, esteira e procedimento numa
+transação só, tudo ou nada (documento 22), e isso atravessa dois contextos. Agora `learning`
+recebe portas dos dois vizinhos e envolve as cinco operações numa transação: a garantia tem
+nome e lugar, em vez de estar implícita no `BrainStore`.
+
+**O agregado, que é dívida declarada.** Medi antes de decidir: são cerca de **400 chamadas
+`brain.x` em 74 arquivos**. Trocar todas num commit é irrevisável, então o `BrainStore` não
+morreu — virou `src/brain.ts`, um agregado da composição que liga os contextos, guarda as duas
+leituras que atravessam contexto de propósito (`stats` e `exportMarkdown`) e oferece atalhos de
+uma linha. Os atalhos vão sendo trocados pela chamada ao contexto conforme cada arquivo é tocado
+por outro motivo. Código novo pede ao contexto. Isso está escrito no docblock da classe, em
+`docs/modulos.md` e aqui, porque dívida sem nome vira arquitetura por acidente.
+
+O que a fase 4b ensinou:
+
+- **O grafo de dependências é um DAG, e isso só apareceu medindo.** A leitura de cada serviço
+  mostrou que `knowledge` não precisa de ninguém, que só `trust → procedures` precisava de porta
+  (feita na 4a) e que o resto é de mão única. Pelas assinaturas, parecia tudo entrelaçado.
+- **Porta estreita para a exceção do passo 0.** A execução grava um fato no `knowledge`
+  (documento 22). Em vez de entregar `GraphRepo` para `procedures`, `knowledge` abriu
+  `FactsForRun`: oito operações, com o motivo escrito. A permissão ficou nomeada e limitada, em
+  vez de ser um repositório solto atravessando a fronteira.
+- **A porta escondeu um padrão, e o teste pegou.** `Facts.search` aplica `ftsQuery` antes de
+  chamar o repositório, e a primeira versão de `FactsForRun.search` chamava o repositório direto:
+  o texto cru de um erro com a palavra `fts5` virou `no such column: fts5` e sete testes de fluxo
+  caíram. A lição: ao extrair uma porta, o padrão que o serviço aplicava tem de ir com ela.
+- **Dois `inputProblems` no mesmo contexto.** Um de esteira, outro de procedimento — o `export *`
+  do `index.ts` acusou a ambiguidade, e o de esteira virou `pipelineInputProblems`. A fronteira
+  encontrou um nome ruim que a estrutura antiga escondia.
+- **O motor da esteira importava o agregado.** `pipelines/engine.ts` recebia o `BrainStore`
+  inteiro; agora recebe a porta `EngineStore`, com as seis operações que usa.
+- **A lista `SEMPRE_PERMITIDO` cresceu uma vez, com motivo**: entraram `db/database.ts`,
+  `db/rows.ts` e `http/routes/types.ts`. São a conexão, os ajudantes de linha e o formato da API
+  — encanamento que todo contexto usa, não funcionalidade de um vizinho.
 
 **Fase 5 — `talk`, `tools`, `telemetry`.** Conserta as duas violações que sobram: o JOIN de
 `usage` em `conversations` e `conversations.ts` escrevendo em `agent_requests`.
