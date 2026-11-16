@@ -75,6 +75,28 @@ export class DomainRepo {
     return counts;
   }
 
+  /**
+   * O alcance de um domínio (documento 28, fase B): ele mesmo, `comum` (nulo), e os domínios para
+   * os quais os fatos **dele** já apontaram — o que ele pegou emprestado. A direção importa: um
+   * vizinho que usa um fato meu não me dá acesso ao dele, senão o alcance viraria o cérebro todo
+   * em dois saltos, que é o que isto existe para impedir.
+   *
+   * Sem domínio (`comum`) o alcance é só `comum`: quem não é de assunto nenhum não enxerga assunto
+   * nenhum em particular.
+   */
+  reach(domain: string | null): Array<string | null> {
+    if (!domain) return [null];
+    const rows = this.db
+      .prepare(
+        `SELECT DISTINCT b.domain AS d FROM edges e
+           JOIN entities a ON a.id = e.from_id
+           JOIN entities b ON b.id = e.to_id
+          WHERE e.valid_to IS NULL AND a.domain = ? AND b.domain IS NOT NULL AND b.domain <> a.domain`,
+      )
+      .all(domain) as Row[];
+    return [domain, null, ...rows.map((r) => String(r.d))];
+  }
+
   /** O domínio de cada tipo, para herdar: um fato do tipo de outro domínio é do domínio do tipo. */
   domainOfType(name: string): string | null {
     const row = this.db.prepare('SELECT domain FROM types WHERE name = ?').get(name) as Row | undefined;

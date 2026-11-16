@@ -84,8 +84,7 @@ um domínio devolve o que era dele para `comum` sem apagar conhecimento.
 ## As fases
 
 - **A** — feita. O domínio existe, é sugerido e herdado, e a tela mostra. Nenhuma busca mudou.
-- **B** — o escopo entra na busca, no `playbook_similar` e no passo 0. É onde o comportamento pode
-  quebrar, e é onde está o ganho real.
+- **B** — feita. O escopo entra no passo 0 e, com cuidado diferente, nas outras duas buscas.
 - **C** — feita. Procedência estruturada de cada dado (abaixo).
 - **D** — feita. O procedimento que atualiza um dado (abaixo).
 
@@ -234,6 +233,31 @@ conta própria. Nenhum caso de uso executa procedimento nem fala com a conversa.
 não atualiza o fato sem passar pelo cartão. A autonomia disso é decisão para depois de o laço
 existir e ser visto funcionando — e é o tipo de coisa que, posta cedo, faz o Orbi insistir em
 caminhos errados com confiança.
+
+### O que a fase B ensinou
+
+**O alcance tem direção.** O alcance de um domínio é ele, `comum`, e os domínios para os quais os
+fatos **dele** já apontaram. Um vizinho que usa um fato meu não me dá acesso ao dele: sem essa
+assimetria, duas pontes encadeadas devolveriam o cérebro inteiro em dois saltos, que é exatamente o
+que o escopo existe para impedir. `reach(null)` é só `[null]`: quem não é de assunto nenhum não
+enxerga assunto nenhum em particular.
+
+**O passo 0 foi o único lugar onde filtrar é seguro.** Lá, mostrar demais é erro silencioso: com um
+resultado só, a entrada é resolvida sem perguntar nada. Nos outros dois lugares, esconder é pior do
+que mostrar demais, e eles foram tratados diferente:
+
+- **`brain_query` por texto** filtra **só quando há procedimento rodando** (pelo domínio dele) e
+  responde `foraDoAlcance: N` quando deixou algo de fora. Nunca esconde em silêncio: quem recebe
+  fica sabendo que há mais cérebro e pode pedir.
+- **`playbook_similar` não filtra nada.** Reaproveitar um procedimento de outro assunto é decisão,
+  não erro — mas é decisão que precisa ser vista, então cada candidato passou a levar o domínio.
+  Filtrar ali quebraria o caso que mais importa: ensinar um procedimento novo, quando ainda não
+  existe domínio para comparar.
+
+**Um procedimento sem domínio continua lendo o cérebro todo.** `lookupIn(undefined)` mantém o
+comportamento antigo. É a diferença entre uma mudança que acrescenta e uma que quebra: os
+procedimentos que existiam antes dos domínios não perderam nada, e ganham escopo quando alguém os
+situa.
 
 ### A ordem recomendada
 

@@ -92,6 +92,17 @@ export class GraphRepo {
     return this.byType(type).filter((e) => fold(e.id) === key || (e.aliases ?? []).some((a) => fold(a) === key));
   }
 
+  /**
+   * O mesmo, dentro de um alcance de domínios (documento 28, fase B). É a correção do erro
+   * silencioso: com um resultado só, o passo 0 resolve a entrada sem perguntar nada, então um
+   * `Ambiente` chamado "producao" de outro assunto casava sozinho e o procedimento rodava com o
+   * fato errado. Fora do alcance, aquele fato nem entra na conta.
+   */
+  namedIn(type: string, name: string, reach: Array<string | null>): Entity[] {
+    const allowed = new Set(reach);
+    return this.named(type, name).filter((e) => allowed.has(e.domain ?? null));
+  }
+
   entities(): Entity[] {
     return (this.db.prepare('SELECT * FROM entities ORDER BY type, id').all() as Row[]).map(toEntity);
   }

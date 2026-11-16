@@ -11,7 +11,12 @@ import type { AgentContext } from '../context.ts';
 
 /** Memory: query the brain freely; learning goes through the gate (the developer approves). */
 
-export const brainQuery = ({ knowledge, procedures }: Deps<'knowledge' | 'procedures'>) => defineTool({
+/**
+ * Consultar o cérebro. Com `conversationId` e um procedimento rodando nela, a busca por texto é no
+ * alcance do domínio daquele procedimento (documento 28, fase B); sem isso, é no cérebro todo —
+ * que é o caso do revisor e do investigador, que leem para analisar, não para agir.
+ */
+export const brainQuery = ({ knowledge, procedures }: Deps<'knowledge' | 'procedures'>, conversationId?: string) => defineTool({
   name: 'brain_query',
   description:
     'Look up the brain (knowledge graph). Give `id` to get one entity with its current relations and neighborhood (or, with a procedure\'s name, the whole procedure with its scripts), `type` to list entities of a type, or `text` to search. Use before acting: what you were taught is here.',
@@ -32,7 +37,19 @@ export const brainQuery = ({ knowledge, procedures }: Deps<'knowledge' | 'proced
       return { output: json({ entity, relations: knowledge.neighbors(data.id), nearby: knowledge.reachable(data.id, data.depth ?? 2) }) };
     }
     if (data.type) return { output: json(knowledge.byType(data.type)) };
-    if (data.text) return { output: json(knowledge.search(data.text)) };
+    if (data.text) {
+      // Com procedimento rodando, a busca é no alcance do domínio dele — e diz quantos ficaram de
+      // fora, porque esconder fato em silêncio seria pior do que mostrar demais (documento 28, B).
+      const open = conversationId ? procedures.execution.openRunIn(conversationId) : undefined;
+      const scope = open ? procedures.definition.playbook(open.playbook)?.domain ?? null : undefined;
+      const { facts, outside } = knowledge.searchIn(data.text, scope);
+      return {
+        output: json({
+          facts,
+          ...(outside ? { foraDoAlcance: outside, dica: 'Há mais no cérebro, de outros domínios. Se precisar, pergunte ao desenvolvedor antes de ampliar.' } : {}),
+        }),
+      };
+    }
     return { output: json({ ontology: knowledge.types(), gaps: knowledge.gaps(), playbooks: procedures.definition.playbooks().map((p) => p.name) }) };
   },
 });
@@ -165,7 +182,7 @@ function useBrain(
   { knowledge, domains, learning, notes, procedures, toolOutcomes, config }: Deps<'knowledge' | 'domains' | 'learning' | 'notes' | 'procedures' | 'toolOutcomes' | 'config'>,
 ) {
   const delivery = useDelivery();
-  useTool(brainQuery({ knowledge, procedures }));
+  useTool(brainQuery({ knowledge, procedures }, ctx.conversationId));
   ctx.gated({
     name: 'brain_learn',
     description:

@@ -9,7 +9,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase } from '../src/db/database.ts';
-import { Domains, Facts, howToRefresh, suggestDomain } from '../src/contexts/knowledge/index.ts';
+import { DomainRepo, Domains, Facts, factsForRun, howToRefresh, suggestDomain } from '../src/contexts/knowledge/index.ts';
 import { PlaybookRepo } from '../src/contexts/procedures/index.ts';
 import { GraphRepo, OntologyRepo } from '../src/contexts/knowledge/index.ts';
 import type { Entity } from '../src/language/index.ts';
@@ -175,4 +175,38 @@ test('receita de atualização: como conferir um fato na fonte (documento 28, fa
   const pronta = howToRefresh(d, 'conta-dev');
   assert.deepEqual(pronta, { playbook: 'atualizar-conta', fact: 'conta-dev', type: 'Conta', checkedAt: null, foundIn: null });
   assert.equal(domains.list().length, 0, 'receita não cria domínio nenhum');
+});
+
+test('alcance: o domínio, comum, e só o que ele mesmo pegou emprestado (documento 28, fase B)', () => {
+  const { db, domains, type, fact, graph } = fresh();
+  const repo = new DomainRepo(db);
+  for (const name of ['aws', 'servicenow', 'cozinha']) domains.create({ name });
+  type('Conta');
+  fact('conta-aws', 'Conta', 'aws');
+  fact('gmud-1', 'Conta', 'servicenow');
+  fact('receita-bolo', 'Conta', 'cozinha');
+  // O fato do servicenow aponta para o da aws: foi o servicenow que pegou emprestado.
+  graph.insertEdge({ from: 'gmud-1', rel: 'usa', to: 'conta-aws', attrs: {}, validFrom: '2026-01-01', validTo: null });
+
+  assert.deepEqual(repo.reach('servicenow').sort(), ['aws', 'servicenow', null].sort(), 'quem pegou emprestado alcança');
+  assert.deepEqual(repo.reach('aws').sort(), ['aws', null].sort(), 'quem emprestou não ganha acesso ao vizinho');
+  assert.deepEqual(repo.reach('cozinha').sort(), ['cozinha', null].sort(), 'sem ponte, só ele e comum');
+  assert.deepEqual(repo.reach(null), [null], 'quem não é de assunto nenhum não enxerga assunto nenhum');
+});
+
+test('o passo 0 deixa de resolver em silêncio para o fato de outro assunto', () => {
+  const { db, domains, ontology, graph, type, fact } = fresh();
+  for (const name of ['aws', 'cozinha']) domains.create({ name });
+  type('Ambiente');
+  // O mesmo nome em dois assuntos: antes dos domínios, um deles casava sozinho.
+  fact('producao', 'Ambiente', 'cozinha');
+  const port = factsForRun(ontology, graph, new DomainRepo(db));
+
+  assert.deepEqual(port.named('Ambiente', 'producao').map((e) => e.id), ['producao'], 'sem alcance, acha — era o comportamento antigo');
+  assert.deepEqual(port.named('Ambiente', 'producao', 'aws'), [], 'no alcance da aws, o fato da cozinha não existe');
+
+  fact('producao-aws', 'Ambiente', 'aws');
+  graph.upsertEntity({ id: 'producao-aws', type: 'Ambiente', props: {}, body: '', domain: 'aws', aliases: ['producao'] });
+  assert.deepEqual(port.named('Ambiente', 'producao', 'aws').map((e) => e.id), ['producao-aws'], 'e o da aws, sim, inclusive por outro nome');
+  assert.deepEqual(port.named('Ambiente', 'producao', null).map((e) => e.id), [], 'comum não enxerga nenhum dos dois');
 });

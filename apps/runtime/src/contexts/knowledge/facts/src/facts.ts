@@ -6,6 +6,7 @@ import { now } from '../../../../db/rows.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import type { OntologyRepo } from '../../ontology/src/repo.ts';
 import type { GraphRepo } from './repo.ts';
+import { DomainRepo } from '../../domains/src/repo.ts';
 
 /** The facts: ontology (types), entities and the edges between them, and their search. */
 export class Facts {
@@ -13,7 +14,14 @@ export class Facts {
     private readonly db: DatabaseSync,
     private readonly ontology: OntologyRepo,
     private readonly graphRepo: GraphRepo,
-  ) {}
+  ) {
+    // O alcance de um domínio sai do mesmo banco: nada a injetar (documento 28, fase B).
+    this.domainRepo = new DomainRepo(db);
+  }
+
+  private readonly domainRepo: DomainRepo;
+
+
 
   // ── ontology ────────────────────────────────────────────────────────────
   /**
@@ -104,6 +112,19 @@ export class Facts {
   /** Os fatos de um domínio; nulo é comum (documento 28). */
   inDomain(domain: string | null): Entity[] {
     return this.graphRepo.inDomain(domain);
+  }
+
+  /**
+   * Buscar dentro do alcance de um domínio (documento 28, fase B), **dizendo quantos ficaram de
+   * fora**. Esconder fato em silêncio seria pior do que mostrar demais: quem recebe fica sabendo
+   * que há mais cérebro além do alcance e pode pedir tudo.
+   */
+  searchIn(text: string, domain: string | null | undefined, limit = 10): { facts: Entity[]; outside: number } {
+    const all = this.search(text, limit);
+    if (domain === undefined) return { facts: all, outside: 0 };
+    const allowed = new Set(this.domainRepo.reach(domain));
+    const facts = all.filter((e) => allowed.has(e.domain ?? null));
+    return { facts, outside: all.length - facts.length };
   }
 
   byType(type: string): Entity[] {

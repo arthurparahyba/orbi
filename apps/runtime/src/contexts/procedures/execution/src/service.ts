@@ -117,7 +117,7 @@ export class Execution {
     let run: PlaybookRun;
     if (pb.inputs?.length) {
       // Over concepts (passo 0): the inputs found among the facts fill their citations now.
-      const { resolved } = resolveInputs(pb.inputs, params, this.lookup);
+      const { resolved } = resolveInputs(pb.inputs, params, this.lookupIn(pb.domain));
       run = { ...newRun(pb, ulid(), conversationId, params, now(), (text) => fillCitations(text, params, resolved, this.lookup)), resolved };
     } else {
       run = newRun(pb, ulid(), conversationId, params, now());
@@ -180,19 +180,28 @@ export class Execution {
 
   // ── passo 0: inputs over concepts ──────────────────────────────────────
   /** The facts as a run reads them: types, entities, other names and current relations. */
-  readonly lookup: FactLookup = {
-    typeOf: (name) => this.d.facts.typeOf(name),
-    entity: (id) => this.d.facts.entity(id),
-    named: (type, name) => this.d.facts.named(type, name),
-    out: (id) => this.d.facts.out(id, now()),
-  };
+  readonly lookup: FactLookup = this.lookupIn(undefined);
+
+  /**
+   * Os fatos como uma execução os lê, **dentro do alcance do domínio do procedimento** (documento
+   * 28, fase B). Sem domínio, lê tudo, que é como era antes: um procedimento que ninguém situou
+   * continua enxergando o cérebro inteiro, e isso é melhor do que ele não enxergar nada.
+   */
+  lookupIn(domain: string | null | undefined): FactLookup {
+    return {
+      typeOf: (name) => this.d.facts.typeOf(name),
+      entity: (id) => this.d.facts.entity(id),
+      named: (type, name) => (domain === undefined ? this.d.facts.named(type, name) : this.d.facts.named(type, name, domain)),
+      out: (id) => this.d.facts.out(id, now()),
+    };
+  }
 
   /** Where a run stands on its inputs: what is still to find, and the citations the facts cannot answer yet. */
   inputState(runId: string): { toResolve: Array<{ input: string; value: string; concept: string; candidates: string[]; howToFind?: string }>; unknown: string[] } {
     const run = this.d.playbooks.run(runId);
     const pb = run && this.d.playbooks.get(run.playbook);
     if (!run || !pb?.inputs?.length) return { toResolve: [], unknown: [] };
-    const { resolved, pending } = resolveInputs(pb.inputs, run.params, this.lookup, run.resolved);
+    const { resolved, pending } = resolveInputs(pb.inputs, run.params, this.lookupIn(pb.domain), run.resolved);
     return {
       toResolve: pending.map((x) => ({
         input: x.input.name,
@@ -202,7 +211,7 @@ export class Execution {
         ...(this.d.facts.typeOf(x.input.concept!)?.knows?.achar ? { howToFind: this.d.facts.typeOf(x.input.concept!)!.knows!.achar } : {}),
       })),
       // What else the facts do not answer (a property missing, a resource whose concept does not know "de_pe").
-      unknown: readiness(pb, run.params, resolved, this.lookup)
+      unknown: readiness(pb, run.params, resolved, this.lookupIn(pb.domain))
         .filter((i) => !i.known && !pending.some((x) => i.label.startsWith(x.input.name)) && !(pb.inputs ?? []).some((inp) => i.label === inp.name))
         .map((i) => `${i.label}: ${i.detail}`),
     };
@@ -213,7 +222,7 @@ export class Execution {
     const run = this.d.playbooks.run(runId);
     const pb = run && this.d.playbooks.get(run.playbook);
     if (!run || !pb?.inputs?.length) return [];
-    return readiness(pb, run.params, run.resolved ?? {}, this.lookup);
+    return readiness(pb, run.params, run.resolved ?? {}, this.lookupIn(pb.domain));
   }
 
   /**

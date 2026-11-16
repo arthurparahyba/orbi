@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { Domains, Facts, GraphRepo, OntologyRepo, factsForRun, mergeEntity } from './contexts/knowledge/index.ts';
+import { DomainRepo, Domains, Facts, GraphRepo, OntologyRepo, factsForRun, mergeEntity } from './contexts/knowledge/index.ts';
 import { Execution, PipelineDefs, PipelineRepo, PlaybookRepo, Procedures, ProofRepo, RunCallRepo, StepLearningRepo } from './contexts/procedures/index.ts';
 import { Autonomy, LevelRepo } from './contexts/trust/index.ts';
 import { Learning, ProposalRepo } from './contexts/learning/index.ts';
@@ -51,7 +51,7 @@ export function wireContexts(db: DatabaseSync): Contexts {
 
   // A run reads facts and, in step 0, records one (docs/funcionalidades/22) — through the one
   // narrow door `knowledge` opens for it, never its repositories.
-  const execution = new Execution({ db, playbooks, proofs, facts: factsForRun(ontology, graph) });
+  const execution = new Execution({ db, playbooks, proofs, facts: factsForRun(ontology, graph, new DomainRepo(db)) });
 
   const pipelineDefs = new PipelineDefs({ db, playbooks, pipelines, levels });
 

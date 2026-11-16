@@ -2,6 +2,7 @@ import type { Edge, Entity, OntologyType } from '../../../../language/index.ts';
 import { ftsQuery } from '../../search/src/similarity.ts';
 import type { OntologyRepo } from '../../ontology/src/repo.ts';
 import type { GraphRepo } from './repo.ts';
+import type { DomainRepo } from '../../domains/src/repo.ts';
 
 /**
  * What a run needs from `knowledge`, and nothing more. Step 0 of a procedure turns an input into
@@ -12,7 +13,12 @@ import type { GraphRepo } from './repo.ts';
 export interface FactsForRun {
   typeOf(name: string): OntologyType | undefined;
   entity(id: string): Entity | undefined;
-  named(type: string, name: string): Entity[];
+  /**
+   * Fato daquele conceito com aquele nome. Com `domain`, só dentro do alcance daquele domínio
+   * (documento 28, fase B): é o que impede o passo 0 de resolver em silêncio para um fato de
+   * outro assunto que por acaso se chama igual.
+   */
+  named(type: string, name: string, domain?: string | null): Entity[];
   out(id: string, at: string): Edge[];
   search(text: string, limit?: number): Entity[];
   /** Step 0 only: what the input turned out to be, as it is (no merge, no card). */
@@ -23,10 +29,10 @@ export interface FactsForRun {
 }
 
 /** The implementation this context hands to whoever runs procedures. */
-export const factsForRun = (ontology: OntologyRepo, graph: GraphRepo): FactsForRun => ({
+export const factsForRun = (ontology: OntologyRepo, graph: GraphRepo, domains: DomainRepo): FactsForRun => ({
   typeOf: (name) => ontology.get(name),
   entity: (id) => graph.entity(id),
-  named: (type, name) => graph.named(type, name),
+  named: (type, name, domain) => (domain === undefined ? graph.named(type, name) : graph.namedIn(type, name, domains.reach(domain))),
   out: (id, at) => graph.neighbors(id, at).out,
   // The caller passes plain text: turning it into an FTS query is this context's business.
   search: (text, limit = 10) => graph.search(ftsQuery(text), limit),

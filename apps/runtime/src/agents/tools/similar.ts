@@ -26,6 +26,9 @@ function useSimilar(ctx: AgentContext, { procedures, inbox }: Deps<'procedures' 
       // Shaping only: what the model reads of each candidate.
       const candidates = found.map(({ procedure: p, variations, sharedStems, scripts }) => ({
         name: p.name,
+        // O domínio vai junto e nada é filtrado por ele (documento 28, fase B): reaproveitar um
+        // procedimento de outro assunto é decisão, não erro — mas é decisão que precisa ser vista.
+        domain: p.domain ?? 'comum',
         description: p.description,
         trigger: p.trigger,
         appliesTo: p.appliesTo,
