@@ -4,7 +4,7 @@ import { resolveRoles } from './roles/src/roles.ts';
 import { modelChoices } from './cost/src/cost.ts';
 import type { OrbiServices } from '../../services.ts';
 import { applyModel, modelStatus, testModel } from './setup/src/setup.ts';
-import { discoverPlugins, pluginDirs } from './plugins/src/plugins.ts';
+import { rescanPlugins } from './use-cases/rescan-plugins.ts';
 import { log } from '../telemetry/index.ts';
 import { body } from '../../http/errors.ts';
 
@@ -30,10 +30,7 @@ export function modelRoutes(s: Pick<OrbiServices, 'llm' | 'config' | 'modelTiers
       s.modelTiers.set(model, tier);
       return c.json(modelChoices(s.llm, s.modelTiers.all()));
     })
-    .post('/plugins/rescan', async (c) => {
-      s.llm.plugins = await discoverPlugins(pluginDirs(process.env, s.config.cwd));
-      return c.json(await modelStatus(s.llm));
-    })
+    .post('/plugins/rescan', async (c) => c.json(await rescanPlugins(s, process.env)))
     .post('/test', async (c) => c.json(await testModel(await body(c, ChooseModel), { plugins: s.llm.plugins })))
     .put('/', async (c) => {
       const choice = await body(c, ChooseModel);

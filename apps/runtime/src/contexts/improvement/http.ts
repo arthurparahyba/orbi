@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
-import { draftIssue } from './report/src/issue.ts';
 import { sendIssue } from './report/src/send.ts';
-import { VERSION } from '../../version.ts';
+import { issueDraft } from './use-cases/issue-draft.ts';
 import { startReport } from './diagnosis/src/start.ts';
 import type { Agent } from '../../agents/runtime-port.ts';
 import type { OrbiServices } from '../../services.ts';
@@ -16,10 +15,9 @@ export function diagnosisRoutes(s: Pick<OrbiServices, 'diagnoses' | 'procedures'
   const { diagnoses, procedures, config } = s;
   /** O texto exato que sairia, já sem nada do trabalho do desenvolvedor. */
   const draft = (id: string) => {
-    const found = diagnoses.get(id);
-    const run = found && procedures.execution.run(found.runId);
-    if (!found || !run) throw notFound('diagnóstico');
-    return draftIssue(found, { run, calls: procedures.calls.list(run.id), version: VERSION, platform: `${process.platform} ${process.arch}` });
+    const written = issueDraft(s, id, `${process.platform} ${process.arch}`);
+    if ('refused' in written) throw notFound(written.refused);
+    return written;
   };
   return new Hono()
     .get('/', (c) => {

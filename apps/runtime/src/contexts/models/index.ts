@@ -12,6 +12,8 @@
  * setup     how the developer chooses, tests and applies a provider
  */
 
+export { rescanPlugins } from './use-cases/rescan-plugins.ts';
+
 export { configureLlm, llmChoice, llmSettings, ADAPTERS } from './provider/src/provider.ts';
 export type { ActiveLlm, LlmChoice, LlmAdapter, LlmAdapterFactory, LlmSettings } from './provider/src/provider.ts';
 

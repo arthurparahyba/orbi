@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { ChooseVoiceModel } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { body } from '../../http/errors.ts';
-import { warmVoice } from './voice/src/warm.ts';
+import { chooseVoiceModel, prepareVoiceModel } from './use-cases/choose-voice-model.ts';
 
 /**
  * The transcription model on the Autonomia screen: which one, the folder and
@@ -12,18 +12,9 @@ import { warmVoice } from './voice/src/warm.ts';
 export function voiceRoutes({ voice, stt }: OrbiServices) {
   return new Hono()
     .get('/', (c) => c.json(voice.describe()))
-    .post('/prepare', (c) => {
-      // Rebuild so the next transcription uses what is on disk now (files put there by hand).
-      stt.reset();
-      // Downloaded: load it into memory now, so the first dictation does not wait.
-      void voice.prepare().then(() => { stt.reset(); warmVoice(voice, stt); });
-      return c.json(voice.describe(), 202);
-    })
+    .post('/prepare', (c) => c.json(prepareVoiceModel({ voice, stt }), 202))
     .put('/model', async (c) => {
       const { model } = await body(c, ChooseVoiceModel);
-      voice.choose(model);
-      stt.reset();
-      warmVoice(voice, stt);
-      return c.json(voice.describe());
+      return c.json(chooseVoiceModel({ voice, stt }, model));
     });
 }

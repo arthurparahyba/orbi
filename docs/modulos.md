@@ -81,6 +81,16 @@ grava um (documento 22). Quem executa nunca segura os repositórios deste contex
 As propostas que esperam aprovação **não são deste contexto**: são do `aprendizado`, porque um
 lote atravessa `conhecimento` e `procedimentos` numa transação só.
 
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `entityPanel` | o painel de uma entidade: ela, com quem se liga, o que está a dois passos, e quem depende dela |
+
+O resto da tela do Cérebro é uma checagem e uma chamada (editar, apagar, buscar). As quatro
+funcionalidades de procedimento que a tela usa moram em `procedures` e `trust`, não aqui: a rota
+`brainRoutes` é só quem atende por HTTP.
+
 Tabelas: `types`, `entities`, `edges`.
 
 ### `procedures` — o que ele sabe fazer, e o que está fazendo
@@ -114,9 +124,17 @@ Interface pública: `Procedures`, `PlaybookRepo`, `Execution`, `RunCallRepo`, `P
 | `findScriptOfRun` | o script do procedimento que está rodando nesta conversa, pelo nome |
 | `startPipeline` | começa uma esteira; na recusa, devolve as entradas que ela declara, para o modelo saber o que perguntar |
 | `pipelineFixBrief` | o briefing para o Orbi revisar uma esteira cuja configuração impede o dado de andar |
+| `setProcedureAutonomy` | muda se o procedimento observa ou age, e em que nível (atravessa `trust`) |
+| `procedureProofs` / `procedureProofState` | onde cada procedimento está em termos de prova, com a linha que a tela mostra |
+| `waiveStepProof` / `unwaiveStepProof` | "não provar este passo agora" (um deploy em produção), e o desfazer |
+| `runTranscript` | o que uma execução fez, chamada por chamada, como texto corrido |
 
 `startPipeline` serve a ferramenta do chat **e** a rota `POST /api/pipelines/:name/start` — é o
 retorno concreto da camada: um caminho só, não dois.
+
+Quatro contextos não têm `use-cases/`, e não é falta: `learning` tem a garantia da transação como
+razão de existir (`Learning.learn` é o fluxo, e é um só), `secrets`, `telemetry` e `platform`
+respondem cada rota com uma chamada — abrir uma pasta de casos de uso ali seria uma camada vazia.
 
 Lê `knowledge` pela porta `FactsForRun` e pede o nível a `trust`; nenhum dos dois alcança aqui.
 O motor da esteira recebe a porta `EngineStore`, com as seis operações que usa.
@@ -144,6 +162,12 @@ O nível é uma coluna do procedimento, então `trust` decide e `procedures` gua
 recebe a porta estreita `ProcedureStore` (`get`, `setLevel`, `run`) em vez do `BrainStore`, e a
 dependência fica de mão única.
 
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `procedureAutonomy` | o painel de autonomia de um procedimento: o que ele já fez e foi aprovado, como o nível mudou, quanto falta para o N3 |
+
 Tabelas: `autonomy_events`, `playbook_known_actions`.
 
 O `portão` **não** é módulo deste contexto: `agents/gate.ts` é capability do Flue e fica na
@@ -167,6 +191,15 @@ Interface pública: `sendReview`, `reviewInstruction`, `KnowledgeCandidates`, `d
 `Diagnoses`, `DiagnosisSettings`, `DEFAULT_SETUP`, `detect`, `countsLine`, `worthTelling`,
 `DETECTORS`, `startReport`, `AGENT_PROMPT`, `REPORT_PREFIX`, `reportBrief`, `draftIssue`,
 `issueUrl`, `sendIssue`, `diagnosisRoutes`.
+
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `issueDraft` | o texto exato da issue de um diagnóstico, já sem nada do trabalho do desenvolvedor |
+
+`reviewConversation` (a revisão de fim de execução) já tinha a forma da camada desde antes do
+documento 27, em `review/`, e fica lá. Diagnóstico tem o fluxo em `diagnosis/start.ts`.
 
 Tabelas: `diagnoses`, `diagnosis_reports` e `review_notes` (esta chegou na fase 4b). A classe
 `Review` deixou de receber o `BrainStore`: recebe `NotesDeps`, com o seu próprio repositório, o
@@ -211,6 +244,20 @@ Interface pública: `Conversations`, `Inbox`, `Followups`, `startFollowups`, `Vo
 **`DeleteHook`** resolve a violação que sobrava: apagar uma conversa precisava falhar os pedidos
 de agente de código, e isso era um `UPDATE agent_requests` dentro deste contexto. Agora quem é
 dono da tabela registra um gancho no início, e ele roda na mesma transação.
+
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `listConversations` | a lista da barra lateral: as conversas, onde cada uma está, e quem pediu quando foi um agente de código |
+| `conversationNotebook` | o caderno ao lado da conversa: estado, passos do procedimento em andamento, o que já está resolvido, entidades |
+| `chooseConversationModel` | troca o modelo da conversa; recusa um nome que o provedor ativo não oferece (atravessa `models`) |
+| `chooseVoiceModel` / `prepareVoiceModel` | o modelo de transcrição: escolher, esvaziar o slot e carregar na memória antes do primeiro ditado |
+| `conversationStateReader` | onde está cada conversa, lido do cérebro; os dois primeiros usam este mesmo leitor |
+
+O inbox não tem casos de uso aqui porque já tem a camada em outra forma: um handler por tipo de
+item em `inbox/src/`, e a rota não conhece tipo de item nenhum. `POST /api/transcribe` e os
+retornos (`followups`) são uma chamada com limites de HTTP em volta.
 
 Tabelas: `conversations`, `deleted_conversations`, `inbox_items`, `followups`.
 
@@ -269,6 +316,15 @@ Interface pública: `configureLlm`, `llmChoice`, `llmSettings`, `ADAPTERS`, `Mod
 
 `configureLlm` **devolve** o provedor do Flue em `ActiveLlm.provider`; quem registra é o
 `compose.ts`. Assim a fronteira do contexto só aponta para fora.
+
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `rescanPlugins` | reprocura os plugins de modelo nas pastas conhecidas, sem reiniciar |
+
+Trocar de modelo já tinha a camada: `applyModel` em `setup/` é o fluxo, e a rota só traduz o
+resultado em 200 ou 422. Papéis e faixas são uma gravação e uma leitura.
 
 Tabelas: nenhuma própria; usa o namespace `models` em `settings`.
 

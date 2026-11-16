@@ -10,6 +10,12 @@
  * voice          local transcription: the model, its files, the warm-up
  */
 
+export { listConversations, type ConversationCard, type ConversationOrigin } from './use-cases/list-conversations.ts';
+export { conversationNotebook, type NoConversation } from './use-cases/conversation-notebook.ts';
+export { chooseConversationModel, type ModelNotChosen } from './use-cases/choose-conversation-model.ts';
+export { chooseVoiceModel, prepareVoiceModel } from './use-cases/choose-voice-model.ts';
+export { conversationStateReader } from './use-cases/conversation-state-reader.ts';
+
 export { Conversations, UNTITLED_CONVERSATION } from './conversations/src/conversations.ts';
 export type { ConversationInfo, DeleteHook } from './conversations/src/conversations.ts';
 export { Inbox } from './conversations/src/inbox.ts';

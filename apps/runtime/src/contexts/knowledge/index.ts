@@ -10,6 +10,8 @@
  * problems  facts of type problema, matched against the text of an error
  */
 
+export { entityPanel, type EntityPanel, type NoEntity } from './use-cases/entity-panel.ts';
+
 export { Facts } from './facts/src/facts.ts';
 export { GraphRepo } from './facts/src/repo.ts';
 export { OntologyRepo } from './ontology/src/repo.ts';

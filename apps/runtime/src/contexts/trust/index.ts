@@ -11,6 +11,8 @@
  * applies these rules to every tool call.
  */
 
+export { procedureAutonomy, type AutonomyPanel, type NoProcedure } from './use-cases/procedure-autonomy.ts';
+
 export { Autonomy } from './levels/src/service.ts';
 export type { ProcedureStore } from './levels/src/service.ts';
 export { LevelRepo } from './levels/src/repo.ts';

@@ -11,6 +11,8 @@
  * report     the diagnosis report and the issue in the Orbi's own repository
  */
 
+export { issueDraft, type NoDiagnosis } from './use-cases/issue-draft.ts';
+
 export { sendReview, reviewInstruction } from './review/src/review.ts';
 export { KnowledgeCandidates, deliverKnowledge, matchFacts, KNOWLEDGE_PREFIX } from './review/src/knowledge.ts';
 export type { FactCandidate } from './review/src/knowledge.ts';
