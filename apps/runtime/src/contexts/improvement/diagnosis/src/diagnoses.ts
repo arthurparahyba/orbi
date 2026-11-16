@@ -6,7 +6,7 @@ export { detect, countsLine, DETECTORS } from './detectors.ts';
 export type { Detected, DiagnosisCategory, Seen } from './detectors.ts';
 export { DEFAULT_SETUP, DiagnosisSettings } from './settings.ts';
 export type { DiagnosisSetup, DiagnosisWhen, DiagnosisWho } from './settings.ts';
-export { AGENT_PROMPT, REPORT_PREFIX, reportBrief } from './report.ts';
+export { AGENT_PROMPT, REPORT_PREFIX, reportBrief } from '../../report/src/report.ts';
 
 export interface Diagnosis extends Detected {
   id: string;

@@ -1,6 +1,6 @@
 import { deniedAttempts } from '../../brain/domain/step-learnings.ts';
 import { howToProve, proofOf } from '../../brain/domain/proofs.ts';
-import { outOfScope } from '../../brain/domain/judge.ts';
+import { outOfScope } from '../../contexts/improvement/index.ts';
 import { classifyEntity } from '../../brain/domain/fact-match.ts';
 import type { Entity } from '../../brain/domain/types.ts';
 import { defineTool, useDelivery, useTool } from '../runtime-port.ts';

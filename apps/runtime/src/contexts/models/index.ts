@@ -1,15 +1,15 @@
 /**
- * Contexto `models` — com o que o Orbi pensa (documento 26, mapa em `docs/modulos.md`).
+ * The `models` context — what the Orbi thinks with (documento 26, map in `docs/modulos.md`).
  *
- * Esta é a única porta do contexto: nada de fora importa um arquivo de dentro de
- * `provider/`, `plugins/`, `roles/`, `cost/` ou `setup/` (test/boundary.test.ts acusa).
- * O contexto não tem tabela própria; o que ele guarda vai no namespace `models` de `settings`.
+ * This is the context's only door: nothing outside imports a file inside `provider/`,
+ * `plugins/`, `roles/`, `cost/` or `setup/` (test/boundary.test.ts checks it). It owns no table
+ * of its own; what it keeps goes under the `models` keys of `platform`'s preferences.
  *
- * provider  qual provedor está ativo e o adaptador que fala com ele
- * plugins   adaptadores achados no disco e o teste de que respondem
- * roles     os quatro papéis e o modelo de cada turno
- * cost      quão caro é cada modelo
- * setup     como o desenvolvedor escolhe, testa e aplica um provedor
+ * provider  which provider is active and the adapter that talks to it
+ * plugins   adapters found on disk and the check that they answer
+ * roles     the four roles and the model of each turn
+ * cost      how costly each model is
+ * setup     how the developer chooses, tests and applies a provider
  */
 
 export { configureLlm, llmChoice, llmSettings, ADAPTERS } from './provider/src/provider.ts';

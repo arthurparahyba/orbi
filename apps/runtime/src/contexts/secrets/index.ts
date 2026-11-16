@@ -1,9 +1,9 @@
 /**
- * Contexto `secrets` — o que nunca pode sair (documento 26, mapa em `docs/modulos.md`).
+ * The `secrets` context — what must never get out (documento 26, map in `docs/modulos.md`).
  *
- * Um módulo só, então o código fica plano em `src/`. Esta é a única porta do contexto.
- * A credencial nunca chega ao modelo, ao cérebro, à conversa nem ao log: a ferramenta
- * resolve `{{segredo:nome}}` dentro dela, e a saída passa por `redact`.
+ * One module only, so the code is flat in `src/`. This is the context's only door. A credential
+ * never reaches the model, the brain, the conversation or the log: the tool resolves
+ * `{{segredo:nome}}` inside itself, and the output goes through `redact`.
  */
 
 export { Vault, redact, secretName, secretRef, SECRET_REF } from './src/vault.ts';

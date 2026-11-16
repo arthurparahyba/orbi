@@ -1,4 +1,4 @@
-import type { Diagnoses, DiagnosisSettings } from './diagnosis/index.ts';
+import type { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.ts';
 import type { OrbiConfig } from './config.ts';
 import type { BrainStore } from './brain/store.ts';
 import type { Inbox } from './conversations/inbox.ts';
@@ -17,7 +17,7 @@ import type { ModelRoles } from './contexts/models/index.ts';
 import type { McpServers } from './mcp-client/store.ts';
 import type { McpHub } from './mcp-client/hub.ts';
 import type { RunObservations } from './observability/run-observations.ts';
-import type { KnowledgeCandidates } from './review/knowledge.ts';
+import type { KnowledgeCandidates } from './contexts/improvement/index.ts';
 import type { Events } from './events.ts';
 import type { UsageStore } from './observability/usage.ts';
 import type { ToolOutcomes } from './observability/tool-outcomes.ts';

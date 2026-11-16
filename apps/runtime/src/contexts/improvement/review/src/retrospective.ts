@@ -1,5 +1,5 @@
-import type { PlaybookRun } from '../brain/domain/types.ts';
-import type { RunCall } from '../brain/domain/run-calls.ts';
+import type { PlaybookRun } from '../../../../brain/domain/types.ts';
+import type { RunCall } from '../../../../brain/domain/run-calls.ts';
 
 /** The step as the developer sees it in the card: "3 · Filtrar". */
 const name = (run: PlaybookRun, step: string | null) => {

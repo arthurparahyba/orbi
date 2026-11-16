@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { judge, outOfScope, RECURRING_AFTER } from '../src/brain/domain/judge.ts';
+import { judge, outOfScope } from '../src/contexts/improvement/index.ts';
+import { RECURRING_AFTER } from '../src/contexts/improvement/judge/src/judge.ts';
 import { activeDeviations, isCallError } from '../src/brain/domain/levels.ts';
-import { stepClaimProblems } from '../src/brain/domain/review.ts';
+import { stepClaimProblems } from '../src/contexts/improvement/judge/src/suggestions.ts';
 import { runDeviations, workedAround, type Deviation } from '../src/brain/domain/levels.ts';
 import { asKnownProblem, recurrence } from '../src/brain/domain/knowledge.ts';
 import { credentialProblems } from '../src/brain/domain/learning.ts';

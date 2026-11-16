@@ -152,10 +152,32 @@ O que a fase 2 ensinou:
   em diante. O mecanismo de concatenação entra com o primeiro contexto que precisar de tabela
   nova — máquina sem usuário é dívida.
 
-**Fase 3 — `melhoria`.** `diagnosis/` e `code-agents/` já têm `index.ts`; aqui o trabalho é
-cortar a dependência de `brain/domain/{types,run-calls}`, que passa pela linguagem compartilhada.
+**Fase 3 — `improvement`. Feita.** `review/` e `diagnosis/` viraram
+`src/contexts/improvement/` com quatro módulos — `review`, `judge`, `diagnosis` e `report` —,
+`index.ts` como única porta e `http/routes/diagnoses.ts` como `http.ts` do contexto.
 
-**Fase 4 — `conhecimento`, `procedimentos` e `confianca`.** A parte que dói, e por isso a
+Três decisões de escopo, cada uma com o seu motivo:
+
+- **`review_notes` fica no cérebro até a fase 4.** A classe `Review` recebe o próprio
+  `BrainStore` no construtor e é exposta como `brain.review`, usada por `agents/tools/brain.ts`
+  e por uma rota. Arrancar isso agora seria a repartição do cérebro antecipada e mal feita.
+  `improvement` nasce dono de `diagnoses` e `diagnosis_reports`.
+- **`brain/domain/review.ts` se dividiu.** `pipelineConfigProblems` e `asksAlways` são validação
+  de esteira, usadas por `brain/store.ts` e `brain/services/pipelineDefs.ts`, e ficaram no
+  cérebro. `stepClaimProblems`, `inlineScriptSuggestions`, `showSuggestions` e
+  `defaultSuggestions` só a revisão usa, e foram para `judge/src/suggestions.ts`.
+- **`retrospectiva` não virou módulo.** São 33 linhas e respondem a mesma pergunta que `review`,
+  então viraram um arquivo dentro dela. O mapa dizia cinco módulos; são quatro.
+
+Mais uma correção no mapa: **os agentes `revisor` e `diagnosticador` ficam na composição.** São
+adaptadores finos (54 e 34 linhas) que registram o agente no Flue e chamam o contexto, e a regra
+"chat novo = agente novo" já os coloca em `agents/`.
+
+E um detalhe sobre teste: um teste de unidade pode alcançar o arquivo do módulo direto
+(`improvement/report/src/issue.ts` para testar `anonymize`), porque o teste de fronteira guarda
+`src/`, não `test/`. Assim a interface pública não precisa crescer para acomodar teste.
+
+**Fase 4 — `knowledge`, `procedures` e `trust`.** A parte que dói, e por isso a
 última: é o `BrainStore` sendo repartido. Nesta fase os dois repos que atravessam assuntos se
 dividem e `brain/domain/types.ts` vira `linguagem/`.
 

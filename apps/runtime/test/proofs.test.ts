@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { howKey, howToProve, proofLabel, proofOf, type StepProof } from '../src/brain/domain/proofs.ts';
-import { retrospective } from '../src/review/retrospective.ts';
+import { retrospective } from '../src/contexts/improvement/index.ts';
 
 /** The proof of a procedure (docs/funcionalidades/25). */
 const steps = [

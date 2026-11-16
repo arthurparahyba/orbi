@@ -1,5 +1,5 @@
-import { runDeviations } from '../../brain/domain/levels.ts';
-import { stepClaimProblems } from '../../brain/domain/review.ts';
+import { runDeviations } from '../../../../../brain/domain/levels.ts';
+import { stepClaimProblems } from '../../../judge/src/suggestions.ts';
 import type { RunAnalyzer } from './types.ts';
 
 /** A procedure left open when its delivery ended: the esteira did not go on through it. */

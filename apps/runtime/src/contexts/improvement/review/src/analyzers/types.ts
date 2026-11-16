@@ -1,5 +1,5 @@
-import type { PlaybookRun } from '../../brain/domain/types.ts';
-import type { RunCall } from '../../brain/domain/run-calls.ts';
+import type { PlaybookRun } from '../../../../../brain/domain/types.ts';
+import type { RunCall } from '../../../../../brain/domain/run-calls.ts';
 
 /**
  * One check of a finished (or abandoned) run. The review runs every analyzer registered in

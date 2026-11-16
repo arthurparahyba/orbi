@@ -69,6 +69,9 @@ src/
     platform/               onde ele roda: os (um por sistema), env (.env), preferences
                             (dono da tabela settings: ninguém mais a escreve em SQL cru)
     secrets/                cofre de credenciais (Keychain / arquivo criptografado) e /api/vault
+    improvement/            como ele fica melhor: review (olha a execução e propõe ajuste),
+                            judge (defeito do procedimento x chamada errada do modelo),
+                            diagnosis (detectores + tabela), report (relatório e issue)
   observability/            log.ts (logs estruturados), telemetry.ts (observa o Flue),
                             usage.ts (uso por conversa e por dia)
 

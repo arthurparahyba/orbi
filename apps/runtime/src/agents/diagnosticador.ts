@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import { defineTool, useModel, useTool } from './runtime-port.ts';
 import { services, type OrbiServices } from '../services.ts';
 import { modelForTurn, resolveRoles } from '../contexts/models/index.ts';
-import { REPORT_PREFIX } from '../diagnosis/report.ts';
+import { REPORT_PREFIX } from '../contexts/improvement/index.ts';
 import instructions from '../prompts/diagnosticador.md?raw';
 
 /**

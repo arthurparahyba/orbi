@@ -31,6 +31,10 @@ const AINDA_FORA: Record<string, string[]> = {
   models: ['terminal/', 'observability/'],
   platform: [],
   secrets: [],
+  // `brain/domain/` vira `linguagem/` e os contextos `knowledge`, `procedures` e `trust` na
+  // fase 4; `pipelines/` vai para `procedures` na mesma fase; `conversations/`, `terminal/`,
+  // `code-agents/` e `observability/` viram `talk`, `tools` e `telemetry` na fase 5.
+  improvement: ['brain/domain/', 'pipelines/', 'conversations/', 'terminal/', 'code-agents/', 'observability/', 'version.ts', 'agents/runtime-port.ts'],
 };
 
 const files = (dir: string): string[] =>

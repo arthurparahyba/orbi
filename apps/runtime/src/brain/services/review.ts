@@ -2,7 +2,7 @@ import type { BrainParts } from './parts.ts';
 import type { BrainStore } from '../store.ts';
 import type { PlaybookRun } from '../domain/types.ts';
 import { asKnownProblem, problemsIn, recurrence, type KnownProblem } from '../domain/knowledge.ts';
-import { CHANGE_SCOPE_MS, type ReviewNote, type ReviewNoteStatus } from '../domain/judge.ts';
+import { CHANGE_SCOPE_MS, type ReviewNote, type ReviewNoteStatus } from '../../contexts/improvement/index.ts';
 import type { ReviewNoteRepo } from '../repo/review-notes.ts';
 
 /**

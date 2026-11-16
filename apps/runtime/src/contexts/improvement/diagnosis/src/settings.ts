@@ -1,4 +1,4 @@
-import type { Preferences } from '../contexts/platform/index.ts';
+import type { Preferences } from '../../../platform/index.ts';
 
 /**
  * Quem escreve o relatório do diagnóstico e quando (docs/funcionalidades/24). As regras (os

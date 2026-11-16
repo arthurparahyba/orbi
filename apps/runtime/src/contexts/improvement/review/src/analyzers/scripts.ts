@@ -1,4 +1,4 @@
-import { inlineScriptSuggestions, showSuggestions } from '../../brain/domain/review.ts';
+import { inlineScriptSuggestions, showSuggestions } from '../../../judge/src/suggestions.ts';
 import type { RunAnalyzer } from './types.ts';
 
 /** Inline Python (python3 -c) asks every time: keep it as a procedure script. */

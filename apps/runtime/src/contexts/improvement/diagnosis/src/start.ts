@@ -2,13 +2,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { OrbiServices } from '../services.ts';
-import type { Agent } from '../agents/runtime-port.ts';
-import { tellAgent } from '../conversations/tell.ts';
-import { log } from '../observability/log.ts';
-import { agentLine } from '../code-agents/command.ts';
-import { runAgent } from '../code-agents/run.ts';
-import { AGENT_PROMPT, REPORT_PREFIX, reportBrief } from './report.ts';
+import type { OrbiServices } from '../../../../services.ts';
+import type { Agent } from '../../../../agents/runtime-port.ts';
+import { tellAgent } from '../../../../conversations/tell.ts';
+import { log } from '../../../../observability/log.ts';
+import { agentLine } from '../../../../code-agents/command.ts';
+import { runAgent } from '../../../../code-agents/run.ts';
+import { AGENT_PROMPT, REPORT_PREFIX, reportBrief } from '../../report/src/report.ts';
 
 type Deps = Pick<OrbiServices, 'brain' | 'diagnoses' | 'diagnosisSettings' | 'codeAgents' | 'config' | 'events'>;
 

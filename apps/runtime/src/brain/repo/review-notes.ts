@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { ulid } from 'ulidx';
 import { now, type Row } from './rows.ts';
-import type { ReviewNote, ReviewNoteKind, ReviewNoteStatus } from '../domain/judge.ts';
+import type { ReviewNote, ReviewNoteKind, ReviewNoteStatus } from '../../contexts/improvement/index.ts';
 
 const toNote = (r: Row): ReviewNote => ({
   id: String(r.id),

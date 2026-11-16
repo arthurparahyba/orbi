@@ -4,7 +4,7 @@ import type { OrbiServices } from '../../services.ts';
 import { tellAgent } from '../../conversations/tell.ts';
 import { HttpError, body, notFound } from '../errors.ts';
 import type { Agent } from './types.ts';
-import { reviewInstruction } from '../../review/review.ts';
+import { reviewInstruction } from '../../contexts/improvement/index.ts';
 
 /**
  * Esteiras: the definitions (Esteiras › Minhas esteiras) and the deliveries

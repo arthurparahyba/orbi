@@ -6,9 +6,9 @@
  * Each detector reads the registry of the execution (`run_calls`) and says, in the developer's
  * words, what happened and where. Pure rules: a new detector is a new entry here, with its test.
  */
-import type { PlaybookRun } from '../brain/domain/types.ts';
-import type { RunCall } from '../brain/domain/run-calls.ts';
-import type { Playbook } from '../brain/domain/types.ts';
+import type { PlaybookRun } from '../../../../brain/domain/types.ts';
+import type { RunCall } from '../../../../brain/domain/run-calls.ts';
+import type { Playbook } from '../../../../brain/domain/types.ts';
 
 /** `orbi`: a defect of the application. `modelo`: the model called something wrongly; no code is to blame. */
 export type DiagnosisCategory = 'orbi' | 'modelo';

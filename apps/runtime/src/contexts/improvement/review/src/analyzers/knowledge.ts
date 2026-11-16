@@ -1,4 +1,4 @@
-import { knowledgeSuggestions } from '../../brain/domain/knowledge.ts';
+import { knowledgeSuggestions } from '../../../../../brain/domain/knowledge.ts';
 import type { RunAnalyzer } from './types.ts';
 
 /** What failed and was got past (or not): a known problem for the brain. */

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { anonymize, draftIssue, issueUrl, swapsFor, type IssueContext } from '../src/diagnosis/issue.ts';
-import type { Diagnosis } from '../src/diagnosis/index.ts';
+import { anonymize, draftIssue, issueUrl, swapsFor, type IssueContext } from '../src/contexts/improvement/report/src/issue.ts';
+import type { Diagnosis } from '../src/contexts/improvement/index.ts';
 
 /** A issue de um defeito do Orbi (docs/funcionalidades/24): nada do trabalho do desenvolvedor sai. */
 const ctx: IssueContext = {
@@ -57,7 +57,7 @@ test('sem o gh, a página do GitHub já vem preenchida', () => {
 });
 
 test('enviar: pelo gh quando ele existe; a mesma impressão digital entra como ocorrência', async () => {
-  const { sendIssue } = await import('../src/diagnosis/send.ts');
+  const { sendIssue } = await import('../src/contexts/improvement/index.ts');
   const draft = draftIssue(diag, ctx);
   const seen: string[][] = [];
   const gh = (out: Record<string, string>) => async (args: readonly string[]) => {
@@ -78,7 +78,7 @@ test('enviar: pelo gh quando ele existe; a mesma impressão digital entra como o
 });
 
 test('enviar: sem o gh, ou com o gh deslogado, volta a página do GitHub preenchida com o motivo', async () => {
-  const { sendIssue } = await import('../src/diagnosis/send.ts');
+  const { sendIssue } = await import('../src/contexts/improvement/index.ts');
   const { CommandNotFoundError } = await import('../src/terminal/exec.ts');
   const draft = draftIssue(diag, ctx);
   const missing = await sendIssue('o/orbi', draft, () => Promise.reject(new CommandNotFoundError('`gh` não está instalado')));

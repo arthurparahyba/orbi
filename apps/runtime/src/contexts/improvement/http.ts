@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { draftIssue } from '../../diagnosis/issue.ts';
-import { sendIssue } from '../../diagnosis/send.ts';
+import { draftIssue } from './report/src/issue.ts';
+import { sendIssue } from './report/src/send.ts';
 import { VERSION } from '../../version.ts';
-import { startReport } from '../../diagnosis/start.ts';
+import { startReport } from './diagnosis/src/start.ts';
 import type { Agent } from '../../agents/runtime-port.ts';
 import type { OrbiServices } from '../../services.ts';
-import { notFound } from '../errors.ts';
+import { notFound } from '../../http/errors.ts';
 
 /**
  * What went wrong by the Orbi's own fault, or in a call the model got wrong (documento 24), kept

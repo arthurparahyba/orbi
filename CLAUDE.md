@@ -61,7 +61,6 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
   src/brain/          domain/ (regras puras) · repo/ (SQL) · services/ (por assunto) · store.ts (BrainStore: aprendizado + atalhos)
   src/http/           app.ts monta; routes/ um arquivo por recurso; errors.ts
   src/db/             migrações versionadas e changes.ts (gatilhos → eventos)
-  src/diagnosis/      o que deu errado por culpa do Orbi ou de uma chamada do modelo: detectores puros + tabela
   src/mcp/            o Orbi como servidor MCP para agentes de código (/mcp): ferramentas, pedidos, sugestões
   src/mcp-client/     servidores MCP que o Orbi usa (documento 20): regras puras, esquema, cadastro, conexões (McpHub)
   src/pipelines/      esteiras: entregas (runs.ts) e o motor que decide a próxima etapa (engine.ts)
@@ -72,6 +71,7 @@ apps/runtime/       runtime: agente (Flue), API HTTP (Hono), cérebro (SQLite), 
     models/             com o que o Orbi pensa: provider, plugins, roles, cost, setup; rota em http.ts
     platform/           onde ele roda: os, env, preferences; dono da tabela settings
     secrets/            o cofre de credenciais (um módulo só, código plano em src/)
+    improvement/        como ele fica melhor: review, judge, diagnosis, report; rota em http.ts
   src/{autonomy,browser,conversations,observability,terminal,voice}/
   test/               node:test (+ fixtures/search-eval.json); boundary.test.ts guarda a fronteira dos contextos
   scripts/            demo-server, e2e, eval-search, write-entry, register-raw

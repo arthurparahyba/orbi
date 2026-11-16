@@ -1,5 +1,5 @@
-import type { PlaybookRun } from '../../brain/domain/types.ts';
-import { EXPENSIVE_RUN_CHARS, type RunCall } from '../../brain/domain/run-calls.ts';
+import type { PlaybookRun } from '../../../../../brain/domain/types.ts';
+import { EXPENSIVE_RUN_CHARS, type RunCall } from '../../../../../brain/domain/run-calls.ts';
 import type { RunAnalyzer, RunContext } from './types.ts';
 
 /** The step of a call, named as the developer sees it ("4 · Extrair"). */

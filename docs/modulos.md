@@ -85,20 +85,29 @@ Tabelas: `autonomy_events`, `playbook_known_actions`.
 
 ### melhoria (`improvement`) — como ele fica melhor
 
-Hoje em `review/`, `diagnosis/`, `agents/{revisor,diagnosticador}.ts`.
+**Migrado** (fase 3): `src/contexts/improvement/`, com `index.ts` e a rota em `http.ts`.
 
 | Módulo | O que faz |
 |---|---|
-| `revisão` (`review`) | olha a execução que acabou e propõe ajuste no procedimento |
-| `juiz` (`judge`) | separa o que é defeito do procedimento do que é chamada errada do modelo |
-| `retrospectiva` (`retrospective`) | o resumo do que aconteceu na execução, para o desenvolvedor ler |
+| `revisão` (`review`) | olha a execução que acabou, propõe ajuste no procedimento e escreve a retrospectiva |
+| `juiz` (`judge`) | separa o que é defeito do procedimento do que é chamada errada do modelo, e o que a execução sugere |
 | `diagnóstico` (`diagnosis`) | detectores do que deu errado por culpa do Orbi ou do modelo, em categorias |
 | `relatório` (`report`) | o relatório do diagnóstico e a issue no repositório do Orbi |
 
-Interface pública: `revisar`, `retrospectiva`, `candidatos`, `diagnosticar`, `relatar`,
-`enviarIssue`.
+Interface pública: `sendReview`, `reviewInstruction`, `KnowledgeCandidates`, `deliverKnowledge`,
+`matchFacts`, `KNOWLEDGE_PREFIX`, `retrospective`, `judge`, `outOfScope`, `CHANGE_SCOPE_MS`,
+`stepClaimProblems`, `inlineScriptSuggestions`, `showSuggestions`, `defaultSuggestions`,
+`Diagnoses`, `DiagnosisSettings`, `DEFAULT_SETUP`, `detect`, `countsLine`, `worthTelling`,
+`DETECTORS`, `startReport`, `AGENT_PROMPT`, `REPORT_PREFIX`, `reportBrief`, `draftIssue`,
+`issueUrl`, `sendIssue`, `diagnosisRoutes`.
 
-Tabelas: `review_notes`, `diagnoses`, `diagnosis_reports`.
+Tabelas: `diagnoses`, `diagnosis_reports`. **`review_notes` ainda é do cérebro**: a classe
+`Review` recebe o próprio `BrainStore` e é exposta como `brain.review`; ela vem na fase 4, com a
+repartição do cérebro.
+
+`retrospectiva` não virou módulo: são 33 linhas e respondem a mesma pergunta que `revisão`, então
+é um arquivo dentro dela. E os agentes `revisor` e `diagnosticador` ficam na composição
+(`agents/`): são adaptadores finos que registram o agente no Flue e chamam este contexto.
 
 ### conversa (`talk`) — por onde o desenvolvedor fala
 

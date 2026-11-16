@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { faux, fauxAssistantMessage, fauxText, fauxToolCall, init, Orbi, app, brain, waitFor } from './support/flow.ts';
 import { services } from '../src/services.ts';
-import { reportBrief } from '../src/diagnosis/report.ts';
+import { reportBrief } from '../src/contexts/improvement/index.ts';
 
 /**
  * O relatório do diagnóstico (docs/funcionalidades/24, fase 3): quem escreve e quando é escolha do

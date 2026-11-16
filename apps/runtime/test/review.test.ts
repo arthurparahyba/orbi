@@ -1,15 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BrainStore } from '../src/brain/store.ts';
-import { pipelineConfigProblems, stepClaimProblems } from '../src/brain/domain/review.ts';
+import { stepClaimProblems } from '../src/contexts/improvement/judge/src/suggestions.ts';
+import { pipelineConfigProblems } from '../src/brain/domain/review.ts';
 import { commandCategory } from '../src/autonomy/policy.ts';
 import { savePath } from '../src/agents/tools/terminal.ts';
 import { join, resolve } from 'node:path';
-import { reviewConversation, reviewInstruction } from '../src/review/review.ts';
+import { reviewInstruction } from '../src/contexts/improvement/index.ts';
+import { reviewConversation } from '../src/contexts/improvement/review/src/review.ts';
 import { Inbox } from '../src/conversations/inbox.ts';
 import { PipelineRuns } from '../src/pipelines/runs.ts';
 import { PipelineEngine } from '../src/pipelines/engine.ts';
-import { Diagnoses } from '../src/diagnosis/index.ts';
+import { Diagnoses } from '../src/contexts/improvement/index.ts';
 
 const pb = (name: string, steps: Array<[string, string]>, outputs: string[] = []) => ({
   name, description: name, trigger: '', appliesTo: null, autonomy: 'ask' as const, instructions: '', learnedFrom: null, variationOf: null,
@@ -99,7 +101,7 @@ test('passo que já recebe o valor não é alarme; padrão sugerido; título da 
   gitstars(b);
   b.savePlaybook(pb('gerar', [['definir-destino', 'Usar {{destino}}. Só perguntar ao desenvolvedor se vier vazio.'], ['gerar-html', 'lê {{lista}}']], ['html_path']));
   assert.equal(b.pipelineWarnings(b.pipeline('top-repos')!).filter((w) => w.stage === 'gerar').length, 0);
-  const { defaultSuggestions } = await import('../src/brain/domain/review.ts');
+  const { defaultSuggestions } = await import('../src/contexts/improvement/judge/src/suggestions.ts');
   assert.deepEqual(defaultSuggestions([{ name: 'destino' }], [{ destino: '/x' }, { destino: '/x' }]), [{ input: 'destino', value: '/x', times: 2 }]);
   assert.deepEqual(defaultSuggestions([{ name: 'destino' }], [{ destino: '/x' }, { destino: '/y' }]), []);
   assert.deepEqual(defaultSuggestions([{ name: 'destino', default: '/x' }], [{ destino: '/x' }, { destino: '/x' }]), []);
@@ -137,7 +139,7 @@ test('esteira: etapa fora de ordem é recusada; revisão só no fim; procediment
 test('scripts do procedimento: validados, guardados, mantidos quando a mudança não fala deles; Python na hora vira sugestão', async () => {
   const { scriptProblems, scriptVersion } = await import('../src/brain/domain/scripts.ts');
   const { changeFromProposal } = await import('../src/brain/domain/learning.ts');
-  const { inlineScriptSuggestions } = await import('../src/brain/domain/review.ts');
+  const { inlineScriptSuggestions } = await import('../src/contexts/improvement/judge/src/suggestions.ts');
   const steps = [{ id: 'gerar', how: 'run_script gerar_html.py {{pasta}}' }, { id: 'outro', how: 'run_script falta.py' }];
   assert.deepEqual(scriptProblems([
     { name: 'gerar_html.py', description: '', code: 'print(1)' },
@@ -203,7 +205,7 @@ test('problemas conhecidos: forma, quando um erro bate, e o que vira conheciment
 });
 
 test('revisão: cada analisador registrado vira achados do seu tipo, e só os que acharam algo explicam como corrigir', async () => {
-  const { analyzeRun, howToFix } = await import('../src/review/analyzers/index.ts');
+  const { analyzeRun, howToFix } = await import('../src/contexts/improvement/review/src/analyzers/index.ts');
   const custom = { id: 'teste', kind: 'melhoria' as const, analyze: () => ['algo a melhorar'], howToFix: 'faça assim.' };
   const quiet = { id: 'calado', kind: 'problema' as const, analyze: () => [], howToFix: 'nunca aparece.' };
   const run = { id: 'r', playbook: 'p', conversationId: 'c', status: 'done', steps: [], startedAt: '', finishedAt: null, params: {}, outputs: {}, actions: [], deviations: [] } as never;
@@ -231,7 +233,7 @@ test('variação nasce com os scripts, as entradas e as entregas da base; a prov
 });
 
 test('leituras caras: uma execução que leu demais vira ideia guardada, dizendo em qual passo e com qual ferramenta', async () => {
-  const { expensiveReads } = await import('../src/review/analyzers/reads.ts');
+  const { expensiveReads } = await import('../src/contexts/improvement/review/src/analyzers/reads.ts');
   const run = {
     id: 'r1', playbook: 'promo',
     steps: [{ id: 'abrir', label: 'Abrir', status: 'done' }, { id: 'categoria', label: 'Ir à categoria', status: 'done' }],

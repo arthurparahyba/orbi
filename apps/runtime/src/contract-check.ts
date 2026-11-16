@@ -25,12 +25,12 @@ import type { Followup } from './followups/domain.ts';
 import type { ConversationState } from './conversations/state.ts';
 import type { ConversationNotebook } from './conversations/notebook.ts';
 import type { ModelChoices } from './contexts/models/index.ts';
-import type { ReviewNote } from './brain/domain/judge.ts';
+import type { ReviewNote } from './contexts/improvement/index.ts';
 import type { StepLearning } from './brain/domain/step-learnings.ts';
 import type { RunCall } from './brain/domain/run-calls.ts';
-import type { Diagnosis, DiagnosisReport, DiagnosisSetup } from './diagnosis/index.ts';
-import type { IssueDraft } from './diagnosis/issue.ts';
-import type { Sent } from './diagnosis/send.ts';
+import type { Diagnosis, DiagnosisReport, DiagnosisSetup } from './contexts/improvement/index.ts';
+import type { IssueDraft } from './contexts/improvement/index.ts';
+import type { Sent } from './contexts/improvement/index.ts';
 
 type Fits<Runtime, Contract> = [Runtime] extends [Contract] ? true : false;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;

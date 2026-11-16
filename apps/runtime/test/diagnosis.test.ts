@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countsLine, detect, type Seen } from '../src/diagnosis/index.ts';
+import { countsLine, detect, type Seen } from '../src/contexts/improvement/index.ts';
 
 /** O que não é do procedimento (docs/funcionalidades/24): defeito do Orbi ou chamada errada do modelo. */
 const run = {
@@ -58,7 +58,7 @@ test('do modelo: passo que manda usar uma ferramenta e foi dado como feito sem n
 });
 
 test('a mesma impressão digital é contada entre execuções, e dispensar tira da lista', async () => {
-  const { Diagnoses } = await import('../src/diagnosis/index.ts');
+  const { Diagnoses } = await import('../src/contexts/improvement/index.ts');
   const { openDatabase, migrate } = await import('../src/db/database.ts');
   const db = openDatabase(':memory:');
   migrate(db);
@@ -75,7 +75,7 @@ test('a mesma impressão digital é contada entre execuções, e dispensar tira 
 });
 
 test('deslize que o modelo corrigiu na hora fica guardado, mas não interrompe', async () => {
-  const { worthTelling, Diagnoses } = await import('../src/diagnosis/index.ts');
+  const { worthTelling, Diagnoses } = await import('../src/contexts/improvement/index.ts');
   const { openDatabase, migrate } = await import('../src/db/database.ts');
   const db = openDatabase(':memory:');
   migrate(db);

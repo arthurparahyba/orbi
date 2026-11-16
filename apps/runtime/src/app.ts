@@ -6,8 +6,8 @@ import { Orbi } from './agents/orbi.ts';
 import { CONFIG_PREFIX, Configurador } from './agents/configurador.ts';
 import { Revisor } from './agents/revisor.ts';
 import { Diagnosticador } from './agents/diagnosticador.ts';
-import { KNOWLEDGE_PREFIX } from './review/knowledge.ts';
-import { REPORT_PREFIX } from './diagnosis/report.ts';
+import { KNOWLEDGE_PREFIX } from './contexts/improvement/index.ts';
+import { REPORT_PREFIX } from './contexts/improvement/index.ts';
 import { routeConversations } from './agents/directory.ts';
 import { createLogger, logOptionsFromEnv, setLogger } from './observability/log.ts';
 

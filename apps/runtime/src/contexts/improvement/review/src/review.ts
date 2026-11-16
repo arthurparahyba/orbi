@@ -1,19 +1,20 @@
-import { failedAttempts, learningLines } from '../brain/domain/step-learnings.ts';
+import { failedAttempts, learningLines } from '../../../../brain/domain/step-learnings.ts';
 import { retrospective } from './retrospective.ts';
-import { countsLine, worthTelling } from '../diagnosis/index.ts';
+import { countsLine, worthTelling } from '../../diagnosis/src/diagnoses.ts';
 import type { ExecutionReview, Finding } from '@orbi/contracts';
-import type { PlaybookRun } from '../brain/domain/types.ts';
-import { judge } from '../brain/domain/judge.ts';
-import type { OrbiServices } from '../services.ts';
-import { LEVEL_NAMES } from '../brain/domain/levels.ts';
-import { defaultSuggestions, pipelineConfigProblems, type ConfigProblem } from '../brain/domain/review.ts';
+import type { PlaybookRun } from '../../../../brain/domain/types.ts';
+import { judge } from '../../judge/src/judge.ts';
+import type { OrbiServices } from '../../../../services.ts';
+import { LEVEL_NAMES } from '../../../../brain/domain/levels.ts';
+import { pipelineConfigProblems, type ConfigProblem } from '../../../../brain/domain/review.ts';
+import { defaultSuggestions } from '../../judge/src/suggestions.ts';
 import { analyzeRun, howToFix } from './analyzers/index.ts';
-import { collected } from '../pipelines/engine.ts';
-import { tellAgent } from '../conversations/tell.ts';
+import { collected } from '../../../../pipelines/engine.ts';
+import { tellAgent } from '../../../../conversations/tell.ts';
 import { startKnowledgeReview } from './knowledge.ts';
-import { startReport } from '../diagnosis/start.ts';
-import { log } from '../observability/log.ts';
-import type { Agent } from '../agents/runtime-port.ts';
+import { startReport } from '../../diagnosis/src/start.ts';
+import { log } from '../../../../observability/log.ts';
+import type { Agent } from '../../../../agents/runtime-port.ts';
 
 
 /**

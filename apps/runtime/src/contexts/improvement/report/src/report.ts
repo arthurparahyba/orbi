@@ -4,9 +4,9 @@
  * barato (o agente `diagnosticador`) ou um agente de código instalado, que lê o código do Orbi e
  * confirma a causa. As regras continuam rodando sem custo: o relatório só explica o que elas viram.
  */
-import type { PlaybookRun } from '../brain/domain/types.ts';
-import type { RunCall } from '../brain/domain/run-calls.ts';
-import type { Diagnosis } from './index.ts';
+import type { PlaybookRun } from '../../../../brain/domain/types.ts';
+import type { RunCall } from '../../../../brain/domain/run-calls.ts';
+import type { Diagnosis } from '../../diagnosis/src/diagnoses.ts';
 
 export const REPORT_PREFIX = 'diagnostico:';
 
