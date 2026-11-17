@@ -69,6 +69,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     logFile: path(env.ORBI_LOG_FILE ?? `${appDataHome(env)}/logs/runtime.log`),
     /** Read-only Markdown export of the brain, for Obsidian. */
     brainExportDir: path(env.ORBI_BRAIN_EXPORT_DIR ?? `${dataDir}/brain-md`),
+    /** Onde cai o pacote de um procedimento exportado (documento 30). */
+    shareDir: path(env.ORBI_SHARE_DIR ?? `${dataDir}/compartilhados`),
     /** JSON files of versions before the single database; imported once, then renamed *.importado. */
     legacy: {
       policyFile: resolve(dataDir, 'autonomy.json'),

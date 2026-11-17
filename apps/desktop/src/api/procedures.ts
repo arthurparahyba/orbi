@@ -3,7 +3,9 @@
  * o que já se tentou.
  */
 
-import type { EditPlaybook, Pipeline, PipelineRun, Playbook, PlaybookProof, PlaybookRun, RunCall, SavePipeline, StepLearning } from '@orbi/contracts';
+import type {
+  EditPlaybook, ExportProcedure, Pipeline, PipelineRun, Playbook, PlaybookProof, PlaybookRun, RunCall, SavePipeline, ShareProcedure, StepLearning,
+} from '@orbi/contracts';
 import { request, RUNTIME_URL } from './request.ts';
 
 export const proceduresApi = {
@@ -18,6 +20,11 @@ export const proceduresApi = {
   deletePlaybook: (name: string) =>
     request<{ deleted: true; detachedVariations: string[] }>(`/api/brain/playbooks/${encodeURIComponent(name)}`, { method: 'DELETE' }),
   playbooks: () => request<Playbook[]>('/api/brain/playbooks'),
+  /** O que vai e o que fica, antes de gerar o arquivo (documento 30). */
+  shareProcedure: (name: string) => request<ShareProcedure>(`/api/brain/playbooks/${encodeURIComponent(name)}/share`),
+  /** O pacote como texto, já pronto para virar arquivo: quem chama decide onde ele cai. */
+  exportProcedure: (name: string, include: ExportProcedure) =>
+    request<unknown>(`/api/brain/playbooks/${encodeURIComponent(name)}/share`, { method: 'POST', body: JSON.stringify(include) }),
   runs: () => request<PlaybookRun[]>('/api/brain/runs'),
   /** Where each procedure stands: which of its steps already ran as they are written. */
   proofs: () => request<Record<string, PlaybookProof>>('/api/brain/proofs'),

@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { OrbiServices } from './services.ts';
 import { exportMarkdown } from './brain-export.ts';
 
@@ -31,4 +33,16 @@ export function exportBrain(s: Pick<OrbiServices, 'knowledge' | 'procedures'>, d
     playbooks: s.procedures.definition.playbooks(),
     outEdges: (id) => s.knowledge.neighbors(id).out,
   });
+}
+
+/**
+ * O pacote de um procedimento em arquivo, na pasta de compartilhados (documento 30). Escrever em
+ * disco é da composição: o caso de uso monta o pacote e não conhece pasta nenhuma.
+ */
+export function writeShared(dir: string, fileName: string, pack: unknown): { file: string; bytes: number } {
+  mkdirSync(dir, { recursive: true });
+  const text = `${JSON.stringify(pack, null, 2)}\n`;
+  const file = join(dir, fileName);
+  writeFileSync(file, text, 'utf8');
+  return { file, bytes: Buffer.byteLength(text) };
 }

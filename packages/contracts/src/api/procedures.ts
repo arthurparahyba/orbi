@@ -96,3 +96,23 @@ export interface PipelineRun {
   waiting: { kind: 'passage' | 'failure' | 'params'; stage: string; missing?: string[]; message?: string; inboxId?: string } | null;
   createdAt: string; updatedAt: string; finishedAt: string | null;
 }
+
+/**
+ * GET /api/brain/playbooks/:name/share — o que a tela de exportar mostra antes de gerar o arquivo:
+ * o que viaja, o que fica (com o porquê de cada um), e os fatos que você pode escolher mandar.
+ */
+export interface ShareProcedure {
+  name: string;
+  /** Quantos passos, scripts, entradas e entregas vão no pacote: os números da caixinha. */
+  counts: { steps: number; scripts: number; inputs: number; outputs: number };
+  /** Os conceitos que viajam, por nome: sem a palavra, o passo que a cita não quer dizer nada. */
+  types: string[];
+  /** Os nomes dos segredos que o procedimento cita. O valor nunca sai do cofre. */
+  secrets: string[];
+  /** Quantos aprendizados existem, se você quiser mandá-los junto. */
+  learnings: number;
+  /** O que fica nesta máquina, com o porquê escrito. */
+  leftBehind: Array<{ field: string; why: string }>;
+  /** Os fatos que você pode escolher, com o que cada um revela. */
+  facts: Array<{ id: string; type: string; reveals: string }>;
+}

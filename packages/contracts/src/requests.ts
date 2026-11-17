@@ -83,6 +83,14 @@ const AutonomyLevel = v.picklist(['observe', 'ask', 'auto']);
 const Level = v.picklist([1, 2, 3]);
 /** PATCH /api/brain/playbooks/:name — autonomy (observe/ask/auto), or the level and its ceiling. */
 export const SetPlaybookAutonomy = v.object({ autonomy: v.optional(AutonomyLevel), level: v.optional(Level), levelMax: v.optional(Level) });
+/**
+ * POST /api/brain/playbooks/:name/share — gera o pacote. Os fatos são escolha, um por um: a lista
+ * vazia é o normal, e é o que faz "vocabulário viaja, dados não" ser o padrão e não um conselho.
+ */
+export const ExportProcedure = v.object({
+  facts: v.optional(v.array(v.pipe(v.string(), v.minLength(1)))),
+  learnings: v.optional(v.boolean()),
+});
 /** PATCH /api/brain/entities/:id — the developer corrects an entity. */
 export const EditEntity = v.object({
   props: v.optional(v.record(v.string(), v.unknown())),
@@ -257,6 +265,7 @@ export type StartRecording = v.InferOutput<typeof StartRecording>;
 export type StopRecording = v.InferOutput<typeof StopRecording>;
 export type SetSecret = v.InferOutput<typeof SetSecret>;
 export type SetPlaybookAutonomy = v.InferOutput<typeof SetPlaybookAutonomy>;
+export type ExportProcedure = v.InferOutput<typeof ExportProcedure>;
 export type EditEntity = v.InferOutput<typeof EditEntity>;
 export type CreateDomain = v.InferOutput<typeof CreateDomain>;
 export type RenameDomain = v.InferOutput<typeof RenameDomain>;

@@ -489,6 +489,15 @@ table.usage td .block { margin-top: 2px; font-family: var(--mono, monospace); fo
 .pb-data p, .pb-data ul { margin: 0; }
 .pb-data ul { padding-left: 16px; }
 .pb-data code { margin-right: 6px; }
+/* Exportar um procedimento para mandar a alguém (documento 30). */
+.pb-share { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; gap: 8px; }
+.pb-share h4, .pb-share h5 { margin: 0; font-size: 12px; font-weight: 500; color: var(--muted); }
+.pb-share p, .pb-share ul { margin: 0; }
+.pb-share ul { padding-left: 16px; }
+.pb-share code { margin-right: 6px; }
+.pb-share label { display: flex; gap: 6px; align-items: baseline; }
+.share-facts { display: flex; flex-direction: column; gap: 4px; }
+
 .out-name, .run-out { color: var(--green, #7fdcae); }
 .outputs-editor { border: 0; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
 .outputs-editor legend { margin-bottom: 6px; font-weight: 500; }

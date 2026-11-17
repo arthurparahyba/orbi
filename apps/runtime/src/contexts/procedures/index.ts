@@ -34,6 +34,8 @@ export { pipelineFixBrief } from './use-cases/pipeline-fix-brief.ts';
 export type { FixBrief, NothingToFix } from './use-cases/pipeline-fix-brief.ts';
 export type { PipelineStarted, PipelineNotStarted } from './use-cases/start-pipeline.ts';
 export { reportStep } from './use-cases/report-step.ts';
+export { exportProcedure, type NoProcedure } from './use-cases/export-procedure.ts';
+export { exportableFacts, type ExportableFact } from './use-cases/exportable-facts.ts';
 export type { Reported, NotReported } from './use-cases/report-step.ts';
 
 export { Procedures } from './definition/src/service.ts';
@@ -42,6 +44,7 @@ export { PlaybookRepo } from './definition/src/repo.ts';
 export * from './definition/src/playbooks.ts';
 export * from './definition/src/scripts.ts';
 export * from './definition/src/concepts.ts';
+export * from './definition/src/sharing.ts';
 
 export * from './rehearsal/src/rehearsal.ts';
 

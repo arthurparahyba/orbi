@@ -1,6 +1,18 @@
 import { Hono } from 'hono';
-import { CreateDomain, EditEntity, EditPlaybook, RenameDomain, SetDomain, SetPlaybookAutonomy, SetRefresh } from '@orbi/contracts';
-import { procedureProofs, runTranscript, setProcedureAutonomy, unwaiveStepProof, waiveStepProof } from '../procedures/index.ts';
+import { CreateDomain, EditEntity, EditPlaybook, ExportProcedure, RenameDomain, SetDomain, SetPlaybookAutonomy, SetRefresh } from '@orbi/contracts';
+import {
+  conceptsOf,
+  exportProcedure,
+  exportableFacts,
+  LEFT_BEHIND,
+  packageFileName,
+  procedureProofs,
+  runTranscript,
+  secretsNamedIn,
+  setProcedureAutonomy,
+  unwaiveStepProof,
+  waiveStepProof,
+} from '../procedures/index.ts';
 import { procedureAutonomy } from '../trust/index.ts';
 import { entityPanel } from './use-cases/entity-panel.ts';
 import { domainOverview } from './use-cases/domain-overview.ts';
@@ -29,6 +41,8 @@ const nameOf = (segment: string) => (segment === '-' ? '' : segment);
 export interface BrainOverview {
   stats(): { types: number; entities: number; edges: number; playbooks: number; openProposals: number };
   exportBrain(dir: string): number;
+  /** Escreve o pacote de um procedimento em arquivo e diz onde ele caiu (documento 30). */
+  writeShared(fileName: string, pack: unknown): { file: string; bytes: number };
 }
 
 export function brainRoutes(s: OrbiServices, overview: BrainOverview) {
@@ -125,6 +139,33 @@ export function brainRoutes(s: OrbiServices, overview: BrainOverview) {
     .delete('/playbooks/:name', (c) => {
       if (!procedures.definition.playbook(c.req.param('name'))) throw notFound('playbook');
       return c.json({ deleted: true, ...procedures.definition.deletePlaybook(c.req.param('name')) });
+    })
+    // Compartilhar um procedimento (documento 30): o que viaja, o que fica, e o arquivo.
+    .get('/playbooks/:name/share', (c) => {
+      const procedure = procedures.definition.playbook(c.req.param('name'));
+      if (!procedure) throw notFound('playbook');
+      return c.json({
+        name: procedure.name,
+        counts: {
+          steps: procedure.steps.length,
+          scripts: procedure.scripts.length,
+          inputs: (procedure.inputs ?? []).length,
+          outputs: procedure.outputs.length,
+        },
+        types: conceptsOf(procedure),
+        secrets: secretsNamedIn(procedure),
+        learnings: procedures.learnings.list(procedure.name).length,
+        leftBehind: LEFT_BEHIND.map(({ field, why }) => ({ field, why })),
+        facts: exportableFacts(s, procedure.name),
+      });
+    })
+    .post('/playbooks/:name/share', async (c) => {
+      const include = await body(c, ExportProcedure);
+      const pack = exportProcedure(s, c.req.param('name'), include);
+      if ('refused' in pack) throw notFound(pack.refused);
+      // O arquivo fica em disco para a pessoa mandar; o pacote volta junto para a tela conferir.
+      const written = overview.writeShared(packageFileName(pack.procedure.name), pack);
+      return c.json({ ...written, package: pack });
     })
     // Where each procedure stands: which of its steps already ran as they are written (documento 25).
     .get('/proofs', (c) => c.json(procedureProofs(s)))

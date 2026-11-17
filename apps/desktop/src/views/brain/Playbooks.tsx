@@ -9,6 +9,7 @@ import { PlaybookAutonomyPanel } from './PlaybookAutonomy';
 import { PlaybookIdeas } from './PlaybookIdeas';
 import { PlaybookLearnings } from './PlaybookLearnings';
 import { PlaybookProofPill } from './PlaybookProofPill';
+import { PlaybookShare } from './PlaybookShare';
 import { levelPill } from './levels';
 
 /** Each variation right after the playbook it came from. */
@@ -28,7 +29,7 @@ export function Playbooks() {
   const pbs = useLive(api.playbooks, ['brain']);
   const proofs = useLive(api.proofs, ['brain']);
   const [open, setOpen] = useState<string>();
-  const [mode, setMode] = useState<{ name: string; kind: 'edit' | 'delete' }>();
+  const [mode, setMode] = useState<{ name: string; kind: 'edit' | 'delete' | 'share' }>();
   if (!pbs.data) return <p className="muted pad">Carregando…</p>;
   if (pbs.data.length === 0) return <p className="muted pad">Nenhum procedimento aprendido ainda. Ensine um na tela Conversa.</p>;
   return (
@@ -55,6 +56,7 @@ export function Playbooks() {
               <div className="row gap detail-actions">
                 <button type="button" className="btn small" onClick={() => setMode({ name: p.name, kind: 'edit' })}><PencilIcon size={13} /> Editar</button>
                 <button type="button" className="btn small" onClick={() => setMode({ name: p.name, kind: 'delete' })}><TrashIcon size={13} /> Apagar</button>
+                <button type="button" className="btn small" onClick={() => setMode({ name: p.name, kind: 'share' })}>Exportar…</button>
               </div>
               {mode?.name === p.name && mode.kind === 'delete' && (
                 <ConfirmDelete
@@ -64,6 +66,7 @@ export function Playbooks() {
                   onCancel={() => setMode(undefined)}
                 />
               )}
+              {mode?.name === p.name && mode.kind === 'share' && <PlaybookShare p={p} onClose={() => setMode(undefined)} />}
               <PlaybookProofPill p={p} proof={proofs.data?.[p.name]} />
               <p className="muted small">Gatilho: {p.trigger}{p.appliesTo ? ` · aplica-se a ${p.appliesTo}` : ''}</p>
               <PlaybookAutonomyPanel p={p} />
