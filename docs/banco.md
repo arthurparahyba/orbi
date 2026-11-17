@@ -467,6 +467,19 @@ Cada migração roda numa transação ao abrir o banco; a versão fica em
 `PRAGMA user_version`. São só de acréscimo: uma migração publicada nunca é
 editada, sempre se cria outra.
 
+**E só de acréscimo no fim.** A versão do banco é o **índice** na lista: `migrate` pula as
+primeiras `user_version` entradas, quaisquer que elas sejam. Então inserir uma migração no meio
+renumera todas as seguintes, e um banco que já existe pula as novas (o número dele já as cobre) e
+tenta rodar de novo uma que já rodou. O erro é `table X already exists`, `migrate` lança, **o
+runtime não sobe** e a aplicação fica na tela de abertura sem dizer o que houve.
+
+Aconteceu: as três migrações do documento 28 entraram antes de `diagnosis_reports`, um banco em
+`user_version = 29` pulou as três e tentou criar de novo `diagnosis_reports`, que havia mudado de
+29 para 32. Nenhum teste pegou, porque teste sempre começa de banco vazio, onde a lista inteira
+roda em ordem e os índices batem. `test/migrations.test.ts` fecha isso: para cada `k`, um banco que
+parou na k-ésima migração tem de chegar ao fim — todas as versões instaladas que existem, simuladas
+uma a uma.
+
 | # | O que faz |
 | --- | --- |
 | 1 | Cérebro: `types`, `entities`, `edges`, `playbooks`, `playbook_runs`, `proposals`, `followups` (com `IF NOT EXISTS`, para bancos de antes das migrações) |
@@ -498,8 +511,11 @@ editada, sempre se cria outra.
 | 27 | Tabela `playbook_proofs`: quais passos já rodaram como estão escritos (documento 25) |
 | 28 | Tabela `diagnoses`: o que é defeito do Orbi ou chamada errada do modelo (documento 24) |
 | 29 | Tabela `diagnosis_reports`: o relatório do diagnóstico de uma execução (documento 24) |
+| 30 | Domínios: tabela `domains` e coluna `domain` em `entities`, `types` e `playbooks` (documento 28) |
+| 31 | Procedência: `entities.found_in` e `entities.checked_at` (documento 28, fase C) |
+| 32 | Receita de atualização: `types.refresh` (documento 28, fase D) |
 
-O número é o `user_version` depois que a migração roda (hoje 20). É o mesmo
+O número é o `user_version` depois que a migração roda (hoje 32). É o mesmo
 número que os documentos das funcionalidades usam ("migração 11" para as esteiras).
 
 ## Gatilhos
