@@ -98,6 +98,11 @@ export const CreateDomain = v.object({
 });
 /** PATCH /api/brain/domains/:name — renomear. */
 export const RenameDomain = v.object({ name: DomainName });
+/** GET /api/logs — o fim do registro do runtime (documento 29), um parâmetro por vez. */
+export const LogLevelQuery = v.optional(v.picklist(['debug', 'info', 'warn', 'error']));
+export const LogTextQuery = v.optional(v.pipe(v.string(), v.maxLength(200)));
+export const LogLimitQuery = v.optional(v.pipe(v.unknown(), v.transform(Number), v.number(), v.minValue(1), v.maxValue(2000)));
+
 /** PUT /api/brain/types/:name/refresh — o procedimento que confere um fato deste tipo (fase D). */
 export const SetRefresh = v.object({ refresh: v.nullable(v.pipe(v.string(), v.trim(), v.minLength(1))) });
 /** PUT /api/brain/entities/:id/domain e .../types/:name/domain — nulo é comum. */
@@ -257,6 +262,7 @@ export type CreateDomain = v.InferOutput<typeof CreateDomain>;
 export type RenameDomain = v.InferOutput<typeof RenameDomain>;
 export type SetDomain = v.InferOutput<typeof SetDomain>;
 export type SetRefresh = v.InferOutput<typeof SetRefresh>;
+
 export type EditPlaybook = v.InferOutput<typeof EditPlaybook>;
 export type SetAutonomy = v.InferOutput<typeof SetAutonomy>;
 export type CreateAgentClient = v.InferOutput<typeof CreateAgentClient>;

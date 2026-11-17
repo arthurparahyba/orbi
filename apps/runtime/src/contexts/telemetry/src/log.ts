@@ -77,15 +77,32 @@ export function logOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): LogOpti
 
 let current: Logger = createLogger(logOptionsFromEnv());
 
+/**
+ * Quem é avisado quando entra um aviso ou um erro no registro (documento 29). A tela de logs não
+ * fica perguntando — a convenção do app é não consultar de tempos em tempos —, então o que
+ * importa chega sozinho e o resto espera o botão Atualizar. `debug` e `info` não avisam ninguém:
+ * um turno do modelo escreve dezenas deles e a tela piscaria sem parar.
+ */
+let announce: ((level: Level) => void) | undefined;
+
+export function onSeriousLog(listener: (level: Level) => void): void {
+  announce = listener;
+}
+
 /** The process logger. Tests swap it with `setLogger`. */
 export const log: Logger = {
   debug: (m, a) => current.debug(m, a),
   info: (m, a) => current.info(m, a),
-  warn: (m, a) => current.warn(m, a),
-  error: (m, a) => current.error(m, a),
+  warn: (m, a) => { current.warn(m, a); announce?.('warn'); },
+  error: (m, a) => { current.error(m, a); announce?.('error'); },
   with: (a) => current.with(a),
 };
 
 export function setLogger(logger: Logger): void {
   current = logger;
+}
+
+/** Entre testes, nada de um ouvinte de um caso de uso vazar para o seguinte. */
+export function clearSeriousLogListener(): void {
+  announce = undefined;
 }

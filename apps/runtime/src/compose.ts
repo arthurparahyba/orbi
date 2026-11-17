@@ -1,7 +1,7 @@
 import { Diagnoses, DiagnosisSettings } from './contexts/improvement/index.ts';
 import { isCallError, stepUses } from './contexts/trust/index.ts';
 import { callSummary, marksOf, type CallApproval, type CallStatus } from './contexts/procedures/index.ts';
-import { foundInOf } from './contexts/telemetry/index.ts';
+import { foundInOf, onSeriousLog } from './contexts/telemetry/index.ts';
 import { now } from './db/rows.ts';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
@@ -278,6 +278,8 @@ export interface Background {
  * `agent` is passed in (not imported) so this file has no cycle with the agent.
  */
 export function startBackground(s: OrbiServices, agent: Agent): Background {
+  // Aviso e erro no registro acordam a tela de logs; o resto espera o botão (documento 29).
+  onSeriousLog(() => s.events.emit('log'));
   logStartup(s);
   // Every model and tool call: counted per conversation and logged.
   const unwatch = watchAgents({

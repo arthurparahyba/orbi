@@ -32,3 +32,24 @@ export interface UsageReport {
   period: UsageTotals;
   conversations: ConversationUsage[];
 }
+
+/** Uma linha do registro do runtime (documento 29). */
+export interface LogLine {
+  /** `orbi` quando veio do logger e os campos são conhecidos; `raw` quando não (plugin, pilha de erro). */
+  kind: 'orbi' | 'raw';
+  at: string | null;
+  level: 'debug' | 'info' | 'warn' | 'error' | null;
+  msg: string;
+  attrs: Record<string, unknown>;
+}
+
+/** GET /api/logs?level=&text=&limit= */
+export interface RecentLog {
+  file: string;
+  bytes: number;
+  /** A primeira linha pode estar cortada: o arquivo é lido do fim. */
+  partial: boolean;
+  lines: LogLine[];
+  /** Quantas das linhas mostradas o Orbi não reconheceu. */
+  raw: number;
+}

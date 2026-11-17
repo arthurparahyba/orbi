@@ -1029,3 +1029,27 @@ strong .merged { display: inline; font-weight: 600; }
 .domain-fact { flex-wrap: wrap; }
 .onto-card header { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
 .onto-refresh { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }
+
+/* ── Logs: o registro do runtime (documento 29) ───────────────────────────── */
+.logs { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.logs-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.logs-field { display: flex; flex-direction: column; gap: 4px; }
+.logs-search { flex: 1 1 220px; }
+.logs-search input { width: 100%; box-sizing: border-box; }
+.log-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
+  font-family: var(--mono); font-size: 12px; line-height: 1.6; background: var(--surface);
+  border: 1px solid var(--border-2); border-radius: var(--radius); overflow: auto; max-height: 60vh; }
+.log-line { display: grid; grid-template-columns: 64px 46px 1fr; gap: 10px; padding: 5px 12px;
+  border-bottom: 1px solid var(--border); }
+.log-line:last-child { border-bottom: none; }
+.log-at { color: var(--muted); }
+.log-level { text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; padding-top: 1px; }
+.log-line.warn .log-level { color: var(--amber); }
+.log-line.error .log-level { color: var(--red); }
+.log-line.error { background: color-mix(in srgb, var(--red) 7%, transparent); }
+.log-line.debug, .log-line.raw { color: var(--muted); }
+.log-msg { min-width: 0; overflow-wrap: anywhere; }
+.log-attrs { display: block; color: var(--muted); }
+.log-attrs span { margin-right: 12px; }
+.log-attrs b { font-weight: 500; }
+.logs-foot { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }

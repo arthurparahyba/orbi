@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { llmChoice } from './contexts/models/index.ts';
+import { appDataHome } from './contexts/platform/index.ts';
 import { findShell } from './contexts/tools/index.ts';
 
 /** Programs the Orbi may run when ORBI_ALLOWED_BINARIES is not set. */
@@ -60,6 +61,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, cwd = process.c
     dbFile: path(env.ORBI_DB ?? `${dataDir}/orbi.db`),
     /** Where the brain lived before the single database; moved to dbFile on first start. */
     legacyBrainFile: path(env.ORBI_BRAIN_FILE ?? `${dataDir}/brain.db`),
+    /**
+     * O arquivo onde a saída do runtime é guardada. O runtime escreve em stdout e stderr; no app
+     * empacotado é o Tauri que redireciona para cá, então quem lê o log lê este arquivo — e com
+     * `npm start` ele não existe, porque a saída vai para o terminal.
+     */
+    logFile: path(env.ORBI_LOG_FILE ?? `${appDataHome(env)}/logs/runtime.log`),
     /** Read-only Markdown export of the brain, for Obsidian. */
     brainExportDir: path(env.ORBI_BRAIN_EXPORT_DIR ?? `${dataDir}/brain-md`),
     /** JSON files of versions before the single database; imported once, then renamed *.importado. */

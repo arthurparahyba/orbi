@@ -18,8 +18,10 @@
  *   code-agents    agentes de código desta máquina e quem faz cada tarefa (id = agente)
  *   followups      retornos agendados (id = conversa)
  *   mcp-servers    servidores MCP que o Orbi usa e as ferramentas deles (id = servidor)
+ *   log            o runtime registrou um aviso ou um erro (só `warn` e `error`: a tela de
+ *                  logs não fica perguntando, e o que importa aparece sozinho)
  */
-export const TOPICS = ['inbox', 'conversations', 'brain', 'runs', 'autonomy', 'vault', 'recording', 'dispatched', 'usage', 'agents', 'voice', 'pipelines', 'code-agents', 'followups', 'mcp-servers'] as const;
+export const TOPICS = ['inbox', 'conversations', 'brain', 'runs', 'autonomy', 'vault', 'recording', 'dispatched', 'usage', 'agents', 'voice', 'pipelines', 'code-agents', 'followups', 'mcp-servers', 'log'] as const;
 export type Topic = (typeof TOPICS)[number];
 
 export interface ChangeEvent {

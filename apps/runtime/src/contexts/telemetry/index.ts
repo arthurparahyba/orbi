@@ -7,6 +7,11 @@
  * of joining its table.
  */
 
+export { logRoutes } from './http.ts';
+export { recentLog, type RecentLog, type NoFile } from './use-cases/recent-log.ts';
+export type { LogLine } from './src/log-lines.ts';
+
+export { onSeriousLog, clearSeriousLogListener } from './src/log.ts';
 export { foundInOf } from './src/found-in.ts';
 export * from './src/log.ts';
 export { UsageStore } from './src/usage.ts';

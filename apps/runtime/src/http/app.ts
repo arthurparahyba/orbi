@@ -13,7 +13,7 @@ import { brainRoutes } from '../contexts/knowledge/index.ts';
 import { autonomyRoutes } from '../contexts/trust/index.ts';
 import { healthRoutes } from './routes/health.ts';
 import { eventRoutes } from './routes/events.ts';
-import { usageRoutes } from '../contexts/telemetry/index.ts';
+import { logRoutes, usageRoutes } from '../contexts/telemetry/index.ts';
 import { transcribeRoutes } from '../contexts/talk/index.ts';
 import { voiceRoutes } from '../contexts/talk/index.ts';
 import { pipelineRoutes, pipelineRunRoutes } from '../contexts/procedures/index.ts';
@@ -81,6 +81,7 @@ export function createHttpApp(s: OrbiServices, background: Background, agent: Ag
   app.route('/api/health', healthRoutes(s, background));
   app.route('/api/events', eventRoutes(s));
   app.route('/api/usage', usageRoutes(s));
+  app.route('/api/logs', logRoutes(s));
   app.route('/api/agents', agentRoutes(s));
   app.route('/api/transcribe', transcribeRoutes(s));
   app.route('/api/voice', voiceRoutes(s));

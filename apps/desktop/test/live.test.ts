@@ -124,3 +124,19 @@ describe('acompanhar o turno depois de responder ou aprovar', () => {
     expect([3000, nextDelay(3000), nextDelay(9000)]).toEqual([3000, 4500, 10000]);
   });
 });
+
+import { hour } from '../src/views/autonomy/Logs';
+describe('a hora de uma linha do registro', () => {
+  it('passa adiante o formato bonito do terminal, que já é só hora', () => {
+    expect(hour('14:31:02')).toBe('14:31:02');
+  });
+
+  it('corta a data do formato JSON, porque a lista é toda do mesmo fim do arquivo', () => {
+    expect(hour('2026-11-17T12:00:00.000Z')).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+  });
+
+  it('não inventa hora para linha que não tem', () => {
+    expect(hour(null)).toBe('');
+    expect(hour('isso não é data')).toBe('');
+  });
+});

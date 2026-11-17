@@ -373,6 +373,12 @@ Interface pública: `log`, `createLogger`, `logOptionsFromEnv`, `setLogger`, `Us
 **`TitleOf`** resolve a outra violação: o relatório mostrava o nome da conversa com
 `usage LEFT JOIN conversations`. Agora pede o nome a `talk` e junta em memória.
 
+**Casos de uso** (`use-cases/`, documento 27):
+
+| Caso de uso | O que faz |
+|---|---|
+| `recentLog` | o fim do registro do runtime para a tela: acha o arquivo, lê de trás para frente, limpa credencial e filtra (documento 29) |
+
 Tabelas: `usage`.
 
 ### `platform` — onde ele está rodando
