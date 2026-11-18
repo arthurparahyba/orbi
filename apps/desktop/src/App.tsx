@@ -58,12 +58,6 @@ export function App() {
 
   const online = !health.error && !!health.data;
 
-  // Until the runtime answers and the first data arrives: a loading screen, not empty screens.
-  if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} health={health.data} inbox={inbox.data} />;
-  const noModel = health.data?.llmReady === false;
-  if (noModel && !later) return <ModelSetup onDone={() => void health.reload()} onLater={() => setLater(true)} />;
-
-
   /**
    * Um procedimento chega como arquivo: arrastado para cima da janela, em qualquer tela, ou
    * escolhido pelo botão da tela de Procedimentos (documento 30). Os dois caminhos param aqui, na
@@ -98,6 +92,13 @@ export function App() {
       window.removeEventListener('drop', dropped);
     };
   }, [offer]);
+
+
+  // Until the runtime answers and the first data arrives: a loading screen, not empty screens.
+  if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} health={health.data} inbox={inbox.data} />;
+  const noModel = health.data?.llmReady === false;
+  if (noModel && !later) return <ModelSetup onDone={() => void health.reload()} onLater={() => setLater(true)} />;
+
 
   return (
     <InboxContext.Provider value={actions}>
