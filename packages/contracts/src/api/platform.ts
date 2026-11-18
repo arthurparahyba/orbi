@@ -14,7 +14,11 @@ export interface Health {
   plugins?: Array<{ name: string; kind: string; dir: string; description?: string; error?: string }>; envFile?: string; dataDir?: string; vault?: string; stt?: string; demoPortal?: string;
   /** Folder commands run in, and where each allowed CLI was found (null = not installed). */
   workspace?: string; binaries?: Record<string, string | null>;
-  chrome: { url: string; tools: number } | { error: string };
+  /**
+   * O navegador do Orbi: o id do servidor MCP marcado como navegador, ou nulo — a aplicação é
+   * instalada sem nenhum, e quem cadastra é o desenvolvedor (documento 31).
+   */
+  browser: { serverId: string | null };
   brain: BrainSnapshot['stats'];
   /** Where coding agents connect to Orbi's MCP server. */
   mcpUrl?: string;

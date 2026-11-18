@@ -171,12 +171,12 @@ assinatura: [../empacotamento.md](../empacotamento.md).
 ## Processos
 
 Com o app aberto há dois processos `orbi-node` (ou `node`): o **runtime** e o
-**chrome-devtools-mcp**, que o runtime inicia para controlar o Chrome. Fechar o
+os **servidores MCP** que o runtime inicia por comando, e o Chrome do gravador. Fechar o
 Orbi encerra os dois (e o Chrome que o Orbi abriu):
 
 - O app, ao sair, encerra a árvore do runtime (`taskkill /T` no Windows).
 - O runtime, ao terminar de qualquer jeito (app fechado, Ctrl+C, o app sumiu sem
-  avisar: ele confere o processo do app a cada 2 s), encerra o chrome-devtools-mcp
+  avisar: ele confere o processo do app a cada 2 s), encerra os servidores MCP
   e o Chrome que abriu (`process.on('exit')` em `compose.ts`).
 
 ## Limites conhecidos

@@ -15,7 +15,6 @@ export function healthRoutes(s: OrbiServices, background: Background) {
   void vault.backend().then((b) => (vaultBackend = b), () => {});
 
   return new Hono().get('/', (c) => {
-    const bridge = background.bridge();
     const health: Health = {
       model: config.model,
       llm: s.llm.adapter ? s.llm.adapter.name : s.llm.kind,
@@ -25,7 +24,7 @@ export function healthRoutes(s: OrbiServices, background: Background) {
       anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       envFile: resolve(config.cwd, '.env'),
       dataDir: config.dataDir,
-      chrome: bridge ? { url: bridge.url, tools: bridge.toolNames.length } : { error: background.bridgeError() ?? 'iniciando' },
+      browser: { serverId: s.browser.serverId() ?? null },
       brain: stats(s),
       vault: vaultBackend,
       demoPortal: process.env.ORBI_DEMO_PORTAL,

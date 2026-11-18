@@ -41,9 +41,9 @@ test('loadConfig é pura: lê só o ambiente passado, resolve ~ e caminhos relat
 test('configuração inválida é explicada antes de subir', async () => {
   const { loadConfig, validateConfig } = await import('../src/config.ts');
   const { createOrbi } = await import('../src/compose.ts');
-  const bad = loadConfig({ CHROME_MCP_PORT: 'abc', ORBI_STT: 'http', ORBI_VAULT: 'cofre' }, mkdtempSync(join(tmpdir(), 'orbi-bad-')));
+  const bad = loadConfig({ CHROME_DEBUG_PORT: 'abc', ORBI_STT: 'http', ORBI_VAULT: 'cofre' }, mkdtempSync(join(tmpdir(), 'orbi-bad-')));
   const problems = validateConfig(bad);
-  assert.ok(problems.some((p) => p.startsWith('CHROME_MCP_PORT')));
+  assert.ok(problems.some((p) => p.startsWith('CHROME_DEBUG_PORT')));
   assert.ok(problems.some((p) => p.includes('ORBI_STT_URL')));
   assert.ok(problems.some((p) => p.startsWith('ORBI_VAULT')));
   await assert.rejects(createOrbi(bad), /configuração inválida/);

@@ -5,9 +5,9 @@ import { setEnvValue } from '../../../platform/index.ts';
 import { chromeExecutable } from './chrome.ts';
 
 /**
- * The Chrome DevTools settings, from Configurações › Ferramentas (MCP) (docs/funcionalidades/20).
- * Same path as the model: written to the .env the runtime reads at start, put in this
- * process's environment and in the live configuration, then the bridge restarts.
+ * Os ajustes do Chrome que o Orbi abre para gravar uma demonstração (documento 06). Mesmo caminho
+ * do modelo: escritos no .env que o runtime lê ao subir, postos no ambiente deste processo e na
+ * configuração viva; daí o Chrome é fechado e abre de novo no próximo uso.
  */
 type Chrome = OrbiConfig['chrome'];
 
@@ -23,12 +23,10 @@ export function chromeSettings(chrome: Chrome): ChromeSettings {
     browser: chrome.browserUrl ? 'seu' : 'proprio',
     browserUrl: chrome.browserUrl ?? null,
     showWindow: !chrome.headless,
-    autostart: chrome.autostart,
     profileDir: chrome.profileDir,
     executablePath: chrome.executablePath ?? null,
     detected: detected ?? null,
     detectError: detectError ?? null,
-    port: chrome.port,
     debugPort: chrome.debugPort,
   };
 }
@@ -52,7 +50,6 @@ export function chromeEnv(input: SetChromeSettings, dataDir: string): Record<str
   return {
     CHROME_BROWSER_URL: own ? '' : (input.browserUrl ?? ''),
     CHROME_HEADLESS: input.showWindow ? 'false' : 'true',
-    CHROME_MCP_AUTOSTART: input.autostart ? 'true' : 'false',
     CHROME_PROFILE_DIR: profile,
     CHROME_PATH: input.executablePath ?? '',
   };
@@ -77,7 +74,6 @@ export function applyChromeSettings(
   Object.assign(config.chrome, {
     browserUrl: next.CHROME_BROWSER_URL || undefined,
     headless: next.CHROME_HEADLESS === 'true',
-    autostart: next.CHROME_MCP_AUTOSTART !== 'false',
     profileDir: resolve(config.cwd, next.CHROME_PROFILE_DIR || `${config.dataDir}/chrome-profile`),
     executablePath: next.CHROME_PATH || undefined,
   });

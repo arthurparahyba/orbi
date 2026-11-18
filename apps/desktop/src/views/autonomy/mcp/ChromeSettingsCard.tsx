@@ -28,7 +28,7 @@ export function ChromeSettingsCard({ onSaved }: { onSaved(): void }) {
   };
   return (
     <section className="chrome-settings" aria-labelledby="chrome-h">
-      <h2 id="chrome-h">Chrome DevTools <span className="muted small">o navegador dos procedimentos e de “Mostrar no navegador”</span></h2>
+      <h2 id="chrome-h">Chrome do gravador <span className="muted small">o navegador que o Orbi abre em “Mostrar no navegador”</span></h2>
       <fieldset className="chrome-which">
         <legend className="small muted">Qual navegador</legend>
         <WhichOption on={form.browser === 'proprio'} onPick={() => set({ browser: 'proprio' })} title="Perfil próprio do Orbi" text="Separado do seu Chrome. Os logins feitos nele ficam guardados entre execuções." />
@@ -39,13 +39,12 @@ export function ChromeSettingsCard({ onSaved }: { onSaved(): void }) {
       )}
       <div className="chrome-grid">
         <label className="check"><input type="checkbox" checked={form.showWindow} onChange={(e) => set({ showWindow: e.target.checked })} /> Mostrar a janela <span className="muted small">desligue para rodar sem janela</span></label>
-        <label className="check"><input type="checkbox" checked={form.autostart} onChange={(e) => set({ autostart: e.target.checked })} /> Navegador ligado <span className="muted small">desligado, o Orbi trabalha sem navegador</span></label>
         {form.browser === 'proprio' && <label className="field">Pasta do perfil<input value={form.profileDir ?? ''} onChange={(e) => set({ profileDir: e.target.value })} /></label>}
         <label className="field">Programa do Chrome <span className="muted small">{s.detected ? `achei: ${s.detected}` : s.detectError}</span>
           <input value={form.executablePath ?? ''} placeholder="em branco: o que achei" onChange={(e) => set({ executablePath: e.target.value })} />
         </label>
       </div>
-      <p className="muted small">Portas: {s.port} (ponte) e {s.debugPort} (depuração), só em 127.0.0.1, com token. Mudam no .env.</p>
+      <p className="muted small">Depuração em 127.0.0.1:{s.debugPort}, que muda no .env. Para o navegador <em>dos procedimentos</em>, cadastre um servidor MCP acima e marque “é o navegador do Orbi”.</p>
       {(hint || error) && <p className="form-error" role="alert">{error ?? hint}</p>}
       {changed(s, form) && <p className="muted small">{restartNote(form)}</p>}
       <div className="row">

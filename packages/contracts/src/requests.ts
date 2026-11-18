@@ -57,10 +57,12 @@ export const SetChromeSettings = v.object({
   browser: v.picklist(['proprio', 'seu']),
   browserUrl: v.nullable(v.pipe(v.string(), v.maxLength(200))),
   showWindow: v.boolean(),
-  autostart: v.boolean(),
   profileDir: v.nullable(v.pipe(v.string(), v.maxLength(500))),
   executablePath: v.nullable(v.pipe(v.string(), v.maxLength(500))),
 });
+/** PUT /api/model/tiers — how costly a model is, set by the developer (null: back to what the plugin says). */
+/** PUT /api/mcp/servers/:id/browser — qual servidor é o navegador do Orbi (documento 31). */
+export const SetBrowserServer = v.object({ isBrowser: v.boolean() });
 /** PUT /api/model/tiers — how costly a model is, set by the developer (null: back to what the plugin says). */
 export const SetModelTier = v.object({ model: v.pipe(v.string(), v.minLength(1), v.maxLength(200)), tier: v.nullable(v.picklist(['cheap', 'standard', 'premium'])) });
 
@@ -331,6 +333,7 @@ export type ChooseConversationModel = v.InferOutput<typeof ChooseConversationMod
 export type SetModelTier = v.InferOutput<typeof SetModelTier>;
 export type SetModelRole = v.InferOutput<typeof SetModelRole>;
 export type SetChromeSettings = v.InferOutput<typeof SetChromeSettings>;
+export type SetBrowserServer = v.InferOutput<typeof SetBrowserServer>;
 export type CardMessage = v.InferOutput<typeof CardMessage>;
 export type TestMcpServer = v.InferInput<typeof TestMcpServer>;
 export type AddMcpServer = v.InferInput<typeof AddMcpServer>;

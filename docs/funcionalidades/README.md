@@ -42,6 +42,7 @@ e [plugins](../plugins.md).
 | 28 | [Domínios do cérebro](28-dominios-do-cerebro.md) | O assunto em que cada coisa foi aprendida, a herança do domínio na hora de guardar, as pontes entre domínios, a procedência de cada fato e a receita de atualização |
 | 29 | [Registro do runtime](29-registro-do-runtime.md) | Autonomia › Acompanhar › **Logs**: as últimas linhas do `runtime.log`, com filtro por nível e por texto, segredos limpos antes de aparecer |
 | 30 | [Compartilhar um procedimento](30-compartilhar-procedimento.md) | Cérebro › Procedimentos › **Exportar…** e **Importar procedimento…** (ou arrastar o arquivo na janela): vocabulário viaja, dados não; e o que chega entra em N1 |
+| 31 | [O navegador deixa de vir embarcado](31-navegador-cadastrado.md) | Configurações › **Servidor MCP**: você cadastra o navegador que quiser (ex.: `npx chrome-devtools-mcp`) e marca "é o navegador do Orbi"; a aplicação chega sem nenhum |
 
 ## Como as funcionalidades se ligam
 

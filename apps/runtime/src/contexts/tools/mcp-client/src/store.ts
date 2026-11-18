@@ -7,6 +7,8 @@ export interface DiscoveredTool { name: string; description: string; inputSchema
 export interface ServerRow {
   id: string; name: string; transport: 'http' | 'command'; url: string; headers: Record<string, string>;
   command: McpCommand | null; env: Record<string, string>; enabled: boolean; lastError: string | null;
+  /** Este é o navegador do Orbi: `browser_act` e as leituras de página vão para ele (documento 31). */
+  isBrowser: boolean;
   /** The command you approved (commandApproval); null: never approved. */
   approvedCommand: string | null;
 }
@@ -86,6 +88,21 @@ export class McpServers {
   }
 
   /** Your choices for a tool. Looking at it counts as reviewed; "sempre sozinho" never sticks to one that deletes. */
+  /**
+   * Marca qual servidor é o navegador do Orbi — um só, então marcar um desmarca o outro
+   * (documento 31). `null` deixa sem nenhum, que é como a aplicação é instalada.
+   */
+  setBrowser(id: string | null): void {
+    this.db.prepare('UPDATE mcp_servers SET is_browser = 0, updated_at = ? WHERE is_browser = 1').run(now());
+    if (id) this.db.prepare('UPDATE mcp_servers SET is_browser = 1, updated_at = ? WHERE id = ?').run(now(), id);
+  }
+
+  /** O servidor marcado como navegador, se existir e estiver ligado. */
+  browser(): ServerRow | undefined {
+    const row = this.db.prepare('SELECT * FROM mcp_servers WHERE is_browser = 1 AND enabled = 1').get() as Raw | undefined;
+    return row ? serverOf(row) : undefined;
+  }
+
   setTool(serverId: string, name: string, p: { kind?: 'leitura' | 'escrita' | null; enabled?: boolean; alone?: boolean; reviewed?: boolean }): boolean {
     const cur = this.tools(serverId).find((x) => x.name === name);
     if (!cur) return false;
@@ -105,7 +122,7 @@ export class McpServers {
   summary(s: ServerRow, state: McpServer['state']): McpServer {
     const tools = this.tools(s.id).filter((x) => x.enabled);
     return {
-      id: s.id, name: s.name, transport: s.transport, url: s.url, headers: s.headers, command: s.command, env: s.env,
+      id: s.id, name: s.name, transport: s.transport, url: s.url, headers: s.headers, command: s.command, env: s.env, isBrowser: s.isBrowser,
       enabled: s.enabled, state: s.enabled && needsApproval(s) ? 'aprovar' : state, error: s.lastError,
       counts: { leitura: tools.filter((x) => x.effective === 'leitura').length, escrita: tools.filter((x) => x.effective !== 'leitura').length, novas: this.tools(s.id).filter((x) => x.isNew).length },
     };
@@ -117,7 +134,7 @@ function serverOf(r: Raw): ServerRow {
     id: String(r.id), name: String(r.name), transport: r.transport === 'command' ? 'command' : 'http', url: String(r.url ?? ''),
     headers: JSON.parse(String(r.headers ?? '{}')), command: r.command ? (JSON.parse(String(r.command)) as McpCommand) : null,
     env: JSON.parse(String(r.env ?? '{}')), enabled: r.enabled === 1, lastError: (r.last_error as string | null) ?? null,
-    approvedCommand: (r.approved_command as string | null) ?? null,
+    approvedCommand: (r.approved_command as string | null) ?? null, isBrowser: r.is_browser === 1,
   };
 }
 

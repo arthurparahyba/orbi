@@ -26,7 +26,6 @@ export * from './browser/src/settings.ts';
 export * from './browser/src/recorder.ts';
 export * from './browser/src/page-recorder.ts';
 export * from './browser/src/mcp/chrome-devtools.ts';
-export * from './browser/src/mcp/bridge.ts';
 
 export * from './mcp-client/src/hub.ts';
 export * from './mcp-client/src/store.ts';

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { AddMcpServer, EditMcpServer, SetMcpTool, TestMcpServer } from '@orbi/contracts';
+import { AddMcpServer, EditMcpServer, SetBrowserServer, SetMcpTool, TestMcpServer } from '@orbi/contracts';
 import type { OrbiServices } from '../../services.ts';
 import { envProblems, headerProblems, serverIdFor, urlProblem, type McpCommand } from './mcp-client/src/domain.ts';
 import type { McpTarget } from './mcp-client/src/hub.ts';
@@ -86,6 +86,15 @@ export function mcpServerRoutes(s: S) {
     .put('/:id/tools/:tool', async (c) => {
       const id = c.req.param('id');
       if (!s.mcpServers.setTool(id, c.req.param('tool'), await body(c, SetMcpTool))) throw new HttpError(404, 'not_found', 'ferramenta não existe');
+      return c.json(detail(id));
+    })
+    // Qual servidor é o navegador do Orbi (documento 31). Um só: marcar um desmarca o outro.
+    .put('/:id/browser', async (c) => {
+      const id = c.req.param('id');
+      detail(id);
+      const { isBrowser } = await body(c, SetBrowserServer);
+      s.mcpServers.setBrowser(isBrowser ? id : null);
+      log.info('navegador do Orbi', { server: isBrowser ? id : null });
       return c.json(detail(id));
     })
     // "Já vi": the new tools stay as they are (escrita when unmarked) and stop being flagged.

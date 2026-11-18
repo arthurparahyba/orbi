@@ -13,41 +13,39 @@ Ele lê as páginas e age nelas, com as mesmas regras de autonomia das outras a�
   cartão de aprovação ("Salvar a versão 2.5.0 (navegador: click)").
 - O **Chrome do Orbi** abre na tela. É uma janela comum, e você pode olhar ou
   intervir (um MFA no celular, por exemplo).
-- Na barra lateral do app, o segundo ponto indica se o navegador está conectado.
-- **Configurações › Ferramentas (MCP) › Chrome DevTools** (documento 20): o estado e as
-  configurações. **Qual navegador** (perfil próprio do Orbi, ou o seu Chrome pelo endereço
-  local da depuração), **Mostrar a janela**, **Navegador ligado**, pasta do perfil e o
-  programa do Chrome (com o que o Orbi achou). **Salvar e reiniciar** grava no `.env`, aplica
-  na hora e reinicia a ponte, sem reiniciar o Orbi (`browser/settings.ts`,
-  `PUT /api/browser/settings`, `restartChrome` em `compose.ts`). O seu Chrome só é aceito em
-  `127.0.0.1`/`localhost`, com porta. As portas continuam só no `.env`.
+- **Configurações › Servidor MCP**: o servidor que você cadastrou e marcou como
+  **navegador do Orbi** (documento 31). Nada vem embarcado: sem marcar um, os passos de
+  navegador recusam dizendo o que fazer.
+- **Configurações › Servidor MCP › Chrome do gravador**: o Chrome que o Orbi abre para
+  gravar uma demonstração (documento 6) — perfil próprio ou o seu Chrome pelo endereço
+  local da depuração, mostrar a janela, pasta do perfil e o programa do Chrome. Esse
+  ajuste não tem mais nada a ver com MCP.
 
 ## Como funciona
 
-O Orbi usa o **chrome-devtools-mcp**, um servidor MCP (Model Context Protocol)
-mantido pelo time do Chrome, que expõe o navegador como ferramentas: abrir
-página, tirar um "retrato" da página com os elementos e seus identificadores,
-clicar, preencher. Como o Flue só conecta MCP por HTTP e esse servidor fala por
-stdio, há uma ponte entre os dois.
+O navegador é um **servidor MCP que você cadastra** e marca como navegador
+(documento 31) — em geral o **chrome-devtools-mcp**, mantido pelo time do Chrome,
+que expõe o navegador como ferramentas: abrir página, tirar um "retrato" da
+página com os elementos e seus identificadores, clicar, preencher. O Orbi não
+traz nenhum dentro dele.
 
 ```mermaid
 flowchart LR
-  Modelo -- "mcp__chrome__take_snapshot (leitura)" --> Flue
+  Modelo -- "mcp__<servidor>__take_snapshot (leitura)" --> Hub
   Modelo -- "browser_act (escrita)" --> Portao[Portão de autonomia]
   Portao --> Cofre[Cofre: troca segredo:… pelo valor]
-  Flue -- "HTTP + token, só 127.0.0.1" --> Ponte[Ponte stdio↔HTTP: bridge.ts]
-  Cofre --> Ponte
-  Ponte -- stdio --> MCP[chrome-devtools-mcp]
-  MCP -- CDP --> Chrome[Chrome do Orbi]
-  Gravador[Gravador de demonstrações] -- CDP --> Chrome
+  Cofre --> Hub[Hub MCP: o servidor marcado como navegador]
+  Hub -- stdio --> MCP[o servidor que você cadastrou]
+  MCP -- CDP --> Chrome[um Chrome]
+  Gravador[Gravador de demonstrações] -- CDP --> ChromeOrbi[Chrome do Orbi, com perfil próprio]
 ```
 
 ### Ler e agir são caminhos diferentes
 
 - **Ler** (listar páginas, navegar, retrato da página, captura de tela, esperar
-  um texto, console, rede): as ferramentas aparecem ao modelo diretamente, como
-  `mcp__chrome__take_snapshot` etc. São leitura e não passam pelo portão
-  (categoria `navegador-leitura`, automática por padrão).
+  um texto, console, rede): as ferramentas do servidor marcado aparecem ao modelo
+  diretamente, como `mcp__<servidor>__take_snapshot`, com autonomia **por
+  ferramenta** (documento 20) — leitura roda sozinha.
 - **Agir** (clicar, preencher, enviar, escolher opção, rodar script na página):
   só por `browser_act`, que passa pelo portão (`navegador-escrita`, "Perguntar"
   por padrão) e informa o propósito da ação para o cartão.
@@ -70,49 +68,40 @@ Versão na aba Configuração"). Na execução, o modelo tira um retrato da pág
 elemento descrito e manda `browser_act` com aquele `uid`. Por isso o passo
 sobrevive a mudanças de layout que quebrariam um seletor CSS.
 
-### Um Chrome só, aberto quando precisa
+### O Chrome do gravador
 
-- `browser/chrome.ts` abre o Chrome **na primeira vez que alguma ferramenta
-  precisa dele**, com a porta de depuração ligada e um perfil próprio
-  (`data/chrome-profile`). Logins feitos ali, por você numa demonstração ou pelo
-  Orbi, continuam valendo nas próximas vezes.
-- O gravador de demonstrações (documento 6) usa o **mesmo** Chrome.
-- Com `CHROME_BROWSER_URL`, o Orbi usa um Chrome que você abriu (com
-  `--remote-debugging-port`), por exemplo o seu do dia a dia com as sessões
-  da empresa.
-
-### Segurança da ponte
-
-A ponte (`browser/mcp/bridge.ts`) escuta só em `127.0.0.1` e exige um token
-gerado a cada execução. O navegador pode ter sessões logadas em sistemas da
-empresa, então nada fora da sua máquina pode chegar nele.
+`browser/chrome.ts` abre um Chrome **na primeira vez que o gravador precisa
+dele**, com a porta de depuração ligada e um perfil próprio
+(`data/chrome-profile`). Logins feitos ali continuam valendo nas próximas vezes.
+Com `CHROME_BROWSER_URL` o Orbi usa um Chrome que você abriu (com
+`--remote-debugging-port`), por exemplo o seu do dia a dia. Quem decide em qual
+Chrome o **agente** trabalha é o servidor MCP que você cadastrou — e ele pode
+apontar para esse mesmo perfil, pela porta de depuração.
 
 ## Peças
 
 | Onde | O quê |
 | --- | --- |
-| `apps/runtime/src/browser/chrome.ts` | Achar, abrir e parar o Chrome compartilhado |
-| `apps/runtime/src/browser/mcp/bridge.ts` | Ponte stdio↔HTTP com token |
-| `apps/runtime/src/browser/mcp/chrome-devtools.ts` | Montagem MCP no Flue (só leitura) e chamada direta |
-| `apps/runtime/src/agents/tools/browser.ts` | `browser_act` (pelo portão, com cofre) e `browser_read` |
-| `apps/runtime/src/autonomy/policy.ts` | Quais ferramentas do Chrome são leitura |
-| `apps/runtime/src/compose.ts` | Sobe a ponte junto com o runtime |
+| `contexts/tools/browser/src/chrome.ts` | Achar, abrir e parar o Chrome do gravador |
+| `contexts/tools/browser/src/mcp/chrome-devtools.ts` | Acha o servidor marcado e chama nele; a recusa quando não há nenhum |
+| `contexts/tools/mcp-client/src/store.ts` | A marca: qual servidor é o navegador (um só) |
+| `agents/tools/browser.ts` | `browser_act` (pelo portão, com cofre) e `browser_read` |
+| `contexts/trust/policy/src/policy.ts` | Quais ferramentas do navegador são leitura |
 
 ## Tecnologias
 
-- **chrome-devtools-mcp** e o **Model Context Protocol** (`@modelcontextprotocol/sdk`).
-- **Chrome DevTools Protocol**.
-- **Montagem MCP do Flue** (`defineMcpConnection`, opcional: sem a ponte, o Orbi
-  continua funcionando sem navegador e o modelo é avisado).
+- **Model Context Protocol** (`@modelcontextprotocol/sdk`), por stdio, pelo hub de
+  servidores cadastrados (documento 20).
+- **Chrome DevTools Protocol**, usado direto pelo gravador.
 
 ## Configuração
 
-As cinco primeiras abaixo também se mudam pela tela (Configurações › Ferramentas MCP); um valor vazio vale o padrão.
+Todas são do **Chrome do gravador**, e as quatro primeiras também se mudam pela tela
+(Configurações › Servidor MCP › Chrome do gravador); um valor vazio vale o padrão. O navegador do
+agente não se configura por variável: é o servidor que você cadastra.
 
 | Variável | Para quê |
 | --- | --- |
-| `CHROME_MCP_AUTOSTART` | `false` para não subir a ponte |
-| `CHROME_MCP_PORT`, `CHROME_MCP_TOKEN` | Porta e token da ponte (o token é gerado se faltar) |
 | `CHROME_BROWSER_URL` | Usar um Chrome que você abriu |
 | `CHROME_PATH` | Onde está o Chrome, se não for o local padrão |
 | `CHROME_DEBUG_PORT`, `CHROME_PROFILE_DIR` | Porta e perfil do Chrome do Orbi |
@@ -126,13 +115,11 @@ As cinco primeiras abaixo também se mudam pela tela (Configurações › Ferram
 
 ## Testes
 
-- `npm run e2e:chrome -w @orbi/runtime` (`apps/runtime/scripts/e2e-chrome-mcp.ts`), ou `npm run e2e` na raiz para os dois: a ponte, o MCP
-  e o Chrome real numa página local.
-- `npm run e2e:demo -w @orbi/runtime`: demonstração gravada e reexecutada pelo
-  MCP, com a senha vinda do cofre.
+- `npm run e2e:demo -w @orbi/runtime`: demonstração gravada e reexecutada pelo caminho do
+  agente — o script **cadastra** um servidor de navegador por comando e marca, como você faria,
+  com a senha vinda do cofre.
+- `apps/runtime/test/browser-server.test.ts`: a recusa sem servidor marcado, um só navegador,
+  e o servidor desligado que deixa de ser.
 - `apps/runtime/test/units.test.ts`: classificação das ferramentas do navegador.
-- `npm run e2e:chrome-settings -w @orbi/runtime` (`scripts/e2e-chrome-restart.ts`): a ponte do
-  runtime com o Chrome real, configuração salva como a tela salva, reinício, navegador
-  respondendo com o perfil novo, e desligado sem ponte.
 - `apps/runtime/test/browser-settings.test.ts` (o `.env`, o endereço só local, a rota) e
   `apps/desktop/test/chromeForm.test.ts` (o formulário).

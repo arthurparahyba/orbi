@@ -25,7 +25,7 @@ aparece, diagramas e detalhes: veja [funcionalidades/](funcionalidades/README.md
 - Framework: [Flue](https://flueframework.com) 2.3 sobre o harness Pi
 - Modelo: `anthropic/claude-haiku-5-5` por padrão; qualquer outro por um adaptador (`src/llm`, ver [modelo e plugins](funcionalidades/12-modelo-e-plugins.md))
 - Correção de código: o agente de código da máquina (`ORBI_CODE_AGENT`), pelo terminal, em worktree isolada
-- Navegador: `chrome-devtools-mcp` atrás de uma ponte HTTP local (o Flue só fala MCP por HTTP)
+- Navegador: um servidor MCP que o desenvolvedor cadastra e marca como navegador (documento 31); nenhum vem embarcado
 - Banco: um arquivo SQLite (`data/orbi.db`) com o cérebro e o estado do app, sem servidor; migrações versionadas (tabelas, diagrama e gatilhos em [banco.md](banco.md))
 
 Uma pasta por capacidade. Na raiz de `src/` ficam só a entrada e o que liga as peças.

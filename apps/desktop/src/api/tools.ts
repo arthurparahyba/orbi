@@ -15,6 +15,9 @@ export const toolsApi = {
   addMcpServer: (s: AddMcpServer) => request<McpServerDetail>('/api/mcp-servers', { method: 'POST', body: JSON.stringify(s) }),
   editMcpServer: (id: string, s: EditMcpServer) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(s) }),
   refreshMcpServer: (id: string) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
+  /** Marca (ou desmarca) este servidor como o navegador do Orbi (documento 31). */
+  setBrowserServer: (id: string, isBrowser: boolean) =>
+    request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/browser`, { method: 'PUT', body: JSON.stringify({ isBrowser }) }),
   setMcpTool: (id: string, tool: string, s: SetMcpTool) => request<McpServerDetail>(`/api/mcp-servers/${encodeURIComponent(id)}/tools/${encodeURIComponent(tool)}`, { method: 'PUT', body: JSON.stringify(s) }),
   removeMcpServer: (id: string) => request<{ removed: string }>(`/api/mcp-servers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   /** Orbi's browser (Chrome DevTools): its settings; saving restarts it. */

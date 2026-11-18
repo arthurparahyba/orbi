@@ -1,10 +1,10 @@
 import type { ChromeSettings, SetChromeSettings } from '../../../api';
 
-/** The Chrome DevTools form (Configurações › Ferramentas MCP), without React. */
+/** O formulário do Chrome que o Orbi abre para gravar (Configurações › Servidor MCP), sem React. */
 export type ChromeForm = SetChromeSettings;
 
 export function formOf(s: ChromeSettings): ChromeForm {
-  return { browser: s.browser, browserUrl: s.browserUrl, showWindow: s.showWindow, autostart: s.autostart, profileDir: s.profileDir, executablePath: s.executablePath };
+  return { browser: s.browser, browserUrl: s.browserUrl, showWindow: s.showWindow, profileDir: s.profileDir, executablePath: s.executablePath };
 }
 
 /** What goes to the runtime: blanks are "use the default", and the address only with "seu Chrome". */
@@ -24,10 +24,9 @@ export function changed(saved: ChromeSettings, f: ChromeForm): boolean {
 
 /** Said before saving: what the restart does. */
 export function restartNote(f: ChromeForm): string {
-  if (!f.autostart) return 'Salvar desliga o navegador do Orbi: procedimentos e “Mostrar no navegador” ficam sem navegador até você ligar de novo.';
   return f.browser === 'seu'
     ? 'Salvar reconecta o Orbi ao seu Chrome. Suas abas continuam abertas.'
-    : 'Salvar reinicia o navegador do Orbi e fecha as abas dele. Os logins ficam guardados no perfil.';
+    : 'Salvar fecha o navegador do Orbi; ele abre de novo no próximo uso. Os logins ficam guardados no perfil.';
 }
 
 /** A hint before sending, same rule as the runtime: only a Chrome on this machine. */

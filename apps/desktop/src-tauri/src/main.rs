@@ -162,8 +162,8 @@ fn start_runtime(app: &App) -> Option<Child> {
     }
 }
 
-/// Closing the app ends the runtime and everything it started (the chrome-devtools-mcp node
-/// process). On Windows, killing the runtime alone would leave its children running, so the
+/// Closing the app ends the runtime and everything it started (the MCP servers it launched by
+/// command, the Chrome it opened to record). On Windows, killing the runtime alone would leave its children running, so the
 /// whole tree goes (taskkill /T). Elsewhere the runtime ends its children on exit.
 fn stop_runtime(mut child: Child) {
     #[cfg(windows)]

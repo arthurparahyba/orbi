@@ -43,7 +43,6 @@ import { ToolOutcomes, type ToolOutcome } from './contexts/telemetry/index.ts';
 import { log } from './contexts/telemetry/index.ts';
 import type { InboxItem } from './contexts/talk/index.ts';
 import type { ConversationInfo } from './contexts/talk/index.ts';
-import { startBridge, type RunningBridge } from './contexts/tools/index.ts';
 import { binaryStatus } from './contexts/tools/index.ts';
 import type { OrbiServices } from './services.ts';
 
@@ -93,6 +92,7 @@ export async function createOrbi(
   const pipelineRuns = new PipelineRuns(db);
   const codeAgents = overrides.codeAgents ?? new CodeAgents(db, config.codeAgent);
   const mcpServers = new McpServers(db);
+  const mcpHub = new McpHub(mcpServers, vault, join(config.dataDir, 'mcp'));
 
   const services: OrbiServices = {
     config: finalConfig,
@@ -100,7 +100,7 @@ export async function createOrbi(
     modelTiers: new ModelTiers(preferences),
     modelRoles: new ModelRoles(preferences),
     mcpServers,
-    mcpHub: new McpHub(mcpServers, vault, join(config.dataDir, 'mcp')),
+    mcpHub,
     observations: new RunObservations(),
     candidates: new KnowledgeCandidates(),
     events,
@@ -133,7 +133,7 @@ export async function createOrbi(
     stt,
     voice,
     chrome,
-    browser: overrides.browser ?? createBrowserMcp({ port: config.chrome.port, token: config.chrome.token }),
+    browser: overrides.browser ?? createBrowserMcp({ servers: mcpServers, hub: mcpHub }),
     recorder: overrides.recorder ?? createRecorder({ chrome, vault, stt, onChange: (id) => events.emit('recording', id) }),
     codeAgents,
     diagnoses: overrides.diagnoses ?? new Diagnoses(db),
@@ -264,9 +264,7 @@ function importLegacyState(config: OrbiConfig, to: { inbox: Inbox; conversations
 
 /** What runs in the background once the server is up. `stop()` ends all of it. */
 export interface Background {
-  bridge(): RunningBridge | undefined;
-  bridgeError(): string | undefined;
-  /** After the Chrome settings change: closes the bridge and Orbi's Chrome, starts again if autostart. */
+  /** Depois que os ajustes do Chrome mudam: fecha o Chrome do Orbi, que abre de novo no próximo uso. */
   restartChrome(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -298,7 +296,6 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
       void sendReview(s, agent, conversationId);
     },
   });
-  let chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
   // The MCP servers the developer added: connected and their tool lists brought up to date.
   for (const server of s.mcpServers.list().filter((x) => x.enabled)) {
     s.mcpHub.refresh(server.id).catch((error) => log.warn('servidor MCP não conectou', { server: server.id, error: String(error) }));
@@ -306,29 +303,22 @@ export function startBackground(s: OrbiServices, agent: Agent): Background {
   warmVoice(s.voice, s.stt);
   const timers = [startFollowups(s, agent, s.config.followupIntervalMs), ...(s.config.parentPid ? [watchParent(s.config.parentPid)] : [])];
   for (const t of timers) t.unref();
-  // Whatever way the runtime ends (app closed, Ctrl+C, the parent gone), what it started ends
-  // with it: the chrome-devtools-mcp process and the Chrome it opened. 'exit' runs only sync code.
+  // De todo jeito que o runtime termina (app fechado, Ctrl+C, pai morto), o que ele abriu termina
+  // com ele: o Chrome do gravador e os servidores MCP. 'exit' só roda código síncrono.
   process.once('exit', () => {
-    chrome?.bridge?.killNow();
     s.chrome.stop();
     s.mcpHub.killNow();
   });
 
   return {
-    bridge: () => chrome?.bridge,
-    bridgeError: () => (chrome ? chrome.error : 'desligado'),
     async restartChrome() {
-      // Still starting: let it finish first, so the old bridge does not keep the port.
-      await chrome?.started;
-      await chrome?.bridge?.close();
+      // O Chrome do gravador: fechar é o bastante, porque ele abre de novo no próximo uso.
       s.chrome.stop();
-      chrome = s.config.chrome.autostart ? startChromeBridge(s) : undefined;
-      log.info('Chrome DevTools reiniciado com as configurações novas', { autostart: s.config.chrome.autostart, seuChrome: !!s.config.chrome.browserUrl });
+      log.info('Chrome do Orbi fechado com os ajustes novos', { seuChrome: !!s.config.chrome.browserUrl });
     },
     async stop() {
       unwatch();
       for (const t of timers) clearInterval(t);
-      await chrome?.bridge?.close();
       s.chrome.stop();
       await s.mcpHub.closeAll();
     },
@@ -343,28 +333,6 @@ function logStartup({ config, llm }: OrbiServices) {
   }
   const missing = Object.entries(binaryStatus(config.allowedBinaries)).filter(([, at]) => !at).map(([b]) => b);
   if (missing.length) log.warn('comandos não encontrados no PATH', { missing });
-}
-
-/** The bridge attaches to the shared Chrome, launched lazily on the first tool call. */
-function startChromeBridge(s: OrbiServices): { bridge?: RunningBridge; error?: string; started: Promise<void> } {
-  const state: { bridge?: RunningBridge; error?: string; started: Promise<void> } = { started: Promise.resolve() };
-  state.started = startBridge({
-    port: s.config.chrome.port,
-    token: s.config.chrome.token,
-    chrome: { browserUrl: s.chrome.debugUrl() },
-    beforeToolCall: async () => {
-      await s.chrome.ensure();
-    },
-  })
-    .then((b) => {
-      state.bridge = b;
-      log.info('Chrome DevTools MCP conectado', { url: b.url, tools: b.toolNames.length });
-    })
-    .catch((error) => {
-      state.error = error instanceof Error ? error.message : String(error);
-      log.error('bridge do Chrome não subiu', { error: state.error });
-    });
-  return state;
 }
 
 /** Follow-ups: Orbi wakes itself up when a scheduled check-in is due. */

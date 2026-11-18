@@ -10,15 +10,19 @@ import { dirname } from 'node:path';
 import { savePath } from './terminal.ts';
 
 /**
- * Browser: reading comes through the native MCP mount (`mcp__chrome__*`, see
- * agents/orbi.ts) or `browser_read` for subagents; acting goes through
- * `browser_act`, behind the autonomy gate, with credentials from the vault.
+ * Navegador (documento 31): o servidor MCP que o desenvolvedor cadastrou e marcou como navegador.
+ * A leitura de página chega ao modelo pelas ferramentas desse servidor (`mcp__<servidor>__*`, com
+ * autonomia por ferramenta) ou por `browser_read` nos subagentes; agir passa por `browser_act`,
+ * atrás do portão de autonomia, com as credenciais vindas do cofre.
+ *
+ * Sem servidor marcado as duas recusam com a frase que diz o que fazer (`NO_BROWSER`): o Orbi
+ * segue trabalhando sem navegador, e diz isso em vez de falhar no meio de um passo.
  */
 
 export const browserRead = (browser: Pick<BrowserMcp, 'call'>) => defineTool({
   name: 'browser_read',
   description:
-    'Read-only browser access (Chrome DevTools MCP): list_pages, new_page, navigate_page, take_snapshot, take_screenshot, wait_for, console and network listing. Pass the page-scoped tools a `pageId` from list_pages.',
+    'Read-only browser access, through the MCP server marked as the browser (e.g. chrome-devtools-mcp): list_pages, new_page, navigate_page, take_snapshot, take_screenshot, wait_for, console and network listing. Pass the page-scoped tools a `pageId` from list_pages. Refused when no browser server is marked.',
   input: v.object({ tool: v.string(), args: v.optional(v.record(v.string(), v.unknown())) }),
   timeoutMs: 120_000,
   async run({ data, signal }) {
@@ -33,7 +37,7 @@ function useBrowser(ctx: AgentContext, { vault, browser, config }: Deps<'vault' 
   ctx.gated({
     name: 'browser_act',
     description:
-      'Act on a web page through Chrome DevTools MCP: click, fill, fill_form, press_key, hover, select_page, handle_dialog, upload_file, evaluate_script, close_page. Get element `uid`s from take_snapshot first and pass `pageId`. ' +
+      'Act on a web page through the MCP server marked as the browser (e.g. chrome-devtools-mcp): click, fill, fill_form, press_key, hover, select_page, handle_dialog, upload_file, evaluate_script, close_page. Get element `uid`s from take_snapshot first and pass `pageId`. ' +
       'Credentials: write the reference exactly as the playbook has it, e.g. value "{{segredo:portal.local/senha}}" — it is replaced from the vault inside this tool; you never see or type the real value. ' +
       'To keep what the page returns (e.g. evaluate_script extracting a list), pass saveTo: the result goes straight to that file (the JSON inside a ```json block, if there is one) and you get the path, never copy it by hand.',
     input: v.object({

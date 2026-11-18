@@ -11,15 +11,14 @@ import { installErrorHandling } from '../src/http/errors.ts';
 
 /** Orbi's browser configured from Configurações › Ferramentas (MCP) (docs/funcionalidades/20, fase 2). */
 
-const base = { browser: 'proprio' as const, browserUrl: null, showWindow: true, autostart: true, profileDir: null, executablePath: null };
+const base = { browser: 'proprio' as const, browserUrl: null, showWindow: true, profileDir: null, executablePath: null };
 
 test('navegador: o que vem do .env aparece na tela', () => {
   const cwd = mkdtempSync(join(tmpdir(), 'orbi-chrome-'));
-  const c = loadConfig({ CHROME_HEADLESS: 'true', CHROME_MCP_AUTOSTART: 'false' }, cwd);
+  const c = loadConfig({ CHROME_HEADLESS: 'true' }, cwd);
   const s = chromeSettings(c.chrome);
   assert.equal(s.browser, 'proprio');
   assert.equal(s.showWindow, false);
-  assert.equal(s.autostart, false);
   assert.equal(s.profileDir, join(cwd, 'data', 'chrome-profile'));
   assert.equal(s.debugPort, 9333);
   assert.ok(s.detected || s.detectError, 'diz qual Chrome achou, ou por que não achou');
@@ -40,16 +39,14 @@ test('navegador: salvar grava no .env, vale na hora e limpar volta ao padrão', 
   const cwd = mkdtempSync(join(tmpdir(), 'orbi-chrome-'));
   const config = loadConfig({}, cwd);
   const env: NodeJS.ProcessEnv = {};
-  const r = applyChromeSettings({ ...base, browser: 'seu', browserUrl: 'http://127.0.0.1:9222', showWindow: false, autostart: false }, config, env);
+  const r = applyChromeSettings({ ...base, browser: 'seu', browserUrl: 'http://127.0.0.1:9222', showWindow: false }, config, env);
   assert.ok('settings' in r);
   assert.equal(r.settings.browser, 'seu');
   assert.equal(config.chrome.browserUrl, 'http://127.0.0.1:9222');
   assert.equal(config.chrome.headless, true);
-  assert.equal(config.chrome.autostart, false);
   const file = readFileSync(join(cwd, '.env'), 'utf8');
   assert.match(file, /CHROME_BROWSER_URL='http:\/\/127\.0\.0\.1:9222'/);
   assert.match(file, /CHROME_HEADLESS='true'/);
-  assert.equal(env.CHROME_MCP_AUTOSTART, 'false');
 
   applyChromeSettings(base, config, env);
   assert.equal(config.chrome.browserUrl, undefined, 'perfil próprio de novo');

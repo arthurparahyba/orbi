@@ -19,7 +19,7 @@ export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): vo
       <button type="button" className="link-btn small" onClick={onBack}>← Ferramentas (MCP)</button>
       <div className="row mcp-head">
         <div>
-          <h2>{d.name} <span className={`pill ${state.pill}`}>{state.text}</span></h2>
+          <h2>{d.name} <span className={`pill ${state.pill}`}>{state.text}</span>{d.isBrowser && <span className="pill tiny">navegador do Orbi</span>}</h2>
           <p className="muted small mono">{howLine(d)}</p>
           {Object.entries(d.transport === 'command' ? d.env : d.headers).map(([k, v]) => <p key={k} className="muted small mono">{k}{d.transport === 'command' ? '=' : ': '}{v}</p>)}
           {d.state === 'erro' && d.error && <p className="form-error">{d.error}</p>}
@@ -27,12 +27,21 @@ export function ServerPage({ id, onBack, onRemoved }: { id: string; onBack(): vo
         <div className="row">
           <button type="button" className="btn small" onClick={() => void act(() => api.refreshMcpServer(id))}>Reconectar</button>
           <button type="button" className="btn small" onClick={() => void act(() => api.editMcpServer(id, { enabled: !d.enabled }))}>{d.enabled ? 'Desligar' : 'Ligar'}</button>
+          <button type="button" className="btn small" onClick={() => void act(() => api.setBrowserServer(id, !d.isBrowser))}>
+            {d.isBrowser ? 'Não é o navegador' : 'É o navegador do Orbi'}
+          </button>
           {confirm
             ? <><button type="button" className="btn small danger" onClick={() => void act(async () => { await api.removeMcpServer(id); onRemoved(); })}>Remover de vez</button><button type="button" className="btn small" onClick={() => setConfirm(false)}>Não</button></>
             : <button type="button" className="btn small" onClick={() => setConfirm(true)}>Remover</button>}
         </div>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
+      {d.isBrowser && (
+        <p className="muted small">
+          O <code>browser_act</code> dos procedimentos e as leituras de página vão para este servidor. Um só pode ser o
+          navegador: marcar outro desmarca este.
+        </p>
+      )}
       {d.state === 'aprovar' && (
         <ConfirmCommand line={howLine(d)} action="Aprovar e iniciar" onRun={() => void act(() => api.approveMcpServer(id))} />
       )}

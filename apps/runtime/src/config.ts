@@ -127,12 +127,13 @@ interface Paths {
   dataDir: string;
 }
 
+/**
+ * O Chrome que o Orbi abre para gravar uma demonstração (documento 06). Não tem mais ponte nem
+ * servidor MCP embarcado: o navegador do agente é um servidor que o desenvolvedor cadastra
+ * (documento 31).
+ */
 function chromeConfig(env: NodeJS.ProcessEnv, { path, dataDir }: Paths) {
   return {
-    /** Port of the local stdio→HTTP bridge in front of chrome-devtools-mcp. */
-    port: Number(env.CHROME_MCP_PORT ?? '8931'),
-    /** Bearer token the bridge requires. Generated per process when unset. */
-    token: env.CHROME_MCP_TOKEN ?? randomBytes(24).toString('hex'),
     /** Attach to the developer's Chrome (remote debugging on) instead of launching a separate profile. */
     browserUrl: env.CHROME_BROWSER_URL || undefined,
     headless: env.CHROME_HEADLESS === 'true',
@@ -141,8 +142,6 @@ function chromeConfig(env: NodeJS.ProcessEnv, { path, dataDir }: Paths) {
     /** Its profile: logins made in it persist between runs. */
     profileDir: path(env.CHROME_PROFILE_DIR || `${dataDir}/chrome-profile`),
     executablePath: env.CHROME_PATH || undefined,
-    /** Start the bridge together with the server. */
-    autostart: env.CHROME_MCP_AUTOSTART !== 'false',
   };
 }
 
@@ -191,7 +190,6 @@ export function validateConfig(c: OrbiConfig): string[] {
   const port = (name: string, value: number) => {
     if (!Number.isInteger(value) || value < 1 || value > 65535) problems.push(`${name} deve ser uma porta (1–65535), veio ${value}`);
   };
-  port('CHROME_MCP_PORT', c.chrome.port);
   port('CHROME_DEBUG_PORT', c.chrome.debugPort);
   if (!['local', 'http', 'off'].includes(c.stt.backend)) problems.push(`ORBI_STT deve ser local, http ou off (veio ${c.stt.backend})`);
   if (c.stt.backend === 'http' && !c.stt.url) problems.push('ORBI_STT=http precisa de ORBI_STT_URL');

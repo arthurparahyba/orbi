@@ -28,7 +28,6 @@ export function Orbi({ id }: { id: string }) {
   const role = turnRole({ openRun: procedures.execution.openRunIn(id), reviewAsksChange });
   const model = modelForTurn(all.llm, resolveRoles(all.llm, all.modelRoles.all(), all.modelTiers.all()), role, all.conversations.get(id)?.model);
   useModel(model, { thinkingLevel: 'low' });
-  useMcpConnection(all.browser.connection);
   useSubagent({ ...investigadorFor(all), model });
   useSkill(aprenderProcedimento);
   useSkill(corrigirProcedimento);

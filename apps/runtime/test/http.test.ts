@@ -183,7 +183,7 @@ test('health, rota inexistente e token', async () => {
   const auth = { authorization: 'Bearer segredo' };
   const health = await call('GET', '/api/health', undefined, auth);
   assert.equal(health.json.llm, 'anthropic');
-  assert.deepEqual(health.json.chrome, { error: 'desligado' });
+  assert.deepEqual(health.json.browser, { serverId: null }, 'a aplicação é instalada sem navegador nenhum');
   const missing = await call('GET', '/api/nada', undefined, auth);
   assert.equal(missing.status, 404);
   isApiError(missing.json, 'not_found');

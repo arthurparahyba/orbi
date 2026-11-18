@@ -344,4 +344,9 @@ ALTER TABLE entities ADD COLUMN checked_at TEXT;`,
     name: 'receita de atualização: qual procedimento confere na fonte um fato deste tipo (documento 28, fase D)',
     sql: `ALTER TABLE types ADD COLUMN refresh TEXT;`,
   },
+  {
+    // O Chrome deixou de vir embarcado: quem diz qual servidor MCP é o navegador é o desenvolvedor.
+    name: 'qual servidor MCP é o navegador do Orbi (documento 31)',
+    sql: `ALTER TABLE mcp_servers ADD COLUMN is_browser INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

@@ -73,7 +73,8 @@ export class McpHub {
   }
 
   /** Calls one tool. The text comes back without credential values, cut at 30 000 characters. */
-  async call(id: string, tool: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<string> {
+  /** `full`: a resposta inteira, para quem vai gravá-la em arquivo (o `saveTo` do navegador). */
+  async call(id: string, tool: string, args: Record<string, unknown>, signal?: AbortSignal, opts: { full?: boolean } = {}): Promise<string> {
     const conn = await (this.conns.get(id) ?? this.connect(id));
     const { value, used } = await this.vault.resolve(args);
     const secrets = [...conn.secrets, ...used];
@@ -84,7 +85,7 @@ export class McpHub {
       const parts = (result.content ?? []).map((p) => (p.type === 'text' ? p.text ?? '' : `[${p.type}]`));
       const text = redact(parts.join('\n') || (result.structuredContent ? JSON.stringify(result.structuredContent) : ''), secrets);
       if (result.isError) throw new Error(text || `${tool} falhou`);
-      return text.length > MAX_OUTPUT ? `${text.slice(0, MAX_OUTPUT)}\n…[truncado]` : text;
+      return !opts.full && text.length > MAX_OUTPUT ? `${text.slice(0, MAX_OUTPUT)}\n…[truncado]` : text;
     } catch (error) {
       // A dropped connection: the next call connects again.
       if (/fetch failed|ECONNREFUSED|socket|closed/i.test(messageOf(error))) this.conns.delete(id);

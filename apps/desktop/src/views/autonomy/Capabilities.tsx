@@ -32,8 +32,15 @@ export function Capabilities({ health }: { health?: Health }) {
         </div>
       ))}
       <div className="auto-row">
-        <div><strong>Chrome DevTools MCP</strong><p className="muted small">{health && 'tools' in health.chrome ? health.chrome.url : health && 'error' in health.chrome ? health.chrome.error : ''}</p></div>
-        <span className={`pill ${health && 'tools' in health.chrome ? 'pill-done' : 'pill-failed'}`}>{health && 'tools' in health.chrome ? `${health.chrome.tools} ferramentas` : 'Indisponível'}</span>
+        <div>
+          <strong>Navegador</strong>
+          <p className="muted small">
+            {health?.browser.serverId
+              ? `servidor MCP ${health.browser.serverId}`
+              : 'nenhum servidor MCP marcado como navegador — cadastre um em Servidor MCP (ex.: npx chrome-devtools-mcp) e marque lá'}
+          </p>
+        </div>
+        <span className={`pill ${health?.browser.serverId ? 'pill-done' : 'pill-failed'}`}>{health?.browser.serverId ? 'Marcado' : 'Sem navegador'}</span>
       </div>
     </section>
   );

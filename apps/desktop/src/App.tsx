@@ -57,7 +57,6 @@ export function App() {
   const waiting = open.filter(needsYou);
 
   const online = !health.error && !!health.data;
-  const chromeOk = health.data && 'tools' in health.data.chrome;
 
   // Until the runtime answers and the first data arrives: a loading screen, not empty screens.
   if (!booted({ health: health.data, inbox: inbox.data })) return <Splash error={health.error} health={health.data} inbox={inbox.data} />;
@@ -112,7 +111,6 @@ export function App() {
           <RailButton active={screen === 'autonomia'} onClick={() => setScreen('autonomia')} label="Configurações"><DialIcon /></RailButton>
           <div className="rail-foot">
             <span className={`dot ${online ? 'ok' : 'bad'}`} title={online ? `Runtime conectado · ${health.data?.model}` : `Runtime offline: ${health.error ?? ''}`} />
-            <span className={`dot ${chromeOk ? 'ok' : 'off'}`} title={chromeOk ? 'Chrome DevTools MCP conectado' : 'Chrome DevTools MCP indisponível'} />
           </div>
         </nav>
         <main className="screen">

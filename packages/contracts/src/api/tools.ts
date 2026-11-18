@@ -67,6 +67,8 @@ export interface McpServer {
   /** Environment of the program: values with credentials only as vault references. */
   env: Record<string, string>;
   enabled: boolean;
+  /** Este é o navegador do Orbi: `browser_act` e as leituras de página vão para ele (documento 31). */
+  isBrowser: boolean;
   /** aprovar: the command is new or changed and waits for you before it runs. */
   state: 'conectado' | 'erro' | 'desligado' | 'conectando' | 'aprovar';
   error: string | null;
@@ -81,17 +83,19 @@ export type McpTestResult =
   | { ok: false; error: string };
 
 /** GET /api/browser/settings: how Orbi's browser runs. Ports are shown, not edited here. */
+/**
+ * O Chrome que o Orbi abre para **gravar uma demonstração** (documento 06). Não tem mais nada a
+ * ver com MCP: o servidor de navegador é cadastrado pelo desenvolvedor (documento 31).
+ */
 export interface ChromeSettings {
   /** proprio: Orbi's own profile; seu: attach to the developer's Chrome (remote debugging on). */
   browser: 'proprio' | 'seu';
   browserUrl: string | null;
   showWindow: boolean;
-  autostart: boolean;
   profileDir: string;
   executablePath: string | null;
   /** The Chrome found on this machine, or why none was. */
   detected: string | null;
   detectError: string | null;
-  port: number;
   debugPort: number;
 }

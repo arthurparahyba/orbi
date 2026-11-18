@@ -31,11 +31,10 @@ Object.assign(process.env, {
 const { startFakePortal, FAKE_PORTAL_CREDENTIALS } = await import('./fake-portal.ts');
 const { demonstrationMessage } = await import('../src/contexts/tools/browser/src/recorder.ts');
 const { redact } = await import('../src/contexts/secrets/index.ts');
-const { startBridge } = await import('../src/contexts/tools/browser/src/mcp/bridge.ts');
 const { loadConfig } = await import('../src/config.ts');
 const { createOrbi } = await import('../src/compose.ts');
 // The same parts the server uses, built by the composition root.
-const orbi = await createOrbi(loadConfig({ ...process.env, CHROME_MCP_AUTOSTART: 'false' }));
+const orbi = await createOrbi(loadConfig({ ...process.env }));
 const { recorder, vault, config } = orbi;
 const ensureChrome = () => orbi.chrome.ensure();
 const chromeDebugUrl = () => orbi.chrome.debugUrl();
@@ -110,11 +109,16 @@ try {
   assert.match(message, /FALA {2}"Na aba configuração/);
   console.log('\n--- mensagem para o agente ---\n' + message + '\n---');
 
-  step('Reexecutando pelo caminho do agente (chrome-devtools-mcp + cofre)');
-  const bridge = await startBridge({
-    port: config.chrome.port, token: config.chrome.token,
-    chrome: { browserUrl: chromeDebugUrl() }, beforeToolCall: async () => { await ensureChrome(); },
+  // O navegador do agente não vem mais embarcado (documento 31): aqui ele é cadastrado como um
+  // servidor MCP por comando e marcado como navegador, que é exatamente o que o desenvolvedor faz.
+  step('Reexecutando pelo caminho do agente (servidor MCP de navegador cadastrado + cofre)');
+  orbi.mcpServers.add({
+    id: 'navegador-do-teste', name: 'Chrome DevTools (teste)', transport: 'command',
+    command: { program: 'npx', args: ['-y', 'chrome-devtools-mcp@latest', `--browserUrl=${chromeDebugUrl()}`] },
+    approved: true,
   });
+  orbi.mcpServers.setBrowser('navegador-do-teste');
+  await orbi.mcpHub.refresh('navegador-do-teste');
   try {
     const pagesText = await callBrowserTool('list_pages', {});
     const pageId = Number(pagesText.match(/^(\d+): .*\/apps\/novo-front/m)?.[1]);
@@ -140,7 +144,7 @@ try {
     assert.equal(portal.state.versions['novo-front'], '2.5.0');
     console.log('  login com {{segredo:…}} ok; versão 2.5.0 salva no portal');
   } finally {
-    await bridge.close();
+    await orbi.mcpHub.disconnect('navegador-do-teste');
   }
   console.log('\n✔ demonstração gravada, credenciais no cofre, reexecução ok');
 } finally {

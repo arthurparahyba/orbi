@@ -3,14 +3,14 @@ import { changed, formOf, requestOf, restartNote, urlHint } from '../src/views/a
 import type { ChromeSettings } from '../src/api';
 
 const saved: ChromeSettings = {
-  browser: 'proprio', browserUrl: null, showWindow: true, autostart: true, profileDir: '/dados/chrome-profile',
-  executablePath: null, detected: '/usr/bin/google-chrome', detectError: null, port: 8931, debugPort: 9333,
+  browser: 'proprio', browserUrl: null, showWindow: true, profileDir: '/dados/chrome-profile',
+  executablePath: null, detected: '/usr/bin/google-chrome', detectError: null, debugPort: 9333,
 };
 
 describe('navegador do Orbi (Configurações › Ferramentas MCP)', () => {
   it('em branco é o padrão; endereço só com o seu Chrome; pasta só com o perfil próprio', () => {
     expect(requestOf({ ...formOf(saved), executablePath: '  ', browserUrl: 'http://127.0.0.1:9222' })).toEqual({
-      browser: 'proprio', browserUrl: null, showWindow: true, autostart: true, profileDir: '/dados/chrome-profile', executablePath: null,
+      browser: 'proprio', browserUrl: null, showWindow: true, profileDir: '/dados/chrome-profile', executablePath: null,
     });
     expect(requestOf({ ...formOf(saved), browser: 'seu', browserUrl: ' http://127.0.0.1:9222 ' })).toMatchObject({ browserUrl: 'http://127.0.0.1:9222', profileDir: null });
   });
@@ -27,9 +27,8 @@ describe('navegador do Orbi (Configurações › Ferramentas MCP)', () => {
     expect(urlHint({ ...formOf(saved), browser: 'seu', browserUrl: 'http://localhost:9222' })).toBeUndefined();
   });
 
-  it('avisa o que reiniciar faz', () => {
-    expect(restartNote(formOf(saved))).toMatch(/fecha as abas/);
+  it('avisa o que salvar faz com o Chrome do gravador', () => {
+    expect(restartNote(formOf(saved))).toMatch(/abre de novo no próximo uso/);
     expect(restartNote({ ...formOf(saved), browser: 'seu' })).toMatch(/continuam abertas/);
-    expect(restartNote({ ...formOf(saved), autostart: false })).toMatch(/desliga o navegador/);
   });
 });
