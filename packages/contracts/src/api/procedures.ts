@@ -116,3 +116,24 @@ export interface ShareProcedure {
   /** Os fatos que você pode escolher, com o que cada um revela. */
   facts: Array<{ id: string; type: string; reveals: string }>;
 }
+
+/**
+ * POST /api/brain/procedures/package (ler) e /import (aplicar) — o que a caixinha mostra de um
+ * pacote que chegou de outra pessoa: o que ele é, o que vai entrar, e o que já existe aqui.
+ */
+export interface PackageSeen {
+  name: string;
+  description: string;
+  domain: string | null;
+  counts: { steps: number; inputs: number; outputs: number; scripts: number };
+  /** Já existe um procedimento com este nome aqui: aplicar não vai em cima dele. */
+  conflict: boolean;
+  newTypes: string[];
+  keptTypes: string[];
+  newFacts: string[];
+  keptFacts: string[];
+  /** Os segredos que o Orbi vai pedir quando rodar, e os que você já tem no cofre. */
+  secretsToAsk: string[];
+  secretsHeld: string[];
+  learnings: number;
+}

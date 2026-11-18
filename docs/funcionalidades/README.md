@@ -41,7 +41,7 @@ e [plugins](../plugins.md).
 | 27 | [Camada de casos de uso](27-camada-de-casos-de-uso.md) | A funcionalidade escrita em chamadas, em `contexts/<contexto>/use-cases/`: recebe o pedido, chama os vizinhos pela porta deles, devolve o que aconteceu. Não importa implementação nem fala com a conversa; `test/use-cases.test.ts` guarda |
 | 28 | [Domínios do cérebro](28-dominios-do-cerebro.md) | O assunto em que cada coisa foi aprendida, a herança do domínio na hora de guardar, as pontes entre domínios, a procedência de cada fato e a receita de atualização |
 | 29 | [Registro do runtime](29-registro-do-runtime.md) | Autonomia › Acompanhar › **Logs**: as últimas linhas do `runtime.log`, com filtro por nível e por texto, segredos limpos antes de aparecer |
-| 30 | [Compartilhar um procedimento](30-compartilhar-procedimento.md) | Cérebro › Procedimentos › **Exportar…**: o pacote que vai para outra pessoa — vocabulário viaja, dados não |
+| 30 | [Compartilhar um procedimento](30-compartilhar-procedimento.md) | Cérebro › Procedimentos › **Exportar…** e **Importar procedimento…** (ou arrastar o arquivo na janela): vocabulário viaja, dados não; e o que chega entra em N1 |
 
 ## Como as funcionalidades se ligam
 

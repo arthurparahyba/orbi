@@ -138,6 +138,84 @@ export const EditPlaybook = v.object({
     effect: v.optional(v.picklist(['local', 'publica'])),
   }))),
 });
+/**
+ * POST /api/brain/procedures/import — o pacote que chegou de outra pessoa (documento 30). Ele vem
+ * de fora: é a única entrada do Orbi que não foi escrita aqui nem pelo modelo, e por isso nada
+ * passa sem este esquema. Campos a mais são recusados de propósito (`strictObject`): um pacote que
+ * traz `level`, `uses` ou prova foi mexido à mão, e não é para ele ser aceito e limpado em
+ * silêncio — é para a pessoa saber.
+ */
+const SharedName = v.pipe(v.string(), v.trim(), v.regex(/^[a-z0-9][a-z0-9-]{0,63}$/, 'nome do procedimento: minúsculas, números e -'));
+export const ProcedurePackage = v.strictObject({
+  orbi: v.literal(1, 'este pacote é de uma versão do Orbi que esta não sabe ler'),
+  exportedAt: v.string(),
+  procedure: v.strictObject({
+    name: SharedName,
+    description: v.string(),
+    trigger: v.string(),
+    appliesTo: v.nullable(v.string()),
+    instructions: v.string(),
+    steps: v.pipe(v.array(PlaybookStep), v.minLength(1, 'o procedimento precisa de pelo menos um passo')),
+    outputs: v.array(v.object({ name: v.string(), description: v.string() })),
+    scripts: v.array(v.object({
+      name: v.pipe(v.string(), v.regex(/^[a-z0-9][a-z0-9_-]{0,47}\.py$/, 'nome do script: minúsculas, números, _ ou -, terminando em .py')),
+      description: v.string(),
+      code: v.pipe(v.string(), v.maxLength(50_000, 'script grande demais (máximo 50 KB)')),
+      effect: v.optional(v.picklist(['local', 'publica'])),
+    })),
+    domain: v.optional(v.nullable(v.string())),
+    intent: v.optional(v.string()),
+    inputs: v.optional(v.array(v.object({ name: v.string(), concept: v.optional(v.string()) }))),
+  }),
+  // Os campos que faltarem ganham o valor vazio aqui, para o pacote entrar no Orbi já na forma
+  // que ele usa por dentro: nada é remontado campo a campo depois, que é onde campo se perde.
+  types: v.array(v.strictObject({
+    name: v.pipe(v.string(), v.minLength(1)),
+    description: v.string(),
+    relations: v.optional(v.record(v.string(), v.string()), {}),
+    requires: v.optional(v.array(v.string()), []),
+    domain: v.optional(v.nullable(v.string()), null),
+    refresh: v.optional(v.nullable(v.string()), null),
+    props: v.optional(v.record(v.string(), v.string()), {}),
+    knows: v.optional(v.record(v.string(), v.string()), {}),
+  })),
+  secrets: v.array(v.string()),
+  facts: v.array(v.strictObject({
+    id: v.pipe(v.string(), v.minLength(1)),
+    type: v.pipe(v.string(), v.minLength(1)),
+    props: v.optional(v.record(v.string(), v.unknown()), {}),
+    body: v.optional(v.string(), ''),
+    aliases: v.optional(v.array(v.string()), []),
+    source: v.optional(v.string(), ''),
+    domain: v.optional(v.nullable(v.string()), null),
+    foundIn: v.optional(v.nullable(v.strictObject({
+      kind: v.picklist(['cli', 'page', 'file', 'person', 'screen']),
+      ref: v.string(),
+      at: v.string(),
+    })), null),
+    updatedAt: v.optional(v.string(), ''),
+  })),
+  links: v.array(v.strictObject({
+    from: v.string(), rel: v.string(), to: v.string(),
+    attrs: v.optional(v.record(v.string(), v.unknown()), {}),
+    validFrom: v.optional(v.string(), ''),
+    validTo: v.optional(v.nullable(v.string()), null),
+  })),
+  learnings: v.array(v.strictObject({
+    id: v.optional(v.string(), ''),
+    playbook: v.string(),
+    step: v.nullable(v.string()),
+    tried: v.string(),
+    outcome: v.picklist(['funcionou', 'falhou', 'negado', 'orbi']),
+    why: v.string(),
+    source: v.optional(v.picklist(['execucao', 'revisao', 'pedido', 'orbi']), 'pedido'),
+    runId: v.optional(v.nullable(v.string()), null),
+    conversationId: v.optional(v.string(), ''),
+    times: v.optional(v.number(), 1),
+    createdAt: v.optional(v.string(), ''),
+    updatedAt: v.optional(v.string(), ''),
+  })),
+});
 export const MCP_CATEGORY = /^mcp:[a-z0-9][a-z0-9-]{0,39}:(leitura|escrita)$/;
 export const SetAutonomy = v.object({
   category: v.union([
@@ -266,6 +344,7 @@ export type StopRecording = v.InferOutput<typeof StopRecording>;
 export type SetSecret = v.InferOutput<typeof SetSecret>;
 export type SetPlaybookAutonomy = v.InferOutput<typeof SetPlaybookAutonomy>;
 export type ExportProcedure = v.InferOutput<typeof ExportProcedure>;
+export type ProcedurePackage = v.InferOutput<typeof ProcedurePackage>;
 export type EditEntity = v.InferOutput<typeof EditEntity>;
 export type CreateDomain = v.InferOutput<typeof CreateDomain>;
 export type RenameDomain = v.InferOutput<typeof RenameDomain>;

@@ -128,3 +128,66 @@ export function revealsOf(fact: Entity): string {
     .map(([key, value]) => `${key} ${String(value).slice(0, 80)}`);
   return values.length ? values.join(' · ') : fact.body.slice(0, 120) || 'nada além do nome';
 }
+
+// ── a chegada ───────────────────────────────────────────────────────────────
+
+/** O que a caixinha mostra antes de aplicar: o que vai entrar, e o que já existe aqui. */
+export interface PackageSeen {
+  name: string;
+  description: string;
+  domain: string | null;
+  /** Os números da caixinha, na ordem em que a pessoa pensa neles. */
+  counts: { steps: number; inputs: number; outputs: number; scripts: number };
+  /** Já existe um procedimento com este nome aqui: aplicar não vai em cima dele. */
+  conflict: boolean;
+  /** Conceitos que vão nascer agora; os que já existem ficam como estão. */
+  newTypes: string[];
+  keptTypes: string[];
+  /** Fatos que vão entrar; os que já existem aqui não são tocados. */
+  newFacts: string[];
+  keptFacts: string[];
+  /** Os segredos que o Orbi vai pedir quando rodar, e os que você já tem no cofre. */
+  secretsToAsk: string[];
+  secretsHeld: string[];
+  learnings: number;
+}
+
+/** O que já existe aqui, para o pacote ser lido contra a máquina de quem recebe. */
+export interface AlreadyHere {
+  procedure: boolean;
+  types: (name: string) => boolean;
+  facts: (id: string) => boolean;
+  secrets: (name: string) => boolean;
+}
+
+/**
+ * A leitura do pacote contra esta máquina. Puro de propósito: é a mesma conta que a caixinha
+ * mostra e que a aplicação faz, e as duas não podem discordar.
+ */
+export function readPackage(pack: ProcedurePackage, here: AlreadyHere): PackageSeen {
+  const p = pack.procedure;
+  const split = <T>(items: T[], has: (x: T) => boolean): [T[], T[]] => [items.filter((x) => !has(x)), items.filter(has)];
+  const [newTypes, keptTypes] = split(pack.types.map((t) => t.name), here.types);
+  const [newFacts, keptFacts] = split(pack.facts.map((f) => f.id), here.facts);
+  const [secretsToAsk, secretsHeld] = split(pack.secrets, here.secrets);
+  return {
+    name: p.name,
+    description: p.description,
+    domain: p.domain ?? null,
+    counts: { steps: p.steps.length, inputs: (p.inputs ?? []).length, outputs: p.outputs.length, scripts: p.scripts.length },
+    conflict: here.procedure,
+    newTypes, keptTypes, newFacts, keptFacts, secretsToAsk, secretsHeld,
+    learnings: pack.learnings.length,
+  };
+}
+
+/**
+ * O procedimento como ele nasce aqui. Duas coisas são decididas neste lugar e em nenhum outro:
+ * **`autonomy: 'ask'`**, que faz o procedimento entrar em N1 por mais que o pacote diga o
+ * contrário (o `save` dá N3 a quem chega marcado `auto`, e um arquivo mexido à mão não vai ganhar
+ * isso), e **`learnedFrom`**, que registra que ele veio de fora e não de uma conversa daqui.
+ */
+export function arriving(p: SharedProcedure, exportedAt: string): SharedProcedure & { autonomy: 'ask'; learnedFrom: string; variationOf: null } {
+  // `variationOf` fica nulo: a ligação com o procedimento de origem só existe no cérebro de quem mandou.
+  return { ...p, autonomy: 'ask', learnedFrom: `pacote:${exportedAt}`, variationOf: null };
+}

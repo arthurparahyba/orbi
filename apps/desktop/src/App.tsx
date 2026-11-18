@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { announceSent } from './components/chat/catchUp';
 import { api, type InboxItem } from './api';
 import { useLive, usePoll } from './hooks';
@@ -12,6 +12,8 @@ import { PipelinesView } from './views/pipelines/PipelinesView';
 import { Splash, booted } from './components/Splash';
 import { ModelSetup } from './views/setup/ModelSetup';
 import { otherRuntime } from './build';
+import { ImportProcedure } from './components/ImportProcedure';
+import { ImportContext, readProcedureFile, type Opened } from './components/ui/importFile';
 
 type Screen = 'conversa' | 'esteiras' | 'cerebro' | 'autonomia';
 
@@ -62,8 +64,45 @@ export function App() {
   const noModel = health.data?.llmReady === false;
   if (noModel && !later) return <ModelSetup onDone={() => void health.reload()} onLater={() => setLater(true)} />;
 
+
+  /**
+   * Um procedimento chega como arquivo: arrastado para cima da janela, em qualquer tela, ou
+   * escolhido pelo botão da tela de Procedimentos (documento 30). Os dois caminhos param aqui, na
+   * mesma caixinha — e o navegador abriria o arquivo na própria janela se ninguém o segurasse.
+   */
+  const [arrived, setArrived] = useState<Opened>();
+  const [refused, setRefused] = useState<string>();
+  const [dragging, setDragging] = useState(false);
+  const offer = useCallback((file: File) => {
+    setRefused(undefined);
+    void file.text().then((text) => {
+      const read = readProcedureFile(file.name, text);
+      if ('refused' in read) { setRefused(read.refused); setArrived(undefined); return; }
+      setArrived(read);
+    });
+  }, []);
+  useEffect(() => {
+    const over = (e: DragEvent) => { e.preventDefault(); setDragging(true); };
+    const left = (e: DragEvent) => { if (!e.relatedTarget) setDragging(false); };
+    const dropped = (e: DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      const file = e.dataTransfer?.files?.[0];
+      if (file) offer(file);
+    };
+    window.addEventListener('dragover', over);
+    window.addEventListener('dragleave', left);
+    window.addEventListener('drop', dropped);
+    return () => {
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('dragleave', left);
+      window.removeEventListener('drop', dropped);
+    };
+  }, [offer]);
+
   return (
     <InboxContext.Provider value={actions}>
+     <ImportContext.Provider value={offer}>
       <div className="app">
         <nav className="rail" aria-label="Telas">
           <div className="brand" title="Orbi"><OrbiIcon size={20} /></div>
@@ -98,7 +137,23 @@ export function App() {
           {screen === 'cerebro' && <BrainView />}
           {screen === 'autonomia' && <AutonomyView health={health.data} focus={autonomyFocus} onModelChanged={() => void health.reload()} waiting={waiting} onOpenConversation={openConversation} />}
         </main>
+        {dragging && <div className="drop-hint">Solte o arquivo para ver o que ele é</div>}
+        {refused && (
+          <div className="banner" role="alert">
+            <span>{refused}</span>
+            <button type="button" className="btn small" onClick={() => setRefused(undefined)}>Fechar</button>
+          </div>
+        )}
+        {arrived && (
+          <ImportProcedure
+            pack={arrived.pack}
+            fileName={arrived.fileName}
+            onClose={() => setArrived(undefined)}
+            onDone={() => { setArrived(undefined); setScreen('cerebro'); }}
+          />
+        )}
       </div>
+     </ImportContext.Provider>
     </InboxContext.Provider>
   );
 }

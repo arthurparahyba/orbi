@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
-import { CreateDomain, EditEntity, EditPlaybook, ExportProcedure, RenameDomain, SetDomain, SetPlaybookAutonomy, SetRefresh } from '@orbi/contracts';
+import { CreateDomain, EditEntity, EditPlaybook, ExportProcedure, ProcedurePackage, RenameDomain, SetDomain, SetPlaybookAutonomy, SetRefresh } from '@orbi/contracts';
 import {
   conceptsOf,
+  applyPackage,
   exportProcedure,
   exportableFacts,
   LEFT_BEHIND,
@@ -9,6 +10,7 @@ import {
   procedureProofs,
   runTranscript,
   secretsNamedIn,
+  seePackage,
   setProcedureAutonomy,
   unwaiveStepProof,
   waiveStepProof,
@@ -19,7 +21,7 @@ import { domainOverview } from './use-cases/domain-overview.ts';
 import { domainDetail } from './use-cases/domain-detail.ts';
 import { howToRefresh } from './use-cases/how-to-refresh.ts';
 import type { OrbiServices } from '../../services.ts';
-import { HttpError, body, notFound } from '../../http/errors.ts';
+import { HttpError, body, conflict, notFound } from '../../http/errors.ts';
 
 /** Rule violations (an id repeated, a step without a name) are the caller's to fix: 400. */
 const invalid = (fn: () => unknown) => {
@@ -139,6 +141,13 @@ export function brainRoutes(s: OrbiServices, overview: BrainOverview) {
     .delete('/playbooks/:name', (c) => {
       if (!procedures.definition.playbook(c.req.param('name'))) throw notFound('playbook');
       return c.json({ deleted: true, ...procedures.definition.deletePlaybook(c.req.param('name')) });
+    })
+    // Um pacote que chegou de outra pessoa: ler o que ele é, e aplicar (documento 30).
+    .post('/procedures/package', async (c) => c.json(seePackage(s, await body(c, ProcedurePackage))))
+    .post('/procedures/import', async (c) => {
+      const applied = applyPackage(s, await body(c, ProcedurePackage));
+      if ('refused' in applied) throw conflict(`já existe um procedimento chamado ${applied.detail} aqui`);
+      return c.json(applied.seen);
     })
     // Compartilhar um procedimento (documento 30): o que viaja, o que fica, e o arquivo.
     .get('/playbooks/:name/share', (c) => {

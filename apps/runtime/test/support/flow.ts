@@ -31,7 +31,7 @@ export const { Configurador } = await import('../../src/agents/configurador.ts')
 export const { Revisor } = await import('../../src/agents/revisor.ts');
 export const { Diagnosticador } = await import('../../src/agents/diagnosticador.ts');
 export const { default: app } = await import('../../src/app.ts');
-export const { knowledge, procedures, trust, learning, notes, inbox } = (await import('../../src/services.ts')).services();
+export const { knowledge, procedures, trust, learning, notes, inbox, vault } = (await import('../../src/services.ts')).services();
 export const { stepClaimProblems: stepClaimProblemsOf } = await import('../../src/contexts/improvement/index.ts');
 
 export const faux = pi.fauxProvider({ provider: 'anthropic', models: [{ id: 'claude-haiku-5-5', reasoning: true, contextWindow: 200_000 }] });

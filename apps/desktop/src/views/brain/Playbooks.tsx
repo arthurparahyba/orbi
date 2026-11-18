@@ -11,6 +11,7 @@ import { PlaybookLearnings } from './PlaybookLearnings';
 import { PlaybookProofPill } from './PlaybookProofPill';
 import { PlaybookShare } from './PlaybookShare';
 import { levelPill } from './levels';
+import { useImportProcedure } from '../../components/ui/importFile';
 
 /** Each variation right after the playbook it came from. */
 export function withVariations(list: Playbook[]): Playbook[] {
@@ -24,6 +25,32 @@ export function withVariations(list: Playbook[]): Playbook[] {
   return out;
 }
 
+/**
+ * O outro caminho para importar um procedimento (documento 30): o botão abre o seletor de
+ * arquivo; arrastar o arquivo para cima da janela faz o mesmo, em qualquer tela. Fica no alto da
+ * tela e não dentro de um procedimento, porque é um arquivo chegando de fora, não deste aqui.
+ */
+function ImportBar() {
+  const offer = useImportProcedure();
+  return (
+    <div className="row gap pb-top">
+      <label className="btn small">
+        Importar procedimento…
+        <input
+          type="file"
+          accept=".json,application/json"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) offer(file);
+            e.target.value = '';
+          }}
+        />
+      </label>
+      <span className="muted small">ou arraste o arquivo para cima da janela</span>
+    </div>
+  );
+}
+
 /** Learned procedures, each with its level of autonomy (it grows with use). */
 export function Playbooks() {
   const pbs = useLive(api.playbooks, ['brain']);
@@ -31,9 +58,17 @@ export function Playbooks() {
   const [open, setOpen] = useState<string>();
   const [mode, setMode] = useState<{ name: string; kind: 'edit' | 'delete' | 'share' }>();
   if (!pbs.data) return <p className="muted pad">Carregando…</p>;
-  if (pbs.data.length === 0) return <p className="muted pad">Nenhum procedimento aprendido ainda. Ensine um na tela Conversa.</p>;
+  if (pbs.data.length === 0) {
+    return (
+      <div className="pb-list">
+        <ImportBar />
+        <p className="muted pad">Nenhum procedimento aprendido ainda. Ensine um na tela Conversa, ou importe um que alguém te mandou.</p>
+      </div>
+    );
+  }
   return (
     <div className="pb-list">
+      <ImportBar />
       {withVariations(pbs.data).map((p: Playbook) => (
         <article key={p.name} className={`pb ${p.variationOf ? 'is-variation' : ''}`}>
           <header>

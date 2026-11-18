@@ -4,7 +4,7 @@
  */
 
 import type {
-  EditPlaybook, ExportProcedure, Pipeline, PipelineRun, Playbook, PlaybookProof, PlaybookRun, RunCall, SavePipeline, ShareProcedure, StepLearning,
+  EditPlaybook, ExportProcedure, PackageSeen, ProcedurePackage, Pipeline, PipelineRun, Playbook, PlaybookProof, PlaybookRun, RunCall, SavePipeline, ShareProcedure, StepLearning,
 } from '@orbi/contracts';
 import { request, RUNTIME_URL } from './request.ts';
 
@@ -22,6 +22,10 @@ export const proceduresApi = {
   playbooks: () => request<Playbook[]>('/api/brain/playbooks'),
   /** O que vai e o que fica, antes de gerar o arquivo (documento 30). */
   shareProcedure: (name: string) => request<ShareProcedure>(`/api/brain/playbooks/${encodeURIComponent(name)}/share`),
+  /** O que um pacote que chegou é, e o que vai entrar — sem aplicar nada (documento 30). */
+  seePackage: (pack: ProcedurePackage) => request<PackageSeen>('/api/brain/procedures/package', { method: 'POST', body: JSON.stringify(pack) }),
+  /** Aplica o pacote: cria o procedimento em N1, com os conceitos que faltavam. */
+  importProcedure: (pack: ProcedurePackage) => request<PackageSeen>('/api/brain/procedures/import', { method: 'POST', body: JSON.stringify(pack) }),
   /** O pacote como texto, já pronto para virar arquivo: quem chama decide onde ele cai. */
   exportProcedure: (name: string, include: ExportProcedure) =>
     request<unknown>(`/api/brain/playbooks/${encodeURIComponent(name)}/share`, { method: 'POST', body: JSON.stringify(include) }),

@@ -17,6 +17,9 @@ export class HttpError extends Error {
 
 export const notFound = (what: string) => new HttpError(404, 'not_found', `${what} não encontrado(a)`);
 
+/** O pedido é válido, mas o que existe aqui não deixa: já tem coisa com esse nome. */
+export const conflict = (why: string) => new HttpError(409, 'conflict', why);
+
 /** Reads and validates the JSON body; an absent body counts as `{}`. */
 export async function body<S extends v.GenericSchema>(c: Context, schema: S): Promise<v.InferOutput<S>> {
   const raw = await c.req.json().catch(() => ({}));

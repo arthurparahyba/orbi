@@ -55,9 +55,44 @@ O risco desta funcionalidade não é um bug, é um vazamento: alguém acrescenta
 campo novo não escolhe sozinho de que lado fica: ou vai para `SHARED_FIELDS`, ou vai para
 `LEFT_BEHIND` com o porquê escrito — e o porquê é o que a tela mostra à pessoa.
 
+## A chegada
+
+Dois caminhos, uma caixinha: **arrastar o arquivo para cima da janela**, em qualquer tela, ou o
+botão **Importar procedimento…** no alto da tela de Procedimentos — que fica ali, e não dentro de
+um procedimento, porque é um arquivo chegando de fora e não daquele ali.
+
+A caixinha mostra o nome, o domínio, a descrição e os números: `6 passos`, `2 entradas`,
+`1 entrega`, `3 scripts`, `entra em N1`. Os números abrem ao clicar, um de cada vez — em especial
+os scripts, que são código de outra pessoa que vai rodar nesta máquina, e que dá para ler antes.
+Não há caixinha de "eu confio" nem pedido de segredo: o N1 pergunta antes de cada passo, e o
+segredo o Orbi pede na hora de usar.
+
+Três recusas fazem a importação ser segura, e todas estão em `apply-package.ts`:
+
+| Recusa | Por quê |
+|---|---|
+| Não vai em cima de um procedimento que já existe | Conflito de nome é decisão da pessoa, não do Orbi: a caixinha diz, o botão desliga |
+| Não toca em conceito nem fato que esta máquina já tem | A descrição de quem mandou não manda na sua; o valor que vale aqui é o seu |
+| Entra em N1, sempre | `arriving()` força `autonomy: 'ask'`: autonomia é uma pessoa dando permissão ao Orbi dela |
+
+O pacote é a **única entrada do Orbi que não foi escrita aqui nem pelo modelo**: vem de um
+arquivo. Por isso o esquema (`ProcedurePackage`, em `@orbi/contracts`) é `strictObject`: um pacote
+que traz `level`, `uses` ou prova foi mexido à mão e é **recusado**, não aceito e limpado em
+silêncio — a pessoa precisa saber que o arquivo não é o que diz ser. Os campos que faltam ganham
+valor vazio ali mesmo, para nada ser remontado campo a campo depois: remontar campo a campo é onde
+campo se perde.
+
+| Peça | O que faz |
+|---|---|
+| `definition/src/sharing.ts` → `readPackage`, `arriving` | a leitura do pacote contra esta máquina, e como ele nasce aqui |
+| `use-cases/see-package.ts` | a caixinha: o que é e o que vai entrar, sem aplicar |
+| `use-cases/apply-package.ts` | aplica, com as três recusas |
+| `components/ui/importFile.ts` | abre o arquivo e recusa o que não é pacote, sem ida ao runtime |
+| `components/ImportProcedure.tsx` | a caixinha |
+| `App.tsx` | o arrastar na janela, que vale em qualquer tela |
+
 ## O que falta
 
-A importação: ler o arquivo (arrastado na janela ou escolhido pelo botão **Importar
-procedimento…** no alto da tela), mostrar uma caixinha com o nome, o domínio, a descrição e os
-números — `6 passos`, `2 entradas`, `1 entrega`, `3 scripts`, `entra em N1` —, e aplicar. O
-formato tem versão (`orbi: 1`) para que quem importa recuse o que não souber ler.
+Conflito de nome hoje é parede: a pessoa renomeia ou apaga o dela antes. Importar **como variação**
+do que já existe seria o caminho natural, e precisa de uma decisão que não é técnica — qual dos dois
+é a base.

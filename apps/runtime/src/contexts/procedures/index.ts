@@ -36,6 +36,8 @@ export type { PipelineStarted, PipelineNotStarted } from './use-cases/start-pipe
 export { reportStep } from './use-cases/report-step.ts';
 export { exportProcedure, type NoProcedure } from './use-cases/export-procedure.ts';
 export { exportableFacts, type ExportableFact } from './use-cases/exportable-facts.ts';
+export { seePackage } from './use-cases/see-package.ts';
+export { applyPackage, type Applied, type Conflict } from './use-cases/apply-package.ts';
 export type { Reported, NotReported } from './use-cases/report-step.ts';
 
 export { Procedures } from './definition/src/service.ts';
